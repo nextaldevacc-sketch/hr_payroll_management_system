@@ -167,6 +167,7 @@ model users {
   status                  String                  @default("Active") @db.VarChar(20)
   failed_logins           Int                     @default(0) @db.SmallInt
   locked_until            DateTime?               @db.Timestamptz
+  token_version           Int                     @default(1)
   last_login_at           DateTime?               @db.Timestamptz
   deactivated_at          DateTime?               @db.Timestamptz
   created_at              DateTime                @default(now()) @db.Timestamptz
@@ -177,6 +178,7 @@ model users {
   company                 companies?              @relation(fields: [company_id], references: [id], onDelete: Restrict)
   employee                employees?              @relation(fields: [employee_id], references: [id], onDelete: Restrict)
   user_roles              user_roles[]
+  auth_tokens             auth_tokens[]
   platform_grants         support_access_grants[] @relation("PlatformUser")
   granted_by_user         support_access_grants[] @relation("GrantedByUser")
   requested_approvals     approval_requests[]     @relation("ApprovalRequestedBy")
@@ -196,6 +198,21 @@ model users {
   assigned_separation_tasks separation_tasks[]    @relation("SeparationTaskAssignedTo")
 
   @@index([company_id])
+}
+
+model auth_tokens {
+  id         String    @id @default(uuid()) @db.Uuid
+  user_id    String    @db.Uuid
+  token_hash String    @unique @db.VarChar(64)
+  purpose    String    @db.VarChar(30)
+  expires_at DateTime  @db.Timestamptz
+  used_at    DateTime? @db.Timestamptz
+  created_at DateTime  @default(now()) @db.Timestamptz
+
+  user       users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([token_hash])
 }
 
 model roles {

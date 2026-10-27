@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import {
   Search,
@@ -15,10 +16,12 @@ import {
 } from 'lucide-react';
 import { IconWell } from '../primitives/IconWell';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 
 export function GlassTopBar({ onToggleMobileNav }) {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { language, toggleLanguage, t, isRTL } = useLanguage();
+  const { user, logout } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
 
@@ -157,19 +160,29 @@ export function GlassTopBar({ onToggleMobileNav }) {
         </div>
 
         {/* User Menu */}
-        <div className="flex items-center gap-2.5 ps-2 border-s border-border/60 dark:border-border">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-secondary flex items-center justify-center text-white text-xs font-bold ring-2 ring-black/10 dark:ring-0">
-            FN
+        <Link
+          href="/login"
+          title="Switch User / Sign In"
+          className="flex items-center gap-2.5 ps-2 border-s border-border/60 dark:border-border hover:opacity-85 transition-opacity"
+        >
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-black/10 dark:ring-0 shadow-sm"
+            style={{
+              background: 'var(--primary)',
+              color: 'var(--on-primary)',
+            }}
+          >
+            {user?.name ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'GT'}
           </div>
           <div className="hidden sm:block text-start">
             <span className="text-xs font-bold text-text block leading-tight">
-              Fatima Al-Nuaimi
+              {user?.name || user?.email || 'Demo User'}
             </span>
-            <span className="text-[10px] text-text-muted block leading-tight">
-              HR Manager
+            <span className="text-[10px] text-amber-500 font-semibold block leading-tight">
+              {user?.roles?.[0] || 'COMPANY_ADMIN'}
             </span>
           </div>
-        </div>
+        </Link>
       </div>
     </header>
   );

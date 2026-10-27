@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './docs/swagger.js';
@@ -8,6 +9,14 @@ import { companyContextMiddleware } from './middleware/companyContext.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import prisma from './prisma/client.js';
 import auditService from './services/auditService.js';
+
+// Route modules
+import authRoutes from './routes/auth.js';
+import platformRoutes from './routes/platform.js';
+import usersRoutes from './routes/users.js';
+import approvalsRoutes from './routes/approvals.js';
+import employeesRoutes from './routes/employees.js';
+import payrollRoutes from './routes/payroll.js';
 
 const app = express();
 
@@ -24,14 +33,17 @@ app.use(
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Company-Id', 'X-Platform-Admin'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Company-Id', 'X-Platform-Admin', 'Cookie'],
   })
 );
 
-// 3. Rate Limiting
+// 3. Cookie parser
+app.use(cookieParser());
+
+// 4. Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'test' ? 10000 : 200,
+  max: process.env.NODE_ENV === 'test' ? 10000 : 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -42,18 +54,22 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// 4. JSON body parser
+// 5. JSON body parser
 app.use(express.json({ limit: '10mb' }));
 
-// 5. Company context middleware
+// 6. Company context middleware
 app.use(companyContextMiddleware);
 
-// 6. Swagger API Documentation at /api/docs
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customSiteTitle: 'Nextal HR & Payroll API Documentation',
-}));
+// 7. Swagger API Documentation at /api/docs
+app.use(
+  '/api/docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'Nextal HR & Payroll API Documentation',
+  })
+);
 
-// 7. Health Check at /api/v1/health
+// 8. Health Check at /api/v1/health
 app.get('/api/v1/health', async (req, res, next) => {
   try {
     // Ping PostgreSQL through raw query
@@ -86,7 +102,15 @@ app.get('/api/v1/health', async (req, res, next) => {
   }
 });
 
-// 8. Sample Company-Scoped API routes to demonstrate isolation & audit logging
+// 9. API Modules
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/platform', platformRoutes);
+app.use('/api/v1/company', usersRoutes);
+app.use('/api/v1/approvals', approvalsRoutes);
+app.use('/api/v1/employees', employeesRoutes);
+app.use('/api/v1/payroll', payrollRoutes);
+
+// 10. Audit history route
 app.get('/api/v1/audit/logs', async (req, res, next) => {
   try {
     if (!req.companyId && !req.isPlatformAdmin) {
@@ -115,7 +139,7 @@ app.get('/api/v1/audit/logs', async (req, res, next) => {
   }
 });
 
-// 9. Centralized Error Handler
+// 11. Centralized Error Handler
 app.use(errorHandler);
 
 export default app;

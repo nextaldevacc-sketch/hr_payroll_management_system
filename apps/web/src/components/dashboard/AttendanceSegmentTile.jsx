@@ -35,7 +35,6 @@ export function AttendanceSegmentTile({ data, onClick }) {
               {t('dashboard.attendance.present')}
             </span>
           </InsetBox>
-
           <InsetBox className="p-1.5">
             <bdi className="text-sm font-extrabold text-warning-text tabular-nums block">
               {data.late}

@@ -34,7 +34,7 @@ async function main() {
     { code: 'HR_MANAGER', name: 'HR Manager', sees_salary: true },
     { code: 'GM', name: 'General Manager', sees_salary: true },
     { code: 'FINANCE', name: 'Finance / Accounts', sees_salary: true },
-    { code: 'COMPANY_ADMIN', name: 'Company Administrator', sees_salary: true },
+    { code: 'COMPANY_ADMIN', name: 'Company Administrator', sees_salary: false },
   ];
 
   const rolesMap = {};
@@ -143,55 +143,59 @@ async function main() {
     data: { company_id: company1.id, department_id: depts1['Sales & Support'].id, title: 'Account Manager', title_ar: 'مدير حسابات', grade: 'L3' }
   });
 
-  // Users for Company 1
-  console.log('Seeding users and roles for Company 1...');
-  const userAdmin1 = await prisma.users.create({
+  // Platform Admin (Nextal Platform Owner - No Company ID)
+  console.log('Seeding Platform Admin user...');
+  const userPlatformAdmin = await prisma.users.create({
     data: {
-      company_id: company1.id,
-      email: 'admin@gulftech.ae',
+      email: 'platform@nextal.ae',
       password_hash: passwordHash,
+      is_platform_admin: true,
       status: 'Active'
     }
-  });
-  await prisma.user_roles.create({
-    data: { company_id: company1.id, user_id: userAdmin1.id, role_id: rolesMap['COMPANY_ADMIN'].id }
   });
 
-  const userHR1 = await prisma.users.create({
-    data: {
-      company_id: company1.id,
-      email: 'hr@gulftech.ae',
-      password_hash: passwordHash,
-      status: 'Active'
-    }
-  });
-  await prisma.user_roles.create({
-    data: { company_id: company1.id, user_id: userHR1.id, role_id: rolesMap['HR_MANAGER'].id }
-  });
+  // Users for Company 1 (Gulf Tech Logistics LLC) - 1 Demo User Per Role
+  console.log('Seeding demo users for Company 1 (one per role)...');
+  const demoUsersMap = {};
 
-  const userFinance1 = await prisma.users.create({
-    data: {
-      company_id: company1.id,
-      email: 'finance@gulftech.ae',
-      password_hash: passwordHash,
-      status: 'Active'
-    }
-  });
-  await prisma.user_roles.create({
-    data: { company_id: company1.id, user_id: userFinance1.id, role_id: rolesMap['FINANCE'].id }
-  });
+  const demoAccounts = [
+    { email: 'admin@gulftech.ae', roleCode: 'COMPANY_ADMIN', scopeType: 'Company' },
+    { email: 'hr.mgr@gulftech.ae', roleCode: 'HR_MANAGER', scopeType: 'Company' },
+    { email: 'hr@gulftech.ae', roleCode: 'HR_MANAGER', scopeType: 'Company' },
+    { email: 'hr.officer@gulftech.ae', roleCode: 'HR_OFFICER', scopeType: 'Company' },
+    { email: 'payroll@gulftech.ae', roleCode: 'PAYROLL_OFFICER', scopeType: 'Company' },
+    { email: 'dept.mgr@gulftech.ae', roleCode: 'DEPT_MANAGER', scopeType: 'Department' },
+    { email: 'gm@gulftech.ae', roleCode: 'GM', scopeType: 'Company' },
+    { email: 'finance@gulftech.ae', roleCode: 'FINANCE', scopeType: 'Company' },
+    { email: 'employee@gulftech.ae', roleCode: 'EMPLOYEE', scopeType: 'Company' },
+  ];
 
-  const userPayroll1 = await prisma.users.create({
-    data: {
-      company_id: company1.id,
-      email: 'payroll@gulftech.ae',
-      password_hash: passwordHash,
-      status: 'Active'
-    }
-  });
-  await prisma.user_roles.create({
-    data: { company_id: company1.id, user_id: userPayroll1.id, role_id: rolesMap['PAYROLL_OFFICER'].id }
-  });
+  for (const acc of demoAccounts) {
+    const user = await prisma.users.create({
+      data: {
+        company_id: company1.id,
+        email: acc.email,
+        password_hash: passwordHash,
+        status: 'Active'
+      }
+    });
+    demoUsersMap[acc.email] = user;
+
+    await prisma.user_roles.create({
+      data: {
+        company_id: company1.id,
+        user_id: user.id,
+        role_id: rolesMap[acc.roleCode].id,
+        scope_type: acc.scopeType,
+        scope_id: acc.scopeType === 'Department' ? depts1['Engineering'].id : null,
+      }
+    });
+  }
+
+  const userAdmin1 = demoUsersMap['admin@gulftech.ae'];
+  const userHR1 = demoUsersMap['hr.mgr@gulftech.ae'];
+  const userFinance1 = demoUsersMap['finance@gulftech.ae'];
+  const userPayroll1 = demoUsersMap['payroll@gulftech.ae'];
 
   // Approval Flows for Company 1
   console.log('Seeding approval flows for Company 1...');
@@ -400,7 +404,7 @@ async function main() {
       { code: 'HRA', name: 'Housing Allowance', category: 'Allowance', sequence: 20, amount_type: 'Percentage', formula: 'contract.housing * paid_days / month_days' },
       { code: 'TRA', name: 'Transport Allowance', category: 'Allowance', sequence: 30, amount_type: 'Percentage', formula: 'contract.transport * paid_days / month_days' },
       { code: 'OTH', name: 'Other Allowance', category: 'Allowance', sequence: 40, amount_type: 'Percentage', formula: 'contract.other_allowances * paid_days / month_days' },
-      { code: 'GROSS', name: 'Gross Salary', category: 'Basic', sequence: 50, amount_type: 'Formula', formula: 'BASIC + all allowances' },
+      { code: 'GROSS', name: 'Gross Salary', category: 'Gross', sequence: 50, amount_type: 'Formula', formula: 'BASIC + all allowances' },
       { code: 'OT_NORMAL', name: 'Normal Overtime (1.25x)', category: 'Addition', sequence: 60, amount_type: 'Formula', formula: '(basic / 30 / 8) * 1.25 * approved OT hours' },
       { code: 'OT_NIGHT', name: 'Night Overtime 10pm-4am (1.50x)', category: 'Addition', sequence: 70, amount_type: 'Formula', formula: '(basic / 30 / 8) * 1.50 * hours' },
       { code: 'OT_REST', name: 'Rest Day / Holiday Overtime (1.50x)', category: 'Addition', sequence: 80, amount_type: 'Formula', formula: 'substitute day, or (basic / 30 / 8) * 1.50 * hours' },
@@ -412,7 +416,7 @@ async function main() {
       { code: 'ADV', name: 'Salary Advance Recovery', category: 'Deduction', sequence: 140, amount_type: 'Formula', formula: 'monthly instalment from Salary Adjustments' },
       { code: 'GPSSA_EE', name: 'GPSSA UAE National Pension (Employee 5%)', category: 'Deduction', sequence: 150, amount_type: 'Percentage', formula: 'gross * 0.05' },
       { code: 'GPSSA_ER', name: 'GPSSA UAE National Pension (Employer 12.5%)', category: 'CompanyContribution', sequence: 160, amount_type: 'Percentage', formula: 'gross * 0.125' },
-      { code: 'NET', name: 'Net Pay to WPS', category: 'Basic', sequence: 170, amount_type: 'Formula', formula: 'GROSS + earnings - deductions' },
+      { code: 'NET', name: 'Net Pay to WPS', category: 'Net', sequence: 170, amount_type: 'Formula', formula: 'GROSS + earnings - deductions' },
     ];
 
     const map = {};
@@ -591,6 +595,14 @@ async function main() {
     });
   }
 
+  // Link demo employee account to Employee 1 (Ahmed Al-Mansoori)
+  if (seededEmployees[0] && demoUsersMap['employee@gulftech.ae']) {
+    await prisma.users.update({
+      where: { id: demoUsersMap['employee@gulftech.ae'].id },
+      data: { employee_id: seededEmployees[0].id }
+    });
+  }
+
   // --------------------------------------------------------------------------
   // October 2026 Biometric Imports, Punches & Attendance Days
   // --------------------------------------------------------------------------
@@ -608,21 +620,35 @@ async function main() {
     }
   });
 
-  // Seed punches and attendance_days for all 42 employees across all working days of October 2026
+  // Seed punches and attendance_days for all 42 employees across October 2026
+  // Must match the dashboard realism:
+  // - 7 days with a missing punch (single punch recorded)
+  // - Late arrivals per the policy (late by > grace_minutes)
+  // - 2 unapproved absences (no punches on that day)
+  // - Leave days for the employees on leave (no punches on those days)
+  // - OT punches matching the approved overtime (196 hours total)
   const punchesBatch = [];
   const attendanceBatch = [];
 
+  let missingPunchCount = 0;
+  let lateArrivalCount = 0;
+  let unapprovedAbsenceCount = 0;
+  let leaveDaysCount = 0;
+
   for (let d = 1; d <= 31; d++) {
     const workDate = new Date(`2026-10-${String(d).padStart(2, '0')}`);
-    const isWeekend = workDate.getDay() === 0 || workDate.getDay() === 6;
+    const dayOfWeek = workDate.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday(0) and Saturday(6)
 
-    if (!isWeekend) {
-      for (let e = 0; e < 42; e++) {
-        const emp = seededEmployees[e];
+    // Handle Weekend Overtime Punches (Rest day OT for Emp 2: 20h total across 2 Sundays Oct 11 & Oct 18)
+    if (isWeekend) {
+      if (d === 11 || d === 18) {
+        // Emp 2 has Rest Day Overtime (10h each Sunday)
+        const emp = seededEmployees[2];
         const inTime = new Date(workDate);
         inTime.setHours(8, 0, 0);
         const outTime = new Date(workDate);
-        outTime.setHours(17, 0, 0);
+        outTime.setHours(18, 0, 0);
 
         punchesBatch.push({
           company_id: company1.id,
@@ -631,7 +657,6 @@ async function main() {
           punched_at: inTime,
           direction: 'In'
         });
-
         punchesBatch.push({
           company_id: company1.id,
           import_id: bioImport.id,
@@ -647,15 +672,174 @@ async function main() {
           shift_id: shift1.id,
           check_in: inTime,
           check_out: outTime,
-          worked_hours: 9.00,
-          break_deducted: 1.00,
-          net_hours: 8.00,
+          worked_hours: 10.00,
+          break_deducted: 0.00,
+          net_hours: 10.00,
           late_minutes: 0,
           early_out_minutes: 0,
-          day_type: 'WorkDay',
+          day_type: 'RestDay',
           review_status: 'HRConfirmed'
         });
       }
+      continue;
+    }
+
+    // Working Day
+    for (let e = 0; e < 42; e++) {
+      const emp = seededEmployees[e];
+
+      // Exception 1: Employee 4 on approved Annual Leave (Oct 26 to Oct 30 = 5 working days)
+      if (e === 4 && d >= 26 && d <= 30) {
+        leaveDaysCount++;
+        // No biometric punches on leave days!
+        attendanceBatch.push({
+          company_id: company1.id,
+          employee_id: emp.id,
+          work_date: workDate,
+          shift_id: shift1.id,
+          check_in: null,
+          check_out: null,
+          worked_hours: 0.00,
+          break_deducted: 0.00,
+          net_hours: 0.00,
+          late_minutes: 0,
+          early_out_minutes: 0,
+          day_type: 'Leave',
+          review_status: 'HRConfirmed'
+        });
+        continue;
+      }
+
+      // Exception 2: 2 Unapproved Absences (Emp 8 and Emp 9 on Oct 22)
+      if ((e === 8 || e === 9) && d === 22) {
+        unapprovedAbsenceCount++;
+        // No biometric punches on absence days!
+        attendanceBatch.push({
+          company_id: company1.id,
+          employee_id: emp.id,
+          work_date: workDate,
+          shift_id: shift1.id,
+          check_in: null,
+          check_out: null,
+          worked_hours: 0.00,
+          break_deducted: 0.00,
+          net_hours: 0.00,
+          late_minutes: 0,
+          early_out_minutes: 0,
+          day_type: 'Absent',
+          review_status: 'PendingReview'
+        });
+        continue;
+      }
+
+      // Exception 3: 7 Days with a Missing Punch (Single punch recorded, e.g. In only)
+      // Selected 7 distinct employee-days on Oct 21 for employees 13 to 19
+      if (d === 21 && e >= 13 && e <= 19) {
+        missingPunchCount++;
+        const inTime = new Date(workDate);
+        inTime.setHours(8, 0, 0);
+
+        // ONLY In punch recorded (Out punch is missing!)
+        punchesBatch.push({
+          company_id: company1.id,
+          import_id: bioImport.id,
+          employee_id: emp.id,
+          punched_at: inTime,
+          direction: 'In'
+        });
+
+        attendanceBatch.push({
+          company_id: company1.id,
+          employee_id: emp.id,
+          work_date: workDate,
+          shift_id: shift1.id,
+          check_in: inTime,
+          check_out: null,
+          worked_hours: 0.00,
+          break_deducted: 0.00,
+          net_hours: 0.00,
+          late_minutes: 0,
+          early_out_minutes: 0,
+          day_type: 'WorkDay',
+          review_status: 'PendingReview'
+        });
+        continue;
+      }
+
+      // Exception 4: Late arrivals per policy (>15 min grace, on Oct 21 for emp 10, 11, 12)
+      let lateMinutes = 0;
+      const inTime = new Date(workDate);
+      if (d === 21 && e === 10) {
+        inTime.setHours(8, 35, 0); // 35 min late
+        lateMinutes = 35;
+        lateArrivalCount++;
+      } else if (d === 21 && e === 11) {
+        inTime.setHours(8, 45, 0); // 45 min late
+        lateMinutes = 45;
+        lateArrivalCount++;
+      } else if (d === 21 && e === 12) {
+        inTime.setHours(8, 25, 0); // 25 min late
+        lateMinutes = 25;
+        lateArrivalCount++;
+      } else {
+        inTime.setHours(8, 0, 0);
+      }
+
+      // Exception 5: OT punches matching approved overtime
+      // Normal OT for Emp 0: 110h across 22 working days = 5h OT/day -> out at 22:00
+      // Night OT for Emp 1: 42h across 6 days (Oct 12-16, 19) = 7h night OT/day -> out at 00:00
+      // Holiday OT for Emp 3: 24h across 3 days (Oct 1-3 or Oct 20) = 8h OT/day -> out at 01:00
+      const outTime = new Date(workDate);
+      let workedHours = 9.00;
+      let netHours = 8.00;
+
+      if (e === 0) {
+        outTime.setHours(22, 0, 0);
+        workedHours = 14.00;
+        netHours = 13.00;
+      } else if (e === 1 && d >= 12 && d <= 19 && !isWeekend) {
+        outTime.setHours(24, 0, 0); // midnight
+        workedHours = 16.00;
+        netHours = 15.00;
+      } else if (e === 3 && (d === 1 || d === 2 || d === 20)) {
+        outTime.setHours(25, 0, 0); // +8h OT
+        workedHours = 17.00;
+        netHours = 16.00;
+      } else {
+        outTime.setHours(17, 0, 0);
+      }
+
+      punchesBatch.push({
+        company_id: company1.id,
+        import_id: bioImport.id,
+        employee_id: emp.id,
+        punched_at: inTime,
+        direction: 'In'
+      });
+
+      punchesBatch.push({
+        company_id: company1.id,
+        import_id: bioImport.id,
+        employee_id: emp.id,
+        punched_at: outTime,
+        direction: 'Out'
+      });
+
+      attendanceBatch.push({
+        company_id: company1.id,
+        employee_id: emp.id,
+        work_date: workDate,
+        shift_id: shift1.id,
+        check_in: inTime,
+        check_out: outTime,
+        worked_hours: workedHours,
+        break_deducted: 1.00,
+        net_hours: netHours,
+        late_minutes: lateMinutes,
+        early_out_minutes: 0,
+        day_type: 'WorkDay',
+        review_status: 'HRConfirmed'
+      });
     }
   }
 
@@ -666,6 +850,9 @@ async function main() {
   for (let i = 0; i < attendanceBatch.length; i += 500) {
     await prisma.attendance_days.createMany({ data: attendanceBatch.slice(i, i + 500) });
   }
+
+  console.log(`[Seed Realism] Punches: ${punchesBatch.length}, Attendance Days: ${attendanceBatch.length}`);
+  console.log(`[Seed Exceptions] Missing Punches: ${missingPunchCount}, Late Arrivals: ${lateArrivalCount}, Unapproved Absences: ${unapprovedAbsenceCount}, Leave Days: ${leaveDaysCount}`);
 
   // --------------------------------------------------------------------------
   // Overtime Requests (Matching 196 hours, 8,420.50 AED from dashboard)
@@ -775,6 +962,7 @@ async function main() {
   // Net to WPS: 335,490.50 AED
   // Additions (OT): +8,420.50 AED
   // Deductions (Absence/Pension): -14,130.00 AED
+  const payslipLinesStats = [];
   for (let idx = 0; idx < 42; idx++) {
     const emp = seededEmployees[idx];
     const contract = seededContracts[idx];
@@ -793,41 +981,35 @@ async function main() {
       amount: basic
     });
 
-    // 2. Housing allowance line
+    // 2. Housing allowance line (always present)
     const housing = Number(contract.housing || 0);
-    if (housing > 0) {
-      linesToCreate.push({
-        salary_rule_id: rulesMap1['HRA'].id,
-        code: 'HRA',
-        name: 'Housing Allowance',
-        category: 'Allowance',
-        amount: housing
-      });
-    }
+    linesToCreate.push({
+      salary_rule_id: rulesMap1['HRA'].id,
+      code: 'HRA',
+      name: 'Housing Allowance',
+      category: 'Allowance',
+      amount: housing
+    });
 
-    // 3. Transport allowance line
+    // 3. Transport allowance line (always present)
     const transport = Number(contract.transport || 0);
-    if (transport > 0) {
-      linesToCreate.push({
-        salary_rule_id: rulesMap1['TRA'].id,
-        code: 'TRA',
-        name: 'Transport Allowance',
-        category: 'Allowance',
-        amount: transport
-      });
-    }
+    linesToCreate.push({
+      salary_rule_id: rulesMap1['TRA'].id,
+      code: 'TRA',
+      name: 'Transport Allowance',
+      category: 'Allowance',
+      amount: transport
+    });
 
-    // 4. Other allowance line
+    // 4. Other allowance line (always present)
     const other = Number(contract.other_allowances || 0);
-    if (other > 0) {
-      linesToCreate.push({
-        salary_rule_id: rulesMap1['OTH'].id,
-        code: 'OTH',
-        name: 'Other Allowance',
-        category: 'Allowance',
-        amount: other
-      });
-    }
+    linesToCreate.push({
+      salary_rule_id: rulesMap1['OTH'].id,
+      code: 'OTH',
+      name: 'Other Allowance',
+      category: 'Allowance',
+      amount: other
+    });
 
     // 5. Overtime lines (from approved overtime)
     if (idx === 0) {
@@ -864,7 +1046,21 @@ async function main() {
       });
     }
 
-    // 6. Deductions: Loans (Section 8.1 LOAN)
+    // CALCULATE Gross before deductions
+    const computedGross = linesToCreate
+      .filter(l => ['Basic', 'Allowance', 'Addition'].includes(l.category))
+      .reduce((sum, l) => sum + l.amount, 0);
+
+    // 6. GROSS line (always stored on every payslip)
+    linesToCreate.push({
+      salary_rule_id: rulesMap1['GROSS'].id,
+      code: 'GROSS',
+      name: 'Gross Salary',
+      category: 'Gross',
+      amount: computedGross
+    });
+
+    // 7. Deductions: Loans (Section 8.1 LOAN)
     if (idx === 5) {
       linesToCreate.push({
         salary_rule_id: rulesMap1['LOAN'].id,
@@ -891,7 +1087,7 @@ async function main() {
       });
     }
 
-    // 7. Deductions: Unapproved absence (Section 8.1 ABS)
+    // Deductions: Unapproved absence (Section 8.1 ABS)
     if (idx === 8) {
       linesToCreate.push({
         salary_rule_id: rulesMap1['ABS'].id,
@@ -910,7 +1106,7 @@ async function main() {
       });
     }
 
-    // 8. Deductions: Late penalties (Section 8.1 LATE)
+    // Deductions: Late penalties (Section 8.1 LATE)
     if (idx === 10) {
       linesToCreate.push({
         salary_rule_id: rulesMap1['LATE'].id,
@@ -929,7 +1125,7 @@ async function main() {
       });
     }
 
-    // 9. Deductions: Salary advance / other (Section 8.1 ADV)
+    // Deductions: Salary advance / other (Section 8.1 ADV)
     if (idx === 12) {
       linesToCreate.push({
         salary_rule_id: rulesMap1['ADV'].id,
@@ -940,16 +1136,22 @@ async function main() {
       });
     }
 
-    // CALCULATE: payslip gross, deductions, and net derived directly from the sum of line amounts
-    const computedGross = linesToCreate
-      .filter(l => l.category !== 'Deduction' && l.category !== 'CompanyContribution')
-      .reduce((sum, l) => sum + l.amount, 0);
-
     const computedDeductions = linesToCreate
       .filter(l => l.category === 'Deduction')
       .reduce((sum, l) => sum + l.amount, 0);
 
     const computedNet = computedGross - computedDeductions;
+
+    // 8. NET line (always stored on every payslip)
+    linesToCreate.push({
+      salary_rule_id: rulesMap1['NET'].id,
+      code: 'NET',
+      name: 'Net Pay to WPS',
+      category: 'Net',
+      amount: computedNet
+    });
+
+    payslipLinesStats.push(linesToCreate.length);
 
     const payslip = await prisma.payslips.create({
       data: {
@@ -982,6 +1184,11 @@ async function main() {
       });
     }
   }
+
+  const minLines = Math.min(...payslipLinesStats);
+  const maxLines = Math.max(...payslipLinesStats);
+  const avgLines = (payslipLinesStats.reduce((a, b) => a + b, 0) / payslipLinesStats.length).toFixed(2);
+  console.log(`[Payslip Lines Stats] Min: ${minLines}, Avg: ${avgLines}, Max: ${maxLines} lines per payslip`);
 
   // Sample Leave Requests
   console.log('Seeding sample leave requests...');

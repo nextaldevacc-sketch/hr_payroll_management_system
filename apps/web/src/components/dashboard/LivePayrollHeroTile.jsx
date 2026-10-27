@@ -16,9 +16,11 @@ import { InsetBox } from '../primitives/InsetBox';
 import { CalloutBar } from '../primitives/CalloutBar';
 import { formatCurrency } from '@nextal/shared';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 
 export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
   const { t, language } = useLanguage();
+  const { seesSalary } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hoveredMonth, setHoveredMonth] = useState(null);
 
@@ -133,42 +135,42 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
           <div className="flex flex-col">
             <span className="text-text-muted text-[11px]">{t('dashboard.livePayroll.gross')}</span>
             <bdi className="tabular-nums font-semibold text-text mt-0.5">
-              {formatCurrency(figures.gross, 'AED', language)}
+              {seesSalary ? formatCurrency(figures.gross, 'AED', language) : '••••••'}
             </bdi>
           </div>
 
           <div className="flex flex-col">
             <span className="text-secondary-text text-[11px]">+ {t('dashboard.livePayroll.overtime')}</span>
             <bdi className="tabular-nums font-semibold text-secondary-text mt-0.5">
-              +{formatCurrency(figures.overtime, 'AED', language)}
+              {seesSalary ? `+${formatCurrency(figures.overtime, 'AED', language)}` : '+••••••'}
             </bdi>
           </div>
 
           <div className="flex flex-col">
             <span className="text-danger-text text-[11px]">− {t('dashboard.livePayroll.absence')}</span>
             <bdi className="tabular-nums font-semibold text-danger-text mt-0.5">
-              −{formatCurrency(figures.absence, 'AED', language)}
+              {seesSalary ? `−${formatCurrency(figures.absence, 'AED', language)}` : '−••••••'}
             </bdi>
           </div>
 
           <div className="flex flex-col">
             <span className="text-warning-text text-[11px]">− {t('dashboard.livePayroll.loans')}</span>
             <bdi className="tabular-nums font-semibold text-warning-text mt-0.5">
-              −{formatCurrency(figures.loans, 'AED', language)}
+              {seesSalary ? `−${formatCurrency(figures.loans, 'AED', language)}` : '−••••••'}
             </bdi>
           </div>
 
           <div className="flex flex-col">
             <span className="text-warning-text text-[11px]">− Late Penalties</span>
             <bdi className="tabular-nums font-semibold text-warning-text mt-0.5">
-              −{formatCurrency(figures.latePenalties, 'AED', language)}
+              {seesSalary ? `−${formatCurrency(figures.latePenalties, 'AED', language)}` : '−••••••'}
             </bdi>
           </div>
 
           <div className="flex flex-col">
             <span className="text-danger-text text-[11px]">− Other Deductions</span>
             <bdi className="tabular-nums font-semibold text-danger-text mt-0.5">
-              −{formatCurrency(figures.otherDeductions, 'AED', language)}
+              {seesSalary ? `−${formatCurrency(figures.otherDeductions, 'AED', language)}` : '−••••••'}
             </bdi>
           </div>
         </InsetBox>
@@ -185,7 +187,7 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
                 <span className="text-text-muted truncate text-[11px]">{v.name} ({v.count})</span>
               </div>
               <bdi className="tabular-nums font-semibold text-text ms-2">
-                {formatCurrency(v.net, 'AED', language)}
+                {seesSalary ? formatCurrency(v.net, 'AED', language) : '••••••'}
               </bdi>
             </InsetBox>
           ))}
@@ -198,8 +200,13 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
               {t('dashboard.livePayroll.netToWps')}
             </span>
             <bdi className="text-2xl sm:text-3xl font-black text-text dark:gold-hero-number tabular-nums tracking-tight mt-0.5 block">
-              {formatCurrency(figures.netToWps, 'AED', language)}
+              {seesSalary ? formatCurrency(figures.netToWps, 'AED', language) : 'AED ••••••••'}
             </bdi>
+            {!seesSalary && (
+              <span className="text-[10px] text-amber-500 font-semibold block mt-0.5">
+                Section 5.3: Figures confidential to salary roles
+              </span>
+            )}
           </div>
 
           <div className="flex flex-col items-end gap-1">

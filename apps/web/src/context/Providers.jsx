@@ -3,6 +3,7 @@
 import React from 'react';
 import { ThemeProvider } from 'next-themes';
 import { LanguageProvider } from './LanguageContext';
+import { AuthProvider } from './AuthContext';
 
 export function Providers({ children, initialLocale = 'en' }) {
   return (
@@ -13,7 +14,9 @@ export function Providers({ children, initialLocale = 'en' }) {
       disableTransitionOnChange={false}
     >
       <LanguageProvider initialLocale={initialLocale}>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>
   );

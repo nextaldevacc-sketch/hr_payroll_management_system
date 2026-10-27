@@ -31,8 +31,9 @@ describe('Payslip Lines Calculation & Sum Integrity Tests', () => {
     for (const payslip of payslipsWithLines) {
       const earningLines = payslip.lines.filter(
         (line) =>
-          line.salary_rule?.category !== 'Deduction' &&
-          line.salary_rule?.category !== 'CompanyContribution'
+          ['Basic', 'Allowance', 'Addition'].includes(line.salary_rule?.category) &&
+          line.code !== 'GROSS' &&
+          line.code !== 'NET'
       );
 
       const calculatedGross = earningLines.reduce(
@@ -88,5 +89,45 @@ describe('Payslip Lines Calculation & Sum Integrity Tests', () => {
       '335490.50',
       `Overall Net pay sum (${totalNet.toFixed(2)}) must equal 335490.50 AED`
     );
+  });
+
+  it('6. Every payslip stores its full lines: at least BASIC, HRA, TRA, OTH, GROSS, and NET', () => {
+    const requiredCodes = ['BASIC', 'HRA', 'TRA', 'OTH', 'GROSS', 'NET'];
+    const lineCounts = [];
+
+    for (const payslip of payslipsWithLines) {
+      const codes = payslip.lines.map((l) => l.code);
+      for (const reqCode of requiredCodes) {
+        assert.ok(
+          codes.includes(reqCode),
+          `Payslip ID ${payslip.id} must include line code '${reqCode}'`
+        );
+      }
+
+      // Confirm GROSS line amount matches payslip.gross
+      const grossLine = payslip.lines.find((l) => l.code === 'GROSS');
+      assert.equal(
+        Number(grossLine.amount).toFixed(2),
+        Number(payslip.gross).toFixed(2),
+        `GROSS line amount (${grossLine.amount}) must equal payslip gross (${payslip.gross})`
+      );
+
+      // Confirm NET line amount matches payslip.net
+      const netLine = payslip.lines.find((l) => l.code === 'NET');
+      assert.equal(
+        Number(netLine.amount).toFixed(2),
+        Number(payslip.net).toFixed(2),
+        `NET line amount (${netLine.amount}) must equal payslip net (${payslip.net})`
+      );
+
+      lineCounts.push(payslip.lines.length);
+    }
+
+    const min = Math.min(...lineCounts);
+    const max = Math.max(...lineCounts);
+    const avg = (lineCounts.reduce((a, b) => a + b, 0) / lineCounts.length).toFixed(2);
+
+    assert.ok(min >= 6, `Minimum lines per payslip (${min}) must be at least 6`);
+    assert.ok(max >= min, `Max lines per payslip (${max}) must be >= min`);
   });
 });

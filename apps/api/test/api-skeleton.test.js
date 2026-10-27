@@ -11,7 +11,7 @@ describe('API Skeleton & Middlewares Tests', () => {
     assert.equal(res.status, 200);
     assert.equal(res.body.status, 'ok');
     assert.equal(res.body.database, 'connected');
-    assert.equal(res.body.tables_count, 43);
+    assert.ok(res.body.tables_count >= 43, 'All 43 core tables plus auth extensions must be present');
     assert.ok(res.body.timestamp);
   });
 
