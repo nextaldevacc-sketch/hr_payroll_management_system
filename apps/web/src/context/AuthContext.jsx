@@ -133,18 +133,52 @@ export function AuthProvider({ children }) {
     // Check saved session in browser
     try {
       const savedUser = localStorage.getItem('nextal_user');
+      const savedToken = localStorage.getItem('nextal_token');
       if (savedUser) {
         setUser(JSON.parse(savedUser));
+      }
+      if (savedToken) {
+        setToken(savedToken);
+      } else {
+        // Fetch fresh token for active demo user if not present
+        const defaultEmail = savedUser ? JSON.parse(savedUser).email : DEMO_USERS.COMPANY_ADMIN.email;
+        fetch('http://localhost:5000/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email: defaultEmail, password: 'Nextal@2026!' }),
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => {
+            if (d?.token) {
+              setToken(d.token);
+              localStorage.setItem('nextal_token', d.token);
+            }
+          })
+          .catch(() => {});
       }
     } catch (e) {}
   }, []);
 
-  const switchDemoUser = useCallback((roleKey) => {
+  const switchDemoUser = useCallback(async (roleKey) => {
     const target = DEMO_USERS[roleKey];
     if (target) {
       setUser(target);
       try {
         localStorage.setItem('nextal_user', JSON.stringify(target));
+        const res = await fetch('http://localhost:5000/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email: target.email, password: 'Nextal@2026!' }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.token) {
+            setToken(data.token);
+            localStorage.setItem('nextal_token', data.token);
+          }
+        }
       } catch (e) {}
     }
   }, []);
@@ -183,6 +217,7 @@ export function AuthProvider({ children }) {
       setUser(activeUser);
       setToken(data.token);
       localStorage.setItem('nextal_user', JSON.stringify(activeUser));
+      localStorage.setItem('nextal_token', data.token);
       return { status: 'success', user: activeUser };
     } catch (err) {
       // If API server is not running during client preview, allow seamless fallback matching demo accounts
@@ -210,6 +245,7 @@ export function AuthProvider({ children }) {
       setUser(DEMO_USERS.COMPANY_ADMIN);
       setToken(null);
       localStorage.removeItem('nextal_user');
+      localStorage.removeItem('nextal_token');
     }
   }, []);
 

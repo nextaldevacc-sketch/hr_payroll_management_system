@@ -15,11 +15,23 @@ export function PayrollAlertsDrawer({
   const { isRTL, language } = useLanguage();
   const [formData, setFormData] = useState({
     default_cutoff_day: settings?.default_cutoff_day || 25,
-    variance_threshold_percent: settings?.variance_threshold_percent || 10.0,
+    variance_threshold_percent: settings?.variance_threshold_percent || settings?.variance_threshold_pct || 10.0,
     variance_threshold_aed: settings?.variance_threshold_aed || 1000.0,
     alert_days: settings?.alert_days || [90, 60, 30],
-    digest_recipients: settings?.digest_recipients || ['hr.mgr@gulftech.ae', 'payroll@gulftech.ae', 'admin@gulftech.ae'],
+    digest_recipients: settings?.digest_recipients || settings?.document_digest_recipients || ['hr.mgr@gulftech.ae', 'payroll@gulftech.ae', 'admin@gulftech.ae'],
   });
+
+  React.useEffect(() => {
+    if (settings) {
+      setFormData({
+        default_cutoff_day: settings.default_cutoff_day || 25,
+        variance_threshold_percent: settings.variance_threshold_percent || settings.variance_threshold_pct || 10.0,
+        variance_threshold_aed: settings.variance_threshold_aed || 1000.0,
+        alert_days: settings.alert_days || [90, 60, 30],
+        digest_recipients: settings.digest_recipients || settings.document_digest_recipients || ['hr.mgr@gulftech.ae', 'payroll@gulftech.ae', 'admin@gulftech.ae'],
+      });
+    }
+  }, [settings]);
 
   const [newRecipient, setNewRecipient] = useState('');
 
@@ -62,10 +74,15 @@ export function PayrollAlertsDrawer({
       <div className="space-y-4 pb-6">
         {/* Payroll Cut-off Day & Variance Threshold */}
         <div className="p-4 rounded-xl border border-border/70 bg-surface/50 space-y-3">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-primary" />
-            <span className="text-xs font-bold text-text">
-              {language === 'ar' ? 'يوم قطع مسير الرواتب الشهري (Cut-off Day)' : 'Default Monthly Pay Run Cut-Off Day'}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-primary" />
+              <span className="text-xs font-bold text-text">
+                {language === 'ar' ? 'يوم قطع مسير الرواتب الشهري (Cut-off Day)' : 'Default Monthly Pay Run Cut-Off Day'}
+              </span>
+            </div>
+            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              {language === 'ar' ? 'الافتراضي التجريبي، حدد سياسة الشركة' : 'Demo default, set your company policy'}
             </span>
           </div>
 
@@ -90,16 +107,21 @@ export function PayrollAlertsDrawer({
 
         {/* Variance Thresholds (Rule 10: requires a mandatory reason) */}
         <div className="p-4 rounded-xl border border-border/70 bg-surface/50 space-y-3">
-          <div className="flex items-center gap-2">
-            <AlertOctagon className="w-4 h-4 text-amber-400" />
-            <div>
-              <span className="text-xs font-bold text-text block">
-                {language === 'ar' ? 'حدود التباين الإلزامية (Variance Threshold)' : 'Pay Run Variance Anomaly Thresholds'}
-              </span>
-              <span className="text-[11px] text-text-muted">
-                {language === 'ar' ? 'أي زيادة تتجاوز هذه الحدود تُلزم مدقق الرواتب بتسجيل سبب معتمد قبل القفل' : 'Variance exceeding either threshold requires a mandatory reason before pay run lock'}
-              </span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <AlertOctagon className="w-4 h-4 text-amber-400" />
+              <div>
+                <span className="text-xs font-bold text-text block">
+                  {language === 'ar' ? 'حدود التباين الإلزامية (Variance Threshold)' : 'Pay Run Variance Anomaly Thresholds'}
+                </span>
+                <span className="text-[11px] text-text-muted">
+                  {language === 'ar' ? 'أي زيادة تتجاوز هذه الحدود تُلزم مدقق الرواتب بتسجيل سبب معتمد قبل القفل' : 'Variance exceeding either threshold requires a mandatory reason before pay run lock'}
+                </span>
+              </div>
             </div>
+            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+              {language === 'ar' ? 'الافتراضي التجريبي، حدد سياسة الشركة' : 'Demo default, set your company policy'}
+            </span>
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-xs">

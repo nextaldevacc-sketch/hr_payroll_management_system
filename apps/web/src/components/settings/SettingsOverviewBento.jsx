@@ -27,6 +27,7 @@ export function SettingsOverviewBento({
   stats = {},
   userRole = 'COMPANY_ADMIN',
   onOpenDrawer,
+  overviewData,
 }) {
   const { isRTL, language } = useLanguage();
 
@@ -133,8 +134,8 @@ export function SettingsOverviewBento({
       titleAr: 'قواعد وهياكل الرواتب والمحاكي',
       descEn: 'Safe formulas without eval, GL accounts, absence divisor, Ahmed demo (AED 7,044.80).',
       descAr: 'صيغ آمنة برمجياً، حسابات الأستاذ، مقسوم الغياب، ومحاكي احتساب الرواتب الدقيق.',
-      countBadge: '13 Statutory Rules · Simulator',
-      countBadgeAr: '13 قاعدة قانونية · محاكي فوري',
+      countBadge: overviewData?.tiles?.find((t) => t.id === 'salary_rules')?.countLabelEn || '17 Statutory Rules · Simulator',
+      countBadgeAr: overviewData?.tiles?.find((t) => t.id === 'salary_rules')?.countLabelAr || '17 قاعدة قانونية · محاكي فوري',
       lastChanged: 'Last changed by Zaid Al-Marzooqi · Effective Nov 1',
       lastChangedAr: 'آخر تعديل: زيد المرزوقي · يسري 1 نوفمبر',
       editable: isHrOrAdmin || isPayrollOfficer || isFinance,

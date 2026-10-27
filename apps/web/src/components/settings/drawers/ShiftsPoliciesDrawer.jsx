@@ -20,6 +20,25 @@ export function ShiftsPoliciesDrawer({
   const [shiftList, setShiftList] = useState(shifts);
   const [attendancePolicy, setAttendancePolicy] = useState(policy);
   const [effectiveFrom, setEffectiveFrom] = useState('2026-11-01'); // Default next unlocked pay period
+  const [editingShiftId, setEditingShiftId] = useState(null);
+
+  React.useEffect(() => {
+    if (shifts && shifts.length > 0) {
+      setShiftList(shifts);
+    }
+  }, [shifts]);
+
+  React.useEffect(() => {
+    if (policy) {
+      setAttendancePolicy(policy);
+    }
+  }, [policy]);
+
+  const handleUpdateShiftGrace = (shiftId, newGrace) => {
+    setShiftList((prev) =>
+      prev.map((s) => (s.id === shiftId ? { ...s, grace_minutes: Number(newGrace) } : s))
+    );
+  };
 
   const [isAddingShift, setIsAddingShift] = useState(false);
   const [newShift, setNewShift] = useState({
@@ -147,6 +166,7 @@ export function ShiftsPoliciesDrawer({
               {shiftList.map((shift) => (
                 <div
                   key={shift.id}
+                  data-testid={`shift-card-${shift.id}`}
                   className="p-3.5 rounded-xl border border-border/70 bg-surface/50 hover:border-border transition-colors space-y-2.5"
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -165,8 +185,20 @@ export function ShiftsPoliciesDrawer({
 
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-surface border border-border text-text">
-                        {shift.assigned_count} {language === 'ar' ? 'موظف' : 'assigned'}
+                        {shift.assigned_count || 0} {language === 'ar' ? 'موظف' : 'assigned'}
                       </span>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          data-testid={`shift-edit-btn-${shift.id}`}
+                          onClick={() => setEditingShiftId(editingShiftId === shift.id ? null : shift.id)}
+                          className="px-2 py-0.5 rounded text-[10px] font-bold border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                        >
+                          {editingShiftId === shift.id
+                            ? language === 'ar' ? 'إغلاق' : 'Done'
+                            : language === 'ar' ? 'تعديل' : 'Edit'}
+                        </button>
+                      )}
                       {onViewHistory && (
                         <button
                           type="button"
@@ -191,13 +223,37 @@ export function ShiftsPoliciesDrawer({
                     </div>
                     <div>
                       <span className="text-text-muted block">{language === 'ar' ? 'فترة السماح' : 'Grace'}</span>
-                      <span className="font-mono font-semibold text-text">{shift.grace_minutes}m</span>
+                      <span data-testid={`shift-grace-display-${shift.id}`} className="font-mono font-semibold text-text">{shift.grace_minutes}m</span>
                     </div>
                     <div>
                       <span className="text-text-muted block">{language === 'ar' ? 'العطلة الأسبوعية' : 'Off Days'}</span>
                       <span className="text-text truncate">{shift.weekly_off_days?.join(', ') || 'Sat, Sun'}</span>
                     </div>
                   </div>
+
+                  {editingShiftId === shift.id && (
+                    <div className="mt-2.5 p-3 rounded-xl bg-surface border border-primary/40 space-y-2 animate-in fade-in">
+                      <div className="flex items-center justify-between gap-3">
+                        <label htmlFor={`grace-input-${shift.id}`} className="text-xs font-semibold text-text">
+                          {language === 'ar' ? 'تعديل فترة السماح (دقائق):' : 'Modify Grace Period (Minutes):'}
+                        </label>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            id={`grace-input-${shift.id}`}
+                            type="number"
+                            data-testid="shift-grace-input"
+                            data-shift-id={shift.id}
+                            className="w-24 px-2 py-1 rounded-lg text-xs font-mono font-bold bg-background border border-primary text-text focus:ring-1 focus:ring-primary"
+                            value={shift.grace_minutes}
+                            onChange={(e) => handleUpdateShiftGrace(shift.id, e.target.value)}
+                            min="0"
+                            max="120"
+                          />
+                          <span className="text-xs font-semibold text-text-muted">min</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -352,8 +408,8 @@ export function ShiftsPoliciesDrawer({
                     {language === 'ar' ? 'وفق المادة 39 من قانون العمل ولائحة الجزاءات' : 'Compliant with UAE Labor Law Progressive Disciplinary Table'}
                   </span>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
-                  STATUTORY UAE
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  {language === 'ar' ? 'الافتراضي التجريبي، حدد سياسة الشركة' : 'Demo default, set your company policy'}
                 </span>
               </div>
 
@@ -395,6 +451,7 @@ export function ShiftsPoliciesDrawer({
             {canEdit && (
               <button
                 type="button"
+                data-testid="save-shifts-btn"
                 onClick={handleSave}
                 className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition-transform active:scale-95"
                 style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}

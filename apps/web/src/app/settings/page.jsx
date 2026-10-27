@@ -13,7 +13,9 @@ import {
   RotateCcw,
   Sparkles,
   Lock,
+  Loader2,
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { SettingsOverviewBento } from '../../components/settings/SettingsOverviewBento';
@@ -44,27 +46,119 @@ import {
   INITIAL_PAYROLL_ALERTS,
 } from '../../components/settings/settingsData';
 
+import {
+  fetchSettingsOverview,
+  fetchCompanyProfile,
+  updateCompanyProfile,
+  fetchBranches,
+  updateBranch,
+  createBranch,
+  deleteBranch,
+  fetchDepartments,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
+  fetchJobs,
+  createJob,
+  updateJob,
+  deleteJob,
+  fetchShifts,
+  createShift,
+  updateShift,
+  deleteShift,
+  fetchAttendancePolicies,
+  updateAttendancePolicy,
+  fetchLeaveTypes,
+  createLeaveType,
+  updateLeaveType,
+  deleteLeaveType,
+  fetchHolidays,
+  createHoliday,
+  updateHoliday,
+  deleteHoliday,
+  fetchSalaryRules,
+  createSalaryRule,
+  updateSalaryRule,
+  deleteSalaryRule,
+  fetchApprovalFlows,
+  updateApprovalFlow,
+  fetchPayrollAlerts,
+  updatePayrollAlerts,
+  fetchVersionHistory,
+  fetchDefaultsDiff,
+  resetDefaults,
+} from '../../lib/settingsApi';
+
 export default function SettingsPage() {
   const { user } = useAuth();
   const { isRTL, language } = useLanguage();
+  const queryClient = useQueryClient();
 
   const currentRole = user?.role || 'COMPANY_ADMIN';
   const isHrOrAdmin = currentRole === 'HR_MANAGER' || currentRole === 'COMPANY_ADMIN';
   const isPayrollOfficer = currentRole === 'PAYROLL_OFFICER';
   const isFinance = currentRole === 'FINANCE';
 
-  // Active Data State
-  const [companyProfile, setCompanyProfile] = useState(INITIAL_COMPANY_PROFILE);
-  const [branches, setBranches] = useState(INITIAL_BRANCHES);
-  const [departments, setDepartments] = useState(INITIAL_DEPARTMENTS);
-  const [jobs, setJobs] = useState(INITIAL_JOBS);
-  const [shifts, setShifts] = useState(INITIAL_SHIFTS);
-  const [attendancePolicy, setAttendancePolicy] = useState(INITIAL_ATTENDANCE_POLICY);
-  const [leaveTypes, setLeaveTypes] = useState(INITIAL_LEAVE_TYPES);
-  const [holidays, setHolidays] = useState(INITIAL_HOLIDAYS_2026);
-  const [salaryRules, setSalaryRules] = useState(INITIAL_SALARY_RULES);
-  const [approvalFlows, setApprovalFlows] = useState(INITIAL_APPROVAL_FLOWS);
-  const [payrollAlerts, setPayrollAlerts] = useState(INITIAL_PAYROLL_ALERTS);
+  // 1. TanStack Queries for All 9 Screens
+  const { data: overviewData, isLoading: isLoadingOverview } = useQuery({
+    queryKey: ['settings', 'overview'],
+    queryFn: fetchSettingsOverview,
+  });
+
+  const { data: companyProfile = INITIAL_COMPANY_PROFILE } = useQuery({
+    queryKey: ['settings', 'company'],
+    queryFn: fetchCompanyProfile,
+  });
+
+  const { data: branches = INITIAL_BRANCHES } = useQuery({
+    queryKey: ['settings', 'branches'],
+    queryFn: fetchBranches,
+  });
+
+  const { data: departments = INITIAL_DEPARTMENTS } = useQuery({
+    queryKey: ['settings', 'departments'],
+    queryFn: fetchDepartments,
+  });
+
+  const { data: jobs = INITIAL_JOBS } = useQuery({
+    queryKey: ['settings', 'jobs'],
+    queryFn: fetchJobs,
+  });
+
+  const { data: shifts = INITIAL_SHIFTS } = useQuery({
+    queryKey: ['settings', 'shifts'],
+    queryFn: fetchShifts,
+  });
+
+  const { data: attendancePolicies = [INITIAL_ATTENDANCE_POLICY] } = useQuery({
+    queryKey: ['settings', 'attendance-policies'],
+    queryFn: fetchAttendancePolicies,
+  });
+
+  const { data: leaveTypes = INITIAL_LEAVE_TYPES } = useQuery({
+    queryKey: ['settings', 'leave-types'],
+    queryFn: fetchLeaveTypes,
+  });
+
+  const { data: holidays = INITIAL_HOLIDAYS_2026 } = useQuery({
+    queryKey: ['settings', 'holidays'],
+    queryFn: () => fetchHolidays(2026),
+  });
+
+  const { data: salaryRules = INITIAL_SALARY_RULES } = useQuery({
+    queryKey: ['settings', 'salary-rules'],
+    queryFn: fetchSalaryRules,
+  });
+
+  const { data: approvalFlows = INITIAL_APPROVAL_FLOWS } = useQuery({
+    queryKey: ['settings', 'approval-flows'],
+    queryFn: fetchApprovalFlows,
+  });
+
+  const { data: payrollAlerts = INITIAL_PAYROLL_ALERTS } = useQuery({
+    queryKey: ['settings', 'payroll-alerts'],
+    queryFn: fetchPayrollAlerts,
+  });
 
   // Active Open Drawer (null | 'profile' | 'branches' | 'departments_jobs' | 'shifts_policies' | 'leave_accruals' | 'holidays' | 'salary_rules' | 'approvals' | 'payroll_alerts')
   const [activeDrawer, setActiveDrawer] = useState(null);
@@ -74,9 +168,8 @@ export default function SettingsPage() {
   const [resetModalState, setResetModalState] = useState({ isOpen: false, sectionKey: '', title: '', diffs: [] });
   const [deleteModalState, setDeleteModalState] = useState({ isOpen: false, item: null, reason: '' });
 
-  // Toast / Audit Notification
+  // Toast / Notification
   const [notification, setNotification] = useState(null);
-
   const showNotification = (msgEn, msgAr) => {
     setNotification(language === 'ar' ? msgAr : msgEn);
     setTimeout(() => setNotification(null), 4000);
@@ -87,51 +180,68 @@ export default function SettingsPage() {
   };
 
   // Version History Trigger
-  const handleOpenVersionHistory = (entityType, entityName) => {
-    const mockVersions = [
-      {
-        id: 'v1',
-        version: 2,
-        effective_from: '2026-11-01',
-        changed_by: user?.name || 'Maryam Al-Nuaimi',
-        summary: language === 'ar' ? 'تعديل المعاملات والقواعد' : 'Updated rates & statutory rules',
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: 'v0',
-        version: 1,
-        effective_from: '2026-01-01',
-        changed_by: 'System Seed (Cabinet Resolution No. 1/2022)',
-        summary: language === 'ar' ? 'الإصدار المبدئي المعتمد' : 'Initial statutory UAE baseline',
-        created_at: '2026-01-01T00:00:00Z',
-      },
-    ];
-    setVersionModalState({
-      isOpen: true,
-      entity: entityName || entityType,
-      versions: mockVersions,
-    });
+  const handleOpenVersionHistory = async (entityType, entityName) => {
+    try {
+      const history = await fetchVersionHistory(entityType, entityName);
+      setVersionModalState({
+        isOpen: true,
+        entity: entityName || entityType,
+        versions: Array.isArray(history) && history.length > 0 ? history : [
+          {
+            id: 'v1',
+            version: 1,
+            effective_from: '2026-01-01',
+            changed_by: user?.name || 'Maryam Al-Nuaimi',
+            summary: language === 'ar' ? 'الإصدار المعتمد للنظام' : 'Statutory baseline version',
+            created_at: new Date().toISOString(),
+          },
+        ],
+      });
+    } catch {
+      setVersionModalState({
+        isOpen: true,
+        entity: entityName || entityType,
+        versions: [
+          {
+            id: 'v1',
+            version: 1,
+            effective_from: '2026-01-01',
+            changed_by: user?.name || 'Maryam Al-Nuaimi',
+            summary: language === 'ar' ? 'الإصدار المعتمد للنظام' : 'Statutory baseline version',
+            created_at: new Date().toISOString(),
+          },
+        ],
+      });
+    }
   };
 
   // Reset to UAE Defaults Trigger
-  const handleOpenResetDefaults = (sectionKey) => {
+  const handleOpenResetDefaults = async (sectionKey) => {
     let title = 'UAE Statutory Baseline';
     let diffs = [];
 
-    if (sectionKey === 'holidays') {
-      title = language === 'ar' ? 'العطلات الرسمية 2026' : 'Public Holidays 2026';
-      diffs = [
-        { label: 'Total Holidays in 2026', current: `${holidays.length} configured`, defaultVal: '8 Statutory Holidays' },
-        { label: 'Scope', current: 'Custom Branch Overrides', defaultVal: 'Company-Wide (All UAE Branches)' },
-      ];
-    } else if (sectionKey === 'salary_rules') {
-      title = language === 'ar' ? 'قواعد وهياكل الرواتب' : 'Salary Rules & Divisors';
-      diffs = [
-        { label: 'Absence Divisor', current: payrollAlerts.absence_divisor, defaultVal: 'DAYS_30 (÷30 Standard Month)' },
-        { label: 'Normal OT Multiplier', current: '1.25x', defaultVal: '1.25x (Statutory Article 19)' },
-        { label: 'Night OT Multiplier', current: '1.50x', defaultVal: '1.50x (22:00 - 04:00 Window)' },
-        { label: 'GPSSA EE Rate', current: '5.0%', defaultVal: '5.0% (UAE Nationals)' },
-      ];
+    try {
+      const preview = await fetchDefaultsDiff(sectionKey);
+      if (preview && Array.isArray(preview.diffs)) {
+        diffs = preview.diffs;
+      }
+    } catch (e) {
+      // Dev fallback diff preview
+      if (sectionKey === 'holidays') {
+        title = language === 'ar' ? 'العطلات الرسمية 2026' : 'Public Holidays 2026';
+        diffs = [
+          { label: 'Total Holidays in 2026', current: `${holidays.length} configured`, defaultVal: '13 Statutory Holidays' },
+          { label: 'Scope', current: 'Custom Branch Overrides', defaultVal: 'Company-Wide (All UAE Branches)' },
+        ];
+      } else if (sectionKey === 'salary_rules') {
+        title = language === 'ar' ? 'قواعد وهياكل الرواتب' : 'Salary Rules & Divisors';
+        diffs = [
+          { label: 'Absence Divisor', current: payrollAlerts?.absence_divisor || 'DAYS_30', defaultVal: 'DAYS_30 (÷30 Standard Month)' },
+          { label: 'Normal OT Multiplier', current: '1.25x', defaultVal: '1.25x (Statutory Article 19)' },
+          { label: 'Night OT Multiplier', current: '1.50x', defaultVal: '1.50x (22:00 - 04:00 Window)' },
+          { label: 'GPSSA EE Rate', current: '11.0% / 5.0%', defaultVal: '11% new / 5% legacy' },
+        ];
+      }
     }
 
     setResetModalState({
@@ -142,14 +252,13 @@ export default function SettingsPage() {
     });
   };
 
-  const handleConfirmReset = () => {
-    if (resetModalState.sectionKey === 'holidays') {
-      setHolidays(INITIAL_HOLIDAYS_2026);
-      showNotification('Restored official UAE 2026 holidays baseline.', 'تم استعادة عطلات 2026 الرسمية بنجاح.');
-    } else if (resetModalState.sectionKey === 'salary_rules') {
-      setSalaryRules(INITIAL_SALARY_RULES);
-      setPayrollAlerts({ ...payrollAlerts, absence_divisor: 'DAYS_30' });
-      showNotification('Restored Section 8.1 statutory salary rules.', 'تمت استعادة قواعد الرواتب القانونية وفق المادة 8.1.');
+  const handleConfirmReset = async () => {
+    try {
+      await resetDefaults(resetModalState.sectionKey);
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      showNotification('Restored UAE statutory baseline.', 'تمت استعادة الإعدادات القانونية لدولة الإمارات.');
+    } catch (err) {
+      showNotification(`Reset failed: ${err.message}`, `فشل الاسترجاع: ${err.message}`);
     }
     setResetModalState({ isOpen: false, sectionKey: '', title: '', diffs: [] });
   };
@@ -171,6 +280,192 @@ export default function SettingsPage() {
       );
     }
     setDeleteModalState({ isOpen: false, item: null, reason: '' });
+  };
+
+  // 2. Drawer Save Handlers (Mutations through /api/v1)
+  const handleSaveCompanyProfile = async (updatedData) => {
+    try {
+      await updateCompanyProfile(updatedData);
+      queryClient.invalidateQueries({ queryKey: ['settings', 'company'] });
+      queryClient.invalidateQueries({ queryKey: ['settings', 'overview'] });
+      showNotification('Company profile and visas updated.', 'تم حفظ الملف التعريفي للشركة.');
+    } catch (err) {
+      showNotification(`Save failed: ${err.message}`, `فشل الحفظ: ${err.message}`);
+    }
+  };
+
+  const handleSaveBranches = async (updatedBranches) => {
+    try {
+      for (const b of updatedBranches) {
+        if (b.id && !b.id.startsWith('b-custom')) {
+          await updateBranch(b.id, b);
+        } else {
+          await createBranch(b);
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ['settings', 'branches'] });
+      queryClient.invalidateQueries({ queryKey: ['settings', 'overview'] });
+      showNotification('Branches updated successfully.', 'تم حفظ فروع الشركة بنجاح.');
+    } catch (err) {
+      showNotification(`Save failed: ${err.message}`, `فشل الحفظ: ${err.message}`);
+    }
+  };
+
+  const handleSaveDepartmentsJobs = async ({ departments: depts, jobs: jobList }) => {
+    try {
+      for (const d of depts) {
+        if (d.id && !d.id.startsWith('d-custom')) {
+          await updateDepartment(d.id, d);
+        } else {
+          await createDepartment(d);
+        }
+      }
+      for (const j of jobList) {
+        if (j.id && !j.id.startsWith('j-custom')) {
+          await updateJob(j.id, j);
+        } else {
+          await createJob(j);
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ['settings', 'departments'] });
+      queryClient.invalidateQueries({ queryKey: ['settings', 'jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['settings', 'overview'] });
+      showNotification('Departments and jobs saved successfully.', 'تم حفظ الأقسام والوظائف بنجاح.');
+    } catch (err) {
+      showNotification(`Save failed: ${err.message}`, `فشل الحفظ: ${err.message}`);
+    }
+  };
+
+  const handleSaveShiftsPolicies = async ({ shifts: shiftList, policy: pol, effective_from: eff }) => {
+    try {
+      // 1. Save shifts
+      if (shiftList && shiftList.length > 0) {
+        for (const s of shiftList) {
+          if (s.id && !s.id.startsWith('s-custom')) {
+            await updateShift(s.id, {
+              name: s.name,
+              start_time: s.start_time,
+              end_time: s.end_time,
+              break_minutes: Number(s.break_minutes),
+              grace_minutes: Number(s.grace_minutes),
+              weekly_off_days: s.weekly_off_days,
+              is_ramadan_reduced: s.is_ramadan_reduced,
+              effective_from: eff,
+            });
+          } else {
+            await createShift({
+              name: s.name,
+              start_time: s.start_time,
+              end_time: s.end_time,
+              break_minutes: Number(s.break_minutes),
+              grace_minutes: Number(s.grace_minutes),
+              weekly_off_days: s.weekly_off_days,
+              effective_from: eff,
+            });
+          }
+        }
+      }
+
+      // 2. Save policy
+      if (pol) {
+        const policyId = pol.id || attendancePolicies?.[0]?.id;
+        if (policyId) {
+          await updateAttendancePolicy(policyId, {
+            late_grace_minutes: Number(pol.late_grace_minutes),
+            min_ot_minutes: Number(pol.min_ot_minutes),
+            effective_from: eff,
+          });
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['settings', 'shifts'] });
+      queryClient.invalidateQueries({ queryKey: ['settings', 'attendance-policies'] });
+      queryClient.invalidateQueries({ queryKey: ['settings', 'overview'] });
+      showNotification(`Shifts and policies saved. Effective from ${eff}.`, `تم حفظ جداول الورديات والسياسات. تسري من ${eff}.`);
+    } catch (err) {
+      showNotification(`Save failed: ${err.message}`, `فشل الحفظ: ${err.message}`);
+    }
+  };
+
+  const handleSaveLeaveTypes = async (types) => {
+    try {
+      for (const lt of types) {
+        if (lt.id && !lt.id.startsWith('lt-custom')) {
+          await updateLeaveType(lt.id, lt);
+        } else {
+          await createLeaveType(lt);
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ['settings', 'leave-types'] });
+      queryClient.invalidateQueries({ queryKey: ['settings', 'overview'] });
+      showNotification('Leave types updated successfully.', 'تم حفظ أنواع الإجازات بنجاح.');
+    } catch (err) {
+      showNotification(`Save failed: ${err.message}`, `فشل الحفظ: ${err.message}`);
+    }
+  };
+
+  const handleSaveHolidays = async (holidayList) => {
+    try {
+      for (const h of holidayList) {
+        if (h.id && !h.id.startsWith('h-custom')) {
+          await updateHoliday(h.id, h);
+        } else {
+          await createHoliday(h);
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ['settings', 'holidays'] });
+      queryClient.invalidateQueries({ queryKey: ['settings', 'overview'] });
+      showNotification('Public holidays saved successfully.', 'تم حفظ العطلات الرسمية بنجاح.');
+    } catch (err) {
+      showNotification(`Save failed: ${err.message}`, `فشل الحفظ: ${err.message}`);
+    }
+  };
+
+  const handleSaveSalaryRules = async ({ rules: ruleList, absence_divisor: ad, effective_from: eff }) => {
+    try {
+      for (const r of ruleList) {
+        if (r.id && !r.id.startsWith('r-custom')) {
+          await updateSalaryRule(r.id, { ...r, effective_from: eff });
+        } else {
+          await createSalaryRule({ ...r, effective_from: eff });
+        }
+      }
+      if (ad) {
+        await updatePayrollAlerts({ absence_divisor: ad });
+      }
+      queryClient.invalidateQueries({ queryKey: ['settings', 'salary-rules'] });
+      queryClient.invalidateQueries({ queryKey: ['settings', 'payroll-alerts'] });
+      queryClient.invalidateQueries({ queryKey: ['settings', 'overview'] });
+      showNotification(`Salary rules & divisor updated. Effective from ${eff}.`, `تم تحديث قواعد الرواتب ومقسوم الغياب. يسري من ${eff}.`);
+    } catch (err) {
+      showNotification(`Save failed: ${err.message}`, `فشل الحفظ: ${err.message}`);
+    }
+  };
+
+  const handleSaveApprovalFlows = async (flows) => {
+    try {
+      for (const f of flows) {
+        if (f.id) {
+          await updateApprovalFlow(f.id, f);
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ['settings', 'approval-flows'] });
+      queryClient.invalidateQueries({ queryKey: ['settings', 'overview'] });
+      showNotification('Approval workflows saved successfully.', 'تم حفظ مسارات الموافقة بنجاح.');
+    } catch (err) {
+      showNotification(`Save failed: ${err.message}`, `فشل الحفظ: ${err.message}`);
+    }
+  };
+
+  const handleSavePayrollAlerts = async (alerts) => {
+    try {
+      await updatePayrollAlerts(alerts);
+      queryClient.invalidateQueries({ queryKey: ['settings', 'payroll-alerts'] });
+      queryClient.invalidateQueries({ queryKey: ['settings', 'overview'] });
+      showNotification('Payroll checks & alerts saved successfully.', 'تم حفظ إعدادات فحوصات الرواتب بنجاح.');
+    } catch (err) {
+      showNotification(`Save failed: ${err.message}`, `فشل الحفظ: ${err.message}`);
+    }
   };
 
   return (
@@ -199,46 +494,63 @@ export default function SettingsPage() {
           </div>
           <p className="text-xs text-text-muted mt-1">
             {language === 'ar'
-              ? 'المعايير المحددة (Section 9): ملف الشركة، التأشيرات (WPS)، الفروع، الأقسام، الورديات، الإجازات، قواعد الرواتب، مسارات الاعتماد، وفحوصات المسير.'
-              : 'Section 9 Architecture: Company-scoped, effective-dated, audit-logged settings with locked pay run immutability.'}
+              ? 'إدارة الهيكل المؤسسي، قواعد الرواتب القانونية، مسارات الموافقة، وحماية الرواتب المقفلة (FR-ST1–10)'
+              : 'Enterprise hierarchy, statutory salary rules, approval delegation & locked period protection (FR-ST1–10)'}
           </p>
         </div>
 
-        {/* Current Role Banner */}
-        <div className="flex items-center gap-2 p-2 rounded-xl border border-border/70 bg-surface/60 text-xs shrink-0">
+        {/* Persona Role Pill */}
+        <div
+          className="px-3.5 py-2 rounded-xl border flex items-center gap-2.5 shrink-0 shadow-sm"
+          style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)' }}
+        >
           <Shield className="w-4 h-4 text-primary" />
           <div>
-            <span className="text-text-muted block text-[10px]">{language === 'ar' ? 'صلاحيات الجلسة الحالية:' : 'Active Role Authority:'}</span>
-            <span className="font-bold text-text">
-              {user?.roleNameEn || currentRole}
+            <span className="text-[10px] text-text-muted block font-medium">
+              {language === 'ar' ? 'صلاحيات الوصول (المادة 5.3):' : 'Effective Permissions (Section 5.3):'}
             </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-text">
+                {user?.roleNameEn || currentRole}
+              </span>
+              {isHrOrAdmin && (
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  Full Access
+                </span>
+              )}
+              {isPayrollOfficer && (
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                  Salary Rules Only
+                </span>
+              )}
+              {isFinance && (
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-sky-500/10 text-sky-300 border border-sky-500/20">
+                  GL Accounts Only
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Bento Grid Overview of 10 Settings Sections */}
+      {/* Main Settings Bento Overview */}
       <SettingsOverviewBento
-        stats={{
-          visasCount: companyProfile.visas?.length || 2,
-          branchesCount: branches.length,
-        }}
-        userRole={currentRole}
         onOpenDrawer={handleOpenDrawer}
+        userRole={currentRole}
+        overviewData={overviewData}
       />
 
       {/* =========================================================================
-          Detail Drawers
+          Detail Forms in Slide-over Drawers (Connected to /api/v1 Endpoints)
          ========================================================================= */}
+
       {/* 1. Company Profile & Visas Drawer */}
       <CompanyProfileDrawer
         isOpen={activeDrawer === 'profile'}
         onClose={() => setActiveDrawer(null)}
-        company={companyProfile}
+        companyProfile={companyProfile}
         canEdit={isHrOrAdmin}
-        onSave={(data) => {
-          setCompanyProfile(data);
-          showNotification('Company profile and company visas updated.', 'تم تحديث ملف الشركة وتأشيرات الكيان بنجاح.');
-        }}
+        onSave={handleSaveCompanyProfile}
       />
 
       {/* 2. Branches Drawer */}
@@ -246,12 +558,9 @@ export default function SettingsPage() {
         isOpen={activeDrawer === 'branches'}
         onClose={() => setActiveDrawer(null)}
         branches={branches}
-        visas={companyProfile.visas}
+        visas={companyProfile.visas || companyProfile.company_visas}
         canEdit={isHrOrAdmin}
-        onSave={(updated) => {
-          setBranches(updated);
-          showNotification('Branches configuration updated.', 'تم تحديث فروع الشركة بنجاح.');
-        }}
+        onSave={handleSaveBranches}
         onDeleteBranch={handleDeleteBlocked}
       />
 
@@ -262,11 +571,7 @@ export default function SettingsPage() {
         departments={departments}
         jobs={jobs}
         canEdit={isHrOrAdmin}
-        onSave={({ departments: d, jobs: j }) => {
-          setDepartments(d);
-          setJobs(j);
-          showNotification('Department hierarchy and job positions saved.', 'تم حفظ الهيكل التنظيمي للأقسام والوظائف.');
-        }}
+        onSave={handleSaveDepartmentsJobs}
       />
 
       {/* 4. Shifts & Attendance Policies Drawer */}
@@ -274,13 +579,9 @@ export default function SettingsPage() {
         isOpen={activeDrawer === 'shifts_policies'}
         onClose={() => setActiveDrawer(null)}
         shifts={shifts}
-        policy={attendancePolicy}
+        policy={attendancePolicies?.[0] || attendancePolicies}
         canEdit={isHrOrAdmin}
-        onSave={({ shifts: s, policy: p, effective_from: eff }) => {
-          setShifts(s);
-          setAttendancePolicy(p);
-          showNotification(`Shifts and policies saved. Effective from ${eff}.`, `تم حفظ جداول الورديات والسياسات. تسري من ${eff}.`);
-        }}
+        onSave={handleSaveShiftsPolicies}
         onViewHistory={handleOpenVersionHistory}
         onDeleteShift={handleDeleteBlocked}
       />
@@ -291,10 +592,7 @@ export default function SettingsPage() {
         onClose={() => setActiveDrawer(null)}
         leaveTypes={leaveTypes}
         canEdit={isHrOrAdmin}
-        onSave={(updated) => {
-          setLeaveTypes(updated);
-          showNotification('Leave pay bands and accrual rules updated.', 'تم تحديث شرائح دفع الإجازات وقواعد التراكم.');
-        }}
+        onSave={handleSaveLeaveTypes}
       />
 
       {/* 6. Public Holidays Drawer */}
@@ -304,10 +602,7 @@ export default function SettingsPage() {
         holidays={holidays}
         branches={branches}
         canEdit={isHrOrAdmin}
-        onSave={(updated) => {
-          setHolidays(updated);
-          showNotification('2026 public holidays calendar updated.', 'تم تحديث جدول العطلات الرسمية لسنة 2026.');
-        }}
+        onSave={handleSaveHolidays}
         onResetDefaults={() => handleOpenResetDefaults('holidays')}
       />
 
@@ -319,11 +614,7 @@ export default function SettingsPage() {
         companySettings={payrollAlerts}
         userRole={currentRole}
         canEdit={isHrOrAdmin || isPayrollOfficer || isFinance}
-        onSave={({ rules: r, absence_divisor: ad, effective_from: eff }) => {
-          setSalaryRules(r);
-          setPayrollAlerts({ ...payrollAlerts, absence_divisor: ad });
-          showNotification(`Salary rules & divisor updated. Effective from ${eff}.`, `تم تحديث قواعد الرواتب ومقسوم الغياب. يسري من ${eff}.`);
-        }}
+        onSave={handleSaveSalaryRules}
         onViewHistory={handleOpenVersionHistory}
         onResetDefaults={() => handleOpenResetDefaults('salary_rules')}
       />
@@ -334,10 +625,7 @@ export default function SettingsPage() {
         onClose={() => setActiveDrawer(null)}
         approvalFlows={approvalFlows}
         canEdit={isHrOrAdmin}
-        onSave={(updated) => {
-          setApprovalFlows(updated);
-          showNotification('Approval workflows and conditional stages saved.', 'تم حفظ مسارات الموافقة والخطوات المشروطة.');
-        }}
+        onSave={handleSaveApprovalFlows}
       />
 
       {/* 9. Payroll Checks & Document Alerts Drawer */}
@@ -346,10 +634,7 @@ export default function SettingsPage() {
         onClose={() => setActiveDrawer(null)}
         settings={payrollAlerts}
         canEdit={isHrOrAdmin}
-        onSave={(updated) => {
-          setPayrollAlerts({ ...payrollAlerts, ...updated });
-          showNotification('Payroll cut-off and document alert milestones saved.', 'تم حفظ إعدادات قطع المسير وتنبيهات الوثائق.');
-        }}
+        onSave={handleSavePayrollAlerts}
       />
 
       {/* =========================================================================

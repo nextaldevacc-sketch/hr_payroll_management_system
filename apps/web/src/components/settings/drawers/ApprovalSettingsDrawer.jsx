@@ -34,6 +34,12 @@ export function ApprovalSettingsDrawer({
   const [flows, setFlows] = useState(approvalFlows);
   const [selectedType, setSelectedType] = useState('Leave');
 
+  React.useEffect(() => {
+    if (approvalFlows && approvalFlows.length > 0) {
+      setFlows(approvalFlows);
+    }
+  }, [approvalFlows]);
+
   const currentFlow = flows.find((f) => f.request_type === selectedType) || flows[0];
 
   const handleUpdateStepRole = (stepIndex, newRoleCode) => {
@@ -142,9 +148,14 @@ export function ApprovalSettingsDrawer({
                           {language === 'ar' ? `الخطوة ${st.step}: ${st.roleNameAr || st.role}` : `Step ${st.step}: ${st.roleNameEn || st.role}`}
                         </span>
                         {st.is_conditional && (
-                          <div className="flex items-center gap-1.5 text-[11px] text-amber-300 font-semibold mt-0.5">
-                            <Sparkles className="w-3 h-3 text-amber-400" />
-                            <span>{language === 'ar' ? `شرط التفعيل: ${st.condition}` : `Conditional Extra Step: ${st.condition}`}</span>
+                          <div className="flex flex-wrap items-center gap-2 text-[11px] text-amber-300 font-semibold mt-0.5">
+                            <div className="flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-amber-400" />
+                              <span>{language === 'ar' ? `شرط التفعيل: ${st.condition}` : `Conditional Extra Step: ${st.condition}`}</span>
+                            </div>
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                              {language === 'ar' ? 'الافتراضي التجريبي، حدد سياسة الشركة' : 'Demo default, set your company policy'}
+                            </span>
                           </div>
                         )}
                       </div>

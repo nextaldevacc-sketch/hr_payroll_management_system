@@ -174,10 +174,21 @@ export const STATUTORY_UAE_DEFAULT_RULES = [
     credit_account: '212000',
   },
   {
+    code: 'GPSSA_ER',
+    name: 'GPSSA Pension (Employer Share)',
+    category: 'CompanyContribution',
+    sequence: 160,
+    amount_type: 'Formula',
+    formula: 'gpssa_salary * 0.15',
+    appears_on_payslip: false,
+    debit_account: '516000',
+    credit_account: '212000',
+  },
+  {
     code: 'NET',
     name: 'Net Pay to WPS',
     category: 'Net',
-    sequence: 200,
+    sequence: 170,
     amount_type: 'Formula',
     formula: 'GROSS + allowances - deductions',
     appears_on_payslip: true,
@@ -345,11 +356,64 @@ export function executeRuleEngine(rules = STATUTORY_UAE_DEFAULT_RULES, inputCont
 }
 
 /**
- * Pre-defined Demo Personas from Spec Section 8.4
+ * Pre-defined Worked Examples from Spec Section 8.4
+ * Contract: Basic 5,000, Housing 2,000, Transport 500, Other 500 (Gross 8,000)
  */
-export const DEMO_PRESETS = {
-  AHMED: {
-    name: 'Ahmed (Section 8.4 Example 8)',
+export const SECTION_84_WORKED_EXAMPLES = {
+  // Ahmed Examples 1-8
+  AHMED_CONTRACT: {
+    basic: 5000,
+    hra: 2000,
+    tra: 500,
+    oth: 500,
+    gross: 8000,
+  },
+  AHMED_EXAMPLE_1_OT_NORMAL: {
+    name: 'Ahmed Ex 1: Normal Overtime (3 hrs @ 1.25x)',
+    contract: { basic: 5000, hra: 2000, tra: 500, oth: 500 },
+    ot_hours_normal: 3,
+    expectedRuleAmount: 78.13, // (5000/30/8) * 1.25 * 3 = 78.125 -> 78.13
+  },
+  AHMED_EXAMPLE_2_OT_NIGHT: {
+    name: 'Ahmed Ex 2: Night Overtime (2 hrs @ 1.50x)',
+    contract: { basic: 5000, hra: 2000, tra: 500, oth: 500 },
+    ot_hours_night: 2,
+    expectedRuleAmount: 62.50, // (5000/30/8) * 1.50 * 2 = 62.50
+  },
+  AHMED_EXAMPLE_3_HOLIDAY: {
+    name: 'Ahmed Ex 3: Holiday Overtime (1 day / 8 hrs @ 1.50x)',
+    contract: { basic: 5000, hra: 2000, tra: 500, oth: 500 },
+    ot_hours_rest: 8,
+    expectedRuleAmount: 250.00, // (5000/30/8) * 1.50 * 8 = 250.00
+  },
+  AHMED_EXAMPLE_4_ABSENCE_DIV30: {
+    name: 'Ahmed Ex 4: Absence 2 days (÷30 divisor)',
+    contract: { basic: 5000, hra: 2000, tra: 500, oth: 500 },
+    absent_days: 2,
+    absence_divisor: 'DAYS_30',
+    expectedRuleAmount: 533.33, // 8000/30 * 2 = 533.333... -> 533.33
+  },
+  AHMED_EXAMPLE_5_ABSENCE_365: {
+    name: 'Ahmed Ex 5: Absence 2 days (x12÷365 divisor)',
+    contract: { basic: 5000, hra: 2000, tra: 500, oth: 500 },
+    absent_days: 2,
+    absence_divisor: 'DAYS_365',
+    expectedRuleAmount: 526.03, // 8000 * 12 / 365 * 2 = 526.027... -> 526.03
+  },
+  AHMED_EXAMPLE_6_SICK_HALF: {
+    name: 'Ahmed Ex 6: Sick Leave Half Pay (5 days @ 50%)',
+    contract: { basic: 5000, hra: 2000, tra: 500, oth: 500 },
+    sick_half_days: 5,
+    expectedRuleAmount: 666.67, // 8000 / 30 * 0.5 * 5 = 666.666... -> 666.67
+  },
+  AHMED_EXAMPLE_7_LOAN: {
+    name: 'Ahmed Ex 7: Company Loan Recovery',
+    contract: { basic: 5000, hra: 2000, tra: 500, oth: 500 },
+    loan_instalment: 500,
+    expectedRuleAmount: 500.00,
+  },
+  AHMED_EXAMPLE_8_COMBINED: {
+    name: 'Ahmed Ex 8: Combined Pay Slip (Standard + OT 3h + Abs 2d + Loan 500)',
     contract: { basic: 5000, hra: 2000, tra: 500, oth: 500 },
     paid_days: 30,
     month_days: 30,
@@ -357,29 +421,38 @@ export const DEMO_PRESETS = {
     ot_hours_night: 0,
     ot_hours_rest: 0,
     absent_days: 2,
+    absence_divisor: 'DAYS_30',
     late_units: 0,
     loan_instalment: 500,
     adv_instalment: 0,
     gpssa_salary: 0,
-    expectedNet: 7044.80,
+    expectedGross: 8000.00,
+    expectedAllowances: 78.13,
+    expectedDeductions: 1033.33, // 533.33 absence + 500 loan
+    expectedNet: 7044.80, // 8000 + 78.13 - 1033.33 = 7044.80
   },
-  SARA: {
-    name: 'Sara (Standard Full Month)',
-    contract: { basic: 5000, hra: 2000, tra: 500, oth: 500 },
-    paid_days: 30,
-    month_days: 30,
-    ot_hours_normal: 0,
-    ot_hours_night: 0,
-    ot_hours_rest: 0,
-    absent_days: 0,
-    late_units: 0,
-    loan_instalment: 0,
-    adv_instalment: 0,
-    gpssa_salary: 0,
-    expectedNet: 8000.00,
+
+  // Sara Gratuity (Section 8.4)
+  SARA_GRATUITY: {
+    name: 'Sara Gratuity: Basic 5,000, 3y 6m (3.5 years)',
+    basic: 5000,
+    serviceYears: 3.5,
+    expectedGratuity: 12082.19, // 5000 * 12 / 365 * 21 * 3.5 = 12082.19
   },
-  OMAR: {
-    name: 'Omar (National with GPSSA 5%)',
+
+  // Omar Gratuity & Leave Encashment (Section 8.4)
+  OMAR_GRATUITY_AND_LEAVE: {
+    name: 'Omar Gratuity & Leave: Basic 6,000, 7 years, 12 days unused leave',
+    basic: 6000,
+    serviceYears: 7,
+    unusedLeaveDays: 12,
+    expectedGratuity: 32547.95, // (6000 * 12 / 365) * (105 + 60) = 32547.95
+    expectedLeaveEncashment: 2367.12, // 12 * (6000 * 12 / 365) = 2367.12
+  },
+
+  // Clearly labelled extra preset
+  UAE_NATIONAL_GPSSA_EXTRA: {
+    name: 'Extra Preset: UAE National with GPSSA Pension',
     contract: { basic: 6000, hra: 2500, tra: 1000, oth: 500 },
     paid_days: 30,
     month_days: 30,
@@ -391,6 +464,16 @@ export const DEMO_PRESETS = {
     loan_instalment: 0,
     adv_instalment: 0,
     gpssa_salary: 10000,
-    expectedNet: 9500.00, // 10000 Gross - 500 GPSSA = 9500
+    expectedGross: 10000.00,
+    expectedNet: 9500.00, // 10000 Gross - 500 (5% legacy) = 9500
   },
 };
+
+// Aliased for backward compatibility with simulator UI
+export const DEMO_PRESETS = {
+  AHMED: SECTION_84_WORKED_EXAMPLES.AHMED_EXAMPLE_8_COMBINED,
+  SARA_GRATUITY: SECTION_84_WORKED_EXAMPLES.SARA_GRATUITY,
+  OMAR_END_OF_SERVICE: SECTION_84_WORKED_EXAMPLES.OMAR_GRATUITY_AND_LEAVE,
+  UAE_NATIONAL_GPSSA_EXTRA: SECTION_84_WORKED_EXAMPLES.UAE_NATIONAL_GPSSA_EXTRA,
+};
+

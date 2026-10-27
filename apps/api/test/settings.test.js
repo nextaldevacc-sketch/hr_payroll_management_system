@@ -9,7 +9,11 @@ import {
   validateFormula,
   evaluateFormula,
   executeRuleEngine,
+  calculateGratuity,
+  calculateLeaveEncashment,
+  calculatePensionContribution,
   DEMO_PRESETS,
+  SECTION_84_WORKED_EXAMPLES,
   STATUTORY_UAE_DEFAULT_RULES,
 } from '@nextal/shared';
 
@@ -158,15 +162,21 @@ describe('Phase 3: Settings Engine, Formulas, Effective Dating & Permissions Tes
       assert.equal(absLine.amount, 526.03, 'Absence with DAYS_365 divisor must equal 526.03 AED');
     });
 
-    it('Sara standard full month: Exactly nets AED 8,000.00', () => {
-      const result = executeRuleEngine(STATUTORY_UAE_DEFAULT_RULES, DEMO_PRESETS.SARA);
-      assert.equal(result.gross, 8000.0);
-      assert.equal(result.net, 8000.0);
-      assert.equal(result.totalDeductions, 0);
+    it('Sara gratuity (Section 8.4): Exactly AED 12,082.19 (basic 5,000, 3y 6m)', () => {
+      const gratuity = calculateGratuity(5000, 3.5);
+      assert.equal(gratuity.toFixed(2), '12082.19');
     });
 
-    it('Omar UAE National: GPSSA 5% deduction gives AED 9,500.00 net on AED 10,000 gross', () => {
-      const result = executeRuleEngine(STATUTORY_UAE_DEFAULT_RULES, DEMO_PRESETS.OMAR);
+    it('Omar gratuity and leave encashment (Section 8.4): Gratuity AED 32,547.95, Leave Encashment AED 2,367.12', () => {
+      const gratuity = calculateGratuity(6000, 7);
+      assert.equal(gratuity.toFixed(2), '32547.95');
+
+      const leaveEncashment = calculateLeaveEncashment(6000, 12);
+      assert.equal(leaveEncashment.toFixed(2), '2367.12');
+    });
+
+    it('Extra preset: UAE National with GPSSA 5% deduction gives AED 9,500.00 net on AED 10,000 gross', () => {
+      const result = executeRuleEngine(STATUTORY_UAE_DEFAULT_RULES, DEMO_PRESETS.UAE_NATIONAL_GPSSA_EXTRA);
       assert.equal(result.gross, 10000.0);
       assert.equal(result.net, 9500.0);
       const gpssaLine = result.steps.find((s) => s.code === 'GPSSA_EE');

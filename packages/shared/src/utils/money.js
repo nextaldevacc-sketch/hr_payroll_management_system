@@ -132,4 +132,119 @@ export function calculateGratuity(basicSalary, serviceYears, totalWage = null) {
   return rawGratuity.toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
 }
 
+/**
+ * Calculates UAE leave encashment at termination
+ * Formula: basicSalary * 12 / 365 * unusedDays (UAE Labour Law Article 29)
+ * @param {string|number|Decimal} basicSalary
+ * @param {number|Decimal} unusedDays
+ * @returns {Decimal}
+ */
+export function calculateLeaveEncashment(basicSalary, unusedDays) {
+  const basic = toDecimal(basicSalary);
+  const days = toDecimal(unusedDays);
+  if (days.lessThanOrEqualTo(0) || basic.lessThanOrEqualTo(0)) {
+    return new Decimal(0);
+  }
+  const dailyRate = basic.times(12).dividedBy(365);
+  return dailyRate.times(days).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+}
+
+/**
+ * Calculates UAE Pension Contributions (GPSSA / ADPF)
+ * - Minimum contribution salary: AED 3,000 (below-minimum raised to 3,000)
+ * - Maximum contribution salary: AED 70,000 (above-cap limited to 70,000)
+ * - Employee rate: 11% (registered on or after 2 Oct 2023, default) or 5% (legacy, registered before 2 Oct 2023)
+ * - Employer rate: 15% total, with 2.5% government share if contribution salary < AED 20,000
+ *   (employer cost 12.5%, gov share 2.5%). If >= 20,000, employer cost is full 15% (gov share 0%).
+ * 
+ * @param {Object} params
+ * @param {string|number|Decimal} params.basic
+ * @param {string|number|Decimal} [params.pensionableAllowances=0]
+ * @param {string|Date} [params.registrationDate]
+ * @param {boolean} [params.isLegacy]
+ * @param {string} [params.scheme='GPSSA']
+ * @param {Object} [params.rates]
+ * @returns {Object}
+ */
+export function calculatePensionContribution({
+  basic,
+  pensionableAllowances = 0,
+  registrationDate = null,
+  isLegacy = undefined,
+  scheme = 'GPSSA',
+  rates = {},
+}) {
+  const basicDec = toDecimal(basic);
+  const allowDec = toDecimal(pensionableAllowances);
+  const rawSalary = basicDec.plus(allowDec);
+
+  const minSalary = toDecimal(rates.minSalary ?? 3000);
+  const maxSalary = toDecimal(rates.maxSalary ?? 70000);
+
+  // Clamp salary to [minSalary, maxSalary]
+  let contributionSalary = rawSalary;
+  if (contributionSalary.lessThan(minSalary)) {
+    contributionSalary = minSalary;
+  } else if (contributionSalary.greaterThan(maxSalary)) {
+    contributionSalary = maxSalary;
+  }
+
+  // Determine legacy status:
+  // If registered before 2023-10-02 -> legacy (5%)
+  // If registered on or after 2023-10-02 -> new scheme (11%)
+  let isLegacyScheme = false;
+  if (typeof isLegacy === 'boolean') {
+    isLegacyScheme = isLegacy;
+  } else if (registrationDate) {
+    const reg = new Date(registrationDate);
+    const cutoff = new Date('2023-10-02');
+    isLegacyScheme = reg < cutoff;
+  }
+
+  // Employee rate
+  let employeeRate;
+  if (rates.employeeRate !== undefined) {
+    employeeRate = toDecimal(rates.employeeRate);
+  } else if (isLegacyScheme) {
+    employeeRate = toDecimal(rates.employeeRateLegacy ?? 5);
+  } else {
+    employeeRate = toDecimal(rates.employeeRateNew ?? 11);
+  }
+
+  // Employer rate: 15% standard
+  const totalEmployerRate = toDecimal(rates.employerRate ?? 15);
+
+  // Government share: applied if contribution salary < 20,000 AED
+  const govShareThreshold = toDecimal(rates.govShareThreshold ?? 20000);
+  let govShareRate = new Decimal(0);
+  let employerCostRate = totalEmployerRate;
+
+  if (contributionSalary.lessThan(govShareThreshold)) {
+    govShareRate = toDecimal(rates.govShareRate ?? 2.5);
+    employerCostRate = totalEmployerRate.minus(govShareRate);
+  }
+
+  const employeeShare = contributionSalary.times(employeeRate).dividedBy(100).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+  const employerCost = contributionSalary.times(employerCostRate).dividedBy(100).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+  const govShare = contributionSalary.times(govShareRate).dividedBy(100).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+  const totalEmployerContribution = employerCost.plus(govShare);
+  const totalContribution = employeeShare.plus(totalEmployerContribution);
+
+  return {
+    scheme,
+    isLegacy: isLegacyScheme,
+    contributionSalary: contributionSalary.toDecimalPlaces(2, Decimal.ROUND_HALF_UP),
+    rawSalary: rawSalary.toDecimalPlaces(2, Decimal.ROUND_HALF_UP),
+    employeeRate: employeeRate.toNumber(),
+    employeeShare,
+    totalEmployerRate: totalEmployerRate.toNumber(),
+    employerCostRate: employerCostRate.toNumber(),
+    employerCost,
+    govShareRate: govShareRate.toNumber(),
+    govShare,
+    totalEmployerContribution,
+    totalContribution,
+  };
+}
+
 export { Decimal };

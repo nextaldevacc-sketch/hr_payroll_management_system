@@ -32,9 +32,19 @@ model companies {
   ot_multiplier_holiday      Decimal   @default(1.5000) @db.Decimal(5, 4)
   night_window_start         String    @default("22:00:00") @db.VarChar(8)
   night_window_end           String    @default("04:00:00") @db.VarChar(8)
-  gpssa_employee_rate        Decimal   @default(5.00) @db.Decimal(5, 2)
-  gpssa_employer_rate        Decimal   @default(12.50) @db.Decimal(5, 2)
-  gpssa_max_salary           Decimal   @default(50000.00) @db.Decimal(14, 2)
+  pension_scheme_default     String    @default("GPSSA") @db.VarChar(20)
+  gpssa_employee_rate_new    Decimal   @default(11.00) @db.Decimal(5, 2)
+  gpssa_employee_rate_legacy Decimal   @default(5.00) @db.Decimal(5, 2)
+  gpssa_employee_rate        Decimal   @default(11.00) @db.Decimal(5, 2)
+  gpssa_employer_rate        Decimal   @default(15.00) @db.Decimal(5, 2)
+  gpssa_gov_share_rate       Decimal   @default(2.50) @db.Decimal(5, 2)
+  gpssa_min_salary           Decimal   @default(3000.00) @db.Decimal(14, 2)
+  gpssa_max_salary           Decimal   @default(70000.00) @db.Decimal(14, 2)
+  adpf_employee_rate         Decimal   @default(11.00) @db.Decimal(5, 2)
+  adpf_employer_rate         Decimal   @default(15.00) @db.Decimal(5, 2)
+  adpf_gov_share_rate        Decimal   @default(2.50) @db.Decimal(5, 2)
+  adpf_min_salary            Decimal   @default(3000.00) @db.Decimal(14, 2)
+  adpf_max_salary            Decimal   @default(70000.00) @db.Decimal(14, 2)
   created_at                 DateTime  @default(now()) @db.Timestamptz
   created_by             String?   @db.Uuid
   updated_at             DateTime  @updatedAt @db.Timestamptz
@@ -91,6 +101,7 @@ model company_visas {
   mol_establishment_id String      @unique @db.VarChar(20)
   bank_routing_code    String      @db.VarChar(9)
   emirate              String      @db.VarChar(30)
+  pension_fund         String      @default("GPSSA") @db.VarChar(20)
   created_at           DateTime    @default(now()) @db.Timestamptz
   created_by           String?     @db.Uuid
   updated_at           DateTime    @updatedAt @db.Timestamptz
@@ -431,6 +442,8 @@ model employees {
   status                 String                @default("Active") @db.VarChar(20)
   joining_date           DateTime              @db.Date
   residency_type         String                @default("Expat") @db.VarChar(20)
+  pension_scheme         String?               @default("GPSSA") @db.VarChar(20)
+  pension_registration_date DateTime?          @db.Date
   nationality            String                @db.VarChar(60)
   gender                 String                @db.VarChar(10)
   birth_date             DateTime?             @db.Date
@@ -1010,6 +1023,7 @@ model salary_rules {
   amount_type        String            @db.VarChar(20)
   formula            String?           @db.Text
   appears_on_payslip Boolean           @default(true)
+  is_pensionable     Boolean           @default(false)
   debit_account      String?           @db.VarChar(20)
   credit_account     String?           @db.VarChar(20)
   is_active          Boolean           @default(true)

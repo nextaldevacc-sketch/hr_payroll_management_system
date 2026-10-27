@@ -431,7 +431,8 @@ async function main() {
           sequence: r.sequence,
           amount_type: r.amount_type,
           formula: r.formula,
-          appears_on_payslip: true
+          appears_on_payslip: true,
+          is_pensionable: ['BASIC', 'HRA'].includes(r.code)
         }
       });
       map[r.code] = rule;

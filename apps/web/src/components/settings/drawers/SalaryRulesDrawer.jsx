@@ -43,6 +43,15 @@ export function SalaryRulesDrawer({
   const [ruleList, setRuleList] = useState(rules);
   const [selectedRule, setSelectedRule] = useState(rules[0] || null);
 
+  React.useEffect(() => {
+    if (rules && rules.length > 0) {
+      setRuleList(rules);
+      if (!selectedRule || !rules.some((r) => r.id === selectedRule.id)) {
+        setSelectedRule(rules[0]);
+      }
+    }
+  }, [rules]);
+
   // Settings
   const [absenceDivisor, setAbsenceDivisor] = useState(companySettings?.absence_divisor || 'DAYS_30');
   const [effectiveFrom, setEffectiveFrom] = useState('2026-11-01');
@@ -260,7 +269,7 @@ export function SalaryRulesDrawer({
             <div className="col-span-5 border border-border/70 rounded-xl overflow-hidden bg-surface/40 flex flex-col h-[520px]">
               <div className="p-2.5 bg-surface border-b border-border/60 flex items-center justify-between text-xs font-bold">
                 <span className="text-text">{language === 'ar' ? 'تسلسل القواعد' : 'Execution Sequence'}</span>
-                <span className="text-[10px] text-text-muted">13 Rules Active</span>
+                <span className="text-[10px] text-text-muted">{ruleList.length} Rules Active</span>
               </div>
 
               <div className="overflow-y-auto flex-1 divide-y divide-border/40">
@@ -331,6 +340,17 @@ export function SalaryRulesDrawer({
                     </button>
                   )}
                 </div>
+
+                {['GPSSA_EE', 'GPSSA_ER'].includes(selectedRule.code) && (
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+                    <span className="font-semibold">
+                      {language === 'ar'
+                        ? 'يرجى تأكيد النسب الحالية مع العميل قبل الإطلاق الفعلي'
+                        : 'Confirm current rates with the client before go-live'}
+                    </span>
+                  </div>
+                )}
 
                 {/* Safe Formula Box (Rule A) */}
                 <div>
