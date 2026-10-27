@@ -1,0 +1,142 @@
+{
+  "common": {
+    "appName": "Nextal HR & Payroll",
+    "portalName": "UAE Enterprise Platform",
+    "searchPlaceholder": "Search employees, pay runs, documents...",
+    "notifications": "Notifications",
+    "company": "Company",
+    "allCompanies": "All Visas / Entities",
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode",
+    "english": "English",
+    "arabic": "العربية",
+    "userRole": "HR Manager",
+    "currency": "AED",
+    "viewAll": "View all",
+    "days": "days",
+    "approved": "Approved",
+    "pending": "Pending",
+    "rejected": "Rejected",
+    "actions": "Actions"
+  },
+  "menu": {
+    "dashboard": "Dashboard",
+    "employees": "Employees",
+    "attendance": "Attendance",
+    "leaveHolidays": "Leave & Holidays",
+    "payroll": "Payroll",
+    "offboarding": "Offboarding",
+    "compliance": "Compliance",
+    "reports": "Reports",
+    "settings": "Settings",
+    "audit": "Audit History",
+    "styleguide": "Style Guide"
+  },
+  "dashboard": {
+    "title": "HR & Payroll Overview",
+    "subtitle": "Real-time compliance, payroll run & workforce analytics",
+    "livePayroll": {
+      "title": "Live Payroll — October 2026",
+      "subtitle": "Gulf Tech Logistics LLC",
+      "cutoff": "Cut-off in 4 days",
+      "employeesCount": "42 employees included",
+      "gross": "Contract Gross",
+      "overtime": "Approved Overtime",
+      "absence": "Unapproved Absence",
+      "loans": "Loans & Advances",
+      "otherDeductions": "Other Deductions",
+      "latePenalties": "Late Penalties",
+      "netToWps": "Net Pay to WPS",
+      "stepperDraft": "Draft",
+      "stepperCalc": "Calculated",
+      "stepperValid": "Validated",
+      "stepperLock": "Locked",
+      "stepperPaid": "Paid",
+      "status": "In Calculation"
+    },
+    "headcount": {
+      "title": "Headcount",
+      "total": "42",
+      "active": "Active Staff",
+      "joiners": "Joiners",
+      "leavers": "Leavers",
+      "netChange": "+2 net this month"
+    },
+    "pendingApprovals": {
+      "title": "Pending Approvals",
+      "total": "12",
+      "leave": "Leave",
+      "overtime": "Overtime",
+      "adjustments": "Adjustments",
+      "settlements": "Settlements"
+    },
+    "wpsReadiness": {
+      "title": "WPS SIF Readiness",
+      "subtitle": "Wage Protection System compliance check",
+      "ready": "ready"
+    },
+    "exceptions": {
+      "title": "Exceptions Waiting",
+      "missingPunches": "Missing biometric punches",
+      "unapprovedOt": "Unapproved overtime hours",
+      "validationErrors": "Missing IBAN / WPS validation"
+    },
+    "expiringDocs": {
+      "title": "Documents Expiring in 90 Days",
+      "total": "10",
+      "expired": "Expired",
+      "d30": "≤30 days",
+      "d60": "≤60 days",
+      "d90": "≤90 days"
+    },
+    "overtime": {
+      "title": "Overtime This Month",
+      "normal": "Normal ×1.25",
+      "night": "Night ×1.5",
+      "rest": "Rest day ×1.5",
+      "holiday": "Holiday ×1.5"
+    },
+    "payrollTrend": {
+      "title": "Payroll Cost Trend (6 Months)",
+      "subtitle": "Gross vs Net disbursements with variance band"
+    },
+    "deptHeadcount": {
+      "title": "Headcount by Department",
+      "operations": "Operations",
+      "engineering": "Engineering",
+      "sales": "Sales & Mktg",
+      "logistics": "Logistics & Fleet",
+      "finance": "Finance & Admin"
+    },
+    "liabilities": {
+      "title": "Finance Liabilities",
+      "gratuity": "UAE End-of-Service Gratuity",
+      "leave": "Annual Leave Liability"
+    },
+    "weekAhead": {
+      "title": "The Week Ahead",
+      "subtitle": "Leaves, contractual milestones & cut-off deadlines"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "subtitle": "Role-based fast shortcuts"
+    },
+    "variance": {
+      "title": "Variance vs Last Month",
+      "netPayroll": "October Net Payroll",
+      "diff": "+AED 14,250.00 (+4.4%)",
+      "reason": "3 new hires in Operations + AED 1,840 OT"
+    },
+    "attendance": {
+      "title": "Today's Attendance",
+      "present": "Present",
+      "late": "Late",
+      "absent": "Absent",
+      "onLeave": "On Leave"
+    },
+    "activity": {
+      "title": "Recent Audit Activity",
+      "viewAudit": "View full audit log"
+    }
+  }
+}

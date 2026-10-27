@@ -1,0 +1,19 @@
+{
+  "name": "nextal-hr-payroll",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "dev:all": "npm run dev --workspaces",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "build": "npm run build --workspace=apps/web",
+    "start": "npm run start --workspace=apps/web",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {}
+}

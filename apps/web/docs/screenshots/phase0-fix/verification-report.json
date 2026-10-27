@@ -1,0 +1,100 @@
+{
+  "screenshots": [
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\en-light-1920px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\en-light-1440px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\en-light-1024px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\en-light-768px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\en-dark-1920px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\en-dark-1440px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\en-dark-1024px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\en-dark-768px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\ar-light-1920px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\ar-light-1440px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\ar-light-1024px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\ar-light-768px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\ar-dark-1920px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\ar-dark-1440px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\ar-dark-1024px.png",
+    "C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\apps\\web\\docs\\screenshots\\phase0-fix\\ar-dark-768px.png"
+  ],
+  "assertions": {
+    "noHorizontalScroll": true,
+    "noTileOverlaps": true,
+    "noTileOverflow": true
+  },
+  "fonts": {
+    "en": {
+      "h1Font": "__Manrope_5ad90d, __Manrope_Fallback_5ad90d, system-ui, -apple-system, sans-serif",
+      "cellFont": "__Manrope_5ad90d, __Manrope_Fallback_5ad90d, system-ui, -apple-system, sans-serif",
+      "bodyFont": "__Manrope_5ad90d, __Manrope_Fallback_5ad90d, system-ui, -apple-system, sans-serif"
+    },
+    "ar": {
+      "h1Font": "__IBM_Plex_Sans_Arabic_e3925a, __IBM_Plex_Sans_Arabic_Fallback_e3925a, __Manrope_5ad90d, __Manrope_Fallback_5ad90d, system-ui, sans-serif",
+      "cellFont": "__IBM_Plex_Sans_Arabic_e3925a, __IBM_Plex_Sans_Arabic_Fallback_e3925a, __Manrope_5ad90d, __Manrope_Fallback_5ad90d, system-ui, sans-serif",
+      "bodyFont": "__IBM_Plex_Sans_Arabic_e3925a, __IBM_Plex_Sans_Arabic_Fallback_e3925a, __Manrope_5ad90d, __Manrope_Fallback_5ad90d, system-ui, sans-serif"
+    }
+  },
+  "tileEmptyBands": {
+    "live-payroll-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    },
+    "headcount-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    },
+    "pending-approvals-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    },
+    "wps-readiness-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    },
+    "documents-expiry-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    },
+    "exceptions-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    },
+    "attendance-segment-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    },
+    "overtime-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    },
+    "payroll-trend-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    },
+    "department-chart-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    },
+    "finance-liabilities-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    },
+    "week-ahead-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    },
+    "quick-actions-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    },
+    "recent-activity-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    },
+    "variance-tile": {
+      "maxGap": 16,
+      "hasEmptyBandOver24px": false
+    }
+  },
+  "failures": []
+}
