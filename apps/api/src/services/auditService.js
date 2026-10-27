@@ -51,6 +51,32 @@ export class AuditService {
   }
 
   /**
+   * Convenience alias for entity-level audit action logging
+   */
+  async logAction({
+    companyId,
+    userId = null,
+    action,
+    entity,
+    tableName,
+    recordId,
+    oldValues = null,
+    newValues = null,
+    ipAddress = null
+  }) {
+    return this.log({
+      companyId,
+      userId,
+      action,
+      tableName: tableName || entity,
+      recordId: recordId || companyId,
+      oldValues,
+      newValues,
+      ipAddress
+    });
+  }
+
+  /**
    * Query audit history for an entity or record
    */
   async getHistory({ companyId, tableName = null, recordId = null, limit = 50, offset = 0 }) {

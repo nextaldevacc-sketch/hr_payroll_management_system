@@ -17,6 +17,7 @@ import usersRoutes from './routes/users.js';
 import approvalsRoutes from './routes/approvals.js';
 import employeesRoutes from './routes/employees.js';
 import payrollRoutes from './routes/payroll.js';
+import settingsRoutes from './routes/settings.js';
 
 const app = express();
 
@@ -109,6 +110,7 @@ app.use('/api/v1/company', usersRoutes);
 app.use('/api/v1/approvals', approvalsRoutes);
 app.use('/api/v1/employees', employeesRoutes);
 app.use('/api/v1/payroll', payrollRoutes);
+app.use('/api/v1/settings', settingsRoutes);
 
 // 10. Audit history route
 app.get('/api/v1/audit/logs', async (req, res, next) => {

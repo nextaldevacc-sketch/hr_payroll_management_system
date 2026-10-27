@@ -19,10 +19,23 @@ model companies {
   logo_url               String?   @db.Text
   default_language       String    @default("en") @db.VarChar(2)
   status                 String    @default("Active") @db.VarChar(20)
-  default_cutoff_day     Int       @default(25) @db.SmallInt
-  variance_threshold_pct Decimal   @default(5.00) @db.Decimal(5, 2)
-  alert_days             Int[]
-  created_at             DateTime  @default(now()) @db.Timestamptz
+  default_cutoff_day         Int       @default(25) @db.SmallInt
+  variance_threshold_pct     Decimal   @default(5.00) @db.Decimal(5, 2)
+  variance_threshold_aed     Decimal   @default(500.00) @db.Decimal(14, 2)
+  alert_days                 Int[]
+  document_digest_recipients String[]
+  document_type_settings     Json?     @db.JsonB
+  absence_divisor            String    @default("DIV_30") @db.VarChar(20)
+  ot_multiplier_normal       Decimal   @default(1.2500) @db.Decimal(5, 4)
+  ot_multiplier_night        Decimal   @default(1.5000) @db.Decimal(5, 4)
+  ot_multiplier_rest         Decimal   @default(1.5000) @db.Decimal(5, 4)
+  ot_multiplier_holiday      Decimal   @default(1.5000) @db.Decimal(5, 4)
+  night_window_start         String    @default("22:00:00") @db.VarChar(8)
+  night_window_end           String    @default("04:00:00") @db.VarChar(8)
+  gpssa_employee_rate        Decimal   @default(5.00) @db.Decimal(5, 2)
+  gpssa_employer_rate        Decimal   @default(12.50) @db.Decimal(5, 2)
+  gpssa_max_salary           Decimal   @default(50000.00) @db.Decimal(14, 2)
+  created_at                 DateTime  @default(now()) @db.Timestamptz
   created_by             String?   @db.Uuid
   updated_at             DateTime  @updatedAt @db.Timestamptz
   updated_by             String?   @db.Uuid
@@ -68,6 +81,7 @@ model companies {
   clearance_items        clearance_items[]
   final_settlements      final_settlements[]
   separation_tasks       separation_tasks[]
+  settings_versions      settings_versions[]
 }
 
 model company_visas {
@@ -143,6 +157,7 @@ model jobs {
   department_id String      @db.Uuid
   title         String      @db.VarChar(200)
   title_ar      String?     @db.VarChar(200)
+  job_code      String?     @db.VarChar(30)
   grade         String?     @db.VarChar(20)
   created_at    DateTime    @default(now()) @db.Timestamptz
   created_by    String?     @db.Uuid
@@ -302,10 +317,14 @@ model approval_flow_steps {
   id            String         @id @default(uuid()) @db.Uuid
   company_id    String         @db.Uuid
   flow_id       String         @db.Uuid
-  step_no       Int            @db.SmallInt
-  role_id       String         @db.Uuid
-  approver_rule String         @db.VarChar(30)
-  created_at    DateTime       @default(now()) @db.Timestamptz
+  step_no            Int            @db.SmallInt
+  role_id            String         @db.Uuid
+  approver_rule      String         @db.VarChar(30)
+  is_conditional     Boolean        @default(false)
+  condition_field    String?        @db.VarChar(50)
+  condition_operator String?        @db.VarChar(10)
+  condition_value    Decimal?       @db.Decimal(10, 2)
+  created_at         DateTime       @default(now()) @db.Timestamptz
   created_by    String?        @db.Uuid
   updated_at    DateTime       @updatedAt @db.Timestamptz
   updated_by    String?        @db.Uuid
@@ -582,6 +601,9 @@ model shifts {
   weekly_off_days    Int[]
   ramadan_start_time String?           @db.VarChar(8)
   ramadan_end_time   String?           @db.VarChar(8)
+  is_active          Boolean           @default(true)
+  effective_from     DateTime          @default(now()) @db.Date
+  version            Int               @default(1) @db.SmallInt
   created_at         DateTime          @default(now()) @db.Timestamptz
   created_by         String?           @db.Uuid
   updated_at         DateTime          @updatedAt @db.Timestamptz
@@ -604,6 +626,9 @@ model attendance_policies {
   ot_min_minutes          Int             @default(30) @db.SmallInt
   night_start             String          @default("22:00:00") @db.VarChar(8)
   night_end               String          @default("04:00:00") @db.VarChar(8)
+  is_active               Boolean         @default(true)
+  effective_from          DateTime        @default(now()) @db.Date
+  version                 Int             @default(1) @db.SmallInt
   created_at              DateTime        @default(now()) @db.Timestamptz
   created_by              String?         @db.Uuid
   updated_at              DateTime        @updatedAt @db.Timestamptz
@@ -840,6 +865,9 @@ model leave_types {
   needs_attachment  Boolean             @default(false)
   needs_gm          Boolean             @default(false)
   gm_after_days     Int?                @db.SmallInt
+  is_active         Boolean             @default(true)
+  effective_from    DateTime            @default(now()) @db.Date
+  version           Int                 @default(1) @db.SmallInt
   created_at        DateTime            @default(now()) @db.Timestamptz
   created_by        String?             @db.Uuid
   updated_at        DateTime            @updatedAt @db.Timestamptz
@@ -864,6 +892,9 @@ model accrual_plans {
   yearly_cap               Int                 @default(30) @db.SmallInt
   carry_over_max           Int                 @default(0) @db.SmallInt
   carry_over_expiry_months Int?                @db.SmallInt
+  is_active                Boolean             @default(true)
+  effective_from           DateTime            @default(now()) @db.Date
+  version                  Int                 @default(1) @db.SmallInt
   created_at               DateTime            @default(now()) @db.Timestamptz
   created_by               String?             @db.Uuid
   updated_at               DateTime            @updatedAt @db.Timestamptz
@@ -951,6 +982,9 @@ model salary_structures {
   name                String         @db.VarChar(100)
   unpaid_entry_types  String[]
   is_final_settlement Boolean        @default(false)
+  is_active           Boolean        @default(true)
+  effective_from      DateTime       @default(now()) @db.Date
+  version             Int            @default(1) @db.SmallInt
   created_at          DateTime       @default(now()) @db.Timestamptz
   created_by          String?        @db.Uuid
   updated_at          DateTime       @updatedAt @db.Timestamptz
@@ -978,6 +1012,9 @@ model salary_rules {
   appears_on_payslip Boolean           @default(true)
   debit_account      String?           @db.VarChar(20)
   credit_account     String?           @db.VarChar(20)
+  is_active          Boolean           @default(true)
+  effective_from     DateTime          @default(now()) @db.Date
+  version            Int               @default(1) @db.SmallInt
   created_at         DateTime          @default(now()) @db.Timestamptz
   created_by         String?           @db.Uuid
   updated_at         DateTime          @updatedAt @db.Timestamptz
@@ -1262,3 +1299,22 @@ model separation_tasks {
   @@index([separation_id])
   @@index([assigned_to])
 }
+
+model settings_versions {
+  id             String    @id @default(uuid()) @db.Uuid
+  company_id     String    @db.Uuid
+  entity_type    String    @db.VarChar(50)
+  entity_id      String    @db.Uuid
+  version_no     Int       @db.SmallInt
+  effective_from DateTime  @db.Date
+  snapshot       Json      @db.JsonB
+  created_at     DateTime  @default(now()) @db.Timestamptz
+  created_by     String?   @db.Uuid
+
+  company        companies @relation(fields: [company_id], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([entity_type, entity_id])
+  @@index([effective_from])
+}
+
