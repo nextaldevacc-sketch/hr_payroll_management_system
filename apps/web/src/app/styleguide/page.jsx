@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { GlassCard } from '../../components/primitives/GlassCard';
 import { BentoGrid } from '../../components/primitives/BentoGrid';
@@ -39,8 +39,13 @@ import {
 } from 'lucide-react';
 
 export default function StyleguidePage() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const { language, toggleLanguage, isRTL } = useLanguage();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [inputVal, setInputVal] = useState('Ahmed Mansoor');
   const [selectVal, setSelectVal] = useState('Operations');
@@ -142,10 +147,22 @@ export default function StyleguidePage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            icon={theme === 'dark' ? <Sun className="w-4 h-4 text-primary" /> : <Moon className="w-4 h-4" />}
+            onClick={() => {
+              const current = mounted ? (resolvedTheme || theme) : 'dark';
+              setTheme(current === 'dark' ? 'light' : 'dark');
+            }}
+            icon={
+              <span className="inline-flex items-center justify-center w-4 h-4">
+                <Sun className="w-4 h-4 text-primary hidden dark:block" />
+                <Moon className="w-4 h-4 block dark:hidden" />
+              </span>
+            }
           >
-            Theme: <strong className="ms-1 capitalize">{theme || 'light'}</strong>
+            Theme:{' '}
+            <strong className="ms-1 capitalize">
+              <span className="hidden dark:inline">Dark</span>
+              <span className="inline dark:hidden">Light</span>
+            </strong>
           </Button>
         </div>
       </div>

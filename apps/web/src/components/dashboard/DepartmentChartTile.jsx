@@ -5,11 +5,9 @@ import { Layers } from 'lucide-react';
 import { BentoTile } from '../primitives/BentoTile';
 import { IconWell } from '../primitives/IconWell';
 import { useLanguage } from '../../context/LanguageContext';
-import { useThemeColor } from '../../hooks/useThemeColor';
 
 export function DepartmentChartTile({ data = [], onClick }) {
   const { t } = useLanguage();
-  const primaryColor = useThemeColor('--primary', '#E6A60E');
 
   // Single gold ramp: 100%, 80%, 62%, 46%, 32% ranked by department size
   const goldRampOpacities = [1.0, 0.80, 0.62, 0.46, 0.32];
@@ -48,7 +46,7 @@ export function DepartmentChartTile({ data = [], onClick }) {
                   style={{
                     width: `${dept.percentage}%`,
                     opacity: opacity,
-                    backgroundColor: primaryColor,
+                    backgroundColor: 'var(--primary)',
                   }}
                 />
               </div>

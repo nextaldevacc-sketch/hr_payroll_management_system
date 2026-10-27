@@ -30,7 +30,14 @@
     "reports": "التقارير",
     "settings": "الإعدادات",
     "audit": "سجل التدقيق",
-    "styleguide": "دليل التصميم"
+    "styleguide": "دليل التصميم",
+    "selfService": "الخدمة الذاتية",
+    "myProfile": "ملفي الشخصي",
+    "myPayslips": "مسيرات رواتبي",
+    "myAttendance": "سجل حضوري",
+    "myLeave": "رصيد إجازاتي",
+    "myRequests": "طلباتي",
+    "myDocuments": "وثائقي الرسمية"
   },
   "dashboard": {
     "title": "نظرة عامة على الموارد البشرية والرواتب",

@@ -6,12 +6,9 @@ import { BentoTile } from '../primitives/BentoTile';
 import { IconWell } from '../primitives/IconWell';
 import { ListDivided } from '../primitives/ListDivided';
 import { useLanguage } from '../../context/LanguageContext';
-import { useThemeColor } from '../../hooks/useThemeColor';
 
 export function WpsReadinessTile({ data, onClick, onFilterMissing }) {
   const { t } = useLanguage();
-  const primaryColor = useThemeColor('--primary', '#E6A60E');
-  const borderVar = useThemeColor('--border', 'rgba(255, 255, 255, 0.06)');
   const ready = data?.ready || 40;
   const total = data?.total || 42;
   const percentage = Math.round((ready / total) * 100);
@@ -52,7 +49,7 @@ export function WpsReadinessTile({ data, onClick, onFilterMissing }) {
                 cx={center}
                 cy={center}
                 r={radius}
-                stroke={borderVar}
+                style={{ stroke: 'var(--border)' }}
                 strokeWidth={strokeWidth}
                 fill="transparent"
               />
@@ -60,7 +57,7 @@ export function WpsReadinessTile({ data, onClick, onFilterMissing }) {
                 cx={center}
                 cy={center}
                 r={radius}
-                stroke={primaryColor}
+                style={{ stroke: 'var(--primary)' }}
                 strokeWidth={strokeWidth}
                 fill="transparent"
                 strokeDasharray={circumference}

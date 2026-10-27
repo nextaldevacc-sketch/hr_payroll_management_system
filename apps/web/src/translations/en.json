@@ -30,7 +30,14 @@
     "reports": "Reports",
     "settings": "Settings",
     "audit": "Audit History",
-    "styleguide": "Style Guide"
+    "styleguide": "Style Guide",
+    "selfService": "Self-Service",
+    "myProfile": "My Profile",
+    "myPayslips": "My Payslips",
+    "myAttendance": "My Attendance",
+    "myLeave": "My Leave",
+    "myRequests": "My Requests",
+    "myDocuments": "My Documents"
   },
   "dashboard": {
     "title": "HR & Payroll Overview",

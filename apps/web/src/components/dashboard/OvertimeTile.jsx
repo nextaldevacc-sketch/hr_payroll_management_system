@@ -6,11 +6,9 @@ import { BentoTile } from '../primitives/BentoTile';
 import { IconWell } from '../primitives/IconWell';
 import { formatCurrency } from '@nextal/shared';
 import { useLanguage } from '../../context/LanguageContext';
-import { useThemeColor } from '../../hooks/useThemeColor';
 
 export function OvertimeTile({ data, onClick }) {
   const { language } = useLanguage();
-  const primaryColor = useThemeColor('--primary', '#E6A60E');
   const types = data?.types || [
     { name: 'Normal ×1.25', hours: 110, amount: 4200.00, percent: 50 },
     { name: 'Night ×1.5', hours: 42, amount: 2016.00, percent: 24 },
@@ -48,7 +46,7 @@ export function OvertimeTile({ data, onClick }) {
               <div className="w-full h-1 bg-black/[0.04] dark:bg-white/[0.06] rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${ot.percent}%`, backgroundColor: primaryColor }}
+                  style={{ width: `${ot.percent}%`, backgroundColor: 'var(--primary)' }}
                 />
               </div>
             </div>

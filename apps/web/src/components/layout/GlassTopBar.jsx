@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import {
   Search,
@@ -17,9 +17,15 @@ import { IconWell } from '../primitives/IconWell';
 import { useLanguage } from '../../context/LanguageContext';
 
 export function GlassTopBar({ onToggleMobileNav }) {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const { language, toggleLanguage, t, isRTL } = useLanguage();
+  const [mounted, setMounted] = useState(false);
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [selectedCompany, setSelectedCompany] = useState({
     name: 'Gulf Tech Logistics LLC',
     visa: 'MOHRE Visa #442901 - Dubai',
@@ -30,8 +36,6 @@ export function GlassTopBar({ onToggleMobileNav }) {
     { name: 'Nextal Solutions FZ-LLC', visa: 'DIFC License #98210 - Dubai' },
     { name: 'Apex Engineering Abu Dhabi', visa: 'Abu Dhabi Main Branch' },
   ];
-
-  const isDarkMode = theme === 'dark';
 
   return (
     <header className="glass-top-bar sticky top-0 z-20 h-16 px-4 lg:px-8 flex items-center justify-between transition-colors">
@@ -132,14 +136,14 @@ export function GlassTopBar({ onToggleMobileNav }) {
         <IconWell
           size="sm"
           shape="circle"
-          onClick={() => setTheme(isDarkMode ? 'light' : 'dark')}
-          title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          onClick={() => {
+            const current = (mounted ? (resolvedTheme || theme) : 'dark');
+            setTheme(current === 'dark' ? 'light' : 'dark');
+          }}
+          title={mounted && (resolvedTheme || theme) === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         >
-          {isDarkMode ? (
-            <Sun className="w-4 h-4 text-primary" />
-          ) : (
-            <Moon className="w-4 h-4 text-text-muted hover:text-text" />
-          )}
+          <Sun className="w-4 h-4 text-primary hidden dark:block" />
+          <Moon className="w-4 h-4 text-text-muted hover:text-text block dark:hidden" />
         </IconWell>
 
         {/* Notifications Bell */}

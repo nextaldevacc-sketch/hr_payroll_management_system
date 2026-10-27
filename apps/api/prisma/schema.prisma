@@ -1,0 +1,1247 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==========================================
+// A.3 Organisation and Access (9 Tables)
+// ==========================================
+
+model companies {
+  id                     String    @id @default(uuid()) @db.Uuid
+  name                   String    @db.VarChar(200)
+  name_ar                String?   @db.VarChar(200)
+  trade_license_no       String    @unique @db.VarChar(50)
+  logo_url               String?   @db.Text
+  default_language       String    @default("en") @db.VarChar(2)
+  status                 String    @default("Active") @db.VarChar(20)
+  default_cutoff_day     Int       @default(25) @db.SmallInt
+  variance_threshold_pct Decimal   @default(5.00) @db.Decimal(5, 2)
+  alert_days             Int[]
+  created_at             DateTime  @default(now()) @db.Timestamptz
+  created_by             String?   @db.Uuid
+  updated_at             DateTime  @updatedAt @db.Timestamptz
+  updated_by             String?   @db.Uuid
+
+  company_visas          company_visas[]
+  branches               branches[]
+  departments            departments[]
+  jobs                   jobs[]
+  users                  users[]
+  user_roles             user_roles[]
+  support_access_grants  support_access_grants[]
+  approval_flows         approval_flows[]
+  approval_flow_steps    approval_flow_steps[]
+  approval_requests      approval_requests[]
+  approval_actions       approval_actions[]
+  audit_logs             audit_logs[]
+  employees              employees[]
+  contracts              contracts[]
+  employee_documents     employee_documents[]
+  bank_accounts          bank_accounts[]
+  shifts                 shifts[]
+  attendance_policies    attendance_policies[]
+  penalty_steps          penalty_steps[]
+  device_mappings        device_mappings[]
+  biometric_imports      biometric_imports[]
+  punches                punches[]
+  attendance_days        attendance_days[]
+  attendance_requests    attendance_requests[]
+  overtime_requests      overtime_requests[]
+  public_holidays        public_holidays[]
+  leave_types            leave_types[]
+  accrual_plans          accrual_plans[]
+  leave_allocations      leave_allocations[]
+  leave_requests         leave_requests[]
+  salary_structures      salary_structures[]
+  salary_rules           salary_rules[]
+  pay_runs               pay_runs[]
+  pay_run_issues         pay_run_issues[]
+  payslips               payslips[]
+  payslip_lines          payslip_lines[]
+  salary_adjustments     salary_adjustments[]
+  separations            separations[]
+  clearance_items        clearance_items[]
+  final_settlements      final_settlements[]
+  separation_tasks       separation_tasks[]
+}
+
+model company_visas {
+  id                   String      @id @default(uuid()) @db.Uuid
+  company_id           String      @db.Uuid
+  name                 String      @db.VarChar(200)
+  mol_establishment_id String      @unique @db.VarChar(20)
+  bank_routing_code    String      @db.VarChar(9)
+  emirate              String      @db.VarChar(30)
+  created_at           DateTime    @default(now()) @db.Timestamptz
+  created_by           String?     @db.Uuid
+  updated_at           DateTime    @updatedAt @db.Timestamptz
+  updated_by           String?     @db.Uuid
+
+  company              companies   @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  branches             branches[]
+  employees            employees[]
+  pay_runs             pay_runs[]
+
+  @@index([company_id])
+}
+
+model branches {
+  id              String            @id @default(uuid()) @db.Uuid
+  company_id      String            @db.Uuid
+  company_visa_id String            @db.Uuid
+  name            String            @db.VarChar(200)
+  name_ar         String?           @db.VarChar(200)
+  emirate         String            @db.VarChar(30)
+  created_at      DateTime          @default(now()) @db.Timestamptz
+  created_by      String?           @db.Uuid
+  updated_at      DateTime          @updatedAt @db.Timestamptz
+  updated_by      String?           @db.Uuid
+
+  company         companies         @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  company_visa    company_visas     @relation(fields: [company_visa_id], references: [id], onDelete: Restrict)
+  employees       employees[]
+  public_holidays public_holidays[]
+
+  @@index([company_id])
+  @@index([company_visa_id])
+}
+
+model departments {
+  id              String            @id @default(uuid()) @db.Uuid
+  company_id      String            @db.Uuid
+  parent_id       String?           @db.Uuid
+  name            String            @db.VarChar(200)
+  name_ar         String?           @db.VarChar(200)
+  manager_id      String?           @db.Uuid
+  cost_centre     String?           @db.VarChar(20)
+  created_at      DateTime          @default(now()) @db.Timestamptz
+  created_by      String?           @db.Uuid
+  updated_at      DateTime          @updatedAt @db.Timestamptz
+  updated_by      String?           @db.Uuid
+
+  company         companies         @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  parent          departments?      @relation("DepartmentHierarchy", fields: [parent_id], references: [id], onDelete: Restrict)
+  children        departments[]     @relation("DepartmentHierarchy")
+  manager         employees?        @relation("DepartmentManager", fields: [manager_id], references: [id], onDelete: Restrict)
+  jobs            jobs[]
+  contracts       contracts[]
+  clearance_items clearance_items[]
+
+  @@index([company_id])
+  @@index([parent_id])
+  @@index([manager_id])
+}
+
+model jobs {
+  id            String      @id @default(uuid()) @db.Uuid
+  company_id    String      @db.Uuid
+  department_id String      @db.Uuid
+  title         String      @db.VarChar(200)
+  title_ar      String?     @db.VarChar(200)
+  grade         String?     @db.VarChar(20)
+  created_at    DateTime    @default(now()) @db.Timestamptz
+  created_by    String?     @db.Uuid
+  updated_at    DateTime    @updatedAt @db.Timestamptz
+  updated_by    String?     @db.Uuid
+
+  company       companies   @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  department    departments @relation(fields: [department_id], references: [id], onDelete: Restrict)
+  contracts     contracts[]
+
+  @@index([company_id])
+  @@index([department_id])
+}
+
+model users {
+  id                      String                  @id @default(uuid()) @db.Uuid
+  company_id              String?                 @db.Uuid
+  employee_id             String?                 @unique @db.Uuid
+  email                   String                  @unique @db.VarChar(255)
+  password_hash           String                  @db.VarChar(255)
+  is_platform_admin       Boolean                 @default(false)
+  status                  String                  @default("Active") @db.VarChar(20)
+  failed_logins           Int                     @default(0) @db.SmallInt
+  locked_until            DateTime?               @db.Timestamptz
+  last_login_at           DateTime?               @db.Timestamptz
+  deactivated_at          DateTime?               @db.Timestamptz
+  created_at              DateTime                @default(now()) @db.Timestamptz
+  created_by              String?                 @db.Uuid
+  updated_at              DateTime                @updatedAt @db.Timestamptz
+  updated_by              String?                 @db.Uuid
+
+  company                 companies?              @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  employee                employees?              @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+  user_roles              user_roles[]
+  platform_grants         support_access_grants[] @relation("PlatformUser")
+  granted_by_user         support_access_grants[] @relation("GrantedByUser")
+  requested_approvals     approval_requests[]     @relation("ApprovalRequestedBy")
+  acted_approvals         approval_actions[]      @relation("ApprovalActedBy")
+  audit_logs              audit_logs[]
+  verified_employees      employees[]             @relation("EmployeeVerifiedBy")
+  owner_documents         employee_documents[]    @relation("DocumentOwner")
+  uploaded_documents      employee_documents[]    @relation("DocumentUploadedBy")
+  verified_documents      employee_documents[]    @relation("DocumentVerifiedBy")
+  biometric_imports       biometric_imports[]     @relation("BiometricImportedBy")
+  manager_attendance_days attendance_days[]       @relation("ManagerConfirmedBy")
+  hr_attendance_days      attendance_days[]       @relation("HrConfirmedBy")
+  validated_pay_runs      pay_runs[]              @relation("PayRunValidatedBy")
+  locked_pay_runs         pay_runs[]              @relation("PayRunLockedBy")
+  owner_clearance_items   clearance_items[]       @relation("ClearanceItemOwner")
+  cleared_items           clearance_items[]       @relation("ClearanceItemClearedBy")
+  assigned_separation_tasks separation_tasks[]    @relation("SeparationTaskAssignedTo")
+
+  @@index([company_id])
+}
+
+model roles {
+  id                  String                @id @default(uuid()) @db.Uuid
+  code                String                @unique @db.VarChar(30)
+  name                String                @db.VarChar(100)
+  sees_salary         Boolean               @default(false)
+  permissions         Json?                 @db.JsonB
+  created_at          DateTime              @default(now()) @db.Timestamptz
+  created_by          String?               @db.Uuid
+  updated_at          DateTime              @updatedAt @db.Timestamptz
+  updated_by          String?               @db.Uuid
+
+  user_roles          user_roles[]
+  approval_flow_steps approval_flow_steps[]
+}
+
+model user_roles {
+  id         String    @id @default(uuid()) @db.Uuid
+  company_id String    @db.Uuid
+  user_id    String    @db.Uuid
+  role_id    String    @db.Uuid
+  scope_type String    @default("Company") @db.VarChar(20)
+  scope_id   String?   @db.Uuid
+  created_at DateTime  @default(now()) @db.Timestamptz
+  created_by String?   @db.Uuid
+  updated_at DateTime  @updatedAt @db.Timestamptz
+  updated_by String?   @db.Uuid
+
+  company    companies @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  user       users     @relation(fields: [user_id], references: [id], onDelete: Restrict)
+  role       roles     @relation(fields: [role_id], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([user_id])
+  @@index([role_id])
+}
+
+model support_access_grants {
+  id               String    @id @default(uuid()) @db.Uuid
+  company_id       String    @db.Uuid
+  platform_user_id String    @db.Uuid
+  granted_by       String    @db.Uuid
+  reason           String    @db.Text
+  starts_at        DateTime  @db.Timestamptz
+  ends_at          DateTime  @db.Timestamptz
+  revoked_at       DateTime? @db.Timestamptz
+  created_at       DateTime  @default(now()) @db.Timestamptz
+  created_by       String?   @db.Uuid
+  updated_at       DateTime  @updatedAt @db.Timestamptz
+  updated_by       String?   @db.Uuid
+
+  company          companies @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  platform_user    users     @relation("PlatformUser", fields: [platform_user_id], references: [id], onDelete: Restrict)
+  grantor          users     @relation("GrantedByUser", fields: [granted_by], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([platform_user_id])
+  @@index([granted_by])
+}
+
+// ==========================================
+// A.4 Approvals and Audit (5 Tables)
+// ==========================================
+
+model approval_flows {
+  id                  String                @id @default(uuid()) @db.Uuid
+  company_id          String                @db.Uuid
+  request_type        String                @db.VarChar(30)
+  name                String                @db.VarChar(100)
+  condition           Json?                 @db.JsonB
+  priority            Int                   @default(1) @db.SmallInt
+  is_active           Boolean               @default(true)
+  created_at          DateTime              @default(now()) @db.Timestamptz
+  created_by          String?               @db.Uuid
+  updated_at          DateTime              @updatedAt @db.Timestamptz
+  updated_by          String?               @db.Uuid
+
+  company             companies             @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  steps               approval_flow_steps[]
+  requests            approval_requests[]
+
+  @@index([company_id])
+}
+
+model approval_flow_steps {
+  id            String         @id @default(uuid()) @db.Uuid
+  company_id    String         @db.Uuid
+  flow_id       String         @db.Uuid
+  step_no       Int            @db.SmallInt
+  role_id       String         @db.Uuid
+  approver_rule String         @db.VarChar(30)
+  created_at    DateTime       @default(now()) @db.Timestamptz
+  created_by    String?        @db.Uuid
+  updated_at    DateTime       @updatedAt @db.Timestamptz
+  updated_by    String?        @db.Uuid
+
+  company       companies      @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  flow          approval_flows @relation(fields: [flow_id], references: [id], onDelete: Restrict)
+  role          roles          @relation(fields: [role_id], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([flow_id])
+  @@index([role_id])
+}
+
+model approval_requests {
+  id                  String                @id @default(uuid()) @db.Uuid
+  company_id          String                @db.Uuid
+  flow_id             String                @db.Uuid
+  request_type        String                @db.VarChar(30)
+  record_id           String                @db.Uuid
+  current_step        Int                   @default(1) @db.SmallInt
+  status              String                @default("Pending") @db.VarChar(20)
+  requested_by        String                @db.Uuid
+  requested_at        DateTime              @default(now()) @db.Timestamptz
+  completed_at        DateTime?             @db.Timestamptz
+  created_at          DateTime              @default(now()) @db.Timestamptz
+  created_by          String?               @db.Uuid
+  updated_at          DateTime              @updatedAt @db.Timestamptz
+  updated_by          String?               @db.Uuid
+
+  company             companies             @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  flow                approval_flows        @relation(fields: [flow_id], references: [id], onDelete: Restrict)
+  requester           users                 @relation("ApprovalRequestedBy", fields: [requested_by], references: [id], onDelete: Restrict)
+  actions             approval_actions[]
+  contracts           contracts[]
+  attendance_requests attendance_requests[]
+  overtime_requests   overtime_requests[]
+  leave_requests      leave_requests[]
+  salary_adjustments  salary_adjustments[]
+  pay_runs            pay_runs[]
+  separations         separations[]
+  final_settlements   final_settlements[]
+
+  @@index([company_id])
+  @@index([flow_id])
+  @@index([requested_by])
+  @@index([record_id])
+}
+
+model approval_actions {
+  id                  String            @id @default(uuid()) @db.Uuid
+  company_id          String            @db.Uuid
+  approval_request_id String            @db.Uuid
+  step_no             Int               @db.SmallInt
+  acted_by            String            @db.Uuid
+  action              String            @db.VarChar(20)
+  comment             String?           @db.Text
+  acted_at            DateTime          @default(now()) @db.Timestamptz
+  created_at          DateTime          @default(now()) @db.Timestamptz
+  created_by          String?           @db.Uuid
+  updated_at          DateTime          @updatedAt @db.Timestamptz
+  updated_by          String?           @db.Uuid
+
+  company             companies         @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  request             approval_requests @relation(fields: [approval_request_id], references: [id], onDelete: Restrict)
+  actor               users             @relation("ApprovalActedBy", fields: [acted_by], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([approval_request_id])
+  @@index([acted_by])
+}
+
+model audit_logs {
+  id         BigInt    @id @default(autoincrement())
+  company_id String    @db.Uuid
+  user_id    String?   @db.Uuid
+  action     String    @db.VarChar(20)
+  table_name String    @db.VarChar(60)
+  record_id  String    @db.Uuid
+  old_values Json?     @db.JsonB
+  new_values Json?     @db.JsonB
+  ip_address String?   @db.VarChar(45)
+  created_at DateTime  @default(now()) @db.Timestamptz
+
+  company    companies @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  user       users?    @relation(fields: [user_id], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([user_id])
+  @@index([table_name])
+  @@index([record_id])
+}
+
+// ==========================================
+// A.5 Employees (4 Tables)
+// ==========================================
+
+model employees {
+  id                     String                @id @default(uuid()) @db.Uuid
+  company_id             String                @db.Uuid
+  employee_code          String                @db.VarChar(20)
+  name                   String                @db.VarChar(200)
+  arabic_name            String?               @db.VarChar(200)
+  legal_name             String?               @db.VarChar(200)
+  status                 String                @default("Active") @db.VarChar(20)
+  joining_date           DateTime              @db.Date
+  residency_type         String                @default("Expat") @db.VarChar(20)
+  nationality            String                @db.VarChar(60)
+  gender                 String                @db.VarChar(10)
+  birth_date             DateTime?             @db.Date
+  mohre_person_id        String?               @db.VarChar(14)
+  company_visa_id        String                @db.Uuid
+  branch_id              String                @db.Uuid
+  manager_id             String?               @db.Uuid
+  hr_manager_id          String?               @db.Uuid
+  leave_approver_id      String?               @db.Uuid
+  work_email             String?               @db.VarChar(255)
+  mobile                 String?               @db.VarChar(20)
+  emergency_contact_name String?               @db.VarChar(200)
+  emergency_contact_phone String?              @db.VarChar(20)
+  verified_by            String?               @db.Uuid
+  verified_at            DateTime?             @db.Timestamptz
+  activated_at           DateTime?             @db.Timestamptz
+  created_at             DateTime              @default(now()) @db.Timestamptz
+  created_by             String?               @db.Uuid
+  updated_at             DateTime              @updatedAt @db.Timestamptz
+  updated_by             String?               @db.Uuid
+
+  company                companies             @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  company_visa           company_visas         @relation(fields: [company_visa_id], references: [id], onDelete: Restrict)
+  branch                 branches              @relation(fields: [branch_id], references: [id], onDelete: Restrict)
+  manager                employees?            @relation("LineManager", fields: [manager_id], references: [id], onDelete: Restrict)
+  subordinates           employees[]           @relation("LineManager")
+  hr_manager             employees?            @relation("HrManager", fields: [hr_manager_id], references: [id], onDelete: Restrict)
+  hr_managed_employees   employees[]           @relation("HrManager")
+  leave_approver         employees?            @relation("LeaveApprover", fields: [leave_approver_id], references: [id], onDelete: Restrict)
+  leave_approved_employees employees[]         @relation("LeaveApprover")
+  verifier               users?                @relation("EmployeeVerifiedBy", fields: [verified_by], references: [id], onDelete: Restrict)
+  managed_departments    departments[]         @relation("DepartmentManager")
+  user                   users?
+  contracts              contracts[]
+  documents              employee_documents[]
+  bank_accounts          bank_accounts[]
+  device_mappings        device_mappings[]
+  punches                punches[]
+  attendance_days        attendance_days[]
+  attendance_requests    attendance_requests[]
+  overtime_requests      overtime_requests[]
+  leave_allocations      leave_allocations[]
+  leave_requests         leave_requests[]
+  pay_run_issues         pay_run_issues[]
+  payslips               payslips[]
+  salary_adjustments     salary_adjustments[]
+  separations            separations[]
+
+  @@unique([company_id, employee_code])
+  @@index([company_id])
+  @@index([company_visa_id])
+  @@index([branch_id])
+}
+
+model contracts {
+  id                   String             @id @default(uuid()) @db.Uuid
+  company_id           String             @db.Uuid
+  employee_id          String             @db.Uuid
+  version_no           Int                @default(1) @db.SmallInt
+  effective_date       DateTime           @db.Date
+  contract_type        String             @default("Limited") @db.VarChar(20)
+  start_date           DateTime           @db.Date
+  end_date             DateTime?          @db.Date
+  probation_end        DateTime?          @db.Date
+  job_id               String             @db.Uuid
+  department_id        String             @db.Uuid
+  shift_id             String             @db.Uuid
+  attendance_policy_id String             @db.Uuid
+  structure_id         String             @db.Uuid
+  basic                Decimal            @db.Decimal(14, 2)
+  housing              Decimal            @default(0) @db.Decimal(14, 2)
+  transport            Decimal            @default(0) @db.Decimal(14, 2)
+  other_allowances     Decimal            @default(0) @db.Decimal(14, 2)
+  gross                Decimal            @db.Decimal(14, 2)
+  annual_leave_days    Int                @default(30) @db.SmallInt
+  gratuity_rule        String             @default("UAE_LABOUR_LAW") @db.VarChar(30)
+  notice_days_employee Int                @default(30) @db.SmallInt
+  notice_days_employer Int                @default(30) @db.SmallInt
+  training_cost        Decimal?           @db.Decimal(14, 2)
+  status               String             @default("Draft") @db.VarChar(20)
+  approval_request_id  String?            @db.Uuid
+  created_at           DateTime           @default(now()) @db.Timestamptz
+  created_by           String?            @db.Uuid
+  updated_at           DateTime           @updatedAt @db.Timestamptz
+  updated_by           String?            @db.Uuid
+
+  company              companies          @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  employee             employees          @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+  job                  jobs               @relation(fields: [job_id], references: [id], onDelete: Restrict)
+  department           departments        @relation(fields: [department_id], references: [id], onDelete: Restrict)
+  shift                shifts             @relation(fields: [shift_id], references: [id], onDelete: Restrict)
+  attendance_policy    attendance_policies @relation(fields: [attendance_policy_id], references: [id], onDelete: Restrict)
+  salary_structure     salary_structures  @relation(fields: [structure_id], references: [id], onDelete: Restrict)
+  approval_request     approval_requests? @relation(fields: [approval_request_id], references: [id], onDelete: Restrict)
+  payslips             payslips[]
+
+  @@unique([employee_id, effective_date])
+  @@index([company_id])
+  @@index([employee_id])
+}
+
+model employee_documents {
+  id                  String    @id @default(uuid()) @db.Uuid
+  company_id          String    @db.Uuid
+  employee_id         String    @db.Uuid
+  doc_type            String    @db.VarChar(30)
+  doc_number          String    @db.VarChar(50)
+  issue_date          DateTime? @db.Date
+  expiry_date         DateTime  @db.Date
+  file_url            String?   @db.Text
+  owner_id            String?   @db.Uuid
+  status              String    @default("Valid") @db.VarChar(20)
+  last_alert_days     Int?      @db.SmallInt
+  last_alert_sent_at  DateTime? @db.Timestamptz
+  verification_status String    @default("Verified") @db.VarChar(20)
+  uploaded_by         String?   @db.Uuid
+  verified_by         String?   @db.Uuid
+  created_at          DateTime  @default(now()) @db.Timestamptz
+  created_by          String?   @db.Uuid
+  updated_at          DateTime  @updatedAt @db.Timestamptz
+  updated_by          String?   @db.Uuid
+
+  company             companies @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  employee            employees @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+  owner               users?    @relation("DocumentOwner", fields: [owner_id], references: [id], onDelete: Restrict)
+  uploader            users?    @relation("DocumentUploadedBy", fields: [uploaded_by], references: [id], onDelete: Restrict)
+  verifier            users?    @relation("DocumentVerifiedBy", fields: [verified_by], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([employee_id])
+  @@index([expiry_date])
+}
+
+model bank_accounts {
+  id               String    @id @default(uuid()) @db.Uuid
+  company_id       String    @db.Uuid
+  employee_id      String    @db.Uuid
+  bank_name        String    @db.VarChar(100)
+  iban             String    @db.VarChar(23)
+  routing_code     String    @db.VarChar(9)
+  salary_split_pct Decimal   @default(100.00) @db.Decimal(5, 2)
+  is_primary       Boolean   @default(true)
+  is_active        Boolean   @default(true)
+  created_at       DateTime  @default(now()) @db.Timestamptz
+  created_by       String?   @db.Uuid
+  updated_at       DateTime  @updatedAt @db.Timestamptz
+  updated_by       String?   @db.Uuid
+
+  company          companies @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  employee         employees @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([employee_id])
+}
+
+// ==========================================
+// A.6 Attendance and Shifts (9 Tables)
+// ==========================================
+
+model shifts {
+  id                 String            @id @default(uuid()) @db.Uuid
+  company_id         String            @db.Uuid
+  name               String            @db.VarChar(100)
+  start_time         String            @db.VarChar(8)
+  end_time           String            @db.VarChar(8)
+  break_minutes      Int               @default(60) @db.SmallInt
+  grace_minutes      Int               @default(15) @db.SmallInt
+  weekly_off_days    Int[]
+  ramadan_start_time String?           @db.VarChar(8)
+  ramadan_end_time   String?           @db.VarChar(8)
+  created_at         DateTime          @default(now()) @db.Timestamptz
+  created_by         String?           @db.Uuid
+  updated_at         DateTime          @updatedAt @db.Timestamptz
+  updated_by         String?           @db.Uuid
+
+  company            companies         @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  contracts          contracts[]
+  attendance_days    attendance_days[]
+
+  @@index([company_id])
+}
+
+model attendance_policies {
+  id                      String          @id @default(uuid()) @db.Uuid
+  company_id              String          @db.Uuid
+  name                    String          @db.VarChar(100)
+  late_grace_minutes      Int             @default(15) @db.SmallInt
+  early_out_grace_minutes Int             @default(15) @db.SmallInt
+  ot_eligible             Boolean         @default(true)
+  ot_min_minutes          Int             @default(30) @db.SmallInt
+  night_start             String          @default("22:00:00") @db.VarChar(8)
+  night_end               String          @default("04:00:00") @db.VarChar(8)
+  created_at              DateTime        @default(now()) @db.Timestamptz
+  created_by              String?         @db.Uuid
+  updated_at              DateTime        @updatedAt @db.Timestamptz
+  updated_by              String?         @db.Uuid
+
+  company                 companies       @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  contracts               contracts[]
+  penalty_steps           penalty_steps[]
+
+  @@index([company_id])
+}
+
+model penalty_steps {
+  id              String              @id @default(uuid()) @db.Uuid
+  company_id      String              @db.Uuid
+  policy_id       String              @db.Uuid
+  applies_to      String              @db.VarChar(10)
+  occurrence_from Int                 @default(1) @db.SmallInt
+  min_minutes     Int                 @db.SmallInt
+  penalty_type    String              @db.VarChar(20)
+  penalty_value   Decimal             @db.Decimal(5, 2)
+  created_at      DateTime            @default(now()) @db.Timestamptz
+  created_by      String?             @db.Uuid
+  updated_at      DateTime            @updatedAt @db.Timestamptz
+  updated_by      String?             @db.Uuid
+
+  company         companies           @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  policy          attendance_policies @relation(fields: [policy_id], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([policy_id])
+}
+
+model device_mappings {
+  id          String    @id @default(uuid()) @db.Uuid
+  company_id  String    @db.Uuid
+  device_code String    @db.VarChar(30)
+  employee_id String    @db.Uuid
+  created_at  DateTime  @default(now()) @db.Timestamptz
+  created_by  String?   @db.Uuid
+  updated_at  DateTime  @updatedAt @db.Timestamptz
+  updated_by  String?   @db.Uuid
+
+  company     companies @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  employee    employees @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+
+  @@unique([company_id, device_code])
+  @@index([company_id])
+  @@index([employee_id])
+}
+
+model biometric_imports {
+  id             String    @id @default(uuid()) @db.Uuid
+  company_id     String    @db.Uuid
+  file_url       String?   @db.Text
+  period_from    DateTime  @db.Date
+  period_to      DateTime  @db.Date
+  rows_total     Int       @default(0)
+  rows_imported  Int       @default(0)
+  rows_duplicate Int       @default(0)
+  rows_unmapped  Int       @default(0)
+  imported_by    String    @db.Uuid
+  imported_at    DateTime  @default(now()) @db.Timestamptz
+  created_at     DateTime  @default(now()) @db.Timestamptz
+  created_by     String?   @db.Uuid
+  updated_at     DateTime  @updatedAt @db.Timestamptz
+  updated_by     String?   @db.Uuid
+
+  company        companies @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  importer       users     @relation("BiometricImportedBy", fields: [imported_by], references: [id], onDelete: Restrict)
+  punches        punches[]
+
+  @@index([company_id])
+  @@index([imported_by])
+}
+
+model punches {
+  id          BigInt             @id @default(autoincrement())
+  company_id  String             @db.Uuid
+  import_id   String?            @db.Uuid
+  employee_id String             @db.Uuid
+  punched_at  DateTime           @db.Timestamptz
+  direction   String             @db.VarChar(10)
+  created_at  DateTime           @default(now()) @db.Timestamptz
+  created_by  String?            @db.Uuid
+  updated_at  DateTime           @updatedAt @db.Timestamptz
+  updated_by  String?            @db.Uuid
+
+  company     companies          @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  import      biometric_imports? @relation(fields: [import_id], references: [id], onDelete: Restrict)
+  employee    employees          @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+
+  @@unique([employee_id, punched_at])
+  @@index([company_id])
+  @@index([employee_id])
+  @@index([import_id])
+}
+
+model attendance_days {
+  id                   String              @id @default(uuid()) @db.Uuid
+  company_id           String              @db.Uuid
+  employee_id          String              @db.Uuid
+  work_date            DateTime            @db.Date
+  shift_id             String?             @db.Uuid
+  check_in             DateTime?           @db.Timestamptz
+  check_out            DateTime?           @db.Timestamptz
+  worked_hours         Decimal             @default(0) @db.Decimal(5, 2)
+  break_deducted       Decimal             @default(0) @db.Decimal(5, 2)
+  net_hours            Decimal             @default(0) @db.Decimal(5, 2)
+  late_minutes         Int                 @default(0) @db.SmallInt
+  early_out_minutes    Int                 @default(0) @db.SmallInt
+  late_penalty_days    Decimal             @default(0) @db.Decimal(4, 2)
+  day_type             String              @default("WorkDay") @db.VarChar(20)
+  public_holiday_id    String?             @db.Uuid
+  leave_request_id     String?             @db.Uuid
+  pay_band             String?             @db.VarChar(10)
+  exception_codes      String[]
+  review_status        String              @default("Open") @db.VarChar(20)
+  manager_confirmed_by String?             @db.Uuid
+  manager_confirmed_at DateTime?           @db.Timestamptz
+  hr_confirmed_by      String?             @db.Uuid
+  hr_confirmed_at      DateTime?           @db.Timestamptz
+  edit_reason          String?             @db.Text
+  pay_run_id           String?             @db.Uuid
+  created_at           DateTime            @default(now()) @db.Timestamptz
+  created_by           String?             @db.Uuid
+  updated_at           DateTime            @updatedAt @db.Timestamptz
+  updated_by           String?             @db.Uuid
+
+  company              companies           @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  employee             employees           @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+  shift                shifts?             @relation(fields: [shift_id], references: [id], onDelete: Restrict)
+  public_holiday       public_holidays?    @relation(fields: [public_holiday_id], references: [id], onDelete: Restrict)
+  leave_request        leave_requests?     @relation(fields: [leave_request_id], references: [id], onDelete: Restrict)
+  manager_confirmer    users?              @relation("ManagerConfirmedBy", fields: [manager_confirmed_by], references: [id], onDelete: Restrict)
+  hr_confirmer         users?              @relation("HrConfirmedBy", fields: [hr_confirmed_by], references: [id], onDelete: Restrict)
+  pay_run              pay_runs?           @relation(fields: [pay_run_id], references: [id], onDelete: Restrict)
+  overtime_requests    overtime_requests[]
+
+  @@unique([employee_id, work_date])
+  @@index([company_id])
+  @@index([employee_id])
+  @@index([pay_run_id])
+}
+
+model attendance_requests {
+  id                  String             @id @default(uuid()) @db.Uuid
+  company_id          String             @db.Uuid
+  employee_id         String             @db.Uuid
+  work_date           DateTime           @db.Date
+  request_type        String             @default("MissingPunch") @db.VarChar(20)
+  requested_time      DateTime           @db.Timestamptz
+  reason              String             @db.Text
+  status              String             @default("Pending") @db.VarChar(20)
+  approval_request_id String?            @db.Uuid
+  created_at          DateTime           @default(now()) @db.Timestamptz
+  created_by          String?            @db.Uuid
+  updated_at          DateTime           @updatedAt @db.Timestamptz
+  updated_by          String?            @db.Uuid
+
+  company             companies          @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  employee            employees          @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+  approval_request    approval_requests? @relation(fields: [approval_request_id], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([employee_id])
+}
+
+model overtime_requests {
+  id                  String             @id @default(uuid()) @db.Uuid
+  company_id          String             @db.Uuid
+  employee_id         String             @db.Uuid
+  attendance_day_id   String?            @db.Uuid
+  work_date           DateTime           @db.Date
+  hours               Decimal            @db.Decimal(5, 2)
+  source              String             @default("Attendance") @db.VarChar(20)
+  ot_type             String             @db.VarChar(20)
+  rate                Decimal            @db.Decimal(9, 4)
+  compensation        String             @default("Pay") @db.VarChar(20)
+  status              String             @default("Pending") @db.VarChar(20)
+  approval_request_id String?            @db.Uuid
+  pay_run_id          String?            @db.Uuid
+  created_at          DateTime           @default(now()) @db.Timestamptz
+  created_by          String?            @db.Uuid
+  updated_at          DateTime           @updatedAt @db.Timestamptz
+  updated_by          String?            @db.Uuid
+
+  company             companies          @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  employee            employees          @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+  attendance_day      attendance_days?   @relation(fields: [attendance_day_id], references: [id], onDelete: Restrict)
+  approval_request    approval_requests? @relation(fields: [approval_request_id], references: [id], onDelete: Restrict)
+  pay_run             pay_runs?          @relation(fields: [pay_run_id], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([employee_id])
+  @@index([pay_run_id])
+}
+
+// ==========================================
+// A.7 Leave and Holidays (5 Tables)
+// ==========================================
+
+model public_holidays {
+  id              String            @id @default(uuid()) @db.Uuid
+  company_id      String            @db.Uuid
+  branch_id       String?           @db.Uuid
+  holiday_date    DateTime          @db.Date
+  name            String            @db.VarChar(100)
+  name_ar         String?           @db.VarChar(100)
+  year            Int               @db.SmallInt
+  created_at      DateTime          @default(now()) @db.Timestamptz
+  created_by      String?           @db.Uuid
+  updated_at      DateTime          @updatedAt @db.Timestamptz
+  updated_by      String?           @db.Uuid
+
+  company         companies         @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  branch          branches?         @relation(fields: [branch_id], references: [id], onDelete: Restrict)
+  attendance_days attendance_days[]
+
+  @@index([company_id])
+  @@index([branch_id])
+  @@index([holiday_date])
+}
+
+model leave_types {
+  id                String              @id @default(uuid()) @db.Uuid
+  company_id        String              @db.Uuid
+  code              String              @db.VarChar(20)
+  name              String              @db.VarChar(100)
+  name_ar           String?             @db.VarChar(100)
+  is_paid           Boolean             @default(true)
+  max_days_per_year Int?                @db.SmallInt
+  pay_bands         Json?               @db.JsonB
+  needs_attachment  Boolean             @default(false)
+  needs_gm          Boolean             @default(false)
+  gm_after_days     Int?                @db.SmallInt
+  created_at        DateTime            @default(now()) @db.Timestamptz
+  created_by        String?             @db.Uuid
+  updated_at        DateTime            @updatedAt @db.Timestamptz
+  updated_by        String?             @db.Uuid
+
+  company           companies           @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  accrual_plans     accrual_plans[]
+  leave_allocations leave_allocations[]
+  leave_requests    leave_requests[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+}
+
+model accrual_plans {
+  id                       String              @id @default(uuid()) @db.Uuid
+  company_id               String              @db.Uuid
+  leave_type_id            String              @db.Uuid
+  name                     String              @db.VarChar(100)
+  days_per_month           Decimal             @db.Decimal(4, 2)
+  start_after_months       Int                 @default(6) @db.SmallInt
+  yearly_cap               Int                 @default(30) @db.SmallInt
+  carry_over_max           Int                 @default(0) @db.SmallInt
+  carry_over_expiry_months Int?                @db.SmallInt
+  created_at               DateTime            @default(now()) @db.Timestamptz
+  created_by               String?             @db.Uuid
+  updated_at               DateTime            @updatedAt @db.Timestamptz
+  updated_by               String?             @db.Uuid
+
+  company                  companies           @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  leave_type               leave_types         @relation(fields: [leave_type_id], references: [id], onDelete: Restrict)
+  leave_allocations        leave_allocations[]
+
+  @@index([company_id])
+  @@index([leave_type_id])
+}
+
+model leave_allocations {
+  id                String           @id @default(uuid()) @db.Uuid
+  company_id        String           @db.Uuid
+  employee_id       String           @db.Uuid
+  leave_type_id     String           @db.Uuid
+  allocation_type   String           @default("Regular") @db.VarChar(20)
+  accrual_plan_id   String?          @db.Uuid
+  days_allocated    Decimal          @default(0) @db.Decimal(5, 2)
+  days_taken        Decimal          @default(0) @db.Decimal(5, 2)
+  valid_from        DateTime         @db.Date
+  valid_to          DateTime         @db.Date
+  carry_over_days   Decimal          @default(0) @db.Decimal(5, 2)
+  carry_over_expiry DateTime?        @db.Date
+  created_at        DateTime         @default(now()) @db.Timestamptz
+  created_by        String?          @db.Uuid
+  updated_at        DateTime         @updatedAt @db.Timestamptz
+  updated_by        String?          @db.Uuid
+
+  company           companies        @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  employee          employees        @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+  leave_type        leave_types      @relation(fields: [leave_type_id], references: [id], onDelete: Restrict)
+  accrual_plan      accrual_plans?   @relation(fields: [accrual_plan_id], references: [id], onDelete: Restrict)
+  leave_requests    leave_requests[]
+
+  @@index([company_id])
+  @@index([employee_id])
+  @@index([leave_type_id])
+}
+
+model leave_requests {
+  id                  String             @id @default(uuid()) @db.Uuid
+  company_id          String             @db.Uuid
+  employee_id         String             @db.Uuid
+  leave_type_id       String             @db.Uuid
+  leave_allocation_id String?            @db.Uuid
+  date_from           DateTime           @db.Date
+  date_to             DateTime           @db.Date
+  half_day            String             @default("None") @db.VarChar(5)
+  days                Decimal            @db.Decimal(5, 2)
+  reason              String?            @db.Text
+  attachment_url      String?            @db.Text
+  status              String             @default("Pending") @db.VarChar(20)
+  approval_request_id String?            @db.Uuid
+  pay_run_id          String?            @db.Uuid
+  created_at          DateTime           @default(now()) @db.Timestamptz
+  created_by          String?            @db.Uuid
+  updated_at          DateTime           @updatedAt @db.Timestamptz
+  updated_by          String?            @db.Uuid
+
+  company             companies          @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  employee            employees          @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+  leave_type          leave_types        @relation(fields: [leave_type_id], references: [id], onDelete: Restrict)
+  leave_allocation    leave_allocations? @relation(fields: [leave_allocation_id], references: [id], onDelete: Restrict)
+  approval_request    approval_requests? @relation(fields: [approval_request_id], references: [id], onDelete: Restrict)
+  pay_run             pay_runs?          @relation(fields: [pay_run_id], references: [id], onDelete: Restrict)
+  attendance_days     attendance_days[]
+
+  @@index([company_id])
+  @@index([employee_id])
+  @@index([leave_type_id])
+  @@index([pay_run_id])
+}
+
+// ==========================================
+// A.8 Payroll (7 Tables)
+// ==========================================
+
+model salary_structures {
+  id                  String         @id @default(uuid()) @db.Uuid
+  company_id          String         @db.Uuid
+  code                String         @db.VarChar(20)
+  name                String         @db.VarChar(100)
+  unpaid_entry_types  String[]
+  is_final_settlement Boolean        @default(false)
+  created_at          DateTime       @default(now()) @db.Timestamptz
+  created_by          String?        @db.Uuid
+  updated_at          DateTime       @updatedAt @db.Timestamptz
+  updated_by          String?        @db.Uuid
+
+  company             companies      @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  contracts           contracts[]
+  rules               salary_rules[]
+
+  @@unique([company_id, code])
+  @@index([company_id])
+}
+
+model salary_rules {
+  id                 String            @id @default(uuid()) @db.Uuid
+  company_id         String            @db.Uuid
+  structure_id       String            @db.Uuid
+  code               String            @db.VarChar(20)
+  name               String            @db.VarChar(100)
+  category           String            @db.VarChar(20)
+  sequence           Int               @db.SmallInt
+  condition          String?           @db.Text
+  amount_type        String            @db.VarChar(20)
+  formula            String?           @db.Text
+  appears_on_payslip Boolean           @default(true)
+  debit_account      String?           @db.VarChar(20)
+  credit_account     String?           @db.VarChar(20)
+  created_at         DateTime          @default(now()) @db.Timestamptz
+  created_by         String?           @db.Uuid
+  updated_at         DateTime          @updatedAt @db.Timestamptz
+  updated_by         String?           @db.Uuid
+
+  company            companies         @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  structure          salary_structures @relation(fields: [structure_id], references: [id], onDelete: Restrict)
+  payslip_lines      payslip_lines[]
+
+  @@unique([structure_id, code])
+  @@index([company_id])
+  @@index([structure_id])
+}
+
+model pay_runs {
+  id                  String               @id @default(uuid()) @db.Uuid
+  company_id          String               @db.Uuid
+  company_visa_id     String               @db.Uuid
+  run_type            String               @default("Regular") @db.VarChar(20)
+  period_month        DateTime             @db.Date
+  cutoff_date         DateTime             @db.Date
+  status              String               @default("Draft") @db.VarChar(20)
+  calculated_at       DateTime?            @db.Timestamptz
+  validated_by        String?              @db.Uuid
+  validated_at        DateTime?            @db.Timestamptz
+  approval_request_id String?              @db.Uuid
+  locked_by           String?              @db.Uuid
+  locked_at           DateTime?            @db.Timestamptz
+  sif_file_url        String?              @db.Text
+  payment_date        DateTime?            @db.Date
+  paid_at             DateTime?            @db.Timestamptz
+  created_at          DateTime             @default(now()) @db.Timestamptz
+  created_by          String?              @db.Uuid
+  updated_at          DateTime             @updatedAt @db.Timestamptz
+  updated_by          String?              @db.Uuid
+
+  company             companies            @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  company_visa        company_visas        @relation(fields: [company_visa_id], references: [id], onDelete: Restrict)
+  validator           users?               @relation("PayRunValidatedBy", fields: [validated_by], references: [id], onDelete: Restrict)
+  locker              users?               @relation("PayRunLockedBy", fields: [locked_by], references: [id], onDelete: Restrict)
+  approval_request    approval_requests?   @relation(fields: [approval_request_id], references: [id], onDelete: Restrict)
+  issues              pay_run_issues[]
+  payslips            payslips[]
+  attendance_days     attendance_days[]
+  overtime_requests   overtime_requests[]
+  leave_requests      leave_requests[]
+
+  @@unique([company_visa_id, period_month, run_type])
+  @@index([company_id])
+  @@index([company_visa_id])
+}
+
+model pay_run_issues {
+  id          String    @id @default(uuid()) @db.Uuid
+  company_id  String    @db.Uuid
+  pay_run_id  String    @db.Uuid
+  employee_id String    @db.Uuid
+  issue_code  String    @db.VarChar(40)
+  message     String    @db.Text
+  severity    String    @db.VarChar(10)
+  resolved_at DateTime? @db.Timestamptz
+  created_at  DateTime  @default(now()) @db.Timestamptz
+  created_by  String?   @db.Uuid
+  updated_at  DateTime  @updatedAt @db.Timestamptz
+  updated_by  String?   @db.Uuid
+
+  company     companies @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  pay_run     pay_runs  @relation(fields: [pay_run_id], references: [id], onDelete: Restrict)
+  employee    employees @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([pay_run_id])
+  @@index([employee_id])
+}
+
+model payslips {
+  id                  String               @id @default(uuid()) @db.Uuid
+  company_id          String               @db.Uuid
+  pay_run_id          String               @db.Uuid
+  employee_id         String               @db.Uuid
+  contract_id         String               @db.Uuid
+  period_from         DateTime             @db.Date
+  period_to           DateTime             @db.Date
+  paid_days           Decimal              @db.Decimal(5, 2)
+  worked_days         Decimal              @db.Decimal(5, 2)
+  basic               Decimal              @db.Decimal(14, 2)
+  gross               Decimal              @db.Decimal(14, 2)
+  total_deductions    Decimal              @db.Decimal(14, 2)
+  net                 Decimal              @db.Decimal(14, 2)
+  previous_net        Decimal?             @db.Decimal(14, 2)
+  variance_pct        Decimal?             @db.Decimal(6, 2)
+  variance_reason     String?              @db.Text
+  status              String               @default("Draft") @db.VarChar(20)
+  is_final_settlement Boolean              @default(false)
+  corrects_payslip_id String?              @db.Uuid
+  pdf_url             String?              @db.Text
+  created_at          DateTime             @default(now()) @db.Timestamptz
+  created_by          String?              @db.Uuid
+  updated_at          DateTime             @updatedAt @db.Timestamptz
+  updated_by          String?              @db.Uuid
+
+  company             companies            @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  pay_run             pay_runs             @relation(fields: [pay_run_id], references: [id], onDelete: Restrict)
+  employee            employees            @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+  contract            contracts            @relation(fields: [contract_id], references: [id], onDelete: Restrict)
+  corrects_payslip    payslips?            @relation("PayslipCorrection", fields: [corrects_payslip_id], references: [id], onDelete: Restrict)
+  corrected_by        payslips[]           @relation("PayslipCorrection")
+  lines               payslip_lines[]
+  salary_adjustments  salary_adjustments[] @relation("CorrectedByAdjustment")
+  final_settlements   final_settlements[]
+
+  @@unique([pay_run_id, employee_id])
+  @@index([company_id])
+  @@index([pay_run_id])
+  @@index([employee_id])
+}
+
+model payslip_lines {
+  id             String        @id @default(uuid()) @db.Uuid
+  company_id     String        @db.Uuid
+  payslip_id     String        @db.Uuid
+  salary_rule_id String        @db.Uuid
+  code           String        @db.VarChar(20)
+  name           String        @db.VarChar(100)
+  quantity       Decimal?      @db.Decimal(8, 2)
+  rate           Decimal?      @db.Decimal(9, 4)
+  amount         Decimal       @db.Decimal(14, 2)
+  source_type    String?       @db.VarChar(20)
+  source_id      String?       @db.Uuid
+  created_at     DateTime      @default(now()) @db.Timestamptz
+  created_by     String?       @db.Uuid
+  updated_at     DateTime      @updatedAt @db.Timestamptz
+  updated_by     String?       @db.Uuid
+
+  company        companies     @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  payslip        payslips      @relation(fields: [payslip_id], references: [id], onDelete: Restrict)
+  salary_rule    salary_rules  @relation(fields: [salary_rule_id], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([payslip_id])
+  @@index([salary_rule_id])
+}
+
+model salary_adjustments {
+  id                  String             @id @default(uuid()) @db.Uuid
+  company_id          String             @db.Uuid
+  employee_id         String             @db.Uuid
+  type                String             @db.VarChar(30)
+  total_amount        Decimal            @db.Decimal(14, 2)
+  monthly_amount      Decimal            @db.Decimal(14, 2)
+  start_month         DateTime           @db.Date
+  balance             Decimal            @db.Decimal(14, 2)
+  reason              String?            @db.Text
+  corrects_payslip_id String?            @db.Uuid
+  status              String             @default("Pending") @db.VarChar(20)
+  approval_request_id String?            @db.Uuid
+  created_at          DateTime           @default(now()) @db.Timestamptz
+  created_by          String?            @db.Uuid
+  updated_at          DateTime           @updatedAt @db.Timestamptz
+  updated_by          String?            @db.Uuid
+
+  company             companies          @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  employee            employees          @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+  corrects_payslip    payslips?          @relation("CorrectedByAdjustment", fields: [corrects_payslip_id], references: [id], onDelete: Restrict)
+  approval_request    approval_requests? @relation(fields: [approval_request_id], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([employee_id])
+}
+
+// ==========================================
+// A.9 Offboarding (4 Tables)
+// ==========================================
+
+model separations {
+  id                    String              @id @default(uuid()) @db.Uuid
+  company_id            String              @db.Uuid
+  employee_id           String              @db.Uuid
+  type                  String              @db.VarChar(20)
+  reason                String?             @db.Text
+  notice_date           DateTime            @db.Date
+  last_working_day      DateTime            @db.Date
+  notice_shortfall_days Int                 @default(0) @db.SmallInt
+  status                String              @default("Pending") @db.VarChar(20)
+  approval_request_id   String?             @db.Uuid
+  access_deactivated_at DateTime?           @db.Timestamptz
+  created_at            DateTime            @default(now()) @db.Timestamptz
+  created_by            String?             @db.Uuid
+  updated_at            DateTime            @updatedAt @db.Timestamptz
+  updated_by            String?             @db.Uuid
+
+  company               companies           @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  employee              employees           @relation(fields: [employee_id], references: [id], onDelete: Restrict)
+  approval_request      approval_requests?  @relation(fields: [approval_request_id], references: [id], onDelete: Restrict)
+  clearance_items       clearance_items[]
+  final_settlement      final_settlements?
+  tasks                 separation_tasks[]
+
+  @@index([company_id])
+  @@index([employee_id])
+}
+
+model clearance_items {
+  id             String      @id @default(uuid()) @db.Uuid
+  company_id     String      @db.Uuid
+  separation_id  String      @db.Uuid
+  department_id  String      @db.Uuid
+  owner_user_id  String      @db.Uuid
+  item           String      @db.VarChar(100)
+  status         String      @default("Pending") @db.VarChar(20)
+  amount_due     Decimal     @default(0) @db.Decimal(14, 2)
+  cleared_by     String?     @db.Uuid
+  cleared_at     DateTime?   @db.Timestamptz
+  note           String?     @db.Text
+  created_at     DateTime    @default(now()) @db.Timestamptz
+  created_by     String?     @db.Uuid
+  updated_at     DateTime    @updatedAt @db.Timestamptz
+  updated_by     String?     @db.Uuid
+
+  company        companies   @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  separation     separations @relation(fields: [separation_id], references: [id], onDelete: Restrict)
+  department     departments @relation(fields: [department_id], references: [id], onDelete: Restrict)
+  owner_user     users       @relation("ClearanceItemOwner", fields: [owner_user_id], references: [id], onDelete: Restrict)
+  clearer        users?      @relation("ClearanceItemClearedBy", fields: [cleared_by], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([separation_id])
+  @@index([department_id])
+}
+
+model final_settlements {
+  id                    String             @id @default(uuid()) @db.Uuid
+  company_id            String             @db.Uuid
+  separation_id         String             @unique @db.Uuid
+  salary_due            Decimal            @db.Decimal(14, 2)
+  gratuity              Decimal            @db.Decimal(14, 2)
+  leave_encashment_days Decimal            @db.Decimal(5, 2)
+  leave_encashment      Decimal            @db.Decimal(14, 2)
+  notice_recovery       Decimal            @default(0) @db.Decimal(14, 2)
+  loan_recovery         Decimal            @default(0) @db.Decimal(14, 2)
+  training_recovery     Decimal            @default(0) @db.Decimal(14, 2)
+  clearance_recovery    Decimal            @default(0) @db.Decimal(14, 2)
+  other_recovery        Decimal            @default(0) @db.Decimal(14, 2)
+  net_payable           Decimal            @db.Decimal(14, 2)
+  snapshot              Json?              @db.JsonB
+  payslip_id            String?            @db.Uuid
+  status                String             @default("Draft") @db.VarChar(20)
+  approval_request_id   String?            @db.Uuid
+  created_at            DateTime           @default(now()) @db.Timestamptz
+  created_by            String?            @db.Uuid
+  updated_at            DateTime           @updatedAt @db.Timestamptz
+  updated_by            String?            @db.Uuid
+
+  company               companies          @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  separation            separations        @relation(fields: [separation_id], references: [id], onDelete: Restrict)
+  payslip               payslips?          @relation(fields: [payslip_id], references: [id], onDelete: Restrict)
+  approval_request      approval_requests? @relation(fields: [approval_request_id], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([separation_id])
+}
+
+model separation_tasks {
+  id            String      @id @default(uuid()) @db.Uuid
+  company_id    String      @db.Uuid
+  separation_id String      @db.Uuid
+  task_type     String      @db.VarChar(30)
+  assigned_to   String      @db.Uuid
+  due_date      DateTime    @db.Date
+  status        String      @default("Open") @db.VarChar(20)
+  completed_at  DateTime?   @db.Timestamptz
+  created_at    DateTime    @default(now()) @db.Timestamptz
+  created_by    String?     @db.Uuid
+  updated_at    DateTime    @updatedAt @db.Timestamptz
+  updated_by    String?     @db.Uuid
+
+  company       companies   @relation(fields: [company_id], references: [id], onDelete: Restrict)
+  separation    separations @relation(fields: [separation_id], references: [id], onDelete: Restrict)
+  assignee      users       @relation("SeparationTaskAssignedTo", fields: [assigned_to], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([separation_id])
+  @@index([assigned_to])
+}

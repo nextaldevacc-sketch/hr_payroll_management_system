@@ -8,8 +8,8 @@ export function Providers({ children, initialLocale = 'en' }) {
   return (
     <ThemeProvider
       attribute="data-theme"
-      defaultTheme="light"
-      enableSystem={true}
+      defaultTheme="dark"
+      enableSystem={false}
       disableTransitionOnChange={false}
     >
       <LanguageProvider initialLocale={initialLocale}>

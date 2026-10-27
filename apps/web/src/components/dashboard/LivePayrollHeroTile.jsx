@@ -16,15 +16,11 @@ import { InsetBox } from '../primitives/InsetBox';
 import { CalloutBar } from '../primitives/CalloutBar';
 import { formatCurrency } from '@nextal/shared';
 import { useLanguage } from '../../context/LanguageContext';
-import { useThemeColor } from '../../hooks/useThemeColor';
 
 export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
   const { t, language } = useLanguage();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hoveredMonth, setHoveredMonth] = useState(null);
-
-  const primaryColor = useThemeColor('--primary', '#E6A60E');
-  const infoColor = useThemeColor('--info', '#4BB8FA');
 
   const manualRefresh = (e) => {
     e.stopPropagation();
@@ -102,7 +98,7 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
               <svg width={sparkWidth} height={sparkHeight} className="overflow-visible">
                 <polyline
                   fill="none"
-                  stroke={infoColor}
+                  style={{ stroke: 'var(--info)' }}
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -114,7 +110,7 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
                     cx={p.x}
                     cy={p.y}
                     r={p.isCurrent ? 4.5 : 3}
-                    fill={p.isCurrent ? primaryColor : infoColor}
+                    style={{ fill: p.isCurrent ? 'var(--primary)' : 'var(--info)' }}
                     className={p.isCurrent ? 'stroke-bg stroke-2 cursor-pointer' : 'cursor-pointer'}
                     onMouseEnter={() => setHoveredMonth(p)}
                     onMouseLeave={() => setHoveredMonth(null)}
