@@ -38,7 +38,18 @@ export const STANDARD_WHITELIST_VARIABLES = new Set([
   'loan_installment',
   'advance_amount',
   'contribution_salary',
-  'policy_late_deduction'
+  'policy_late_deduction',
+
+  // Pension rate variables (from Settings / Statutory Pension rules)
+  'gpssa_ee_rate',
+  'gpssa_er_rate',
+  'gpssa_gov_share_rate',
+  'gpssa_gov_share',
+  'gpssa_total_er_rate',
+  'adpf_ee_rate',
+  'adpf_er_rate',
+  'adpf_gov_share_rate',
+  'adpf_gov_share'
 ]);
 
 /**

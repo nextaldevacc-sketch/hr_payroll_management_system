@@ -215,3 +215,21 @@ test('Rule Engine has exactly 17 statutory salary rules', () => {
   assert.strictEqual(STATUTORY_UAE_DEFAULT_RULES.length, 17);
   assert.deepStrictEqual(codes, expectedCodes);
 });
+
+test('Confirm Decimal rounding is ROUND_HALF_UP for money: 78.125 -> 78.13 and 0.005 -> 0.01', () => {
+  assert.strictEqual(roundToCurrency(78.125).toFixed(2), '78.13');
+  assert.strictEqual(roundToCurrency('78.125').toFixed(2), '78.13');
+  assert.strictEqual(roundToCurrency(0.005).toFixed(2), '0.01');
+  assert.strictEqual(roundToCurrency('0.005').toFixed(2), '0.01');
+});
+
+test('GPSSA_EE and GPSSA_ER formulas use rate variables without literal numbers', () => {
+  const eeRule = STATUTORY_UAE_DEFAULT_RULES.find((r) => r.code === 'GPSSA_EE');
+  const erRule = STATUTORY_UAE_DEFAULT_RULES.find((r) => r.code === 'GPSSA_ER');
+  assert.strictEqual(eeRule.formula, 'gpssa_salary * gpssa_ee_rate');
+  assert.strictEqual(erRule.formula, 'gpssa_salary * gpssa_er_rate');
+  assert.ok(!eeRule.formula.includes('0.05'));
+  assert.ok(!eeRule.formula.includes('0.11'));
+  assert.ok(!erRule.formula.includes('0.15'));
+  assert.ok(!erRule.formula.includes('0.125'));
+});

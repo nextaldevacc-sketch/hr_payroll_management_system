@@ -1706,11 +1706,25 @@ class SettingsService {
 
     const company = await prisma.$base().companies.findUnique({
       where: { id: companyId },
-      select: { absence_divisor: true },
+      select: {
+        absence_divisor: true,
+        gpssa_employee_rate: true,
+        gpssa_employee_rate_legacy: true,
+        gpssa_employee_rate_new: true,
+        gpssa_employer_rate: true,
+        gpssa_gov_share_rate: true,
+        gpssa_min_salary: true,
+        gpssa_max_salary: true,
+      },
     });
 
     const fullContext = {
       absence_divisor: company?.absence_divisor || 'DIV_30',
+      pension_rates: {
+        employeeRate: company?.gpssa_employee_rate_legacy !== undefined ? Number(company.gpssa_employee_rate_legacy) : 5,
+        employerRate: company?.gpssa_employer_rate !== undefined ? Number(company.gpssa_employer_rate) : 15,
+        govShareRate: company?.gpssa_gov_share_rate !== undefined ? Number(company.gpssa_gov_share_rate) : 2.5,
+      },
       ...employeeContext,
     };
 

@@ -40,7 +40,7 @@ export const PERMISSIONS_MATRIX = {
   HR_OFFICER: {
     dashboard: ['view'],
     profile_self: ['view'],
-    employees: ['edit', 'view'],
+    employees: ['create', 'edit', 'view'],
     documents: ['edit', 'view'],
     salary: [],
     attendance: ['edit', 'confirm', 'view'],
@@ -72,7 +72,7 @@ export const PERMISSIONS_MATRIX = {
   HR_MANAGER: {
     dashboard: ['view'],
     profile_self: ['view'],
-    employees: ['edit', 'verify', 'view'],
+    employees: ['create', 'edit', 'verify', 'view'],
     documents: ['edit', 'verify', 'view'],
     salary: ['approve', 'view'],
     attendance: ['edit', 'view'],

@@ -4,4 +4,5 @@ export * from './constants/salaryRules.js';
 export * from './utils/money.js';
 export * from './utils/formulaParser.js';
 export * from './utils/ruleEngine.js';
+export * from './utils/employeeUtils.js';
 

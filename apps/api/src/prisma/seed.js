@@ -414,8 +414,8 @@ async function main() {
       { code: 'SICK_NONE', name: 'Sick Leave Days 46-90 (100%)', category: 'Deduction', sequence: 120, amount_type: 'Formula', formula: '100% deduction' },
       { code: 'LOAN', name: 'Loan Recovery', category: 'Deduction', sequence: 130, amount_type: 'Formula', formula: 'monthly instalment from Salary Adjustments' },
       { code: 'ADV', name: 'Salary Advance Recovery', category: 'Deduction', sequence: 140, amount_type: 'Formula', formula: 'monthly instalment from Salary Adjustments' },
-      { code: 'GPSSA_EE', name: 'GPSSA UAE National Pension (Employee 5%)', category: 'Deduction', sequence: 150, amount_type: 'Percentage', formula: 'gross * 0.05' },
-      { code: 'GPSSA_ER', name: 'GPSSA UAE National Pension (Employer 12.5%)', category: 'CompanyContribution', sequence: 160, amount_type: 'Percentage', formula: 'gross * 0.125' },
+      { code: 'GPSSA_EE', name: 'GPSSA UAE National Pension (Employee Share)', category: 'Deduction', sequence: 150, amount_type: 'Formula', formula: 'gpssa_salary * gpssa_ee_rate' },
+      { code: 'GPSSA_ER', name: 'GPSSA UAE National Pension (Employer Share)', category: 'CompanyContribution', sequence: 160, amount_type: 'Formula', formula: 'gpssa_salary * gpssa_er_rate' },
       { code: 'NET', name: 'Net Pay to WPS', category: 'Net', sequence: 170, amount_type: 'Formula', formula: 'GROSS + earnings - deductions' },
     ];
 
@@ -511,29 +511,88 @@ async function main() {
     });
     seededEmployees.push(emp);
 
-    // Contract
-    const contract = await prisma.contracts.create({
-      data: {
-        company_id: company1.id,
-        employee_id: emp.id,
-        version_no: 1,
-        effective_date: new Date('2024-01-15'),
-        contract_type: 'Limited',
-        start_date: new Date('2024-01-15'),
-        job_id: baseInfo.job.id,
-        department_id: baseInfo.dept.id,
-        shift_id: shift1.id,
-        attendance_policy_id: policy1.id,
-        structure_id: salaryStructure1.id,
-        basic: basic,
-        housing: housing,
-        transport: trans,
-        other_allowances: oth,
-        gross: empGross,
-        status: 'Approved'
-      }
-    });
-    seededContracts.push(contract);
+    // Contract (Rule B & H: Versioned contracts, 2 versions for 5 employees)
+    const isRaisedEmployee = i <= 4; // Exactly 5 employees (index 0..4)
+    let activeContract;
+
+    if (isRaisedEmployee) {
+      // Prior contract version 1 (lower salary from joining in 2024 until mid-year 2026 raise)
+      const priorGross = Math.round(empGross * 0.85);
+      const pBasic = Math.round(priorGross * 0.60);
+      const pHousing = Math.round(priorGross * 0.30);
+      const pTrans = Math.round(priorGross * 0.05);
+      const pOth = priorGross - (pBasic + pHousing + pTrans);
+
+      await prisma.contracts.create({
+        data: {
+          company_id: company1.id,
+          employee_id: emp.id,
+          version_no: 1,
+          effective_date: new Date('2024-01-15'),
+          contract_type: 'Limited',
+          start_date: new Date('2024-01-15'),
+          job_id: baseInfo.job.id,
+          department_id: baseInfo.dept.id,
+          shift_id: shift1.id,
+          attendance_policy_id: policy1.id,
+          structure_id: salaryStructure1.id,
+          basic: pBasic,
+          housing: pHousing,
+          transport: pTrans,
+          other_allowances: pOth,
+          gross: priorGross,
+          status: 'Superseded',
+        },
+      });
+
+      // Contract version 2: Mid-year raise effective 2026-06-01 to empGross
+      const contract2 = await prisma.contracts.create({
+        data: {
+          company_id: company1.id,
+          employee_id: emp.id,
+          version_no: 2,
+          effective_date: new Date('2026-06-01'),
+          contract_type: 'Limited',
+          start_date: new Date('2026-06-01'),
+          job_id: baseInfo.job.id,
+          department_id: baseInfo.dept.id,
+          shift_id: shift1.id,
+          attendance_policy_id: policy1.id,
+          structure_id: salaryStructure1.id,
+          basic: basic,
+          housing: housing,
+          transport: trans,
+          other_allowances: oth,
+          gross: empGross,
+          status: 'Approved',
+        },
+      });
+      activeContract = contract2;
+    } else {
+      const contract1 = await prisma.contracts.create({
+        data: {
+          company_id: company1.id,
+          employee_id: emp.id,
+          version_no: 1,
+          effective_date: new Date('2024-01-15'),
+          contract_type: 'Limited',
+          start_date: new Date('2024-01-15'),
+          job_id: baseInfo.job.id,
+          department_id: baseInfo.dept.id,
+          shift_id: shift1.id,
+          attendance_policy_id: policy1.id,
+          structure_id: salaryStructure1.id,
+          basic: basic,
+          housing: housing,
+          transport: trans,
+          other_allowances: oth,
+          gross: empGross,
+          status: 'Approved',
+        },
+      });
+      activeContract = contract1;
+    }
+    seededContracts.push(activeContract);
 
     totalSeededGross += empGross;
 
@@ -564,19 +623,82 @@ async function main() {
       }
     });
 
-    // Documents (EmiratesID)
-    const expiryOffset = (i * 17) % 180; // Days from now
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + expiryOffset);
+    // Realistic UAE Documents (Rule C & H):
+    // Target alerts: Total 10 (1 Expired, 2 <=30d, 4 <=60d, 3 <=90d)
+    const baseNow = new Date();
+    let eidDays = 180 + (i * 10);
+    let passportDays = 365 + (i * 15);
+    let labourDays = 250 + (i * 10);
 
+    if (i === 10) {
+      eidDays = -2; // 1 Expired: Zayed Al-Ameri Emirates ID (-2 days)
+    } else if (i === 11) {
+      labourDays = 14; // 1st <= 30d: Rajesh Kumar MOHRE Labour Card (14 days)
+    } else if (i === 12) {
+      passportDays = 25; // 2nd <= 30d (25 days)
+    } else if (i === 13) {
+      eidDays = 40; // 1st <= 60d (40 days)
+    } else if (i === 14) {
+      labourDays = 45; // 2nd <= 60d (45 days)
+    } else if (i === 15) {
+      passportDays = 50; // 3rd <= 60d (50 days)
+    } else if (i === 16) {
+      eidDays = 55; // 4th <= 60d (55 days)
+    } else if (i === 17) {
+      labourDays = 70; // 1st <= 90d (70 days)
+    } else if (i === 18) {
+      passportDays = 75; // 2nd <= 90d (75 days)
+    } else if (i === 19) {
+      eidDays = 85; // 3rd <= 90d (85 days)
+    }
+
+    const calcStatus = (days) => (days < 0 ? 'Expired' : days <= 90 ? 'Expiring Soon' : 'Valid');
+
+    // 1. Emirates ID
+    const eidExpiry = new Date(baseNow);
+    eidExpiry.setDate(eidExpiry.getDate() + eidDays);
     await prisma.employee_documents.create({
       data: {
         company_id: company1.id,
         employee_id: emp.id,
-        doc_type: 'EmiratesID',
+        doc_type: 'EMIRATES_ID',
         doc_number: `784-1990-${String(1000000 + i).substring(1)}-1`,
-        expiry_date: expiryDate,
-        status: expiryOffset < 30 ? 'ExpiringSoon' : 'Valid'
+        expiry_date: eidExpiry,
+        owner_id: userHR1.id,
+        status: calcStatus(eidDays),
+        verification_status: 'Verified',
+      }
+    });
+
+    // 2. Passport
+    const passportExpiry = new Date(baseNow);
+    passportExpiry.setDate(passportExpiry.getDate() + passportDays);
+    await prisma.employee_documents.create({
+      data: {
+        company_id: company1.id,
+        employee_id: emp.id,
+        doc_type: 'PASSPORT',
+        doc_number: `A${String(1000000 + i)}`,
+        expiry_date: passportExpiry,
+        owner_id: userHR1.id,
+        status: calcStatus(passportDays),
+        verification_status: 'Verified',
+      }
+    });
+
+    // 3. MOHRE Labour Card
+    const labourExpiry = new Date(baseNow);
+    labourExpiry.setDate(labourExpiry.getDate() + labourDays);
+    await prisma.employee_documents.create({
+      data: {
+        company_id: company1.id,
+        employee_id: emp.id,
+        doc_type: 'LABOUR_CARD',
+        doc_number: `LC-${String(2000000 + i)}`,
+        expiry_date: labourExpiry,
+        owner_id: userHR1.id,
+        status: calcStatus(labourDays),
+        verification_status: 'Verified',
       }
     });
 
@@ -603,6 +725,23 @@ async function main() {
       data: { employee_id: seededEmployees[0].id }
     });
   }
+
+  // --------------------------------------------------------------------------
+  // Seed Locked Pay Run for September 2026 (Rule B: Locked pay period test)
+  // --------------------------------------------------------------------------
+  console.log('Seeding Locked Pay Run for 2026-09...');
+  await prisma.pay_runs.create({
+    data: {
+      company_id: company1.id,
+      company_visa_id: visa1_01.id,
+      run_type: 'Regular',
+      period_month: new Date('2026-09-01'),
+      cutoff_date: new Date('2026-09-25'),
+      status: 'Locked',
+      locked_at: new Date('2026-09-28'),
+      locked_by: userFinance1.id,
+    }
+  });
 
   // --------------------------------------------------------------------------
   // October 2026 Biometric Imports, Punches & Attendance Days

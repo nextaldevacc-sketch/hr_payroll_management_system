@@ -194,6 +194,41 @@ describe('Phase 3: Settings Engine, Formulas, Effective Dating & Permissions Tes
       assert.ok(Array.isArray(res.body.data.steps));
       assert.ok(res.body.data.steps.length >= 13);
     });
+
+    it('changing GPSSA rate in Settings changes the calculation result (Fix a)', async () => {
+      // 1. Initial simulation with employer rate 15% (less 2.5% gov share = 12.5% on 10,000 -> 1,250)
+      const res1 = await request(app)
+        .post('/api/v1/settings/salary-rules/test')
+        .set('Authorization', `Bearer ${payrollToken}`)
+        .send({ employee_context: DEMO_PRESETS.UAE_NATIONAL_GPSSA_EXTRA });
+      assert.equal(res1.status, 200);
+      const erStep1 = res1.body.data.steps.find((s) => s.code === 'GPSSA_ER');
+      assert.equal(erStep1.amount, 1250.0);
+      assert.equal(res1.body.data.gpssa_gov_share, 250.0);
+
+      // 2. Change GPSSA employer rate to 18% in Settings
+      const putRes = await request(app)
+        .put('/api/v1/settings/company')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ gpssa_employer_rate: 18.00 });
+      assert.equal(putRes.status, 200);
+
+      // 3. Re-run simulation: 18% - 2.5% gov share = 15.5% on 10,000 -> 1,550
+      const res2 = await request(app)
+        .post('/api/v1/settings/salary-rules/test')
+        .set('Authorization', `Bearer ${payrollToken}`)
+        .send({ employee_context: DEMO_PRESETS.UAE_NATIONAL_GPSSA_EXTRA });
+      assert.equal(res2.status, 200);
+      const erStep2 = res2.body.data.steps.find((s) => s.code === 'GPSSA_ER');
+      assert.equal(erStep2.amount, 1550.0);
+      assert.equal(res2.body.data.gpssa_gov_share, 250.0);
+
+      // Restore rate back to 15%
+      await request(app)
+        .put('/api/v1/settings/company')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ gpssa_employer_rate: 15.00 });
+    });
   });
 
   // =========================================================================

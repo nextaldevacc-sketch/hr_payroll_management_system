@@ -168,7 +168,7 @@ export const STATUTORY_UAE_DEFAULT_RULES = [
     category: 'Deduction',
     sequence: 150,
     amount_type: 'Formula',
-    formula: 'gpssa_salary * 0.05',
+    formula: 'gpssa_salary * gpssa_ee_rate',
     appears_on_payslip: true,
     debit_account: '211000',
     credit_account: '212000',
@@ -179,7 +179,7 @@ export const STATUTORY_UAE_DEFAULT_RULES = [
     category: 'CompanyContribution',
     sequence: 160,
     amount_type: 'Formula',
-    formula: 'gpssa_salary * 0.15',
+    formula: 'gpssa_salary * gpssa_er_rate',
     appears_on_payslip: false,
     debit_account: '516000',
     credit_account: '212000',
@@ -244,6 +244,46 @@ export function executeRuleEngine(rules = STATUTORY_UAE_DEFAULT_RULES, inputCont
     deductions: new Decimal(0),
     GROSS: new Decimal(0),
   };
+
+  // Pension rate calculations from settings
+  const gpssaSalary = context.gpssa_salary;
+  const pensionRates = inputContext.pension_rates || {};
+  const isLegacy = inputContext.is_legacy !== undefined ? inputContext.is_legacy : true;
+
+  const eeRateNum = inputContext.gpssa_ee_rate !== undefined
+    ? Number(inputContext.gpssa_ee_rate)
+    : (pensionRates.employeeRate !== undefined
+        ? Number(pensionRates.employeeRate) / 100
+        : (isLegacy ? 0.05 : 0.11));
+
+  const totalErRateNum = inputContext.gpssa_total_er_rate !== undefined
+    ? Number(inputContext.gpssa_total_er_rate)
+    : (pensionRates.employerRate !== undefined
+        ? Number(pensionRates.employerRate) / 100
+        : 0.15);
+
+  const govShareRateNum = inputContext.gpssa_gov_share_rate !== undefined
+    ? Number(inputContext.gpssa_gov_share_rate)
+    : (pensionRates.govShareRate !== undefined
+        ? Number(pensionRates.govShareRate) / 100
+        : 0.025);
+
+  let govShareAmount = new Decimal(0);
+  let erCostRateNum = totalErRateNum;
+  if (gpssaSalary.greaterThan(0) && gpssaSalary.lessThan(20000)) {
+    govShareAmount = roundToCurrency(gpssaSalary.times(govShareRateNum));
+    erCostRateNum = totalErRateNum - govShareRateNum;
+  }
+
+  const erRateNum = inputContext.gpssa_er_rate !== undefined
+    ? Number(inputContext.gpssa_er_rate)
+    : erCostRateNum;
+
+  context.gpssa_ee_rate = new Decimal(eeRateNum);
+  context.gpssa_er_rate = new Decimal(erRateNum);
+  context.gpssa_gov_share_rate = new Decimal(govShareRateNum);
+  context.gpssa_gov_share = govShareAmount;
+  context.gpssa_total_er_rate = new Decimal(totalErRateNum);
 
   const steps = [];
   let calculatedGross = new Decimal(0);
@@ -352,6 +392,7 @@ export function executeRuleEngine(rules = STATUTORY_UAE_DEFAULT_RULES, inputCont
     totalDeductions: totalDeductions.toNumber(),
     net: finalNetStep ? finalNetStep.amount : 0,
     formattedNet: finalNetStep ? finalNetStep.formattedAmount : 'AED 0.00',
+    gpssa_gov_share: govShareAmount.toNumber(),
   };
 }
 

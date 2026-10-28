@@ -45,6 +45,7 @@ export const DEFAULT_SALARY_RULES = [
   { code: 'SICK_NONE', name: 'Sick Leave (Days 46-90, 100%)', category: RULE_CATEGORIES.DEDUCTION, sequence: 120, formula: 'gross / 30 * 1.0 * sick_unpaid_days' },
   { code: 'LOAN', name: 'Loan Recovery', category: RULE_CATEGORIES.DEDUCTION, sequence: 130, formula: 'loan_installment' },
   { code: 'ADV', name: 'Salary Advance Recovery', category: RULE_CATEGORIES.DEDUCTION, sequence: 140, formula: 'advance_amount' },
-  { code: 'GPSSA_EE', name: 'GPSSA Pension (UAE National EE)', category: RULE_CATEGORIES.DEDUCTION, sequence: 150, formula: 'contribution_salary * 0.05' },
+  { code: 'GPSSA_EE', name: 'GPSSA Pension (UAE National EE)', category: RULE_CATEGORIES.DEDUCTION, sequence: 150, formula: 'gpssa_salary * gpssa_ee_rate' },
+  { code: 'GPSSA_ER', name: 'GPSSA Pension (Employer Share)', category: 'CompanyContribution', sequence: 160, formula: 'gpssa_salary * gpssa_er_rate' },
   { code: 'NET', name: 'Net Pay to WPS', category: RULE_CATEGORIES.NET, sequence: 200, formula: 'GROSS + allowances - deductions' }
 ];

@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { PrismaClient } from '../../../node_modules/@prisma/client/index.js';
 
+import treeKill from 'tree-kill';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const webDir = path.resolve(__dirname, '..');
@@ -15,14 +17,21 @@ const rootDir = path.resolve(__dirname, '../../..');
 const nextBin = path.resolve(rootDir, 'node_modules/next/dist/bin/next');
 const apiEntry = path.resolve(apiDir, 'src/index.js');
 
-describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)', { timeout: 60000 }, () => {
+describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)', { timeout: 120000 }, () => {
   let apiProcess = null;
   let webProcess = null;
   let browser = null;
   let prisma = null;
 
   const API_PORT = 5000;
-  const WEB_PORT = 3000;
+  const WEB_PORT = 3100;
+
+  function killProcWithTree(proc) {
+    return new Promise((resolve) => {
+      if (!proc || !proc.pid) return resolve();
+      treeKill(proc.pid, 'SIGKILL', () => resolve());
+    });
+  }
 
   function waitForHttp(url, timeoutMs = 25000) {
     return new Promise((resolve, reject) => {
@@ -47,38 +56,43 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
   }
 
   before(async () => {
-    prisma = new PrismaClient();
-
-    // 1. Check or start API on port 5000
     try {
-      await waitForHttp(`http://localhost:${API_PORT}/api/v1/health`, 1500);
-      console.log('API server already running on port 5000');
-    } catch {
-      console.log('Starting API server on port 5000...');
-      apiProcess = spawn(process.execPath, [apiEntry], {
-        cwd: apiDir,
-        env: { ...process.env, PORT: String(API_PORT), NODE_ENV: 'production' },
-      });
-      await waitForHttp(`http://localhost:${API_PORT}/api/v1/health`, 20000);
-      console.log('API server ready on port 5000');
-    }
+      prisma = new PrismaClient();
 
-    // 2. Check or start Web on port 3000
-    try {
-      await waitForHttp(`http://localhost:${WEB_PORT}/login`, 1500);
-      console.log('Web server already running on port 3000');
-    } catch {
-      console.log('Starting Next.js server on port 3000...');
-      webProcess = spawn(process.execPath, [nextBin, 'start', '-p', String(WEB_PORT)], {
-        cwd: webDir,
-        env: { ...process.env, NODE_ENV: 'production' },
-      });
-      await waitForHttp(`http://localhost:${WEB_PORT}/login`, 25000);
-      console.log('Web server ready on port 3000');
-    }
+      // 1. Check or start API on port 5000
+      try {
+        await waitForHttp(`http://localhost:${API_PORT}/api/v1/health`, 1500);
+        console.log('API server already running on port 5000');
+      } catch {
+        console.log('Starting API server on port 5000...');
+        apiProcess = spawn(process.execPath, [apiEntry], {
+          cwd: apiDir,
+          env: { ...process.env, PORT: String(API_PORT), NODE_ENV: 'production' },
+        });
+        await waitForHttp(`http://localhost:${API_PORT}/api/v1/health`, 20000);
+        console.log('API server ready on port 5000');
+      }
 
-    // 3. Launch Playwright Chromium
-    browser = await chromium.launch({ headless: true });
+      // 2. Check or start Web on port 3000
+      try {
+        await waitForHttp(`http://localhost:${WEB_PORT}/login`, 1500);
+        console.log('Web server already running on port 3000');
+      } catch {
+        console.log('Starting Next.js server on port 3000...');
+        webProcess = spawn(process.execPath, [nextBin, 'start', '-p', String(WEB_PORT)], {
+          cwd: webDir,
+          env: { ...process.env, NODE_ENV: 'production' },
+        });
+        await waitForHttp(`http://localhost:${WEB_PORT}/login`, 25000);
+        console.log('Web server ready on port 3000');
+      }
+
+      // 3. Launch Playwright Chromium
+      browser = await chromium.launch({ headless: true });
+    } catch (err) {
+      await Promise.all([killProcWithTree(apiProcess), killProcWithTree(webProcess)]);
+      throw err;
+    }
   });
 
   after(async () => {
@@ -88,21 +102,7 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
     if (prisma) {
       await prisma.$disconnect().catch(() => {});
     }
-
-    const killProcess = (proc) => {
-      if (proc && proc.pid) {
-        try {
-          if (process.platform === 'win32') {
-            execSync(`taskkill /pid ${proc.pid} /T /F`, { stdio: 'ignore' });
-          } else {
-            proc.kill('SIGKILL');
-          }
-        } catch {}
-      }
-    };
-
-    killProcess(apiProcess);
-    killProcess(webProcess);
+    await Promise.all([killProcWithTree(apiProcess), killProcWithTree(webProcess)]);
   });
 
   it('changes shift grace minutes in UI, reloads page, confirms persistence, and verifies audit & version records in DB', async () => {

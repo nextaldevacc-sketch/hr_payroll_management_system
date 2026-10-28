@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const webDir = path.resolve(__dirname, '..');
+const rootDir = path.resolve(__dirname, '../../..');
 
 describe('Demo Persona Bar Production Build Protection', () => {
   it('production build artifacts strictly exclude the demo persona bar', () => {
@@ -42,10 +43,10 @@ describe('Demo Persona Bar Production Build Protection', () => {
   });
 
   it('GET /login production HTML response does not include the demo persona bar', async () => {
-    const testPort = 3099;
-    const serverProcess = spawn('npx', ['next', 'start', '-p', String(testPort)], {
+    const testPort = 3150;
+    const nextBin = path.resolve(rootDir, 'node_modules/next/dist/bin/next');
+    const serverProcess = spawn(process.execPath, [nextBin, 'start', '-p', String(testPort)], {
       cwd: webDir,
-      shell: true,
       env: {
         ...process.env,
         NODE_ENV: 'production',

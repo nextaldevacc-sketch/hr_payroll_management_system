@@ -1,18 +1,24 @@
 import { Router } from 'express';
-import prisma from '../prisma/client.js';
+import multer from 'multer';
 import { authenticate } from '../middleware/auth.js';
 import { requirePermission } from '../middleware/permissions.js';
 import { salaryMaskMiddleware } from '../middleware/salaryMask.js';
-import { serializeEmployee, hasSalaryAccess } from '../services/serializers.js';
+import employeeService from '../services/employeeService.js';
+import { hasSalaryAccess } from '../services/serializers.js';
 
 const router = Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit
+});
 
 router.use(authenticate);
 
 /**
  * GET /api/v1/employees
- * List company employees. Protected by Section 5.3 permissions matrix.
- * Masks salary & bank fields if user lacks salary access.
+ * List company employees with server-side filters, search, and pagination.
+ * Scopes to department team for DEPT_MANAGER.
+ * Strips salary columns for non-salary viewers.
  */
 router.get(
   '/',
@@ -20,87 +26,16 @@ router.get(
   salaryMaskMiddleware,
   async (req, res, next) => {
     try {
-      const companyId = req.companyId;
-      const where = { company_id: companyId };
-      const canSeeSalary = hasSalaryAccess(req.user);
-
-      // If user is a Department Manager, scope to their department(s)
-      const isDeptManager = req.user.roles?.includes('DEPT_MANAGER') && !req.user.roles.includes('COMPANY_ADMIN');
-      if (isDeptManager) {
-        const managedDepts = await prisma.$base().departments.findMany({
-          where: {
-            company_id: companyId,
-            manager_id: req.user.employeeId,
-          },
-          select: { id: true },
-        });
-
-        if (managedDepts.length > 0) {
-          where.contracts = {
-            some: {
-              department_id: { in: managedDepts.map((d) => d.id) },
-              status: 'Approved',
-            },
-          };
-        }
-      }
-
-      // Contracts query: if non-salary role, do NOT select salary columns
-      const contractsSelect = canSeeSalary
-        ? {
-            id: true,
-            contract_type: true,
-            basic: true,
-            housing: true,
-            transport: true,
-            other_allowances: true,
-            gross: true,
-            department: { select: { id: true, name: true } },
-            job: { select: { id: true, title: true } },
-          }
-        : {
-            id: true,
-            contract_type: true,
-            department: { select: { id: true, name: true } },
-            job: { select: { id: true, title: true } },
-          };
-
-      const employees = await prisma.$base().employees.findMany({
-        where,
-        include: {
-          company_visa: { select: { id: true, name: true } },
-          branch: { select: { id: true, name: true, emirate: true } },
-          manager: { select: { id: true, name: true, employee_code: true } },
-          contracts: {
-            where: { status: 'Approved' },
-            take: 1,
-            select: contractsSelect,
-          },
-          // For non-salary roles, omit bank_accounts entirely
-          ...(canSeeSalary
-            ? {
-                bank_accounts: {
-                  select: {
-                    id: true,
-                    bank_name: true,
-                    routing_code: true,
-                    iban: true,
-                    salary_split_pct: true,
-                    is_primary: true,
-                  },
-                },
-              }
-            : {}),
-        },
-        orderBy: { employee_code: 'asc' },
+      const result = await employeeService.listEmployees({
+        companyId: req.companyId,
+        query: req.query,
+        viewer: req.user,
       });
-
-      const serialized = employees.map((emp) => serializeEmployee(emp, req.user));
 
       res.json({
         status: 'success',
-        count: serialized.length,
-        data: serialized,
+        data: result.data,
+        meta: result.meta,
       });
     } catch (err) {
       next(err);
@@ -109,8 +44,52 @@ router.get(
 );
 
 /**
+ * POST /api/v1/employees
+ * Wizard Step 1: Create Pre-Joined employee.
+ */
+router.post(
+  '/',
+  requirePermission('employees', 'create'),
+  async (req, res, next) => {
+    try {
+      const data = await employeeService.createEmployee({
+        companyId: req.companyId,
+        data: req.body,
+        viewer: req.user,
+      });
+
+      res.status(201).json({
+        status: 'success',
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * GET /api/v1/employees/meta/options
+ * Retrieve metadata options for employee filters and wizards.
+ */
+router.get(
+  '/meta/options',
+  requirePermission('employees', 'view'),
+  async (req, res, next) => {
+    try {
+      const data = await employeeService.getEmployeeMetaOptions({
+        companyId: req.companyId,
+      });
+      res.json({ status: 'success', data });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
  * GET /api/v1/employees/:id
- * Retrieve employee profile details.
+ * Retrieve employee profile with bento header metadata and 7-tab payload.
  */
 router.get(
   '/:id',
@@ -118,62 +97,416 @@ router.get(
   salaryMaskMiddleware,
   async (req, res, next) => {
     try {
-      const companyId = req.companyId;
-      const canSeeSalary = hasSalaryAccess(req.user);
-
-      const contractsInclude = canSeeSalary
-        ? {
-            include: {
-              department: true,
-              job: true,
-            },
-            take: 1,
-          }
-        : {
-            select: {
-              id: true,
-              contract_type: true,
-              start_date: true,
-              end_date: true,
-              probation_end: true,
-              notice_days_employee: true,
-              notice_days_employer: true,
-              status: true,
-              department: { select: { id: true, name: true } },
-              job: { select: { id: true, title: true } },
-            },
-            take: 1,
-          };
-
-      const employee = await prisma.$base().employees.findUnique({
-        where: { id: req.params.id },
-        include: {
-          company_visa: true,
-          branch: true,
-          manager: { select: { id: true, name: true, employee_code: true } },
-          contracts: contractsInclude,
-          ...(canSeeSalary
-            ? {
-                bank_accounts: true,
-              }
-            : {}),
-          documents: true,
-        },
+      const data = await employeeService.getEmployeeById({
+        companyId: req.companyId,
+        employeeId: req.params.id,
+        viewer: req.user,
       });
-
-      if (!employee || employee.company_id !== companyId) {
-        return res.status(404).json({
-          status: 'error',
-          code: 'NOT_FOUND',
-          message: 'Employee not found',
-        });
-      }
-
-      const serialized = serializeEmployee(employee, req.user);
 
       res.json({
         status: 'success',
-        data: serialized,
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * PUT /api/v1/employees/:id
+ * Update employee personal / profile details.
+ */
+router.put(
+  '/:id',
+  requirePermission('employees', 'edit'),
+  async (req, res, next) => {
+    try {
+      const data = await employeeService.updateEmployee({
+        companyId: req.companyId,
+        employeeId: req.params.id,
+        data: req.body,
+        viewer: req.user,
+      });
+
+      res.json({
+        status: 'success',
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * POST /api/v1/employees/:id/status
+ * Explicit allowed transitions status change (Rule A).
+ */
+router.post(
+  '/:id/status',
+  requirePermission('employees', 'edit'),
+  async (req, res, next) => {
+    try {
+      const { status } = req.body;
+      if (!status) {
+        return res.status(400).json({
+          status: 'error',
+          code: 'MISSING_STATUS',
+          message: 'Status field is required',
+        });
+      }
+
+      const data = await employeeService.updateEmployeeStatus({
+        companyId: req.companyId,
+        employeeId: req.params.id,
+        targetStatus: status,
+        viewer: req.user,
+      });
+
+      res.json({
+        status: 'success',
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * POST /api/v1/employees/:id/verify
+ * Wizard Step 2: HR Manager verification.
+ * Blocks self-verification (Rule G).
+ */
+router.post(
+  '/:id/verify',
+  requirePermission('employees', 'edit'),
+  async (req, res, next) => {
+    try {
+      const { action, comment } = req.body;
+      const data = await employeeService.verifyEmployee({
+        companyId: req.companyId,
+        employeeId: req.params.id,
+        action: action || 'APPROVE',
+        comment,
+        viewer: req.user,
+      });
+
+      res.json({
+        status: 'success',
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * GET /api/v1/employees/:id/activation-check
+ * Wizard Step 5: Check 4 activation requirements (Rule A).
+ */
+router.get(
+  '/:id/activation-check',
+  requirePermission('employees', 'view'),
+  async (req, res, next) => {
+    try {
+      const data = await employeeService.getActivationCheck({
+        companyId: req.companyId,
+        employeeId: req.params.id,
+      });
+
+      res.json({
+        status: 'success',
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * POST /api/v1/employees/:id/activate
+ * Activate employee: validates requirements, creates opening leave allocation, sends self-service invite.
+ */
+router.post(
+  '/:id/activate',
+  requirePermission('employees', 'edit'),
+  async (req, res, next) => {
+    try {
+      const data = await employeeService.activateEmployee({
+        companyId: req.companyId,
+        employeeId: req.params.id,
+        viewer: req.user,
+      });
+
+      res.json({
+        status: 'success',
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * GET /api/v1/employees/:id/contracts
+ * Salary History Tab: lists every version of the employee's contracts.
+ * Returns 403 for non-salary roles.
+ */
+router.get(
+  '/:id/contracts',
+  async (req, res, next) => {
+    try {
+      if (!hasSalaryAccess(req.user)) {
+        return res.status(403).json({
+          status: 'error',
+          code: 'FORBIDDEN_SALARY_ACCESS',
+          message: 'Access denied: Salary History is restricted to authorized salary roles',
+        });
+      }
+
+      const data = await employeeService.getContracts({
+        companyId: req.companyId,
+        employeeId: req.params.id,
+        viewer: req.user,
+      });
+
+      res.json({
+        status: 'success',
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * POST /api/v1/employees/:id/contracts
+ * Create a new version of the contract (Rule B).
+ * Blocks modification inside locked pay periods.
+ * Returns 403 for non-salary roles.
+ */
+router.post(
+  '/:id/contracts',
+  async (req, res, next) => {
+    try {
+      if (!hasSalaryAccess(req.user)) {
+        return res.status(403).json({
+          status: 'error',
+          code: 'FORBIDDEN_SALARY_ACCESS',
+          message: 'Access denied: Managing contracts and salary is restricted to authorized salary roles',
+        });
+      }
+
+      const data = await employeeService.createContractVersion({
+        companyId: req.companyId,
+        employeeId: req.params.id,
+        data: req.body,
+        viewer: req.user,
+      });
+
+      res.status(201).json({
+        status: 'success',
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * GET /api/v1/employees/:id/bank-accounts
+ * Bank & WPS Tab: returns bank accounts with FULL IBAN.
+ * Returns 403 for non-salary roles.
+ */
+router.get(
+  '/:id/bank-accounts',
+  async (req, res, next) => {
+    try {
+      if (!hasSalaryAccess(req.user)) {
+        return res.status(403).json({
+          status: 'error',
+          code: 'FORBIDDEN_SALARY_ACCESS',
+          message: 'Access denied: Bank details are restricted to authorized salary roles',
+        });
+      }
+
+      const data = await employeeService.getBankAccounts({
+        companyId: req.companyId,
+        employeeId: req.params.id,
+        viewer: req.user,
+      });
+
+      res.json({
+        status: 'success',
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * POST /api/v1/employees/:id/bank-accounts
+ * Add or update bank account with UAE IBAN validation (Rule D).
+ * Returns 403 for non-salary roles.
+ */
+router.post(
+  '/:id/bank-accounts',
+  async (req, res, next) => {
+    try {
+      if (!hasSalaryAccess(req.user)) {
+        return res.status(403).json({
+          status: 'error',
+          code: 'FORBIDDEN_SALARY_ACCESS',
+          message: 'Access denied: Managing bank details is restricted to authorized salary roles',
+        });
+      }
+
+      const data = await employeeService.saveBankAccount({
+        companyId: req.companyId,
+        employeeId: req.params.id,
+        data: req.body,
+        viewer: req.user,
+      });
+
+      res.json({
+        status: 'success',
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * GET /api/v1/employees/:id/documents
+ * UAE Documents Tab: lists all documents.
+ * Sensitive numbers masked for non-HR viewers.
+ */
+router.get(
+  '/:id/documents',
+  requirePermission('employees', 'view'),
+  async (req, res, next) => {
+    try {
+      const data = await employeeService.getDocuments({
+        companyId: req.companyId,
+        employeeId: req.params.id,
+        viewer: req.user,
+      });
+
+      res.json({
+        status: 'success',
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * POST /api/v1/employees/:id/documents
+ * Upload document with content-type inspection and 10MB limit (Rule C).
+ * Supports both multipart form-data and JSON base64 upload.
+ */
+router.post(
+  '/:id/documents',
+  requirePermission('employees', 'edit'),
+  upload.single('file'),
+  async (req, res, next) => {
+    try {
+      let fileBuffer = req.file?.buffer;
+      let originalName = req.file?.originalname;
+      let mimeType = req.file?.mimetype;
+
+      // Also support JSON body with base64 encoded file
+      if (!fileBuffer && req.body.file_base64) {
+        fileBuffer = Buffer.from(req.body.file_base64, 'base64');
+        originalName = req.body.file_name || 'document.pdf';
+        mimeType = req.body.mime_type;
+      }
+
+      const meta = {
+        doc_type: req.body.doc_type,
+        doc_number: req.body.doc_number,
+        issue_date: req.body.issue_date,
+        expiry_date: req.body.expiry_date,
+        owner_id: req.body.owner_id,
+      };
+
+      const data = await employeeService.uploadDocument({
+        companyId: req.companyId,
+        employeeId: req.params.id,
+        file: { buffer: fileBuffer, originalname: originalName, mimetype: mimeType },
+        meta,
+        viewer: req.user,
+      });
+
+      res.status(201).json({
+        status: 'success',
+        data,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * GET /api/v1/employees/:id/documents/:docId/download
+ * Secure document download route (Rule C).
+ * Validates authenticated permissions and streams file.
+ */
+router.get(
+  '/:id/documents/:docId/download',
+  requirePermission('employees', 'view'),
+  async (req, res, next) => {
+    try {
+      const fileData = await employeeService.downloadDocument({
+        companyId: req.companyId,
+        employeeId: req.params.id,
+        documentId: req.params.docId,
+        viewer: req.user,
+      });
+
+      res.setHeader('Content-Type', fileData.mimeType);
+      res.setHeader('Content-Length', fileData.size);
+      res.setHeader('Content-Disposition', `attachment; filename="${fileData.fileName}"`);
+
+      fileData.stream.pipe(res);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * GET /api/v1/employees/:id/history
+ * History Tab: returns audit logs diffs for employee and associated records (Rule F).
+ */
+router.get(
+  '/:id/history',
+  requirePermission('employees', 'view'),
+  async (req, res, next) => {
+    try {
+      const data = await employeeService.getEmployeeHistory({
+        companyId: req.companyId,
+        employeeId: req.params.id,
+        viewer: req.user,
+      });
+
+      res.json({
+        status: 'success',
+        data,
       });
     } catch (err) {
       next(err);

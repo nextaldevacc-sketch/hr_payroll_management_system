@@ -12,7 +12,10 @@
  * as well as PLATFORM_ADMIN) MUST NEVER see any salary or bank figures.
  */
 
+import { maskIban, maskIdentityNumber } from '@nextal/shared';
+
 export const SALARY_ROLES = ['HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'FINANCE'];
+export const SENSITIVE_ID_ROLES = ['HR_OFFICER', 'HR_MANAGER', 'COMPANY_ADMIN'];
 
 /**
  * Determine if a viewer has salary access per Section 5.3
@@ -22,6 +25,20 @@ export function hasSalaryAccess(viewer) {
   if (viewer.isPlatformAdmin) return false;
   const roles = viewer.roles || [];
   return roles.some((r) => SALARY_ROLES.includes(r));
+}
+
+/**
+ * Determine if a viewer has access to sensitive identity numbers (Passport, Emirates ID) per Rule E
+ */
+export function hasSensitiveIdAccess(viewer, targetEmployeeId = null) {
+  if (!viewer) return false;
+  if (viewer.isPlatformAdmin) return false;
+  // An employee can view their own sensitive documents
+  if (targetEmployeeId && viewer.employeeId && viewer.employeeId === targetEmployeeId) {
+    return true;
+  }
+  const roles = viewer.roles || [];
+  return roles.some((r) => SENSITIVE_ID_ROLES.includes(r));
 }
 
 /**
@@ -138,6 +155,8 @@ export function serializeContract(contract, viewer) {
   // Base metadata (non-salary)
   const base = {
     id: contract.id,
+    version_no: contract.version_no,
+    effective_date: contract.effective_date,
     contract_type: contract.contract_type,
     start_date: contract.start_date,
     end_date: contract.end_date,
@@ -145,6 +164,12 @@ export function serializeContract(contract, viewer) {
     notice_days_employee: contract.notice_days_employee,
     notice_days_employer: contract.notice_days_employer,
     status: contract.status,
+    job_id: contract.job_id,
+    job: contract.job ? { id: contract.job.id, title: contract.job.title, title_ar: contract.job.title_ar } : null,
+    department_id: contract.department_id,
+    department: contract.department ? { id: contract.department.id, name: contract.department.name, name_ar: contract.department.name_ar } : null,
+    shift_id: contract.shift_id,
+    shift: contract.shift ? { id: contract.shift.id, name: contract.shift.name } : null,
     created_at: contract.created_at,
     updated_at: contract.updated_at,
   };
@@ -166,21 +191,24 @@ export function serializeContract(contract, viewer) {
 }
 
 /**
- * Serialize Bank Account: Include IBAN and bank details ONLY for salary viewers
+ * Serialize Bank Account: Include IBAN and bank details ONLY for salary viewers.
+ * Masks IBAN in list views (Rule D)
  */
-export function serializeBankAccount(bankAccount, viewer) {
+export function serializeBankAccount(bankAccount, viewer, { mask = false } = {}) {
   if (!bankAccount) return null;
   const canSeeSalary = hasSalaryAccess(viewer);
 
-  // Section 6: "salary and bank tabs hidden"
+  // Section 6 & Rule D: "salary and bank tabs hidden for roles without salary access"
   if (!canSeeSalary) {
     return null;
   }
 
   return {
     id: bankAccount.id,
+    company_id: bankAccount.company_id,
+    employee_id: bankAccount.employee_id,
     bank_name: bankAccount.bank_name,
-    iban: bankAccount.iban,
+    iban: mask ? maskIban(bankAccount.iban) : bankAccount.iban,
     routing_code: bankAccount.routing_code,
     salary_split_pct: bankAccount.salary_split_pct,
     is_primary: bankAccount.is_primary,
@@ -191,11 +219,49 @@ export function serializeBankAccount(bankAccount, viewer) {
 }
 
 /**
+ * Serialize Employee Document: Masks sensitive numbers (Emirates ID, Passport) for non-HR viewers (Rule E)
+ */
+export function serializeDocument(doc, viewer, targetEmployeeId = null) {
+  if (!doc) return null;
+  const empId = targetEmployeeId || doc.employee_id;
+  const canSeeSensitive = hasSensitiveIdAccess(viewer, empId);
+
+  const docTypeStr = String(doc.doc_type || '').toUpperCase();
+  const isSensitive = docTypeStr.includes('PASSPORT') ||
+                      docTypeStr.includes('EMIRATES') ||
+                      docTypeStr.includes('EID') ||
+                      docTypeStr.includes('VISA');
+
+  const docNumber = (!canSeeSensitive && isSensitive)
+    ? maskIdentityNumber(doc.doc_type, doc.doc_number)
+    : doc.doc_number;
+
+  return {
+    id: doc.id,
+    company_id: doc.company_id,
+    employee_id: doc.employee_id,
+    doc_type: doc.doc_type,
+    doc_number: docNumber,
+    issue_date: doc.issue_date,
+    expiry_date: doc.expiry_date,
+    file_url: doc.file_url ? `/api/v1/employees/${doc.employee_id}/documents/${doc.id}/download` : null,
+    has_file: Boolean(doc.file_url),
+    owner_id: doc.owner_id,
+    owner: doc.owner ? { id: doc.owner.id, email: doc.owner.email, name: doc.owner.name } : null,
+    status: doc.status,
+    verification_status: doc.verification_status,
+    created_at: doc.created_at,
+    updated_at: doc.updated_at,
+  };
+}
+
+/**
  * Serialize Employee: Strict allowlist
  */
-export function serializeEmployee(emp, viewer) {
+export function serializeEmployee(emp, viewer, { maskIbanInList = false } = {}) {
   if (!emp) return null;
   const canSeeSalary = hasSalaryAccess(viewer);
+  const canSeeSensitive = hasSensitiveIdAccess(viewer, emp.id);
 
   // Strict Allowlist of non-salary employee profile attributes
   const serialized = {
@@ -204,14 +270,22 @@ export function serializeEmployee(emp, viewer) {
     employee_code: emp.employee_code,
     name: emp.name,
     arabic_name: emp.arabic_name,
+    legal_name: emp.legal_name,
     work_email: emp.work_email,
-    mobile_phone: emp.mobile_phone,
+    mobile: emp.mobile,
+    mobile_phone: emp.mobile,
     gender: emp.gender,
     nationality: emp.nationality,
-    is_uae_national: emp.is_uae_national,
-    marital_status: emp.marital_status,
-    hire_date: emp.hire_date,
+    residency_type: emp.residency_type,
+    pension_scheme: emp.pension_scheme,
+    pension_registration_date: emp.pension_registration_date,
+    birth_date: emp.birth_date,
+    joining_date: emp.joining_date,
+    hire_date: emp.joining_date,
     status: emp.status,
+    mohre_person_id: canSeeSensitive
+      ? emp.mohre_person_id
+      : (emp.mohre_person_id ? maskIdentityNumber('LABOUR_CARD', emp.mohre_person_id) : null),
     department_id: emp.contracts?.[0]?.department_id || emp.department_id || null,
     department: emp.department
       ? {
@@ -261,7 +335,18 @@ export function serializeEmployee(emp, viewer) {
           employee_code: emp.manager.employee_code,
         }
       : null,
-    avatar_url: emp.avatar_url,
+    hr_manager_id: emp.hr_manager_id,
+    hr_manager: emp.hr_manager
+      ? {
+          id: emp.hr_manager.id,
+          name: emp.hr_manager.name,
+          employee_code: emp.hr_manager.employee_code,
+        }
+      : null,
+    verified_by: emp.verified_by,
+    verified_at: emp.verified_at,
+    activated_at: emp.activated_at,
+    created_by: emp.created_by,
     created_at: emp.created_at,
     updated_at: emp.updated_at,
   };
@@ -274,12 +359,18 @@ export function serializeEmployee(emp, viewer) {
     // If not canSeeSalary, contracts array is NOT included or contains only non-monetary metadata
   }
 
-  // Bank accounts: Section 6 "salary and bank tabs hidden"
+  // Bank accounts: Section 6 & Rule D "full IBAN on bank tab only; masked in lists"
   if (emp.bank_accounts && Array.isArray(emp.bank_accounts)) {
     if (canSeeSalary) {
-      serialized.bank_accounts = emp.bank_accounts.map((b) => serializeBankAccount(b, viewer)).filter(Boolean);
+      serialized.bank_accounts = emp.bank_accounts
+        .map((b) => serializeBankAccount(b, viewer, { mask: maskIbanInList }))
+        .filter(Boolean);
     }
-    // If not canSeeSalary, bank_accounts is omitted entirely
+  }
+
+  // Documents: sensitive numbers masked for non-HR viewers
+  if (emp.documents && Array.isArray(emp.documents)) {
+    serialized.documents = emp.documents.map((d) => serializeDocument(d, viewer, emp.id)).filter(Boolean);
   }
 
   // Final defense check: if viewer cannot see salary, run deepSanitize

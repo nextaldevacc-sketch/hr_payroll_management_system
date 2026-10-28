@@ -394,8 +394,8 @@ export function CompanyProfileDrawer({
                 </span>
                 <p className="text-[11px] text-amber-200/80 leading-relaxed">
                   {language === 'ar'
-                    ? 'تخضع اشتراكات المواطنين الإماراتيين لقانون المعاشات الاتحادي ولائحة صندوق أبوظبي للتقاعد. مساهمة الموظف 11% للمسجلين بعد 2 أكتوبر 2023 (أو 5% للنظام القديم)، مع دعم نافس الحكومي (2.5%) للرواتب الأقل من 20 ألف درهم.'
-                    : 'UAE National contributions adhere to Federal Decree-Law No. 57/2023 and Abu Dhabi Pension Law. Default employee rate is 11% for registrations on/after 2 Oct 2023 (5% for legacy). Nafis covers 2.5% of employer share for salaries under AED 20,000.'}
+                    ? 'تخضع اشتراكات المواطنين الإماراتيين لقانون المعاشات الاتحادي ولائحة صندوق أبوظبي للتقاعد. مساهمة الموظف 11% للمسجلين بعد 2 أكتوبر 2023 (أو 5% للنظام القديم)، مع حصة حكومية (2.5%) للرواتب الأقل من 20 ألف درهم.'
+                    : 'UAE National contributions adhere to Federal Decree-Law No. 57/2023 and Abu Dhabi Pension Law. Default employee rate is 11% for registrations on/after 2 Oct 2023 (5% for legacy). Government share (2.5%) covers 2.5% of employer share for salaries under AED 20,000.'}
                 </p>
               </div>
             </div>
@@ -482,7 +482,7 @@ export function CompanyProfileDrawer({
 
                 <div>
                   <label className="block text-[11px] text-text-muted mb-1">
-                    Government Nafis Share (&lt; AED 20k)
+                    Government share (2.5%) (&lt; AED 20k)
                   </label>
                   <div className="relative">
                     <input

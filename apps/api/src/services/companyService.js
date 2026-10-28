@@ -298,8 +298,8 @@ export class CompanyService {
       { code: 'SICK_NONE', name: 'Sick Leave Days 46-90 (100%)', category: 'Deduction', sequence: 120, amount_type: 'Formula', formula: '100% deduction' },
       { code: 'LOAN', name: 'Loan Recovery', category: 'Deduction', sequence: 130, amount_type: 'Formula', formula: 'monthly instalment from Salary Adjustments' },
       { code: 'ADV', name: 'Salary Advance Recovery', category: 'Deduction', sequence: 140, amount_type: 'Formula', formula: 'monthly instalment from Salary Adjustments' },
-      { code: 'GPSSA_EE', name: 'GPSSA UAE National Pension (Employee 5%)', category: 'Deduction', sequence: 150, amount_type: 'Percentage', formula: 'gross * 0.05' },
-      { code: 'GPSSA_ER', name: 'GPSSA UAE National Pension (Employer 12.5%)', category: 'CompanyContribution', sequence: 160, amount_type: 'Percentage', formula: 'gross * 0.125' },
+      { code: 'GPSSA_EE', name: 'GPSSA UAE National Pension (Employee Share)', category: 'Deduction', sequence: 150, amount_type: 'Formula', formula: 'gpssa_salary * gpssa_ee_rate' },
+      { code: 'GPSSA_ER', name: 'GPSSA UAE National Pension (Employer Share)', category: 'CompanyContribution', sequence: 160, amount_type: 'Formula', formula: 'gpssa_salary * gpssa_er_rate' },
       { code: 'NET', name: 'Net Pay to WPS', category: 'Basic', sequence: 170, amount_type: 'Formula', formula: 'GROSS + earnings - deductions' },
     ];
 
