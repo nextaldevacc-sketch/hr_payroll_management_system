@@ -49,13 +49,13 @@ export default function DashboardPage() {
         router.push('/leave');
         break;
       case 'salary-adj':
-        router.push('/payroll');
+        router.push('/payroll/adjustments');
         break;
       case 'holiday':
         router.push('/leave');
         break;
       case 'payrun':
-        setIsPayrollModalOpen(true);
+        router.push('/payroll');
         break;
       default:
         break;
@@ -89,7 +89,7 @@ export default function DashboardPage() {
             variant="primary"
             size="sm"
             icon={<Play className="w-3.5 h-3.5" />}
-            onClick={() => setIsPayrollModalOpen(true)}
+            onClick={() => router.push('/payroll')}
           >
             Calculate Payroll
           </Button>
@@ -101,7 +101,7 @@ export default function DashboardPage() {
         {/* Row 1 & 2: live (6x2), head (3x1), appr (3x1), wps (3x1), docs (3x1) */}
         <LivePayrollHeroTile
           data={mockDashboardData.livePayroll}
-          onClick={() => setIsPayrollModalOpen(true)}
+          onClick={() => router.push('/payroll')}
           onOpenValidation={() => router.push('/payroll')}
         />
 

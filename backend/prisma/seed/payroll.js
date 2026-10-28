@@ -14,18 +14,102 @@ export async function seedPayroll(prisma, {
   const userAdmin1 = demoUsersMap['admin@gulftech.ae'];
   const userHR1 = demoUsersMap['hr.mgr@gulftech.ae'];
 
-  await prisma.pay_runs.create({
+  const septRun = await prisma.pay_runs.create({
     data: {
       company_id: company1.id,
       company_visa_id: visas1.visa1_01.id,
       run_type: 'Regular',
       period_month: new Date('2026-09-01'),
       cutoff_date: new Date('2026-09-25'),
-      status: 'Locked',
-      locked_at: new Date('2026-09-28'),
-      locked_by: userFinance1.id,
+      status: 'Draft',
     },
   });
+
+  // Populate September payslips for all 40 employees with valid bank accounts
+  for (let idx = 0; idx < 40; idx++) {
+    const emp = seededEmployees[idx];
+    const contract = seededContracts[idx];
+    const basic = Number(contract.basic);
+    const housing = Number(contract.housing || 0);
+    const transport = Number(contract.transport || 0);
+    const other = Number(contract.other_allowances || 0);
+    const gross = basic + housing + transport + other;
+
+    const septPs = await prisma.payslips.create({
+      data: {
+        company_id: company1.id,
+        pay_run_id: septRun.id,
+        employee_id: emp.id,
+        contract_id: contract.id,
+        period_from: new Date('2026-09-01'),
+        period_to: new Date('2026-09-30'),
+        paid_days: 30.0,
+        worked_days: 22.0,
+        basic,
+        gross,
+        total_deductions: 0.0,
+        net: gross,
+        status: 'Calculated',
+      },
+    });
+
+    const sLines = [
+      { salary_rule_id: rulesMap1['BASIC'].id, code: 'BASIC', name: 'Basic Salary', amount: basic },
+      { salary_rule_id: rulesMap1['HRA'].id, code: 'HRA', name: 'Housing Allowance', amount: housing },
+      { salary_rule_id: rulesMap1['TRA'].id, code: 'TRA', name: 'Transport Allowance', amount: transport },
+      { salary_rule_id: rulesMap1['OTH'].id, code: 'OTH', name: 'Other Allowance', amount: other },
+      { salary_rule_id: rulesMap1['GROSS'].id, code: 'GROSS', name: 'Gross Salary', amount: gross },
+      { salary_rule_id: rulesMap1['NET'].id, code: 'NET', name: 'Net Pay to WPS', amount: gross },
+    ];
+
+    for (const l of sLines) {
+      await prisma.payslip_lines.create({
+        data: {
+          company_id: company1.id,
+          payslip_id: septPs.id,
+          salary_rule_id: l.salary_rule_id,
+          code: l.code,
+          name: l.name,
+          amount: l.amount,
+        },
+      });
+    }
+  }
+
+  // Lock September pay run
+  await prisma.$executeRaw`
+    UPDATE pay_runs 
+    SET status = 'Locked', locked_at = '2026-09-28T10:00:00Z'::timestamp, locked_by = ${userFinance1.id}::uuid 
+    WHERE id = ${septRun.id}::uuid
+  `;
+
+  // Seed scheduled salary adjustments for October 2026
+  console.log('Seeding scheduled salary adjustments (loans & advances)...');
+  const adjsToSeed = [
+    { empIdx: 5, type: 'Loan', total: 20000.0, monthly: 2000.0, bal: 18000.0, reason: 'Personal renovation loan' },
+    { empIdx: 6, type: 'Loan', total: 15000.0, monthly: 1500.0, bal: 13500.0, reason: 'Vehicle repair loan' },
+    { empIdx: 7, type: 'Loan', total: 10000.0, monthly: 1000.0, bal: 9000.0, reason: 'Family support loan' },
+    { empIdx: 12, type: 'Advance', total: 800.0, monthly: 800.0, bal: 800.0, reason: 'Mid-month salary advance' },
+  ];
+
+  for (const adj of adjsToSeed) {
+    if (seededEmployees[adj.empIdx]) {
+      await prisma.salary_adjustments.create({
+        data: {
+          company_id: company1.id,
+          employee_id: seededEmployees[adj.empIdx].id,
+          type: adj.type,
+          total_amount: adj.total,
+          monthly_amount: adj.monthly,
+          balance: adj.bal,
+          start_month: new Date('2026-10-01'),
+          status: 'Approved',
+          reason: adj.reason,
+          created_by: userFinance1.id,
+        },
+      });
+    }
+  }
 
   // October 2026 Pay Run
   console.log('Seeding October 2026 Pay Run, Payslips & Payslip Lines...');

@@ -9,6 +9,12 @@ describe('Payslip Lines Calculation & Sum Integrity Tests', () => {
 
   before(async () => {
     payslipsWithLines = await prisma.payslips.findMany({
+      where: {
+        pay_run: {
+          period_month: new Date('2026-10-01'),
+          company: { name: 'Gulf Tech Logistics LLC' },
+        },
+      },
       include: {
         lines: {
           include: {

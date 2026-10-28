@@ -179,23 +179,23 @@ export async function seedSettings(prisma, { company1, company2, rolesMap }) {
 
   async function seedFullSection81SalaryRules(companyId, structureId) {
     const section81Rules = [
-      { code: 'BASIC', name: 'Basic Salary', category: 'Basic', sequence: 10, amount_type: 'Percentage', formula: 'contract.basic * paid_days / month_days' },
-      { code: 'HRA', name: 'Housing Allowance', category: 'Allowance', sequence: 20, amount_type: 'Percentage', formula: 'contract.housing * paid_days / month_days' },
-      { code: 'TRA', name: 'Transport Allowance', category: 'Allowance', sequence: 30, amount_type: 'Percentage', formula: 'contract.transport * paid_days / month_days' },
-      { code: 'OTH', name: 'Other Allowance', category: 'Allowance', sequence: 40, amount_type: 'Percentage', formula: 'contract.other_allowances * paid_days / month_days' },
-      { code: 'GROSS', name: 'Gross Salary', category: 'Gross', sequence: 50, amount_type: 'Formula', formula: 'BASIC + all allowances' },
-      { code: 'OT_NORMAL', name: 'Normal Overtime (1.25x)', category: 'Addition', sequence: 60, amount_type: 'Formula', formula: '(basic / 30 / 8) * 1.25 * approved OT hours' },
-      { code: 'OT_NIGHT', name: 'Night Overtime 10pm-4am (1.50x)', category: 'Addition', sequence: 70, amount_type: 'Formula', formula: '(basic / 30 / 8) * 1.50 * hours' },
-      { code: 'OT_REST', name: 'Rest Day / Holiday Overtime (1.50x)', category: 'Addition', sequence: 80, amount_type: 'Formula', formula: 'substitute day, or (basic / 30 / 8) * 1.50 * hours' },
-      { code: 'ABS', name: 'Absence / Unpaid Leave', category: 'Deduction', sequence: 90, amount_type: 'Formula', formula: 'gross / 30 * days' },
-      { code: 'LATE', name: 'Late / Early-Out Penalty', category: 'Deduction', sequence: 100, amount_type: 'Formula', formula: 'from attendance policy steps' },
-      { code: 'SICK_HALF', name: 'Sick Leave Days 16-45 (50%)', category: 'Deduction', sequence: 110, amount_type: 'Formula', formula: '50% of daily gross' },
-      { code: 'SICK_NONE', name: 'Sick Leave Days 46-90 (100%)', category: 'Deduction', sequence: 120, amount_type: 'Formula', formula: '100% deduction' },
-      { code: 'LOAN', name: 'Loan Recovery', category: 'Deduction', sequence: 130, amount_type: 'Formula', formula: 'monthly instalment from Salary Adjustments' },
-      { code: 'ADV', name: 'Salary Advance Recovery', category: 'Deduction', sequence: 140, amount_type: 'Formula', formula: 'monthly instalment from Salary Adjustments' },
+      { code: 'BASIC', name: 'Basic Salary', category: 'Basic', sequence: 10, amount_type: 'Formula', formula: 'contract.basic * paid_days / month_days' },
+      { code: 'HRA', name: 'Housing Allowance', category: 'Allowance', sequence: 20, amount_type: 'Formula', formula: 'contract.housing * paid_days / month_days' },
+      { code: 'TRA', name: 'Transport Allowance', category: 'Allowance', sequence: 30, amount_type: 'Formula', formula: 'contract.transport * paid_days / month_days' },
+      { code: 'OTH', name: 'Other Allowance', category: 'Allowance', sequence: 40, amount_type: 'Formula', formula: 'contract.other_allowances * paid_days / month_days' },
+      { code: 'GROSS', name: 'Gross Salary', category: 'Gross', sequence: 50, amount_type: 'Formula', formula: 'BASIC + HRA + TRA + OTH' },
+      { code: 'OT_NORMAL', name: 'Normal Overtime (1.25x)', category: 'Allowance', sequence: 60, amount_type: 'Formula', formula: '(basic / 30 / 8) * 1.25 * ot_hours_normal' },
+      { code: 'OT_NIGHT', name: 'Night Overtime 10pm-4am (1.50x)', category: 'Allowance', sequence: 70, amount_type: 'Formula', formula: '(basic / 30 / 8) * 1.5 * ot_hours_night' },
+      { code: 'OT_REST', name: 'Rest Day / Holiday Overtime (1.50x)', category: 'Allowance', sequence: 80, amount_type: 'Formula', formula: '(basic / 30 / 8) * 1.5 * ot_hours_rest' },
+      { code: 'ABS', name: 'Absence / Unpaid Leave', category: 'Deduction', sequence: 90, amount_type: 'Formula', formula: 'gross / 30 * absent_days' },
+      { code: 'LATE', name: 'Late / Early-Out Penalty', category: 'Deduction', sequence: 100, amount_type: 'Formula', formula: '(basic / 30 / 8) * late_units' },
+      { code: 'SICK_HALF', name: 'Sick Leave Days 16-45 (50%)', category: 'Deduction', sequence: 110, amount_type: 'Formula', formula: 'gross / 30 * 0.5 * sick_half_days' },
+      { code: 'SICK_NONE', name: 'Sick Leave Days 46-90 (100%)', category: 'Deduction', sequence: 120, amount_type: 'Formula', formula: 'gross / 30 * 1.0 * sick_none_days' },
+      { code: 'LOAN', name: 'Loan Recovery', category: 'Deduction', sequence: 130, amount_type: 'Formula', formula: 'loan_instalment' },
+      { code: 'ADV', name: 'Salary Advance Recovery', category: 'Deduction', sequence: 140, amount_type: 'Formula', formula: 'adv_instalment' },
       { code: 'GPSSA_EE', name: 'GPSSA UAE National Pension (Employee Share)', category: 'Deduction', sequence: 150, amount_type: 'Formula', formula: 'gpssa_salary * gpssa_ee_rate' },
       { code: 'GPSSA_ER', name: 'GPSSA UAE National Pension (Employer Share)', category: 'CompanyContribution', sequence: 160, amount_type: 'Formula', formula: 'gpssa_salary * gpssa_er_rate' },
-      { code: 'NET', name: 'Net Pay to WPS', category: 'Net', sequence: 170, amount_type: 'Formula', formula: 'GROSS + earnings - deductions' },
+      { code: 'NET', name: 'Net Pay to WPS', category: 'Net', sequence: 170, amount_type: 'Formula', formula: 'GROSS + allowances - deductions' },
     ];
 
     const map = {};

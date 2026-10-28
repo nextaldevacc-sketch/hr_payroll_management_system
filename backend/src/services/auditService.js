@@ -45,7 +45,7 @@ export class AuditService {
       data: {
         company_id: companyId,
         user_id: sanitizeUuid(userId),
-        action,
+        action: action ? String(action).slice(0, 20) : 'UNKNOWN',
         table_name: tableName,
         record_id: recordId,
         old_values: oldValues ? JSON.parse(JSON.stringify(oldValues)) : null,

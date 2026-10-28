@@ -1,41 +1,184 @@
-import prisma from '../lib/prisma.js';
+import payrollService from '../services/payrollService.js';
 
-export async function getPayrollOverview(req, res, next) {
+export async function listPayRuns(req, res, next) {
   try {
-    const companyId = req.companyId;
-
-    const payRuns = await prisma.$base().pay_runs.findMany({
-      where: { company_id: companyId },
-      include: {
-        company_visa: { select: { id: true, name: true } },
-        _count: { select: { payslips: true } },
-      },
-      orderBy: { period_month: 'desc' },
+    const { companyVisaId, periodMonth, status, limit, offset } = req.query;
+    const result = await payrollService.listPayRuns(req.companyId, {
+      companyVisaId,
+      periodMonth,
+      status,
+      limit,
+      offset,
     });
-
-    res.json({
-      status: 'success',
-      count: payRuns.length,
-      data: payRuns,
-    });
+    res.json({ status: 'success', data: result.items, total: result.total });
   } catch (err) {
     next(err);
   }
 }
 
-export async function approvePayRun(req, res, next) {
+export async function getPayRun(req, res, next) {
   try {
-    res.json({
-      status: 'success',
-      message: 'Pay run approved by authorized executive',
-      runId: req.params.id,
+    const payRun = await payrollService.getPayRun(req.companyId, req.params.id);
+    res.json({ status: 'success', data: payRun });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listPayRunPayslips(req, res, next) {
+  try {
+    const { search, hasVariance, limit, offset } = req.query;
+    const result = await payrollService.listPayRunPayslips(req.companyId, req.params.id, {
+      search,
+      hasVariance,
+      limit,
+      offset,
     });
+    res.json({ status: 'success', data: result.items, total: result.total });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listPayRunIssues(req, res, next) {
+  try {
+    const { severity, resolved } = req.query;
+    const issues = await payrollService.listPayRunIssues(req.companyId, req.params.id, {
+      severity,
+      resolved,
+    });
+    res.json({ status: 'success', data: issues });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function createPayRun(req, res, next) {
+  try {
+    const payRun = await payrollService.createPayRun(req.companyId, req.body, req.user?.id);
+    res.status(201).json({ status: 'success', data: payRun });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function calculatePayRun(req, res, next) {
+  try {
+    const payRun = await payrollService.calculatePayRun(req.companyId, req.params.id, req.user?.id);
+    res.json({ status: 'success', message: 'Pay run calculated successfully', data: payRun });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function validatePayRun(req, res, next) {
+  try {
+    const payRun = await payrollService.validatePayRun(req.companyId, req.params.id, req.user?.id);
+    res.json({ status: 'success', message: 'Pay run validated successfully', data: payRun });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function lockPayRun(req, res, next) {
+  try {
+    const payRun = await payrollService.lockPayRun(req.companyId, req.params.id, req.user?.id);
+    res.json({ status: 'success', message: 'Pay run locked successfully', data: payRun });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function markPayRunPaid(req, res, next) {
+  try {
+    const payRun = await payrollService.markPayRunPaid(req.companyId, req.params.id, req.user?.id);
+    res.json({ status: 'success', message: 'Pay run marked as paid successfully', data: payRun });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getPayslip(req, res, next) {
+  try {
+    const payslip = await payrollService.getPayslip(req.companyId, req.params.id);
+    res.json({ status: 'success', data: payslip });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateVarianceReason(req, res, next) {
+  try {
+    const payslip = await payrollService.updateVarianceReason(
+      req.companyId,
+      req.params.id,
+      req.body.reason,
+      req.user?.id
+    );
+    res.json({ status: 'success', message: 'Variance justification saved', data: payslip });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function exportSif(req, res, next) {
+  try {
+    const sifData = await payrollService.getPayRunSif(req.companyId, req.params.id);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${sifData.filename}"`);
+    res.send(sifData.content);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function downloadPayslipPdf(req, res, next) {
+  try {
+    const pdfBuffer = await payrollService.getPayslipPdf(req.companyId, req.params.id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="payslip-${req.params.id}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function downloadPayrollRegisterExcel(req, res, next) {
+  try {
+    const excelBuffer = await payrollService.getPayrollRegisterExcel(req.companyId, req.params.id);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="payroll-register-${req.params.id}.xlsx"`);
+    res.send(excelBuffer);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function downloadVarianceReportExcel(req, res, next) {
+  try {
+    const excelBuffer = await payrollService.getVarianceReportExcel(req.companyId, req.params.id);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="payroll-variance-${req.params.id}.xlsx"`);
+    res.send(excelBuffer);
   } catch (err) {
     next(err);
   }
 }
 
 export default {
-  getPayrollOverview,
-  approvePayRun,
+  listPayRuns,
+  getPayRun,
+  listPayRunPayslips,
+  listPayRunIssues,
+  createPayRun,
+  calculatePayRun,
+  validatePayRun,
+  lockPayRun,
+  markPayRunPaid,
+  getPayslip,
+  updateVarianceReason,
+  exportSif,
+  downloadPayslipPdf,
+  downloadPayrollRegisterExcel,
+  downloadVarianceReportExcel,
 };

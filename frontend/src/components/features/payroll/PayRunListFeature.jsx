@@ -1,0 +1,429 @@
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  Banknote,
+  Plus,
+  Calendar,
+  AlertCircle,
+  FileCheck2,
+  Lock,
+  ArrowRight,
+  TrendingUp,
+  ShieldCheck,
+  Building,
+  Clock,
+  SlidersHorizontal,
+} from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchPayRuns, createPayRun } from '../../../services/payrollApi';
+import { fetchEmployeeMetaOptions } from '../../../services/employeesApi';
+import { GlassCard } from '../../primitives/GlassCard';
+import { StatusPill } from '../../primitives/StatusPill';
+import { Modal } from '../../primitives/Modal';
+
+export function PayRunListFeature() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const [visaFilter, setVisaFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    company_visa_id: '',
+    period_month: '2026-11-01',
+    cutoff_date: '2026-11-25',
+    run_type: 'Regular',
+  });
+  const [createError, setCreateError] = useState('');
+
+  // Fetch pay runs list
+  const { data: payRunsData, isLoading } = useQuery({
+    queryKey: ['pay-runs', visaFilter, statusFilter],
+    queryFn: () =>
+      fetchPayRuns({
+        companyVisaId: visaFilter || undefined,
+        status: statusFilter || undefined,
+        limit: 50,
+      }),
+  });
+
+  // Fetch company visas for dropdowns
+  const { data: metaOptions } = useQuery({
+    queryKey: ['employee-meta-options'],
+    queryFn: fetchEmployeeMetaOptions,
+  });
+
+  const payRuns = Array.isArray(payRunsData)
+    ? payRunsData
+    : payRunsData?.items || [];
+
+  // Create Pay Run Mutation
+  const createMutation = useMutation({
+    mutationFn: createPayRun,
+    onSuccess: (newRun) => {
+      queryClient.invalidateQueries(['pay-runs']);
+      setIsCreateModalOpen(false);
+      setCreateError('');
+      if (newRun?.id) {
+        router.push(`/payroll/${newRun.id}`);
+      }
+    },
+    onError: (err) => {
+      setCreateError(err.message || 'Failed to create pay run');
+    },
+  });
+
+  const handleCreateSubmit = (e) => {
+    e.preventDefault();
+    if (!createForm.company_visa_id) {
+      setCreateError('Please select a company visa establishment');
+      return;
+    }
+    setCreateError('');
+    createMutation.mutate(createForm);
+  };
+
+  // Metrics calculations
+  const totalEmployees = payRuns.reduce((sum, r) => sum + (r.employee_count || 0), 0);
+  const totalDisbursed = payRuns
+    .filter((r) => ['Locked', 'Paid'].includes(r.status))
+    .reduce((sum, r) => sum + Number(r.total_net || 0), 0);
+  const pendingIssuesTotal = payRuns.reduce((sum, r) => sum + (r.issues_count || 0), 0);
+
+  return (
+    <div className="space-y-6">
+      {/* Page Title & Top Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              <Banknote className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-text dark:gold-heading tracking-tight">
+                Pay Runs & WPS Payroll
+              </h1>
+              <p className="text-xs text-text-muted mt-0.5">
+                مسيرات الرواتب ونظام حماية الأجور &bull; End-to-end statutory calculation & bank SIF file generation
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Link
+            href="/payroll/adjustments"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-surface-raised border border-border/80 text-text hover:bg-surface-raised/80 transition-all shadow-sm"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-primary" />
+            Salary Adjustments
+          </Link>
+          <button
+            onClick={() => {
+              if (metaOptions?.visas?.length && !createForm.company_visa_id) {
+                setCreateForm((prev) => ({ ...prev, company_visa_id: metaOptions.visas[0].id }));
+              }
+              setIsCreateModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-black hover:opacity-95 transition-all shadow-md active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            Create Pay Run
+          </button>
+        </div>
+      </div>
+
+      {/* KPI Metrics Banner */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <GlassCard className="p-4 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-secondary/15 flex items-center justify-center text-secondary shrink-0">
+            <Calendar className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-xs text-text-muted font-medium">Monthly Cut-Off</span>
+            <div className="text-lg font-bold text-text mt-0.5">25th of Month</div>
+            <span className="text-[11px] text-secondary font-semibold">Active Cycle: Oct 2026</span>
+          </div>
+        </GlassCard>
+
+        <GlassCard className="p-4 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center text-primary shrink-0">
+            <TrendingUp className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-xs text-text-muted font-medium">Locked / Paid Disbursement</span>
+            <div className="text-lg font-bold text-text dark:text-gold mt-0.5">
+              AED {totalDisbursed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <span className="text-[11px] text-text-muted">Total Disbursed WPS</span>
+          </div>
+        </GlassCard>
+
+        <GlassCard className="p-4 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-blue-500/15 flex items-center justify-center text-blue-500 shrink-0">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-xs text-text-muted font-medium">Active Pay Runs</span>
+            <div className="text-lg font-bold text-text mt-0.5">{payRuns.length} Runs</div>
+            <span className="text-[11px] text-blue-400 font-semibold">{totalEmployees} Total Payslips</span>
+          </div>
+        </GlassCard>
+
+        <GlassCard className="p-4 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-500 shrink-0">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-xs text-text-muted font-medium">Validation Issues</span>
+            <div className="text-lg font-bold text-text mt-0.5">{pendingIssuesTotal} Flags</div>
+            <span className="text-[11px] text-amber-500 font-semibold">Missing IBANs & Holds</span>
+          </div>
+        </GlassCard>
+      </div>
+
+      {/* Filter Toolbar */}
+      <GlassCard className="p-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Status Filter Pills */}
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-surface-raised/80 border border-border/40 text-xs">
+            {['', 'Draft', 'Calculated', 'Validated', 'Locked', 'Paid'].map((st) => (
+              <button
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                  statusFilter === st
+                    ? 'bg-primary text-black shadow-sm'
+                    : 'text-text-muted hover:text-text'
+                }`}
+              >
+                {st || 'All Statuses'}
+              </button>
+            ))}
+          </div>
+
+          {/* Visa Dropdown Filter */}
+          <div className="relative">
+            <select
+              value={visaFilter}
+              onChange={(e) => setVisaFilter(e.target.value)}
+              className="px-3 py-2 text-xs rounded-xl bg-surface-raised border border-border/80 text-text focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              <option value="">All Visa Establishments</option>
+              {metaOptions?.visas?.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name} ({v.mol_establishment_id})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="text-xs text-text-muted">
+          Showing <span className="font-bold text-text">{payRuns.length}</span> pay run(s)
+        </div>
+      </GlassCard>
+
+      {/* Pay Runs Table */}
+      <GlassCard className="overflow-hidden p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-border/80 bg-surface-raised/50 text-text-muted font-bold tracking-wider uppercase text-[10px]">
+                <th className="py-3.5 px-4">Period Month</th>
+                <th className="py-3.5 px-4">Visa Establishment</th>
+                <th className="py-3.5 px-4">Type</th>
+                <th className="py-3.5 px-4">Status</th>
+                <th className="py-3.5 px-4 text-center">Employees</th>
+                <th className="py-3.5 px-4 text-right">Total Gross</th>
+                <th className="py-3.5 px-4 text-right">Deductions</th>
+                <th className="py-3.5 px-4 text-right">Net Pay (WPS)</th>
+                <th className="py-3.5 px-4 text-center">Issues</th>
+                <th className="py-3.5 px-4 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/40">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={10} className="py-8 text-center text-text-muted italic">
+                    Loading pay runs...
+                  </td>
+                </tr>
+              ) : payRuns.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="py-12 text-center text-text-muted">
+                    <Banknote className="w-10 h-10 mx-auto text-text-muted/40 mb-2" />
+                    <p className="font-semibold text-text">No pay runs found</p>
+                    <p className="text-[11px] mt-0.5">Click &ldquo;Create Pay Run&rdquo; to launch a new payroll cycle.</p>
+                  </td>
+                </tr>
+              ) : (
+                payRuns.map((run) => {
+                  const monthName = run.period_month
+                    ? new Date(run.period_month).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+                    : '---';
+
+                  return (
+                    <tr
+                      key={run.id}
+                      className="hover:bg-surface-raised/40 transition-colors group cursor-pointer"
+                      onClick={() => router.push(`/payroll/${run.id}`)}
+                    >
+                      <td className="py-3.5 px-4 font-bold text-text group-hover:text-primary transition-colors flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-primary" />
+                        {monthName}
+                      </td>
+                      <td className="py-3.5 px-4 text-text-muted">
+                        <span className="font-semibold text-text">{run.company_visa?.name || 'Visa 01'}</span>
+                        <span className="block text-[10px] text-text-muted font-mono">{run.company_visa?.mol_establishment_id}</span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-surface-raised border border-border/60 text-text">
+                          {run.run_type || 'Regular'}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <StatusPill status={run.status} />
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-semibold text-text">
+                        {run.employee_count ?? run._count?.payslips ?? 0}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-medium text-text">
+                        AED {Number(run.total_gross || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-medium text-red-500">
+                        {Number(run.total_deductions || 0) > 0 ? `-AED ${Number(run.total_deductions).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'AED 0.00'}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-black text-text dark:text-gold">
+                        AED {Number(run.total_net || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        {Number(run.issues_count || 0) > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                            <AlertCircle className="w-3 h-3" />
+                            {run.issues_count}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-secondary">
+                            <FileCheck2 className="w-3.5 h-3.5" /> Ready
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <Link
+                          href={`/payroll/${run.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-black transition-all"
+                        >
+                          View Run
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </GlassCard>
+
+      {/* Create Pay Run Modal */}
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Create New Pay Run / إنشاء مسير رواتب جديد"
+        subtitle="Initiate a monthly payroll run for a specific company visa establishment"
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={handleCreateSubmit} className="space-y-4">
+          {createError && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{createError}</span>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-text mb-1">
+              Visa Establishment / المنشأة <span className="text-red-500">*</span>
+            </label>
+            <select
+              required
+              value={createForm.company_visa_id}
+              onChange={(e) => setCreateForm({ ...createForm, company_visa_id: e.target.value })}
+              className="w-full px-3 py-2 rounded-xl bg-surface-raised border border-border/80 text-text text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              <option value="">Select Visa Establishment...</option>
+              {metaOptions?.visas?.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name} &bull; {v.mol_establishment_id} ({v.bank_routing_code})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-text mb-1">
+                Period Month / الشهر <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                required
+                value={createForm.period_month}
+                onChange={(e) => setCreateForm({ ...createForm, period_month: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl bg-surface-raised border border-border/80 text-text text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-text mb-1">
+                Cut-off Date / تاريخ الإغلاق <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                required
+                value={createForm.cutoff_date}
+                onChange={(e) => setCreateForm({ ...createForm, cutoff_date: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl bg-surface-raised border border-border/80 text-text text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-text mb-1">Run Type / نوع المسير</label>
+            <select
+              value={createForm.run_type}
+              onChange={(e) => setCreateForm({ ...createForm, run_type: e.target.value })}
+              className="w-full px-3 py-2 rounded-xl bg-surface-raised border border-border/80 text-text text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              <option value="Regular">Regular (End-of-Month Payroll)</option>
+              <option value="OffCycle">Off-Cycle (Ad-hoc / Intermittent)</option>
+              <option value="Bonus">Bonus & Incentive Disbursement</option>
+            </select>
+          </div>
+
+          <div className="pt-3 border-t border-border/60 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-text-muted hover:text-text"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={createMutation.isPending}
+              className="px-5 py-2 rounded-xl text-xs font-bold bg-primary text-black hover:opacity-95 transition-all shadow-md disabled:opacity-50"
+            >
+              {createMutation.isPending ? 'Creating...' : 'Initialize Draft Run'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+}
