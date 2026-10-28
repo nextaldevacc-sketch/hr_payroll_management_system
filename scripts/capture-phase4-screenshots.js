@@ -10,8 +10,8 @@ import { PrismaClient } from '@prisma/client';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
-const apiDir = path.resolve(rootDir, 'apps/api');
-const webDir = path.resolve(rootDir, 'apps/web');
+const apiDir = path.resolve(rootDir, 'backend');
+const webDir = path.resolve(rootDir, 'frontend');
 const nextBin = path.resolve(rootDir, 'node_modules/next/dist/bin/next');
 const outDir = path.resolve(rootDir, 'docs/screenshots/phase4');
 

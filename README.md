@@ -52,50 +52,59 @@ All demo accounts below are seeded in **Gulf Tech Logistics LLC** (Primary Demo 
 
 ```
 hr-payroll-management/
-├── apps/
-│   ├── api/                     # Node.js Express REST API
-│   │   ├── prisma/              # 43-table schema and comprehensive seed data
-│   │   ├── src/
-│   │   │   ├── middleware/      # auth, permissions matrix, salaryMask, companyContext
-│   │   │   ├── routes/          # auth, platform, users, approvals, employees, payroll
-│   │   │   └── services/        # authService, companyService, userService, approvalService, auditService
-│   │   └── test/                # Automated Node.js test suites (48 passing tests)
-│   └── web/                     # Next.js 14 App Router Frontend
-│       ├── src/
-│       │   ├── app/             # /login, /platform/companies, /settings/users, placeholders
-│       │   ├── components/      # Bento tiles, glassmorphic inputs, layout shells
-│       │   └── context/         # AuthContext, LanguageContext (EN / AR RTL), Providers
-├── packages/
-│   └── shared/                  # Common formatters, types, validation constants
-└── docs/
-    └── spec.md                  # Complete v3.1 System Specification
+├── frontend/                    # Next.js 14 App Router Frontend
+│   ├── public/                  # Static assets and fonts
+│   ├── src/
+│   │   ├── app/                 # Next.js routes only (thin pages that compose features)
+│   │   ├── components/
+│   │   │   ├── primitives/      # GlassCard, BentoGrid, BentoTile, DataTable, Modal, Drawer...
+│   │   │   ├── layout/          # AppShell, GlassSidebar, GlassTopBar, ModulePlaceholder
+│   │   │   └── features/        # dashboard/, auth/, platform/, settings/, employees/
+│   │   ├── services/            # API clients per module (apiClient, authApi, settingsApi, employeesApi)
+│   │   ├── hooks/               # React hooks & queries
+│   │   ├── context/             # AuthContext, LanguageContext (EN / AR RTL), Providers
+│   │   ├── i18n/                # en.json, ar.json
+│   │   ├── lib/                 # formatters, constants, client-only utilities
+│   │   └── styles/              # globals.css (design system CSS tokens)
+│   └── test/                    # Production bundle protection & Playwright E2E persistence
+├── backend/                     # Node.js Express REST API
+│   ├── prisma/
+│   │   ├── schema.prisma        # 43-table PostgreSQL schema
+│   │   ├── migrations/          # Schema migrations & database triggers
+│   │   └── seed/                # Modular seeds (organisation, settings, employees, attendance, payroll)
+│   ├── src/
+│   │   ├── config/              # Zod environment loading & app constants
+│   │   ├── routes/              # Thin Express routers
+│   │   ├── controllers/         # HTTP request/response handlers
+│   │   ├── services/            # Core business logic services
+│   │   ├── validators/          # Zod validation schemas
+│   │   ├── serializers/         # Role-aware output & salary/bank masking
+│   │   ├── middleware/          # auth, permissions, companyContext, audit, errorHandler
+│   │   ├── jobs/                # Nightly document expiry & monthly accruals
+│   │   ├── lib/                 # prisma client, storage, mailer, pdf, excel
+│   │   └── server.js            # Express server initialization
+│   ├── storage/                 # Uploaded files (.gitkeep)
+│   └── test/                    # Integration & unit test suites (105 tests)
+├── shared/                      # Statutory formulas, UAE IBAN, employee utils, constants
+└── docs/                        # Specifications, ARCHITECTURE.md, TESTING.md, screenshots
 ```
 
 ---
 
 ## 4. Running Tests & Verifying
 
-To run the complete automated test suite across all Phase 1 and Phase 2 requirements:
+To run the complete automated test suite across all workspaces:
 
 ```bash
-npm test --workspace=apps/api
+npm test
 ```
 
-### Verified Test Suites:
-1. `API Skeleton & Middlewares Tests` (Health, Swagger UI, Helmet, Zod validation)
-2. `Audit Log Service & Append-Only Database Protection Tests` (Triggers blocking UPDATE & DELETE on `audit_logs`)
-3. `Company Tenant Isolation Tests` (AsyncLocalStorage context, cross-tenant leak prevention)
-4. `Payslip Lines Calculation & Sum Integrity Tests` (42 payslips mathematical sum to 335,490.50 AED)
-5. `Phase 2: Authentication, Roles, Permissions Matrix & Approval Engine Tests`:
-   - 8-hour JWT `httpOnly` cookie login
-   - 5-attempt 15-minute account lockout (HTTP 423)
-   - Session expiry and tampered token rejection (HTTP 401)
-   - Every row of Section 5.3 Permissions Matrix (HTTP 403 enforcement)
-   - Salary fields absent from API responses for roles without salary access
-   - Approval engine: self-approval blocked (HTTP 403)
-   - Platform admin blocked from company data without support access grant (FR-PL3)
-   - Company admin user invitation with multi-role assignment and department scoping
-   - Bulk employee login creation
+Or run individual workspace test suites:
+```bash
+npm test --workspace=shared     # 43 unit tests
+npm test --workspace=backend    # 105 integration & unit tests
+npm test --workspace=frontend   # 3 production bundle & Playwright E2E tests
+```
 
 ---
 
@@ -103,8 +112,8 @@ npm test --workspace=apps/api
 
 ```bash
 # Start backend API (Port 5000)
-npm run dev --workspace=apps/api
+npm run dev --workspace=backend
 
 # Start frontend Web App (Port 3000)
-npm run dev --workspace=apps/web
+npm run dev --workspace=frontend
 ```

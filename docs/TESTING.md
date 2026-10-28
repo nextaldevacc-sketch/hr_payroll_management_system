@@ -1,6 +1,6 @@
 # Nextal HR & Payroll Platform - Testing Guide & Test Catalog
 
-This document specifies the testing architecture, suites, execution commands, and verification protocols across all platform workspaces (`packages/shared`, `apps/api`, `apps/web`).
+This document specifies the testing architecture, suites, execution commands, and verification protocols across all platform workspaces (`shared`, `backend`, `frontend`).
 
 ---
 
@@ -13,22 +13,22 @@ npm test
 
 Or run individual workspace test suites:
 ```bash
-# 1. Shared calculations, statutory formulas, UAE IBAN & employee utils (37 tests)
-npm test --workspace=packages/shared
+# 1. Shared calculations, statutory formulas, UAE IBAN & employee utils (43 tests)
+npm test --workspace=shared
 
-# 2. Backend API, permissions, database isolation, settings & employees (100 tests)
-npm test --workspace=apps/api
+# 2. Backend API, permissions, database isolation, settings & employees (105 tests)
+npm test --workspace=backend
 
 # 3. Frontend production build protections & Playwright E2E persistence (3 tests)
-npm test --workspace=apps/web
+npm test --workspace=frontend
 ```
 
 ---
 
 ## 2. Test Catalog & Verification Matrix
 
-### 2.1 `@nextal/shared` (37 Unit Tests)
-*Path: `packages/shared/test/money.test.js` and `packages/shared/test/employeeUtils.test.js`*
+### 2.1 `@nextal/shared` (43 Unit Tests)
+*Path: `shared/test/money.test.js` and `shared/test/employeeUtils.test.js`*
 *Execution engine: Node.js Test Runner (`node:test`)*
 
 | Test Category | Description | Count | Reference |
@@ -42,23 +42,24 @@ npm test --workspace=apps/web
 | **Statutory Payroll Formulas** | Ahmed worked examples 1–8, Sara & Omar Gratuity, Omar Leave Encashment, Pension 11%/5%, Floor/Cap | 18 tests | Section 8.4, UAE Labour Law Art 19/31/57 |
 | **Decimal Rounding** | Explicit confirmation of `ROUND_HALF_UP` for money: 78.125 $\rightarrow$ 78.13 and 0.005 $\rightarrow$ 0.01 | 1 test | Phase 3 Fix c |
 | **Pension Rate Variables** | `GPSSA_EE` and `GPSSA_ER` use rate variables without literals; Government share (2.5%) verified | 1 test | Phase 3 Fix a & b |
+| **Opening Leave Accrual Plan** | Waiting period (0 days $\le$ 6 mos), 2 days/mo after 6 mos, pro-rated mid-month, 30 days/yr after 1 yr; Sara & Omar service checks | 6 tests | Phase 4 Fix a |
 
 ---
 
-### 2.2 `@nextal/api` (100 Integration & Unit Tests)
-*Path: `apps/api/test/*.test.js`*
+### 2.2 `@nextal/api` (105 Integration & Unit Tests)
+*Path: `backend/test/**/*.test.js`*
 *Execution engine: Node.js Test Runner with Supertest & Prisma ORM*
 
-- **Phase 4 Employee Management, Verification & Security (`employees.test.js`)**: 25 tests
+- **Phase 4 Employee Management, Verification & Security (`test/integration/employees.test.js`)**: 25 tests
   - **Employee List & Scoping (4 tests)**: Server-side search (`search`), filters (`status`, `department_id`, `branch_id`, `company_visa_id`, `nationality`, `document_status`), pagination, Department Manager team-only scoping (Spec 6).
   - **Role Masking & Privacy (4 tests)**: Strips all salary/bank keys for non-salary roles (`HR_OFFICER`, `DEPT_MANAGER`), blocks `EMPLOYEE` from company directory with 403, masks list IBANs (`AE** **** **** 1234`), masks sensitive Emirates ID/Passport for non-HR viewers.
   - **Status Transitions (4 tests)**: Explicit allowed-transitions map; rejects invalid transitions (e.g. Pre-Joined $\rightarrow$ Suspended) with 400; blocks transitions out of Archived.
-  - **Activation Flow (2 tests)**: Blocks incomplete activation identifying missing requirements; activates complete employee, creates opening 30-day leave allocation, and issues self-service invite token.
+  - **Activation Flow (2 tests)**: Blocks incomplete activation identifying missing requirements; activates complete employee, creates accrual-plan compliant opening leave allocation, and issues self-service invite token.
   - **Versioned Contracts (3 tests)**: Returns version history ordered by effective date desc; blocks contract creation with effective date inside locked pay period (2026-09) with 400 `LOCKED_PERIOD_BLOCKED`; verifies historical resolution with `getContractOn`.
   - **UAE IBAN Validation (3 tests)**: Accepts valid IBAN; rejects bad checksum (mod-97 failure); rejects non-AE country codes with structured error `INVALID_UAE_IBAN`.
   - **Document Storage & Magic Bytes (3 tests)**: Accepts PDF/PNG/JPG using magic-byte detection; rejects disguised/fake files with 400 `INVALID_FILE_TYPE`; authenticated streaming download route with permission check.
   - **Self-Verification & Audit (2 tests)**: Creator blocked from verifying their own created record (Rule G, 403 `SELF_VERIFICATION_BLOCKED`); writes immutable audit log entries (who, when, action, old $\rightarrow$ new) and reads them on History tab.
-- **Phase 3 Settings & Rule Engine (`settings.test.js`)**: 26 tests
+- **Phase 3 Settings & Rule Engine (`test/integration/settings.test.js`)**: 26 tests
   - AST formula validation, cycle detection, simulator endpoint (`POST /api/v1/settings/salary-rules/test`).
   - Section 8.4 worked examples execution.
   - Changing pension rates dynamically in Settings alters calculation result (Fix a).
@@ -66,21 +67,25 @@ npm test --workspace=apps/web
   - Section 5.3 role boundaries: Payroll Officer limited to salary rules; Finance limited to debit/credit accounts.
   - Delete-in-use protection (Rule E) for shifts, leave types, and salary rules.
   - Reset to UAE defaults and audit logging.
-- **Phase 2 Authentication, Roles & Approvals (`auth-roles.test.js`)**: 22 tests
+- **Phase 2 Authentication, Roles & Approvals (`test/integration/auth-roles.test.js`)**: 22 tests
   - 8 corporate roles, account lockout after 5 consecutive failures, token invalidation, support access grants, self-approval prevention.
-- **Company Tenant Isolation (`company-isolation.test.js`)**: 8 tests
+- **Company Tenant Isolation (`test/integration/company-isolation.test.js`)**: 8 tests
   - Unscoped query rejection, cross-tenant read/write blocking, auto-injected company_id.
-- **Payslip Lines & Sum Integrity (`payslip-sum.test.js`)**: 6 tests
+- **Payslip Lines & Sum Integrity (`test/integration/payslip-sum.test.js`)**: 6 tests
   - Confirms 42 payslips for October 2026, mathematical gross/net line sums, exact 335,490.50 AED Net-to-WPS parity.
-- **Audit Log Database Protection (`audit-log.test.js`)**: 4 tests
+- **Audit Log Database Protection (`test/integration/audit-log.test.js`)**: 4 tests
   - Append-only PostgreSQL trigger blocks UPDATE and DELETE.
-- **API Skeleton & Middlewares (`api-skeleton.test.js`)**: 4 tests
+- **API Skeleton & Middlewares (`test/integration/api-skeleton.test.js`)**: 4 tests
   - Health check, Swagger UI, Helmet security headers, Zod validation.
+- **Serializers Unit Tests (`test/unit/serializers.test.js`)**: 3 tests
+  - Statutory 4 salary roles, sensitive document masking, recursive deep sanitization.
+- **Scheduled Jobs Unit Tests (`test/unit/jobs.test.js`)**: 2 tests
+  - Nightly expiry scanner and monthly accrual job idempotency.
 
 ---
 
 ### 2.3 `@nextal/web` (3 Production Protection & E2E Tests)
-*Path: `apps/web/test/*.test.js`*
+*Path: `frontend/test/*.test.js`*
 *Execution engine: Node.js Test Runner & Playwright Chromium*
 
 1. **Demo Persona Bar Bundle Exclusion (`login-persona.test.js`)**:

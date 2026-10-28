@@ -20,7 +20,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: apps/api/Dockerfile
+      dockerfile: backend/Dockerfile
     container_name: nextal-api
     restart: unless-stopped
     environment:
@@ -37,7 +37,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile
+      dockerfile: frontend/Dockerfile
     container_name: nextal-web
     restart: unless-stopped
     environment:

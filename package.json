@@ -3,17 +3,18 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "frontend",
+    "backend",
+    "shared"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=apps/web",
+    "dev": "npm run dev --workspace=frontend",
     "dev:all": "npm run dev --workspaces",
-    "dev:web": "npm run dev --workspace=apps/web",
-    "dev:api": "npm run dev --workspace=apps/api",
-    "build": "npm run build --workspace=apps/web",
-    "clean": "npm run clean --workspace=apps/web",
-    "start": "npm run start --workspace=apps/web",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "build": "npm run build --workspace=frontend",
+    "clean": "npm run clean --workspace=frontend",
+    "start": "npm run start --workspace=frontend",
     "test": "npm run test --workspaces --if-present"
   },
   "devDependencies": {}
