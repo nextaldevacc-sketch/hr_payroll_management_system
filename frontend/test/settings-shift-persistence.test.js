@@ -131,6 +131,10 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
     await page.waitForSelector('[data-testid^="shift-card-"]', { timeout: 8000 });
 
     // 4. Click Edit on the first shift card
+    const firstCard = page.locator('[data-testid^="shift-card-"]').first();
+    const cardTestId = await firstCard.getAttribute('data-testid');
+    const shiftId = cardTestId.replace('shift-card-', '');
+
     const editBtn = page.locator('[data-testid^="shift-edit-btn-"]').first();
     await editBtn.click();
     await page.waitForSelector('[data-testid="shift-grace-input"]');
@@ -165,9 +169,9 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
       `Shift grace minutes must persist as ${newGraceVal}m across reload`
     );
 
-    // 9. Verify PostgreSQL Database Audit Log
+    // 9. Verify PostgreSQL Database Audit Log for the edited shift
     const latestAudit = await prisma.audit_logs.findFirst({
-      where: { table_name: 'shifts', action: 'UPDATE' },
+      where: { table_name: 'shifts', action: 'UPDATE', record_id: shiftId },
       orderBy: { created_at: 'desc' },
     });
     assert.ok(latestAudit, 'An audit_logs row must be created with entity: shifts and action: UPDATE');
@@ -177,9 +181,9 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
       `Audit log new_values.grace_minutes must match updated value (${newGraceVal})`
     );
 
-    // 10. Verify PostgreSQL Database Settings Version
+    // 10. Verify PostgreSQL Database Settings Version for the edited shift
     const latestVersion = await prisma.settings_versions.findFirst({
-      where: { entity_type: 'shift' },
+      where: { entity_type: 'shift', entity_id: shiftId },
       orderBy: { created_at: 'desc' },
     });
     assert.ok(latestVersion, 'A settings_versions row must be created with entity_type: shift');

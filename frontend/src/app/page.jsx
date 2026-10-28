@@ -112,9 +112,9 @@ export default function DashboardPage() {
 
         <PendingApprovalsTile
           data={mockDashboardData.pendingApprovals}
-          onClick={() => setActiveDrawer('approvals')}
-          onApproveItem={() => setActiveDrawer('approvals')}
-          onOpenItem={() => setActiveDrawer('approvals')}
+          onClick={() => router.push('/leave')}
+          onApproveItem={() => router.push('/leave')}
+          onOpenItem={() => router.push('/leave')}
         />
 
         <WpsReadinessTile
@@ -131,12 +131,13 @@ export default function DashboardPage() {
         {/* Row 3: exc (4x1), att (4x1), ot (4x1) */}
         <ExceptionsTile
           data={mockDashboardData.exceptions}
-          onSelectException={() => setActiveDrawer('exceptions')}
+          onSelectException={() => router.push('/attendance')}
+          onClick={() => router.push('/attendance')}
         />
 
         <AttendanceSegmentTile
           data={mockDashboardData.attendanceToday}
-          onClick={() => setActiveDrawer('attendance')}
+          onClick={() => router.push('/attendance')}
         />
 
         <OvertimeTile

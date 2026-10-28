@@ -148,6 +148,7 @@ export async function authenticate(req, res, next) {
   }
 
   req.user = decoded;
+  req.user.id = decoded.userId;
 
   // Determine companyId: platform admin might specify X-Company-Id for context
   const companyId = decoded.isPlatformAdmin

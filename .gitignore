@@ -38,6 +38,10 @@ Thumbs.db
 prisma/*.db
 prisma/*.db-journal
 
+# Uploads / storage
+backend/storage/documents/*
+!backend/storage/documents/.gitkeep
+
 # Document Storage (Spec Rule C)
 apps/api/storage/documents/*
 !apps/api/storage/.gitkeep

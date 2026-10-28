@@ -697,6 +697,7 @@ model biometric_imports {
   id             String    @id @default(uuid()) @db.Uuid
   company_id     String    @db.Uuid
   file_url       String?   @db.Text
+  file_hash      String?   @db.VarChar(64)
   period_from    DateTime  @db.Date
   period_to      DateTime  @db.Date
   rows_total     Int       @default(0)

@@ -1,5 +1,10 @@
 import prisma from '../prisma/client.js';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function sanitizeUuid(val) {
+  return typeof val === 'string' && UUID_REGEX.test(val) ? val : null;
+}
+
 export class AuditService {
   constructor(client = prisma) {
     this.prisma = client;
@@ -39,7 +44,7 @@ export class AuditService {
     return await scopedPrisma.audit_logs.create({
       data: {
         company_id: companyId,
-        user_id: userId,
+        user_id: sanitizeUuid(userId),
         action,
         table_name: tableName,
         record_id: recordId,
@@ -48,6 +53,13 @@ export class AuditService {
         ip_address: ipAddress
       }
     });
+  }
+
+  /**
+   * Alias for record
+   */
+  async record(params) {
+    return this.log(params);
   }
 
   /**

@@ -1,0 +1,61 @@
+import { request } from './apiClient.js';
+
+export async function getLeaveTypes() {
+  return request('/leave/types');
+}
+
+export async function getLeaveBalances(params = {}) {
+  const query = new URLSearchParams();
+  if (params.employeeId) query.append('employeeId', params.employeeId);
+  if (params.year) query.append('year', params.year);
+  const qStr = query.toString() ? `?${query.toString()}` : '';
+  return request(`/leave/balances${qStr}`);
+}
+
+export async function listLeaveRequests(params = {}) {
+  const query = new URLSearchParams();
+  if (params.status) query.append('status', params.status);
+  if (params.employeeId) query.append('employeeId', params.employeeId);
+  if (params.year) query.append('year', params.year);
+  const qStr = query.toString() ? `?${query.toString()}` : '';
+  return request(`/leave/requests${qStr}`);
+}
+
+export async function requestLeave(data) {
+  const isMultipart = data instanceof FormData;
+  return request('/leave/request', {
+    method: 'POST',
+    body: isMultipart ? data : JSON.stringify(data),
+  });
+}
+
+export async function actOnLeave(id, data) {
+  return request(`/leave/${id}/action`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getMyLeave(params = {}) {
+  const query = new URLSearchParams();
+  if (params.year) query.append('year', params.year);
+  const qStr = query.toString() ? `?${query.toString()}` : '';
+  return request(`/me/leave${qStr}`);
+}
+
+export async function getMyRequests(params = {}) {
+  const query = new URLSearchParams();
+  if (params.year) query.append('year', params.year);
+  const qStr = query.toString() ? `?${query.toString()}` : '';
+  return request(`/me/requests${qStr}`);
+}
+
+export default {
+  getLeaveTypes,
+  getLeaveBalances,
+  listLeaveRequests,
+  requestLeave,
+  actOnLeave,
+  getMyLeave,
+  getMyRequests,
+};

@@ -1997,6 +1997,16 @@ class SettingsService {
     }
 
     if (section === 'holidays') {
+      const sanitizedUserId = (userId && typeof userId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId))
+        ? userId
+        : null;
+
+      // Unlink attendance days before deleting public holidays to avoid foreign key violation
+      await prisma.$base().attendance_days.updateMany({
+        where: { company_id: companyId, public_holiday_id: { not: null } },
+        data: { public_holiday_id: null },
+      });
+
       await prisma.$base().public_holidays.deleteMany({
         where: { company_id: companyId, year: 2026 },
       });
@@ -2010,8 +2020,8 @@ class SettingsService {
             name_ar: h.name_ar,
             holiday_date: new Date(h.date),
             year: 2026,
-            created_by: userId,
-            updated_by: userId,
+            created_by: sanitizedUserId,
+            updated_by: sanitizedUserId,
           },
         });
         created.push(holiday);
