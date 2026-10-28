@@ -2,9 +2,9 @@ import { describe, it, before, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import app from '../../src/app.js';
-import prisma from '../../src/prisma/client.js';
+import prisma from '../../src/lib/prisma.js';
 import { clearSessionCache } from '../../src/middleware/authCache.js';
-import { deepScanForSalaryBankData } from '../../src/services/serializers.js';
+import { deepScanForSalaryBankData } from '../../src/serializers/index.js';
 import employeeService from '../../src/services/employeeService.js';
 import { getContractOn } from '@nextal/shared';
 

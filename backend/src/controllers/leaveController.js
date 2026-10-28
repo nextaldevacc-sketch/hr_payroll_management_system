@@ -1,5 +1,5 @@
 import leaveService from '../services/leaveService.js';
-import prisma from '../prisma/client.js';
+import prisma from '../lib/prisma.js';
 
 export async function listLeaveTypes(req, res, next) {
   try {

@@ -1,7 +1,7 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { PrismaClient } from '@prisma/client';
-import { createScopedPrismaClient, companyStorage } from '../../src/prisma/client.js';
+import { createScopedPrismaClient, companyStorage } from '../../src/lib/prisma.js';
 
 const basePrisma = new PrismaClient();
 

@@ -7,7 +7,7 @@ import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './docs/swagger.js';
 import { companyContextMiddleware } from './middleware/companyContext.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import prisma from './prisma/client.js';
+import prisma from './lib/prisma.js';
 import auditService from './services/auditService.js';
 
 // Route modules

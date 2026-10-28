@@ -71,4 +71,11 @@ router.post(
   attendanceController.confirmHR
 );
 
+// 6. Attendance Correction: Re-open Day (HR Manager only, mandatory reason, before cut-off / pay run locked)
+router.post(
+  '/days/:id/reopen',
+  authorizeAttendance(['HR_MANAGER', 'COMPANY_ADMIN']),
+  attendanceController.reopenAttendanceDay
+);
+
 export default router;

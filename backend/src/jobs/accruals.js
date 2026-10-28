@@ -88,28 +88,31 @@ export async function runMonthlyAccrualJob({ companyId = null, targetDate = new 
           continue;
         }
 
-        // Determine monthly accrual days:
-        // - Between 6 months and 1 year: 2 days per month
-        // - After 1 year: plan.days_per_month (default 2.5 days per month)
-        let daysToAccrue = Number(plan.days_per_month) || 2.5;
-        if (elapsedMonths >= waitMonths && elapsedMonths < 12) {
-          daysToAccrue = 2.0;
-        }
-
-        // Check yearly cap across the calendar year
+        // Check existing allocations for this leave type
         const yearStart = new Date(year, 0, 1);
         const yearEnd = new Date(year, 11, 31, 23, 59, 59);
         const yearlyAllocs = await scoped.leave_allocations.findMany({
           where: {
             employee_id: emp.id,
             leave_type_id: plan.leave_type_id,
-            allocation_type: 'Monthly',
             valid_from: { gte: yearStart, lte: yearEnd },
           },
         });
-
         const totalAccruedThisYear = yearlyAllocs.reduce((sum, a) => sum + Number(a.days_allocated || 0), 0);
         const yearlyCap = plan.yearly_cap !== undefined ? Number(plan.yearly_cap) : 30.0;
+
+        // Determine monthly accrual days:
+        // - Between 6 months and 1 year: 2 days for every completed month from joining date (e.g. 6m=12, 7m=14, 8m=16)
+        // - After 1 year: plan.days_per_month (default 2.5 days per month)
+        let daysToAccrue = Number(plan.days_per_month) || 2.5;
+        if (elapsedMonths >= waitMonths && elapsedMonths < 12) {
+          const targetDaysToDate = elapsedMonths * 2.0;
+          if (totalAccruedThisYear < targetDaysToDate) {
+            daysToAccrue = targetDaysToDate - totalAccruedThisYear;
+          } else {
+            daysToAccrue = 2.0;
+          }
+        }
 
         if (totalAccruedThisYear >= yearlyCap) {
           // Cap reached

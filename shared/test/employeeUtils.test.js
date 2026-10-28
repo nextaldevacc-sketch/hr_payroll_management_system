@@ -194,30 +194,42 @@ test('Status Transitions: Validates allowed transitions map', () => {
 });
 
 // =========================================================================
-// 7. Opening Leave Allocation on Activation (Part 2 Fix / Statutory Plan)
+// 7. Opening Leave Allocation on Activation (UAE Statutory Accrual Rule)
 // =========================================================================
-test('Opening Leave Allocation: New joiner (<6 months) gets 0 days', () => {
-  // Joined 2 months ago
+test('Opening Leave Allocation: 4 months service gets 0 days (waiting period)', () => {
+  // Joined 4 months ago
   const result = calculateOpeningLeaveAllocation({
-    joiningDate: '2026-08-01',
+    joiningDate: '2026-06-01',
     asOfDate: '2026-10-01',
     accrualPlan: { start_after_months: 6, days_per_month: 2, yearly_cap: 30 },
   });
   assert.strictEqual(result.days, 0);
   assert.strictEqual(result.total, 0);
-  assert.strictEqual(result.serviceMonths, 2);
+  assert.strictEqual(result.serviceMonths, 4);
 });
 
-test('Opening Leave Allocation: At 7 months gets exactly 2 days (accrual starts after 6-month wait)', () => {
+test('Opening Leave Allocation: 7 months service gets 14 days (2 days for every completed month)', () => {
   // Joined 2026-01-01, asOfDate 2026-08-01 (exactly 7 completed months)
   const result = calculateOpeningLeaveAllocation({
     joiningDate: '2026-01-01',
     asOfDate: '2026-08-01',
     accrualPlan: { start_after_months: 6, days_per_month: 2, yearly_cap: 30 },
   });
-  assert.strictEqual(result.days, 2);
-  assert.strictEqual(result.total, 2);
+  assert.strictEqual(result.days, 14);
+  assert.strictEqual(result.total, 14);
   assert.strictEqual(result.serviceMonths, 7);
+});
+
+test('Opening Leave Allocation: 8 months service gets 16 days (T17)', () => {
+  // Joined 2026-01-01, asOfDate 2026-09-01 (exactly 8 completed months)
+  const result = calculateOpeningLeaveAllocation({
+    joiningDate: '2026-01-01',
+    asOfDate: '2026-09-01',
+    accrualPlan: { start_after_months: 6, days_per_month: 2, yearly_cap: 30 },
+  });
+  assert.strictEqual(result.days, 16);
+  assert.strictEqual(result.total, 16);
+  assert.strictEqual(result.serviceMonths, 8);
 });
 
 test('Opening Leave Allocation: Pro-rates for mid-month joiner between 6 and 12 months', () => {
@@ -227,21 +239,21 @@ test('Opening Leave Allocation: Pro-rates for mid-month joiner between 6 and 12 
     asOfDate: '2026-08-16',
     accrualPlan: { start_after_months: 6, days_per_month: 2, yearly_cap: 30 },
   });
-  // 1 month after wait = 2 days, plus (15/31)*2 = ~0.97 days => ~2.97 days
-  assert.ok(result.days > 2.0 && result.days < 3.0);
-  assert.strictEqual(result.days, 2.97);
+  // 7 months = 14 days, plus (15/31)*2 = ~0.97 days => 14.97 days
+  assert.strictEqual(result.days, 14.97);
+  assert.strictEqual(result.serviceMonths, 7);
 });
 
-test('Opening Leave Allocation: After 1 year gets 30 days', () => {
-  // Joined 2025-01-01, asOfDate 2026-01-01 (exactly 1 year / 12 months)
+test('Opening Leave Allocation: 13 months service gets 30-day yearly entitlement', () => {
+  // Joined 2025-01-01, asOfDate 2026-02-01 (13 completed months)
   const result = calculateOpeningLeaveAllocation({
     joiningDate: '2025-01-01',
-    asOfDate: '2026-01-01',
+    asOfDate: '2026-02-01',
     accrualPlan: { start_after_months: 6, days_per_month: 2, yearly_cap: 30, carry_over_max: 15 },
   });
   assert.strictEqual(result.days, 30);
   assert.strictEqual(result.total, 30);
-  assert.strictEqual(result.serviceMonths, 12);
+  assert.strictEqual(result.serviceMonths, 13);
 });
 
 test('Opening Leave Allocation: Sara service length (3y 6m) gets 30 days base + 15 carry-over per plan', () => {

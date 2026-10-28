@@ -1,4 +1,4 @@
-import prisma from '../prisma/client.js';
+import prisma from '../lib/prisma.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function sanitizeUuid(val) {

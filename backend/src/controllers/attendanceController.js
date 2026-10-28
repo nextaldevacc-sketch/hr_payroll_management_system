@@ -96,6 +96,18 @@ export async function confirmHR(req, res, next) {
   } catch (err) { next(err); }
 }
 
+export async function reopenAttendanceDay(req, res, next) {
+  try {
+    const updated = await attendanceService.reopenAttendanceDay({
+      companyId: req.companyId,
+      id: req.params.id,
+      reason: req.body.reason,
+      userId: req.user.id || req.user.userId,
+    });
+    res.json({ status: 'success', data: updated });
+  } catch (err) { next(err); }
+}
+
 export default {
   importBiometric,
   getAttendanceGrid,
@@ -104,4 +116,5 @@ export default {
   resolveMissingPunch,
   confirmManager,
   confirmHR,
+  reopenAttendanceDay,
 };

@@ -1,3 +1,25 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const STORAGE_DOCS = path.resolve(__dirname, '../../storage/documents');
+
+function ensureDemoPlaceholderPdf() {
+  if (!fs.existsSync(STORAGE_DOCS)) {
+    fs.mkdirSync(STORAGE_DOCS, { recursive: true });
+  }
+  const placeholderPath = path.join(STORAGE_DOCS, 'seed_placeholder.pdf');
+  if (!fs.existsSync(placeholderPath)) {
+    const minimalPdf = Buffer.from(
+      '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000052 00000 n\n0000000101 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n160\n%%EOF'
+    );
+    fs.writeFileSync(placeholderPath, minimalPdf);
+  }
+  return '/storage/documents/seed_placeholder.pdf';
+}
+
 /**
  * Seed Module: Employees
  * Seeds 42 employees for Company 1 and 10 employees for Company 2
@@ -27,6 +49,7 @@ export async function seedEmployees(prisma, {
 }) {
   console.log('Seeding 42 employees for Company 1...');
   const userHR1 = demoUsersMap['hr.mgr@gulftech.ae'];
+  const placeholderUrl = ensureDemoPlaceholderPdf();
 
   const employeeNames = [
     { name: 'Rashid Al-Falasi', name_ar: 'راشد الفلاسي', nat: 'Emirati', gender: 'Male', uae: true, job: jobs1.jobHR, dept: depts1['HR & Admin'], gross: 25000 },
@@ -231,6 +254,7 @@ export async function seedEmployees(prisma, {
         doc_type: 'EMIRATES_ID',
         doc_number: `784-1990-${String(1000000 + i).substring(1)}-1`,
         expiry_date: eidExpiry,
+        file_url: placeholderUrl,
         owner_id: userHR1.id,
         status: calcStatus(eidDays),
         verification_status: 'Verified',
@@ -247,6 +271,7 @@ export async function seedEmployees(prisma, {
         doc_type: 'PASSPORT',
         doc_number: `A${String(1000000 + i)}`,
         expiry_date: passportExpiry,
+        file_url: placeholderUrl,
         owner_id: userHR1.id,
         status: calcStatus(passportDays),
         verification_status: 'Verified',
@@ -263,6 +288,7 @@ export async function seedEmployees(prisma, {
         doc_type: 'LABOUR_CARD',
         doc_number: `LC-${String(2000000 + i)}`,
         expiry_date: labourExpiry,
+        file_url: placeholderUrl,
         owner_id: userHR1.id,
         status: calcStatus(labourDays),
         verification_status: 'Verified',

@@ -2,13 +2,13 @@ import { describe, it, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import app from '../../src/app.js';
-import prisma from '../../src/prisma/client.js';
+import prisma from '../../src/lib/prisma.js';
 import authService from '../../src/services/authService.js';
 import userService from '../../src/services/userService.js';
 import companyService from '../../src/services/companyService.js';
 import approvalService from '../../src/services/approvalService.js';
 import jwt from 'jsonwebtoken';
-import { deepScanForSalaryBankData, FORBIDDEN_SALARY_BANK_KEYS } from '../../src/services/serializers.js';
+import { deepScanForSalaryBankData, FORBIDDEN_SALARY_BANK_KEYS } from '../../src/serializers/index.js';
 import { clearSessionCache } from '../../src/middleware/authCache.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'nextal_super_secret_jwt_key_2026_uae';

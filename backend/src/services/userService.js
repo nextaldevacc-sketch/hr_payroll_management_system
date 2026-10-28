@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import prisma from '../prisma/client.js';
+import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
 import authService from './authService.js';
 import { invalidateUserSession } from '../middleware/authCache.js';

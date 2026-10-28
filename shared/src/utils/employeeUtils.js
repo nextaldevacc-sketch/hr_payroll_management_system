@@ -325,11 +325,11 @@ export function calculateOpeningLeaveAllocation({ joiningDate, asOfDate = new Da
   }
 
   // 2. Between 6 months and 1 year (waitMonths to 11 months):
-  // 2 days per completed month after 6-month wait period + pro-rata partial month
+  // Once service passes 6 months, 2 days for EVERY completed month of service, counted from joining date (7m = 14, 8m = 16)
   if (totalCompletedMonths < 12) {
-    const completedMonthsAfterWait = totalCompletedMonths - waitMonths;
+    const fullMonthsDays = totalCompletedMonths * ratePerMonth;
     const partialMonthDays = monthFraction * ratePerMonth;
-    const accruedDays = completedMonthsAfterWait * ratePerMonth + partialMonthDays;
+    const accruedDays = fullMonthsDays + partialMonthDays;
     const roundedDays = Math.round(accruedDays * 100) / 100;
 
     return {

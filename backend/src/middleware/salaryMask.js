@@ -1,4 +1,4 @@
-import { deepSanitize, hasSalaryAccess } from '../services/serializers.js';
+import { deepSanitize, hasSalaryAccess } from '../serializers/index.js';
 
 /**
  * Middleware: Enforces Section 5.3 salary & bank privacy rule.

@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
-import prisma from '../prisma/client.js';
+import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
 import authService from './authService.js';
 import { invalidateCompanySessions } from '../middleware/authCache.js';
@@ -269,6 +269,35 @@ export class CompanyService {
           start_after_months: 6,
           yearly_cap: 30,
           carry_over_max: 15,
+        },
+      });
+    }
+
+    // 5b. UAE Public Holidays 2026
+    const uaeHolidays2026 = [
+      { name: 'New Year Day', name_ar: 'رأس السنة الميلادية', date: '2026-01-01' },
+      { name: 'Eid Al Fitr Day 1', name_ar: 'عيد الفطر - اليوم 1', date: '2026-03-20' },
+      { name: 'Eid Al Fitr Day 2', name_ar: 'عيد الفطر - اليوم 2', date: '2026-03-21' },
+      { name: 'Eid Al Fitr Day 3', name_ar: 'عيد الفطر - اليوم 3', date: '2026-03-22' },
+      { name: 'Eid Al Fitr Day 4', name_ar: 'عيد الفطر - اليوم 4', date: '2026-03-23' },
+      { name: 'Arafat Day', name_ar: 'وقفة عرفة', date: '2026-05-26' },
+      { name: 'Eid Al Adha Day 1', name_ar: 'عيد الأضحى - اليوم 1', date: '2026-05-27' },
+      { name: 'Eid Al Adha Day 2', name_ar: 'عيد الأضحى - اليوم 2', date: '2026-05-28' },
+      { name: 'Eid Al Adha Day 3', name_ar: 'عيد الأضحى - اليوم 3', date: '2026-05-29' },
+      { name: 'Islamic New Year', name_ar: 'رأس السنة الهجرية', date: '2026-06-16' },
+      { name: 'Prophet Birthday', name_ar: 'المولد النبوي الشريف', date: '2026-08-25' },
+      { name: 'UAE National Day 1', name_ar: 'اليوم الوطني - اليوم 1', date: '2026-12-02' },
+      { name: 'UAE National Day 2', name_ar: 'اليوم الوطني - اليوم 2', date: '2026-12-03' },
+    ];
+
+    for (const h of uaeHolidays2026) {
+      await this.prisma.$base().public_holidays.create({
+        data: {
+          company_id: company.id,
+          holiday_date: new Date(h.date),
+          name: h.name,
+          name_ar: h.name_ar,
+          year: 2026,
         },
       });
     }

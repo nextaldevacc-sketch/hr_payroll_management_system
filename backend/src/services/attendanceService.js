@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import ExcelJS from 'exceljs';
 import Decimal from 'decimal.js';
-import prisma from '../prisma/client.js';
+import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
 import {
   toDubaiDateString,
@@ -846,6 +846,101 @@ class AttendanceService {
     });
 
     return { confirmed_count: result.count, status: 'HrConfirmed' };
+  }
+
+  /**
+   * 9. Re-open HR-Confirmed Attendance Day
+   * Allowed for HR Manager before cut-off with mandatory audit reason.
+   * If the pay run for this period is locked/paid, re-opening is blocked.
+   */
+  async reopenAttendanceDay({ companyId, id, reason, userId }) {
+    if (!reason || typeof reason !== 'string' || !reason.trim()) {
+      const err = new Error('Mandatory audit reason required to re-open attendance day');
+      err.status = 400;
+      err.code = 'REASON_REQUIRED';
+      throw err;
+    }
+
+    const day = await prisma.$base().attendance_days.findFirst({
+      where: { id, company_id: companyId },
+    });
+    if (!day) {
+      const err = new Error('Attendance day not found');
+      err.status = 404;
+      throw err;
+    }
+
+    // Determine period month
+    const workDate = new Date(day.work_date);
+    const periodMonth = new Date(Date.UTC(workDate.getFullYear(), workDate.getMonth(), 1));
+
+    // Check pay run lock / cut-off
+    let payRun = null;
+    if (day.pay_run_id) {
+      payRun = await prisma.$base().pay_runs.findUnique({
+        where: { id: day.pay_run_id },
+      });
+    } else {
+      const emp = await prisma.$base().employees.findUnique({
+        where: { id: day.employee_id },
+        select: { company_visa_id: true },
+      });
+      if (emp?.company_visa_id) {
+        payRun = await prisma.$base().pay_runs.findFirst({
+          where: {
+            company_id: companyId,
+            company_visa_id: emp.company_visa_id,
+            period_month: periodMonth,
+          },
+        });
+      }
+    }
+
+    if (payRun) {
+      if (['Locked', 'Paid'].includes(payRun.status)) {
+        const err = new Error(
+          'Cannot re-open attendance day: pay run for this period is locked or paid. Correction must be made in a later pay run.'
+        );
+        err.status = 400;
+        err.code = 'PAY_RUN_LOCKED';
+        throw err;
+      }
+
+      if (payRun.cutoff_date) {
+        const cutoff = new Date(payRun.cutoff_date);
+        cutoff.setHours(23, 59, 59, 999);
+        if (new Date() > cutoff) {
+          const err = new Error('Cannot re-open attendance day after the pay run cut-off date');
+          err.status = 400;
+          err.code = 'PAST_CUTOFF_DATE';
+          throw err;
+        }
+      }
+    }
+
+    const updated = await prisma.$base().attendance_days.update({
+      where: { id },
+      data: {
+        review_status: 'Open',
+        hr_confirmed_by: null,
+        hr_confirmed_at: null,
+        manager_confirmed_by: null,
+        manager_confirmed_at: null,
+        edit_reason: reason.trim(),
+      },
+    });
+
+    await auditService.record({
+      companyId,
+      userId,
+      action: 'REOPEN',
+      tableName: 'attendance_days',
+      recordId: id,
+      oldValues: { review_status: day.review_status },
+      newValues: { review_status: 'Open', reason: reason.trim() },
+    });
+
+    return updated;
   }
 }
 

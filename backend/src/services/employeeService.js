@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import prisma from '../prisma/client.js';
+import prisma from '../lib/prisma.js';
 import {
   validateUAEIban,
   maskIban,
@@ -9,7 +9,7 @@ import {
   ALLOWED_STATUS_TRANSITIONS,
   calculateOpeningLeaveAllocation,
 } from '@nextal/shared';
-import storageService from './storageService.js';
+import storageService from '../lib/storage.js';
 import auditService from './auditService.js';
 import {
   hasSalaryAccess,
@@ -19,7 +19,7 @@ import {
   serializeBankAccount,
   serializeDocument,
   deepSanitize,
-} from './serializers.js';
+} from '../serializers/index.js';
 
 function getViewerUserId(viewer) {
   return viewer?.userId || viewer?.id || null;

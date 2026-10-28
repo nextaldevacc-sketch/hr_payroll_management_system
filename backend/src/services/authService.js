@@ -1,10 +1,10 @@
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import prisma from '../prisma/client.js';
+import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
 import { invalidateUserSession } from '../middleware/authCache.js';
-import { SALARY_ROLES, hasSalaryAccess } from './serializers.js';
+import { SALARY_ROLES, hasSalaryAccess } from '../serializers/index.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'nextal_super_secret_jwt_key_2026_uae';
 const SESSION_DURATION = '8h';

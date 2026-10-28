@@ -1,4 +1,4 @@
-import { companyStorage } from '../prisma/client.js';
+import { companyStorage } from '../lib/prisma.js';
 
 /**
  * Company Context Middleware

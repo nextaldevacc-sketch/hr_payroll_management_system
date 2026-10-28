@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import Decimal from 'decimal.js';
 import app from '../../src/app.js';
-import prisma from '../../src/prisma/client.js';
+import prisma from '../../src/lib/prisma.js';
 import attendanceService from '../../src/services/attendanceService.js';
 import overtimeService from '../../src/services/overtimeService.js';
 import leaveService from '../../src/services/leaveService.js';
@@ -134,7 +134,7 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
   // 1. Timezone & Overnight Shifts (UTC+4 Asia/Dubai)
   // =========================================================================
   describe('1. Timezone & Overnight Shifts (Asia/Dubai UTC+4)', () => {
-    it('T4 Helper: shifts crossing midnight belong to the day they start', () => {
+    it('Shifts crossing midnight belong to the day they start', () => {
       assert.equal(isOvernightShift('22:00:00', '06:00:00'), true);
       assert.equal(isOvernightShift('08:00:00', '17:00:00'), false);
     });
@@ -162,10 +162,10 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
   });
 
   // =========================================================================
-  // 2. T4 & NFR-8: Biometric Import, Deduplication, Unknown Device Codes & Timed Test
+  // 2. Biometric Import, Deduplication, Unknown Device Codes & Timed Test (NFR-8)
   // =========================================================================
-  describe('2. Biometric Import, Deduplication & Timed Test (T4 & NFR-8)', () => {
-    it('T4: Imports CSV punches, drops duplicates within file and maps device codes', async () => {
+  describe('2. Biometric Import, Deduplication & Timed Test (NFR-8)', () => {
+    it('Imports CSV punches, drops duplicates within file and maps device codes', async () => {
       // Setup a device mapping
       await prisma.$base().device_mappings.deleteMany({
         where: { company_id: companyA.id, device_code: 'DEV_PUNCH_001' },
@@ -209,7 +209,7 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
       assert(data.errors[0].error.includes('Unknown device code'));
     });
 
-    it('T4: Re-import of the exact same biometric file is REJECTED (HTTP 400 DUPLICATE_IMPORT_FILE)', async () => {
+    it('Re-import of the exact same biometric file is REJECTED (HTTP 400 DUPLICATE_IMPORT_FILE)', async () => {
       const csvContent = `device_code,punch_time,direction\nDEV_PUNCH_001,2026-10-02T08:00:00Z,IN\n# run-${Date.now()}-${Math.random()}`;
       const fileBuf = Buffer.from(csvContent, 'utf8');
 
@@ -340,7 +340,7 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
       assert(day.exception_codes.includes('LATE'));
     });
 
-    it('T14: Public Holiday is NEVER counted as absence even with 0 punches', async () => {
+    it('Public Holiday is NEVER counted as absence even with 0 punches', async () => {
       // Create a public holiday on 2026-10-12
       const holidayDate = new Date('2026-10-12');
       let holiday = await prisma.$base().public_holidays.findFirst({
@@ -389,12 +389,12 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
   });
 
   // =========================================================================
-  // 4. Missing Punch Queue & Resolution (T5 & T9)
+  // 4. Missing Punch Queue & Resolution
   // =========================================================================
-  describe('4. Missing Punch Queue & Resolution (T5 & T9)', () => {
+  describe('4. Missing Punch Queue & Resolution', () => {
     let missingPunchDayId;
 
-    it('T5: Day with check-in only appears in the Missing Punch Queue', async () => {
+    it('Day with check-in only appears in the Missing Punch Queue', async () => {
       // Single check-in at 08:00 Dubai (04:00 UTC) on 2026-10-13
       const checkInUtc = new Date('2026-10-13T04:00:00Z');
       const { startUtc, endUtc } = getDubaiDayBounds('2026-10-13');
@@ -434,7 +434,7 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
       missingPunchDayId = match.id;
     });
 
-    it('T9: Resolving missing punch requires mandatory reason and clears exception', async () => {
+    it('Resolving missing punch requires mandatory reason and clears exception', async () => {
       // Missing reason should return HTTP 400 REASON_REQUIRED
       const resFail = await request(app)
         .post(`/api/v1/attendance/days/${missingPunchDayId}/resolve-missing-punch`)
@@ -463,10 +463,10 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
   });
 
   // =========================================================================
-  // 5. Overtime: Calculation, Night Split & Approvals (T6, T7, T8, T9, T10, T33)
+  // 5. Overtime: Calculation, Night Split & Approvals
   // =========================================================================
-  describe('5. Overtime: Calculation, Night Split & Approvals (T6, T7, T8, T9, T10, T33)', () => {
-    it('T6: 3 approved OT hours on normal day produces AED 78.13 (basic 5,000)', async () => {
+  describe('5. Overtime: Calculation, Night Split & Approvals', () => {
+    it('3 approved OT hours on normal day produces AED 78.13 (basic 5,000)', async () => {
       // 5,000 / 30 / 8 = 20.833333/hr * 1.25 * 3 = 78.125 -> ROUND_HALF_UP = 78.13
       const ot = await overtimeService.requestOvertime({
         companyId: companyA.id,
@@ -491,10 +491,10 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
       assert.equal(approved.status, 'Approved');
       const rate = Number(approved.rate);
       const totalAmount = new Decimal(rate).times(3).toFixed(2);
-      assert.equal(totalAmount, '78.13', 'T6: 3 OT hours must equal AED 78.13');
+      assert.equal(totalAmount, '78.13', '3 OT hours must equal AED 78.13');
     });
 
-    it('T7: 2 OT hours in night window (10 pm to midnight) produces AED 62.50 at 1.5x', async () => {
+    it('2 OT hours in night window (10 pm to midnight) produces AED 62.50 at 1.5x', async () => {
       // 5,000 / 30 / 8 = 20.833333 * 1.5 = 31.25 * 2 = 62.50
       const ot = await overtimeService.requestOvertime({
         companyId: companyA.id,
@@ -518,10 +518,10 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
 
       const rate = Number(approved.rate);
       const totalAmount = new Decimal(rate).times(2).toFixed(2);
-      assert.equal(totalAmount, '62.50', 'T7: 2 night OT hours at 1.5x must equal AED 62.50');
+      assert.equal(totalAmount, '62.50', '2 night OT hours at 1.5x must equal AED 62.50');
     });
 
-    it('T8 & T9: Public holiday work: Paid 1.5x (AED 250) vs Substitute Day (AED 0)', async () => {
+    it('Public holiday work: Paid 1.5x (AED 250) vs Substitute Day (AED 0)', async () => {
       // T8: 8 hours holiday work paid at 1.5x => 20.833333 * 1.5 * 8 = 250.00
       const otPaid = await overtimeService.requestOvertime({
         companyId: companyA.id,
@@ -574,7 +574,7 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
       assert.equal(Number(approvedSub.rate), 0.0, 'T9: Substitute day OT rate must be 0');
     });
 
-    it('T33: Self-service overtime submission and approval', async () => {
+    it('Self-service overtime submission and approval', async () => {
       // Employee requests 2 OT hours via /api/v1/me/requests
       const reqRes = await request(app)
         .post('/api/v1/me/requests')
@@ -603,7 +603,7 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
       assert.equal(appRes.body.data.status, 'Approved');
       // 20.8333 * 1.25 * 2 = 52.0833 -> 52.08
       const totalAmount = new Decimal(Number(appRes.body.data.rate || 26.0417)).times(2).toFixed(2);
-      assert.equal(totalAmount, '52.08', 'T33: 2 OT hours must equal AED 52.08');
+      assert.equal(totalAmount, '52.08', '2 OT hours must equal AED 52.08');
     });
 
     it('Self-approval prevention: user cannot approve their own OT request (HTTP 403)', async () => {
@@ -669,10 +669,10 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
   });
 
   // =========================================================================
-  // 6. Attendance Review: Manager & HR Confirmations (T12 & T34)
+  // 6. Attendance Review: Manager & HR Confirmations & Reopen
   // =========================================================================
-  describe('6. Attendance Review: Manager & HR Confirmations (T12 & T34)', () => {
-    it('T12: Manager confirms department, then HR confirms company (payroll-ready)', async () => {
+  describe('6. Attendance Review: Manager & HR Confirmations & Reopen', () => {
+    it('Manager confirms department, then HR confirms company (payroll-ready)', async () => {
       // 1. Manager Confirm
       const resMgr = await request(app)
         .post('/api/v1/attendance/review/manager-confirm')
@@ -710,12 +710,98 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
         assert.equal(resEdit.body.code, 'ALREADY_HR_CONFIRMED');
       }
     });
+
+    it('HR Manager can re-open an HR-confirmed day before cut-off with mandatory reason', async () => {
+      const confirmedDay = await prisma.$base().attendance_days.findFirst({
+        where: { company_id: companyA.id, review_status: 'HrConfirmed' },
+      });
+      assert(confirmedDay, 'Must have at least one HrConfirmed day');
+
+      // Reopen without reason should fail (HTTP 400)
+      const resFail = await request(app)
+        .post(`/api/v1/attendance/days/${confirmedDay.id}/reopen`)
+        .set('Authorization', `Bearer ${hrMgrAToken}`)
+        .send({});
+      assert.equal(resFail.status, 400);
+      assert.equal(resFail.body.code, 'REASON_REQUIRED');
+
+      // Employee cannot reopen (HTTP 403)
+      const resForbidden = await request(app)
+        .post(`/api/v1/attendance/days/${confirmedDay.id}/reopen`)
+        .set('Authorization', `Bearer ${employeeAToken}`)
+        .send({ reason: 'Employee self-reopen' });
+      assert.equal(resForbidden.status, 403);
+
+      // Locate pay run for this day and set cutoff to the future for "before cut-off" test
+      const workDate = new Date(confirmedDay.work_date);
+      const periodMonth = new Date(Date.UTC(workDate.getUTCFullYear(), workDate.getUTCMonth(), 1));
+      const payRun = await prisma.$base().pay_runs.findFirst({
+        where: { company_id: companyA.id, period_month: periodMonth },
+      });
+      const originalCutoff = payRun?.cutoff_date;
+
+      try {
+        if (payRun) {
+          await prisma.$base().pay_runs.update({
+            where: { id: payRun.id },
+            data: { cutoff_date: new Date(Date.now() + 7 * 86400000) },
+          });
+        }
+
+        // HR Manager reopens before cut-off with valid reason
+        const resSuccess = await request(app)
+          .post(`/api/v1/attendance/days/${confirmedDay.id}/reopen`)
+          .set('Authorization', `Bearer ${hrMgrAToken}`)
+          .send({ reason: 'Correction: biometric clock drift during morning punch' });
+        assert.equal(resSuccess.status, 200);
+        assert.equal(resSuccess.body.data.review_status, 'Open');
+
+        // Confirm day is Open in DB
+        const refreshed = await prisma.$base().attendance_days.findUnique({
+          where: { id: confirmedDay.id },
+        });
+        assert.equal(refreshed.review_status, 'Open');
+        assert.equal(refreshed.edit_reason, 'Correction: biometric clock drift during morning punch');
+
+        // Re-confirm day
+        await prisma.$base().attendance_days.update({
+          where: { id: confirmedDay.id },
+          data: { review_status: 'HrConfirmed' },
+        });
+
+        // Now test past cut-off rejection
+        if (payRun) {
+          await prisma.$base().pay_runs.update({
+            where: { id: payRun.id },
+            data: { cutoff_date: new Date('2026-10-01') },
+          });
+
+          const resPastCutoff = await request(app)
+            .post(`/api/v1/attendance/days/${confirmedDay.id}/reopen`)
+            .set('Authorization', `Bearer ${hrMgrAToken}`)
+            .send({ reason: 'Attempting reopen past cut-off' });
+          assert.equal(resPastCutoff.status, 400);
+          assert.equal(resPastCutoff.body.code, 'PAST_CUTOFF_DATE');
+        }
+      } finally {
+        if (payRun && originalCutoff) {
+          await prisma.$base().pay_runs.update({
+            where: { id: payRun.id },
+            data: { cutoff_date: originalCutoff },
+          });
+        }
+        await prisma.$base().attendance_days.update({
+          where: { id: confirmedDay.id },
+          data: { review_status: 'HrConfirmed' },
+        });
+      }
+    });
   });
 
   // =========================================================================
-  // 7. Leave: Full/Half Days, Public Holidays Excluded, Multi-Bands (T13, T15, T16, T31, T32)
+  // 7. Leave: Full/Half Days, Public Holidays Excluded, Multi-Bands
   // =========================================================================
-  describe('7. Leave: Full/Half Days, Public Holidays Excluded, Multi-Bands (T13, T15, T16, T31, T32)', () => {
+  describe('7. Leave: Full/Half Days, Public Holidays Excluded, Multi-Bands', () => {
     let testLeaveAllocation;
 
     before(async () => {
@@ -761,7 +847,7 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
       });
     });
 
-    it('T31: Mon to Fri annual leave with Wednesday public holiday deducts exactly 4 days', async () => {
+    it('Mon to Fri annual leave with Wednesday public holiday deducts exactly 4 days', async () => {
       // Public holiday on Wednesday 2026-11-04
       const wedHoliday = new Date('2026-11-04');
       const existingHol = await prisma.$base().public_holidays.findFirst({
@@ -794,12 +880,12 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
       assert.equal(
         result.deductible_days,
         4.0,
-        'T31: 5-day Mon-Fri window with 1 public holiday must equal 4 days'
+        '5-day Mon-Fri window with 1 public holiday must equal 4 days'
       );
       assert.equal(Number(result.leave_request.days), 4.0);
     });
 
-    it('T32: Approved leave deducts balance, and cancellation restores it', async () => {
+    it('Approved leave deducts balance, and cancellation restores it', async () => {
       // Initial balance
       const initialBalances = await leaveService.getLeaveBalances({
         companyId: companyA.id,
@@ -874,7 +960,7 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
       assert.equal(result.deductible_days, 0.5, 'Half-day leave must deduct 0.5 days');
     });
 
-    it('T13 & Statutory Sick Leave: crossing full (1-15) and half (16-45) pay bands within one request', async () => {
+    it('Statutory Sick Leave: crossing full (1-15) and half (16-45) pay bands within one request', async () => {
       // Create prior approved sick leave of 14 days
       const priorSick = await prisma.$base().leave_requests.create({
         data: {
@@ -934,7 +1020,7 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
       assert.equal(day2.pay_band, 'Half', 'Day 16 must be Half pay band');
     });
 
-    it('T16: Employee with < 6 months service blocked from annual leave without balance', async () => {
+    it('Employee with < 6 months service blocked from annual leave without balance', async () => {
       // Create new junior employee with 4 months service
       const juniorEmp = await prisma.$base().employees.create({
         data: {
@@ -975,10 +1061,10 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
   });
 
   // =========================================================================
-  // 8. Monthly Leave Accrual Job: Waiting Period & Idempotency (T17)
+  // 8. Monthly Leave Accrual Job: Waiting Period & Idempotency
   // =========================================================================
-  describe('8. Monthly Leave Accrual Job: Waiting Period & Idempotency (T17)', () => {
-    it('T17: Accrual job is completely idempotent when run multiple times in same month', async () => {
+  describe('8. Monthly Leave Accrual Job: Waiting Period & Idempotency', () => {
+    it('Accrual job is completely idempotent when run multiple times in same month', async () => {
       // First run for 2026-12
       const run1 = await runMonthlyAccrualJob({
         companyId: companyA.id,

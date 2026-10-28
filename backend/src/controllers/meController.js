@@ -1,4 +1,4 @@
-import prisma from '../prisma/client.js';
+import prisma from '../lib/prisma.js';
 import leaveService from '../services/leaveService.js';
 import overtimeService from '../services/overtimeService.js';
 import { toDubaiDateString } from '@nextal/shared';

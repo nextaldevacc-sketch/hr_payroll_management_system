@@ -2,7 +2,7 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import app from '../../src/app.js';
-import prisma from '../../src/prisma/client.js';
+import prisma from '../../src/lib/prisma.js';
 import authService from '../../src/services/authService.js';
 import {
   tokenize,

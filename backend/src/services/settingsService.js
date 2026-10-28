@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import prisma from '../prisma/client.js';
+import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
 import {
   validateFormula,

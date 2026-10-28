@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import prisma, { companyStorage } from '../prisma/client.js';
+import prisma, { companyStorage } from '../lib/prisma.js';
 import { getCachedUserSession, setCachedUserSession } from './authCache.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'nextal_super_secret_jwt_key_2026_uae';
