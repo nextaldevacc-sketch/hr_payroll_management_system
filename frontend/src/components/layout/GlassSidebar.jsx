@@ -94,6 +94,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
   });
 
   const selfServiceItems = [
+    { href: '/me', icon: LayoutDashboard, label: t('menu.myHome') || 'My Home', exact: true },
     { href: '/me/profile', icon: User, label: t('menu.myProfile') },
     { href: '/me/payslips', icon: Wallet, label: t('menu.myPayslips') },
     { href: '/me/attendance', icon: CalendarCheck, label: t('menu.myAttendance') },

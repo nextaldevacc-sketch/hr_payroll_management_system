@@ -22,6 +22,8 @@ import attendanceRoutes from './routes/attendance.js';
 import overtimeRoutes from './routes/overtime.js';
 import leaveRoutes from './routes/leave.js';
 import meRoutes from './routes/me.js';
+import notificationsRoutes from './routes/notifications.js';
+import dashboardRoutes from './routes/dashboard.js';
 
 const app = express();
 
@@ -129,6 +131,8 @@ app.use('/api/v1/attendance', attendanceRoutes);
 app.use('/api/v1/overtime', overtimeRoutes);
 app.use('/api/v1/leave', leaveRoutes);
 app.use('/api/v1/me', meRoutes);
+app.use('/api/v1/notifications', notificationsRoutes);
+app.use('/api/v1/dashboard', dashboardRoutes);
 
 // 10. Audit history route
 app.get('/api/v1/audit/logs', async (req, res, next) => {

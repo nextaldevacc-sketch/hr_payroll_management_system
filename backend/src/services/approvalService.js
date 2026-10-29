@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
+import notificationService from './notificationService.js';
 
 export class ApprovalService {
   constructor(client = prisma) {
@@ -76,6 +77,27 @@ export class ApprovalService {
         status: 'Pending',
       },
     }).catch(() => {});
+
+    // Notify approver(s) for Step 1
+    try {
+      const step1 = flow.steps.find((s) => s.step_no === 1);
+      if (step1?.role_id) {
+        const approverUsers = await this.prisma.$base().user_roles.findMany({
+          where: { company_id: companyId, role_id: step1.role_id, user_id: { not: requestedBy } },
+          select: { user_id: true },
+        });
+        for (const u of approverUsers) {
+          await notificationService.notifyApprovalWaiting(
+            companyId,
+            u.user_id,
+            requestType,
+            request.requester?.email || 'Employee'
+          );
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to dispatch approval waiting notification:', e.message);
+    }
 
     return request;
   }
@@ -227,6 +249,26 @@ export class ApprovalService {
       oldValues: { status: request.status, current_step: request.current_step },
       newValues: { status: newStatus, current_step: nextStep, comment },
     }).catch(() => {});
+
+    // Notify requester of decision
+    try {
+      if (newStatus === 'Approved' || newStatus === 'Rejected') {
+        const actor = await this.prisma.$base().users.findUnique({
+          where: { id: actorId },
+          select: { email: true },
+        });
+        await notificationService.notifyRequestStatus(
+          companyId,
+          request.requested_by,
+          request.request_type,
+          newStatus,
+          actor?.email || 'Approver',
+          comment
+        );
+      }
+    } catch (e) {
+      console.warn('Failed to dispatch request status notification:', e.message);
+    }
 
     return {
       status: 'success',

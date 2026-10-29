@@ -55,6 +55,7 @@ model companies {
   departments            departments[]
   jobs                   jobs[]
   users                  users[]
+  notifications          notifications[]
   user_roles             user_roles[]
   support_access_grants  support_access_grants[]
   approval_flows         approval_flows[]
@@ -222,6 +223,7 @@ model users {
   owner_clearance_items   clearance_items[]       @relation("ClearanceItemOwner")
   cleared_items           clearance_items[]       @relation("ClearanceItemClearedBy")
   assigned_separation_tasks separation_tasks[]    @relation("SeparationTaskAssignedTo")
+  notifications          notifications[]
 
   @@index([company_id])
 }
@@ -1332,4 +1334,25 @@ model settings_versions {
   @@index([entity_type, entity_id])
   @@index([effective_from])
 }
+
+model notifications {
+  id          String    @id @default(uuid()) @db.Uuid
+  company_id  String    @db.Uuid
+  user_id     String    @db.Uuid
+  title       String    @db.VarChar(255)
+  title_ar    String?   @db.VarChar(255)
+  body        String    @db.Text
+  body_ar     String?   @db.Text
+  type        String    @db.VarChar(50) // 'APPROVAL_WAITING', 'REQUEST_STATUS', 'PAYSLIP_RELEASED', 'DOCUMENT_EXPIRING'
+  link        String?   @db.VarChar(255)
+  is_read     Boolean   @default(false)
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  company     companies @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  user        users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, is_read])
+  @@index([company_id])
+}
+
 

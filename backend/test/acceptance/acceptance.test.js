@@ -870,7 +870,10 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
     });
     assert(visaB, 'Company B visa must exist');
 
-    const testMonth = '2026-10-01';
+    // Use an isolated unique future month for Company B
+    const uniqueYear = 2028 + Math.floor(Math.random() * 5);
+    const uniqueM = Math.floor(Math.random() * 12) + 1;
+    const testMonth = `${uniqueYear}-${String(uniqueM).padStart(2, '0')}-01`;
     let run = await prisma.$base().pay_runs.findFirst({
       where: { company_visa_id: visaB.id, period_month: new Date(testMonth) },
     });

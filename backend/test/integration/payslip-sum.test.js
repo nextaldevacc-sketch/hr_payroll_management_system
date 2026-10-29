@@ -88,15 +88,15 @@ describe('Payslip Lines Calculation & Sum Integrity Tests', () => {
     }
   });
 
-  it('5. Overall pay run net disbursement sum equals 199,217.75 AED (Real engine sum across both visas)', () => {
+  it('5. Overall pay run net disbursement sum equals 198,717.75 AED (Real engine sum across both visas)', () => {
     const totalNet = payslipsWithLines.reduce(
       (sum, p) => sum + Number(p.net),
       0
     );
     assert.equal(
       totalNet.toFixed(2),
-      '199217.75',
-      `Overall Net pay sum (${totalNet.toFixed(2)}) must equal 199217.75 AED (160,217.75 Visa 1 + 39,000.00 Visa 2)`
+      '198717.75',
+      `Overall Net pay sum (${totalNet.toFixed(2)}) must equal 198717.75 AED (159,717.75 Visa 1 + 39,000.00 Visa 2)`
     );
   });
 

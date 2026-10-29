@@ -5,6 +5,7 @@ import { executeRuleEngine, roundToCurrency, STATUTORY_UAE_DEFAULT_RULES } from 
 import { generateWpsSif } from '../lib/wps/sifGenerator.js';
 import { generatePayslipPdf } from '../lib/pdf.js';
 import { generatePayrollRegisterExcel, generateVarianceReportExcel } from '../lib/reports/payrollReportGenerator.js';
+import notificationService from './notificationService.js';
 
 Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_UP });
 
@@ -1032,6 +1033,29 @@ export class PayrollService {
       recordId: payRunId,
       newValues: { status: 'Paid', paid_at: paidAt },
     });
+
+    // Notify employees that their payslips have been released
+    try {
+      const payslips = await this.prisma.$base().payslips.findMany({
+        where: { pay_run_id: payRunId },
+        include: { employee: { include: { user: true } } },
+      });
+      const periodMonth = payRun.period_month instanceof Date
+        ? payRun.period_month.toISOString().slice(0, 7)
+        : String(payRun.period_month).slice(0, 7);
+      for (const ps of payslips) {
+        if (ps.employee?.user?.id) {
+          await notificationService.notifyPayslipReleased(
+            companyId,
+            ps.employee.user.id,
+            periodMonth,
+            Number(ps.net || 0).toFixed(2)
+          );
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to dispatch payslip released notifications:', e.message);
+    }
 
     return await this.getPayRun(companyId, payRunId);
   }

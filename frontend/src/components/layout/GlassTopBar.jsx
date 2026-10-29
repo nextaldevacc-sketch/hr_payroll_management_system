@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import {
   Search,
@@ -12,22 +13,73 @@ import {
   Building2,
   ChevronDown,
   Menu,
-  Check
+  Check,
+  CheckCheck,
+  FileText,
+  Clock,
+  Banknote,
+  AlertTriangle,
 } from 'lucide-react';
 import { IconWell } from '../primitives/IconWell';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import {
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+} from '../../services/notificationsApi';
 
 export function GlassTopBar({ onToggleMobileNav }) {
+  const router = useRouter();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { language, toggleLanguage, t, isRTL } = useLanguage();
   const { user, logout } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const loadNotifications = async () => {
+    try {
+      const data = await getNotifications();
+      if (data) {
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unread_count || 0);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  const handleMarkRead = async (id, link) => {
+    try {
+      await markNotificationRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      );
+      setUnreadCount((c) => Math.max(0, c - 1));
+      if (link) {
+        setIsNotifOpen(false);
+        router.push(link);
+      }
+    } catch (e) {}
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch (e) {}
+  };
 
   const [selectedCompany, setSelectedCompany] = useState({
     name: 'Gulf Tech Logistics LLC',
@@ -151,12 +203,104 @@ export function GlassTopBar({ onToggleMobileNav }) {
 
         {/* Notifications Bell */}
         <div className="relative">
-          <IconWell size="sm" shape="circle" title="Notifications">
-            <Bell className="w-4 h-4 text-text-muted hover:text-text" />
+          <IconWell
+            size="sm"
+            shape="circle"
+            title="Notifications"
+            onClick={() => setIsNotifOpen(!isNotifOpen)}
+          >
+            <Bell className="w-4 h-4 text-text-muted hover:text-text cursor-pointer" />
           </IconWell>
-          <span className="absolute -top-0.5 -end-0.5 w-4 h-4 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
-            3
-          </span>
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -end-0.5 w-4 h-4 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center shadow-sm pointer-events-none">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+
+          {isNotifOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-30"
+                onClick={() => setIsNotifOpen(false)}
+              />
+              <div className="glass-panel rounded-xl absolute top-full mt-2 end-0 w-80 sm:w-96 p-3 z-40 shadow-2xl border border-border dark:bg-surface-raised max-h-[420px] flex flex-col">
+                <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-text">Notifications</span>
+                    {unreadCount > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-full bg-primary/20 text-primary text-[10px] font-bold">
+                        {unreadCount} new
+                      </span>
+                    )}
+                  </div>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={handleMarkAllRead}
+                      className="text-[11px] text-primary hover:underline flex items-center gap-1"
+                    >
+                      <CheckCheck className="w-3.5 h-3.5" />
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+
+                <div className="overflow-y-auto flex-1 divide-y divide-border/30 mt-1">
+                  {notifications.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-text-muted">
+                      No notifications yet
+                    </div>
+                  ) : (
+                    notifications.map((n) => {
+                      const isUnread = !n.is_read;
+                      return (
+                        <div
+                          key={n.id}
+                          onClick={() => handleMarkRead(n.id, n.link)}
+                          className={`p-2.5 rounded-lg text-start transition-colors cursor-pointer flex gap-2.5 items-start ${
+                            isUnread
+                              ? 'bg-primary-wash/40 hover:bg-primary-wash/70'
+                              : 'hover:bg-black/5 dark:hover:bg-white/5 opacity-80'
+                          }`}
+                        >
+                          <div className="mt-0.5 flex-shrink-0">
+                            {n.type === 'APPROVAL_WAITING' && (
+                              <Clock className="w-4 h-4 text-warning" />
+                            )}
+                            {n.type === 'REQUEST_STATUS' && (
+                              <Check className="w-4 h-4 text-success" />
+                            )}
+                            {n.type === 'PAYSLIP_RELEASED' && (
+                              <Banknote className="w-4 h-4 text-primary" />
+                            )}
+                            {n.type === 'DOCUMENT_EXPIRING' && (
+                              <AlertTriangle className="w-4 h-4 text-danger" />
+                            )}
+                            {!['APPROVAL_WAITING', 'REQUEST_STATUS', 'PAYSLIP_RELEASED', 'DOCUMENT_EXPIRING'].includes(n.type) && (
+                              <Bell className="w-4 h-4 text-primary" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-text leading-tight truncate">
+                              {language === 'ar' && n.title_ar ? n.title_ar : n.title}
+                            </p>
+                            <p className="text-[11px] text-text-muted line-clamp-2 mt-0.5 leading-snug">
+                              {language === 'ar' && n.body_ar ? n.body_ar : n.body}
+                            </p>
+                            <span className="text-[9px] text-text-muted/60 mt-1 block">
+                              {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          {isUnread && (
+                            <span className="w-2 h-2 rounded-full bg-primary mt-1 flex-shrink-0" />
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* User Menu */}
