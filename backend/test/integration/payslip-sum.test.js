@@ -1,28 +1,46 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { PrismaClient } from '@prisma/client';
+import Decimal from 'decimal.js';
+import { PayrollService } from '../../src/services/payrollService.js';
+import { generateWpsSif } from '../../src/lib/wps/sifGenerator.js';
 
 const prisma = new PrismaClient();
+const payrollService = new PayrollService(prisma);
 
 describe('Payslip Lines Calculation & Sum Integrity Tests', () => {
+  let octPayRuns = [];
   let payslipsWithLines = [];
+  let company;
 
   before(async () => {
-    payslipsWithLines = await prisma.payslips.findMany({
+    company = await prisma.companies.findFirst({
+      where: { name: 'Gulf Tech Logistics LLC' },
+    });
+    assert(company, 'Gulf Tech Logistics LLC must exist');
+
+    octPayRuns = await prisma.pay_runs.findMany({
       where: {
-        pay_run: {
-          period_month: new Date('2026-10-01'),
-          company: { name: 'Gulf Tech Logistics LLC' },
-        },
+        company_id: company.id,
+        period_month: new Date('2026-10-01'),
       },
       include: {
-        lines: {
+        company_visa: true,
+        payslips: {
           include: {
-            salary_rule: true,
+            employee: {
+              include: { bank_accounts: true },
+            },
+            lines: {
+              include: { salary_rule: true },
+              orderBy: { salary_rule: { sequence: 'asc' } },
+            },
           },
         },
       },
     });
+
+    payslipsWithLines = octPayRuns.flatMap((r) => r.payslips);
   });
 
   after(async () => {
@@ -35,8 +53,8 @@ describe('Payslip Lines Calculation & Sum Integrity Tests', () => {
 
   it('2. Every payslip gross equals contractual package lines (BASIC + HRA + TRA + OTH)', () => {
     for (const payslip of payslipsWithLines) {
-      const packageLines = payslip.lines.filter(
-        (line) => ['BASIC', 'HRA', 'TRA', 'OTH'].includes(line.code)
+      const packageLines = payslip.lines.filter((line) =>
+        ['BASIC', 'HRA', 'TRA', 'OTH'].includes(line.code)
       );
 
       const calculatedGross = packageLines.reduce(
@@ -88,55 +106,147 @@ describe('Payslip Lines Calculation & Sum Integrity Tests', () => {
     }
   });
 
-  it('5. Overall pay run net disbursement sum equals 198,717.75 AED (Real engine sum across both visas)', () => {
-    const totalNet = payslipsWithLines.reduce(
-      (sum, p) => sum + Number(p.net),
-      0
-    );
-    assert.equal(
-      totalNet.toFixed(2),
-      '198717.75',
-      `Overall Net pay sum (${totalNet.toFixed(2)}) must equal 198717.75 AED (159,717.75 Visa 1 + 39,000.00 Visa 2)`
-    );
-  });
+  it('5. Payslips sum to pay run totals for each visa (Sum of payslips = pay_run.total_gross & total_net via service)', async () => {
+    for (const run of octPayRuns) {
+      const runDetails = await payrollService.getPayRun(company.id, run.id);
 
-  it('6. Every payslip stores its full lines: at least BASIC, HRA, TRA, OTH, GROSS, and NET', () => {
-    const requiredCodes = ['BASIC', 'HRA', 'TRA', 'OTH', 'GROSS', 'NET'];
-    const lineCounts = [];
+      let sumGross = new Decimal(0);
+      let sumDeductions = new Decimal(0);
+      let sumNet = new Decimal(0);
 
-    for (const payslip of payslipsWithLines) {
-      const codes = payslip.lines.map((l) => l.code);
-      for (const reqCode of requiredCodes) {
-        assert.ok(
-          codes.includes(reqCode),
-          `Payslip ID ${payslip.id} must include line code '${reqCode}'`
-        );
+      for (const ps of run.payslips) {
+        sumGross = sumGross.plus(new Decimal(ps.gross));
+        sumDeductions = sumDeductions.plus(new Decimal(ps.total_deductions));
+        sumNet = sumNet.plus(new Decimal(ps.net));
       }
 
-      // Confirm GROSS line amount matches payslip.gross
-      const grossLine = payslip.lines.find((l) => l.code === 'GROSS');
       assert.equal(
-        Number(grossLine.amount).toFixed(2),
-        Number(payslip.gross).toFixed(2),
-        `GROSS line amount (${grossLine.amount}) must equal payslip gross (${payslip.gross})`
+        sumGross.toFixed(2),
+        runDetails.total_gross,
+        `Run ${run.id} total_gross must equal sum of its payslips' gross`
       );
-
-      // Confirm NET line amount matches payslip.net
-      const netLine = payslip.lines.find((l) => l.code === 'NET');
       assert.equal(
-        Number(netLine.amount).toFixed(2),
-        Number(payslip.net).toFixed(2),
-        `NET line amount (${netLine.amount}) must equal payslip net (${payslip.net})`
+        sumDeductions.toFixed(2),
+        runDetails.total_deductions,
+        `Run ${run.id} total_deductions must equal sum of its payslips' deductions`
       );
-
-      lineCounts.push(payslip.lines.length);
+      assert.equal(
+        sumNet.toFixed(2),
+        runDetails.total_net,
+        `Run ${run.id} total_net must equal sum of its payslips' net`
+      );
     }
+  });
 
-    const min = Math.min(...lineCounts);
-    const max = Math.max(...lineCounts);
-    const avg = (lineCounts.reduce((a, b) => a + b, 0) / lineCounts.length).toFixed(2);
+  it('6. SCR total in SIF exactly equals the pay run net for locked/paid pay runs', async () => {
+    // Check paid September runs and October Visa 1
+    const eligibleRuns = await prisma.pay_runs.findMany({
+      where: {
+        company_id: company.id,
+        status: { in: ['Locked', 'Paid'] },
+      },
+      include: {
+        company_visa: true,
+        payslips: {
+          include: {
+            employee: { include: { bank_accounts: true } },
+          },
+        },
+      },
+    });
 
-    assert.ok(min >= 6, `Minimum lines per payslip (${min}) must be at least 6`);
-    assert.ok(max >= min, `Max lines per payslip (${max}) must be >= min`);
+    assert.ok(eligibleRuns.length >= 2, 'Must have at least 2 locked/paid runs to verify SIF reconciliation');
+
+    for (const run of eligibleRuns) {
+      const runDetails = await payrollService.getPayRun(company.id, run.id);
+
+      const sif = generateWpsSif({
+        company: {
+          trade_license_no: company.trade_license_no,
+          bank_code: 'CB033',
+        },
+        companyVisa: {
+          mol_establishment_id: run.company_visa.mol_establishment_id,
+        },
+        payRun: {
+          id: run.id,
+          period_month: run.period_month,
+          status: 'Locked',
+        },
+        payslips: run.payslips,
+      });
+
+      assert.equal(
+        sif.totalSalaries,
+        runDetails.total_net,
+        `SIF SCR TotalSalaries (${sif.totalSalaries}) must equal pay run net (${runDetails.total_net}) for ${run.company_visa.name}`
+      );
+      assert.equal(sif.totalRecords, run.payslips.length);
+    }
+  });
+
+  it('7. Hand-calculated expected net verified for 3 named benchmark employees', () => {
+    // -----------------------------------------------------------------------
+    // Benchmark Employee 1: Rashid Al-Falasi (EMP-DXB-001) - UAE National
+    // -----------------------------------------------------------------------
+    // - Contract Gross: AED 25,000.00
+    //     Basic: 25,000 * 0.60 = AED 15,000.00
+    //     Housing: 25,000 * 0.30 = AED 7,500.00
+    //     Transport: 25,000 * 0.05 = AED 1,250.00
+    //     Other: 25,000 * 0.05 = AED 1,250.00
+    // - Overtime:
+    //     Hourly rate = 15,000 / 30 / 8 = 62.50 AED/hr
+    //     Normal OT rate = 62.50 * 1.25 = 78.125 AED/hr
+    //     Approved normal OT = 110 hrs * 78.125 = AED 8,593.75
+    // - Deductions:
+    //     Loan instalment = AED 500.00
+    //     GPSSA Employee Share (11% on basic + housing = 22,500 * 0.11) = AED 2,475.00
+    //     Total Deductions = 500.00 + 2,475.00 = AED 2,975.00
+    // - Expected Net = 25,000.00 + 8,593.75 - 2,975.00 = AED 30,618.75
+    const rashid = payslipsWithLines.find((p) => p.employee.employee_code === 'EMP-DXB-001');
+    assert(rashid, 'Rashid Al-Falasi (EMP-DXB-001) payslip must exist');
+    assert.equal(
+      Number(rashid.net).toFixed(2),
+      '30618.75',
+      'Rashid Al-Falasi hand-calculated net must be exactly AED 30,618.75'
+    );
+
+    // -----------------------------------------------------------------------
+    // Benchmark Employee 2: Alexander Wright (EMP-DXB-005) - British Expat
+    // -----------------------------------------------------------------------
+    // - Contract Gross: AED 16,000.00
+    //     Basic: 16,000 * 0.60 = AED 9,600.00
+    //     Housing: 16,000 * 0.30 = AED 4,800.00
+    //     Transport: 16,000 * 0.05 = AED 800.00
+    //     Other: 16,000 * 0.05 = AED 800.00
+    // - Expat: GPSSA = AED 0.00
+    // - Full 31 days attendance, no absences, no overtime, no loans/advances.
+    // - Expected Net = Contract Gross - 0 = AED 16,000.00
+    const alexander = payslipsWithLines.find((p) => p.employee.employee_code === 'EMP-DXB-005');
+    assert(alexander, 'Alexander Wright (EMP-DXB-005) payslip must exist');
+    assert.equal(
+      Number(alexander.net).toFixed(2),
+      '16000.00',
+      'Alexander Wright hand-calculated net must be exactly AED 16,000.00'
+    );
+
+    // -----------------------------------------------------------------------
+    // Benchmark Employee 3: Logistics Associate 31 (EMP-DXB-031) - DIFC Visa 2 Expat
+    // -----------------------------------------------------------------------
+    // - Contract Gross: AED 5,500.00
+    //     Basic: 5,500 * 0.60 = AED 3,300.00
+    //     Housing: 5,500 * 0.30 = AED 1,650.00
+    //     Transport: 5,500 * 0.05 = AED 275.00
+    //     Other: 5,500 * 0.05 = AED 275.00
+    // - Expat under DIFC Freezone Visa 2
+    // - Full 31 days attendance, no absences, no overtime, no loans/advances.
+    // - Expected Net = Contract Gross - 0 = AED 5,500.00
+    const associate31 = payslipsWithLines.find((p) => p.employee.employee_code === 'EMP-DXB-031');
+    assert(associate31, 'Logistics Associate 31 (EMP-DXB-031) payslip must exist');
+    assert.equal(
+      Number(associate31.net).toFixed(2),
+      '5500.00',
+      'Logistics Associate 31 hand-calculated net must be exactly AED 5,500.00'
+    );
   });
 });

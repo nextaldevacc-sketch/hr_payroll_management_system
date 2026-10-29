@@ -212,14 +212,20 @@ export function executeRuleEngine(rules = STATUTORY_UAE_DEFAULT_RULES, inputCont
     // Contract base values
     contract: {
       basic: new Decimal(inputContext.contract?.basic || inputContext.basic || 0),
-      hra: new Decimal(inputContext.contract?.hra || inputContext.hra || 0),
-      tra: new Decimal(inputContext.contract?.tra || inputContext.tra || 0),
-      oth: new Decimal(inputContext.contract?.oth || inputContext.oth || 0),
+      hra: new Decimal(inputContext.contract?.hra || inputContext.contract?.housing || inputContext.hra || inputContext.housing || 0),
+      housing: new Decimal(inputContext.contract?.housing || inputContext.contract?.hra || inputContext.housing || inputContext.hra || 0),
+      tra: new Decimal(inputContext.contract?.tra || inputContext.contract?.transport || inputContext.tra || inputContext.transport || 0),
+      transport: new Decimal(inputContext.contract?.transport || inputContext.contract?.tra || inputContext.transport || inputContext.tra || 0),
+      oth: new Decimal(inputContext.contract?.oth || inputContext.contract?.other_allowances || inputContext.oth || inputContext.other_allowances || 0),
+      other_allowances: new Decimal(inputContext.contract?.other_allowances || inputContext.contract?.oth || inputContext.other_allowances || inputContext.oth || 0),
     },
     basic: new Decimal(inputContext.contract?.basic || inputContext.basic || 0),
-    hra: new Decimal(inputContext.contract?.hra || inputContext.hra || 0),
-    tra: new Decimal(inputContext.contract?.tra || inputContext.tra || 0),
-    oth: new Decimal(inputContext.contract?.oth || inputContext.oth || 0),
+    hra: new Decimal(inputContext.contract?.hra || inputContext.contract?.housing || inputContext.hra || inputContext.housing || 0),
+    housing: new Decimal(inputContext.contract?.housing || inputContext.contract?.hra || inputContext.housing || inputContext.hra || 0),
+    tra: new Decimal(inputContext.contract?.tra || inputContext.contract?.transport || inputContext.tra || inputContext.transport || 0),
+    transport: new Decimal(inputContext.contract?.transport || inputContext.contract?.tra || inputContext.transport || inputContext.tra || 0),
+    oth: new Decimal(inputContext.contract?.oth || inputContext.contract?.other_allowances || inputContext.oth || inputContext.other_allowances || 0),
+    other_allowances: new Decimal(inputContext.contract?.other_allowances || inputContext.contract?.oth || inputContext.other_allowances || inputContext.oth || 0),
 
     // Days & Attendance
     paid_days: new Decimal(inputContext.paid_days !== undefined ? inputContext.paid_days : 30),
