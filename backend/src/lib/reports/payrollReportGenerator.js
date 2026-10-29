@@ -236,7 +236,7 @@ export async function generateVarianceReportExcel({ payRun, company, variances =
     const row = sheet.addRow([
       v.employee?.employee_code || '-',
       v.employee?.name || '-',
-      v.employee?.department?.name || '-',
+      v.contract?.department?.name || v.employee?.department?.name || '-',
       Number(v.previous_net || 0),
       Number(v.net || 0),
       Number(v.variance_amount || Number(v.net || 0) - Number(v.previous_net || 0)),

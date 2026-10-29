@@ -239,9 +239,9 @@ describe('Phase 3: Settings Engine, Formulas, Effective Dating & Permissions Tes
     let shiftToTest;
 
     before(async () => {
-      // Find or create locked pay run (e.g. September 2026) for testing Rule C
+      // Find or create locked/paid pay run (e.g. September 2026) for testing Rule C
       lockedPayRun = await prisma.$base().pay_runs.findFirst({
-        where: { company_id: company.id, status: 'Locked' },
+        where: { company_id: company.id, status: { in: ['Locked', 'Paid'] } },
       });
       if (!lockedPayRun) {
         const visa = await prisma.$base().company_visas.findFirst({

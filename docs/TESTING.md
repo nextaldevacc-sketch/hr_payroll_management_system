@@ -101,3 +101,15 @@ npm test --workspace=frontend
    - Saves via API mutation (`PUT /api/v1/settings/shifts/:id`), reloads page.
    - Re-opens drawer and asserts UI displays `25m`.
    - Confirms `audit_logs` and `settings_versions` rows created in PostgreSQL.
+
+---
+
+## 3. Database Integrity & Testing Invariants
+
+> [!IMPORTANT]
+> **Permanent Database & Testing Rules**:
+> - Never change the database schema or data by hand.
+> - Never bypass a trigger or the status flow, not even temporarily.
+> - Schema changes go in a NEW Prisma migration. Applied migration files are never edited.
+> - Demo data comes only from backend/prisma/seed/.
+> - Test data is created inside the test that needs it.

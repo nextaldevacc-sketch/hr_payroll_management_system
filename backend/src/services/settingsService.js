@@ -28,11 +28,11 @@ class SettingsService {
     if (!effectiveFromDate) return;
     const effDate = new Date(effectiveFromDate);
 
-    // Find any locked pay runs in this company with period_month on or after the effective date month
+    // Find any locked or paid pay runs in this company with period_month on or after the effective date month
     const lockedRun = await prisma.$base().pay_runs.findFirst({
       where: {
         company_id: companyId,
-        status: 'Locked',
+        status: { in: ['Locked', 'Paid'] },
         period_month: {
           gte: new Date(effDate.getFullYear(), effDate.getMonth(), 1),
         },

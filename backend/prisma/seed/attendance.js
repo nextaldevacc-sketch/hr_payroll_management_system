@@ -8,9 +8,151 @@ export async function seedAttendance(prisma, {
   demoUsersMap,
   leaveTypesMap1,
 }) {
-  console.log('Seeding October 2026 biometric punches and attendance records...');
+  console.log('Seeding September & October 2026 biometric punches and attendance records...');
   const userHR1 = demoUsersMap['hr.mgr@gulftech.ae'];
 
+  // =========================================================================
+  // September 2026 Attendance, OT and Leave (Real inputs for September)
+  // 39 active employees (October joiners 40, 41, 42 not joined yet)
+  // =========================================================================
+  const septBioImport = await prisma.biometric_imports.create({
+    data: {
+      company_id: company1.id,
+      period_from: new Date('2026-09-01'),
+      period_to: new Date('2026-09-30'),
+      rows_total: 39 * 22 * 2,
+      rows_imported: 39 * 22 * 2,
+      rows_duplicate: 0,
+      rows_unmapped: 0,
+      imported_by: userHR1.id,
+    },
+  });
+
+  const septPunchesBatch = [];
+  const septAttendanceBatch = [];
+
+  for (let d = 1; d <= 30; d++) {
+    const workDate = new Date(`2026-09-${String(d).padStart(2, '0')}`);
+    const dayOfWeek = workDate.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday & Saturday
+
+    if (isWeekend) continue;
+
+    for (let e = 0; e < 39; e++) {
+      const emp = seededEmployees[e];
+
+      // One employee on unpaid leave in September: employee index 6 (Kareem Abdelaziz) from Sep 14 to Sep 18 (5 days)
+      if (e === 6 && d >= 14 && d <= 18) {
+        septAttendanceBatch.push({
+          company_id: company1.id,
+          employee_id: emp.id,
+          work_date: workDate,
+          shift_id: shift1.id,
+          check_in: null,
+          check_out: null,
+          worked_hours: 0.00,
+          break_deducted: 0.00,
+          net_hours: 0.00,
+          late_minutes: 0,
+          early_out_minutes: 0,
+          day_type: 'UnpaidLeave',
+          review_status: 'HRConfirmed',
+        });
+        continue;
+      }
+
+      // Normal working day
+      const inTime = new Date(workDate);
+      inTime.setHours(8, 0, 0);
+      const outTime = new Date(workDate);
+      outTime.setHours(17, 0, 0);
+
+      septPunchesBatch.push({
+        company_id: company1.id,
+        import_id: septBioImport.id,
+        employee_id: emp.id,
+        punched_at: inTime,
+        direction: 'In',
+      });
+      septPunchesBatch.push({
+        company_id: company1.id,
+        import_id: septBioImport.id,
+        employee_id: emp.id,
+        punched_at: outTime,
+        direction: 'Out',
+      });
+
+      septAttendanceBatch.push({
+        company_id: company1.id,
+        employee_id: emp.id,
+        work_date: workDate,
+        shift_id: shift1.id,
+        check_in: inTime,
+        check_out: outTime,
+        worked_hours: 9.00,
+        break_deducted: 1.00,
+        net_hours: 8.00,
+        late_minutes: 0,
+        early_out_minutes: 0,
+        day_type: 'WorkDay',
+        review_status: 'HRConfirmed',
+      });
+    }
+  }
+
+  for (let i = 0; i < septPunchesBatch.length; i += 500) {
+    await prisma.punches.createMany({ data: septPunchesBatch.slice(i, i + 500) });
+  }
+  for (let i = 0; i < septAttendanceBatch.length; i += 500) {
+    await prisma.attendance_days.createMany({ data: septAttendanceBatch.slice(i, i + 500) });
+  }
+
+  // September Overtime Requests (different from October)
+  await prisma.overtime_requests.create({
+    data: {
+      company_id: company1.id,
+      employee_id: seededEmployees[0].id,
+      work_date: new Date('2026-09-10'),
+      hours: 15.00,
+      source: 'Attendance',
+      ot_type: 'Normal',
+      rate: 1.2500,
+      compensation: 'Pay',
+      status: 'Approved',
+    },
+  });
+
+  await prisma.overtime_requests.create({
+    data: {
+      company_id: company1.id,
+      employee_id: seededEmployees[1].id,
+      work_date: new Date('2026-09-16'),
+      hours: 10.00,
+      source: 'Attendance',
+      ot_type: 'Night',
+      rate: 1.5000,
+      compensation: 'Pay',
+      status: 'Approved',
+    },
+  });
+
+  // September Unpaid Leave Request for Employee 7 (index 6)
+  await prisma.leave_requests.create({
+    data: {
+      company_id: company1.id,
+      employee_id: seededEmployees[6].id,
+      leave_type_id: leaveTypesMap1['UNPAID'].id,
+      date_from: new Date('2026-09-14'),
+      date_to: new Date('2026-09-18'),
+      days: 5.00,
+      reason: 'Personal family emergency (unpaid leave)',
+      status: 'Approved',
+    },
+  });
+
+  // =========================================================================
+  // October 2026 Attendance, OT and Leave
+  // =========================================================================
   const bioImport = await prisma.biometric_imports.create({
     data: {
       company_id: company1.id,

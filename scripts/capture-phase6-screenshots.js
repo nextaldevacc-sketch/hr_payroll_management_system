@@ -1,22 +1,92 @@
+import { spawn } from 'node:child_process';
+import http from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import treeKill from 'tree-kill';
 import { PrismaClient } from '@prisma/client';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
+const apiDir = path.resolve(rootDir, 'backend');
+const webDir = path.resolve(rootDir, 'frontend');
+const nextBin = path.resolve(rootDir, 'node_modules/next/dist/bin/next');
 const outDir = path.resolve(rootDir, 'docs/screenshots/phase6');
+
+const API_PORT = 5000;
 const WEB_PORT = 3100;
+
+function killProc(proc) {
+  return new Promise((resolve) => {
+    if (!proc || !proc.pid) return resolve();
+    treeKill(proc.pid, 'SIGKILL', () => resolve());
+  });
+}
+
+function waitForHttp(url, timeoutMs = 30000) {
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    const interval = setInterval(() => {
+      const req = http.get(url, (res) => {
+        res.resume();
+        if (res.statusCode < 500) {
+          clearInterval(interval);
+          resolve();
+        }
+      });
+      req.on('error', () => {
+        if (Date.now() - start > timeoutMs) {
+          clearInterval(interval);
+          reject(new Error(`Timeout waiting for ${url}`));
+        }
+      });
+      req.setTimeout(1000, () => req.destroy());
+    }, 500);
+  });
+}
 
 async function main() {
   fs.mkdirSync(outDir, { recursive: true });
 
   const prisma = new PrismaClient();
+  let apiProc = null;
+  let webProc = null;
   let browser = null;
 
   try {
+    console.log('1. Checking or starting API server on port 5000...');
+    try {
+      await waitForHttp(`http://localhost:${API_PORT}/api/v1/health`, 1500);
+      console.log('API is already running on 5000.');
+    } catch {
+      apiProc = spawn(process.execPath, ['--env-file=.env', 'src/server.js'], {
+        cwd: apiDir,
+        env: { ...process.env, PORT: String(API_PORT), NODE_ENV: 'development' },
+        stdio: 'inherit',
+      });
+      await waitForHttp(`http://localhost:${API_PORT}/api/v1/health`, 25000);
+      console.log('API server started.');
+    }
+
+    console.log('2. Checking or starting Web server on port 3100...');
+    try {
+      await waitForHttp(`http://localhost:${WEB_PORT}/login`, 1500);
+      console.log('Web server is already running on 3100.');
+    } catch {
+      // Check if build exists, otherwise run dev
+      const hasBuild = fs.existsSync(path.join(webDir, '.next'));
+      const commandArgs = hasBuild ? [nextBin, 'start', '-p', String(WEB_PORT)] : [nextBin, 'dev', '-p', String(WEB_PORT)];
+      webProc = spawn(process.execPath, commandArgs, {
+        cwd: webDir,
+        env: { ...process.env, PORT: String(WEB_PORT), NODE_ENV: hasBuild ? 'production' : 'development' },
+        stdio: 'ignore',
+      });
+      await waitForHttp(`http://localhost:${WEB_PORT}/login`, 35000);
+      console.log('Web server started.');
+    }
+
     // Find October 2026 run ID dynamically
     const octRun = await prisma.pay_runs.findFirst({
       where: {
@@ -25,10 +95,11 @@ async function main() {
       select: { id: true, status: true },
     });
 
-    const runId = octRun?.id || '5b5c2dae-da23-42f1-b3a9-794213884066';
+    const runId = octRun?.id;
+    if (!runId) throw new Error('No October 2026 pay run found in DB');
     console.log(`Using October 2026 Pay Run ID: ${runId}`);
 
-    console.log('1. Launching Chromium...');
+    console.log('3. Launching Chromium...');
     browser = await chromium.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -36,108 +107,108 @@ async function main() {
 
     const context = await browser.newContext({
       viewport: { width: 1440, height: 900 },
-      deviceScaleFactor: 2, // High resolution
+      deviceScaleFactor: 2,
     });
 
     const page = await context.newPage();
 
-    // 2. Login as Finance Manager
-    console.log('2. Logging in as finance@gulftech.ae...');
+    // 4. Login as Finance Manager
+    console.log('4. Logging in as finance@gulftech.ae...');
     await page.goto(`http://localhost:${WEB_PORT}/login`, { waitUntil: 'networkidle' });
-    await page.waitForSelector('input[type="email"]', { timeout: 10000 });
+    await page.waitForSelector('input[type="email"]', { timeout: 15000 });
     await page.fill('input[type="email"]', 'finance@gulftech.ae');
     await page.fill('input[type="password"]', 'Nextal@2026!');
     await page.click('button[type="submit"]');
-
     await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
     console.log('Login successful.');
 
-    // Ensure dark theme is active
-    await page.evaluate(() => {
-      localStorage.setItem('theme', 'dark');
-      document.documentElement.setAttribute('data-theme', 'dark');
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
-    });
-    await page.waitForTimeout(500);
-
-    // Screen 1: Pay Runs List
-    console.log('3. Capturing pay_runs_list.png...');
-    await page.goto(`http://localhost:${WEB_PORT}/payroll`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1500);
-    const listPath = path.join(outDir, 'pay_runs_list.png');
-    await page.screenshot({ path: listPath, fullPage: false });
-    console.log(`Saved: ${listPath}`);
-
-    // Screen 2: Pay Run Detail Summary
-    console.log('4. Capturing pay_run_detail_summary.png...');
-    await page.goto(`http://localhost:${WEB_PORT}/payroll/${runId}`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1500);
-    const summaryPath = path.join(outDir, 'pay_run_detail_summary.png');
-    await page.screenshot({ path: summaryPath, fullPage: false });
-    console.log(`Saved: ${summaryPath}`);
-
-    // Screen 3: Pay Run Detail Validation Issues
-    console.log('5. Capturing pay_run_detail_validation.png...');
-    // Click on Validation Issues tab
-    const validationTab = page.locator('button', { hasText: /Validation Issues/i });
-    if (await validationTab.count() > 0) {
-      await validationTab.first().click();
-    } else {
-      console.warn('Validation tab button not found by text, trying fallback');
+    // Helper to configure theme & language
+    async function setEnvironment(theme, lang) {
+      await page.evaluate(({ theme, lang }) => {
+        localStorage.setItem('theme', theme);
+        document.documentElement.setAttribute('data-theme', theme);
+        document.cookie = `NEXT_LOCALE=${lang}; path=/; max-age=31536000`;
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+          document.documentElement.classList.remove('light');
+        } else {
+          document.documentElement.classList.add('light');
+          document.documentElement.classList.remove('dark');
+        }
+        document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+        document.documentElement.setAttribute('lang', lang);
+      }, { theme, lang });
+      await page.waitForTimeout(500);
     }
-    await page.waitForTimeout(1000);
-    const validationPath = path.join(outDir, 'pay_run_detail_validation.png');
-    await page.screenshot({ path: validationPath, fullPage: false });
-    console.log(`Saved: ${validationPath}`);
 
-    // Screen 4: Pay Run Detail Payslips & Breakdown Modal
-    console.log('6. Capturing pay_run_detail_payslips.png...');
-    const payslipsTab = page.locator('button', { hasText: /Payslips/i });
-    if (await payslipsTab.count() > 0) {
-      await payslipsTab.first().click();
-    }
-    await page.waitForTimeout(1500);
+    const configs = [
+      { lang: 'en', theme: 'light', suffix: 'en_light' },
+      { lang: 'en', theme: 'dark', suffix: 'en_dark' },
+      { lang: 'ar', theme: 'light', suffix: 'ar_light' },
+      { lang: 'ar', theme: 'dark', suffix: 'ar_dark' },
+    ];
 
-    // Click "Breakdown" button on the first row
-    const breakdownBtn = page.locator('button', { hasText: 'Breakdown' });
-    if (await breakdownBtn.count() > 0) {
-      await breakdownBtn.first().click();
+    console.log('\n5. Capturing Full Phase 6 Screenshot Matrix...');
+
+    for (const cfg of configs) {
+      console.log(`\n--- Capturing matrix for [${cfg.suffix}] ---`);
+
+      // 1. Pay Runs List
+      await page.goto(`http://localhost:${WEB_PORT}/payroll`, { waitUntil: 'networkidle' });
+      await setEnvironment(cfg.theme, cfg.lang);
       await page.waitForTimeout(1000);
-    } else {
-      console.warn('Breakdown button not found');
+      const listPath = path.join(outDir, `pay_runs_list_${cfg.suffix}.png`);
+      await page.screenshot({ path: listPath });
+      console.log(`Saved: ${listPath}`);
+
+      // 2. Pay Run Detail - Validation tab
+      await page.goto(`http://localhost:${WEB_PORT}/payroll/${runId}`, { waitUntil: 'networkidle' });
+      await setEnvironment(cfg.theme, cfg.lang);
+      const validationTab = page.locator('button', { hasText: /Validation|التحقق/i });
+      if (await validationTab.count() > 0) {
+        await validationTab.first().click();
+        await page.waitForTimeout(800);
+      }
+      const valPath = path.join(outDir, `pay_run_detail_validation_${cfg.suffix}.png`);
+      await page.screenshot({ path: valPath });
+      console.log(`Saved: ${valPath}`);
+
+      // 3. Pay Run Detail - Variances tab
+      const variancesTab = page.locator('button', { hasText: /Variances|الفروقات/i });
+      if (await variancesTab.count() > 0) {
+        await variancesTab.first().click();
+        await page.waitForTimeout(800);
+      }
+      const varPath = path.join(outDir, `pay_run_detail_variances_${cfg.suffix}.png`);
+      await page.screenshot({ path: varPath });
+      console.log(`Saved: ${varPath}`);
+
+      // 4. Payslip (Open Payslips tab and click Breakdown modal)
+      const payslipsTab = page.locator('button', { hasText: /Payslips|قسائم/i });
+      if (await payslipsTab.count() > 0) {
+        await payslipsTab.first().click();
+        await page.waitForTimeout(800);
+      }
+      const breakdownBtn = page.locator('button', { hasText: /Breakdown|تفاصيل/i });
+      if (await breakdownBtn.count() > 0) {
+        await breakdownBtn.first().click();
+        await page.waitForTimeout(800);
+      }
+      const payslipPath = path.join(outDir, `payslip_${cfg.suffix}.png`);
+      await page.screenshot({ path: payslipPath });
+      console.log(`Saved: ${payslipPath}`);
+
+      // Close modal
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
     }
-    const payslipModalPath = path.join(outDir, 'pay_run_detail_payslips.png');
-    await page.screenshot({ path: payslipModalPath, fullPage: false });
-    console.log(`Saved: ${payslipModalPath}`);
 
-    // Close the modal
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(500);
-
-    // Screen 5: Pay Run Detail Variances
-    console.log('7. Capturing pay_run_detail_variances.png...');
-    const variancesTab = page.locator('button', { hasText: /Variances/i });
-    if (await variancesTab.count() > 0) {
-      await variancesTab.first().click();
-    }
-    await page.waitForTimeout(1500);
-    const variancesPath = path.join(outDir, 'pay_run_detail_variances.png');
-    await page.screenshot({ path: variancesPath, fullPage: false });
-    console.log(`Saved: ${variancesPath}`);
-
-    // Screen 6: Salary Adjustments
-    console.log('8. Capturing salary_adjustments.png...');
-    await page.goto(`http://localhost:${WEB_PORT}/payroll/adjustments`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1500);
-    const adjPath = path.join(outDir, 'salary_adjustments.png');
-    await page.screenshot({ path: adjPath, fullPage: false });
-    console.log(`Saved: ${adjPath}`);
-
-    console.log('\nAll 6 Phase 6 screenshots successfully captured in docs/screenshots/phase6/!');
+    console.log('\nAll 16 Phase 6 matrix screenshots captured successfully!');
   } finally {
     if (browser) await browser.close().catch(() => {});
     await prisma.$disconnect().catch(() => {});
+    if (apiProc) await killProc(apiProc);
+    if (webProc) await killProc(webProc);
   }
 }
 

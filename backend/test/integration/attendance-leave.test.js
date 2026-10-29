@@ -713,9 +713,13 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
 
     it('HR Manager can re-open an HR-confirmed day before cut-off with mandatory reason', async () => {
       const confirmedDay = await prisma.$base().attendance_days.findFirst({
-        where: { company_id: companyA.id, review_status: 'HrConfirmed' },
+        where: {
+          company_id: companyA.id,
+          review_status: 'HrConfirmed',
+          work_date: { gte: new Date('2026-10-01') },
+        },
       });
-      assert(confirmedDay, 'Must have at least one HrConfirmed day');
+      assert(confirmedDay, 'Must have at least one HrConfirmed day in current open month');
 
       // Reopen without reason should fail (HTTP 400)
       const resFail = await request(app)
@@ -735,8 +739,16 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
       // Locate pay run for this day and set cutoff to the future for "before cut-off" test
       const workDate = new Date(confirmedDay.work_date);
       const periodMonth = new Date(Date.UTC(workDate.getUTCFullYear(), workDate.getUTCMonth(), 1));
+      const emp = await prisma.$base().employees.findUnique({
+        where: { id: confirmedDay.employee_id },
+        select: { company_visa_id: true },
+      });
       const payRun = await prisma.$base().pay_runs.findFirst({
-        where: { company_id: companyA.id, period_month: periodMonth },
+        where: {
+          company_id: companyA.id,
+          company_visa_id: emp.company_visa_id,
+          period_month: periodMonth,
+        },
       });
       const originalCutoff = payRun?.cutoff_date;
 
@@ -817,10 +829,19 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
         where: { company_id: companyA.id, employee_code: 'EMP_JUNIOR_001' },
       });
       if (junior) {
+        await prisma.$base().pay_run_issues.deleteMany({
+          where: { employee_id: junior.id },
+        });
         await prisma.$base().leave_allocations.deleteMany({
           where: { employee_id: junior.id },
         });
         await prisma.$base().leave_requests.deleteMany({
+          where: { employee_id: junior.id },
+        });
+        await prisma.$base().contracts.deleteMany({
+          where: { employee_id: junior.id },
+        });
+        await prisma.$base().bank_accounts.deleteMany({
           where: { employee_id: junior.id },
         });
         await prisma.$base().employees.delete({

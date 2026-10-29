@@ -117,7 +117,7 @@ export async function seedEmployees(prisma, {
     seededEmployees.push(emp);
 
     // Contract (Versioned contracts, 2 versions for 5 employees)
-    const isRaisedEmployee = i <= 4; // Exactly 5 employees (index 0..4)
+    const isRaisedEmployee = i <= 5; // Exactly 5 employees (i = 1..5)
     let activeContract;
 
     if (isRaisedEmployee) {
@@ -127,6 +127,7 @@ export async function seedEmployees(prisma, {
       const pTrans = Math.round(priorGross * 0.05);
       const pOth = priorGross - (pBasic + pHousing + pTrans);
 
+      // Contract 1: active from 2024-01-15
       await prisma.contracts.create({
         data: {
           company_id: company1.id,
@@ -149,14 +150,17 @@ export async function seedEmployees(prisma, {
         },
       });
 
+      // Contract 2: Raise effective 2026-06-01 for employees 1-4, and 2026-10-01 for employee 5
+      const raiseEffectiveDate = i === 5 ? new Date('2026-10-01') : new Date('2026-06-01');
+
       const contract2 = await prisma.contracts.create({
         data: {
           company_id: company1.id,
           employee_id: emp.id,
           version_no: 2,
-          effective_date: new Date('2026-06-01'),
+          effective_date: raiseEffectiveDate,
           contract_type: 'Limited',
-          start_date: new Date('2026-06-01'),
+          start_date: raiseEffectiveDate,
           job_id: baseInfo.job.id,
           department_id: baseInfo.dept.id,
           shift_id: shift1.id,

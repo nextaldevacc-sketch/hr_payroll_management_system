@@ -872,7 +872,7 @@ class AttendanceService {
 
     // Determine period month
     const workDate = new Date(day.work_date);
-    const periodMonth = new Date(Date.UTC(workDate.getFullYear(), workDate.getMonth(), 1));
+    const periodMonth = new Date(Date.UTC(workDate.getUTCFullYear(), workDate.getUTCMonth(), 1));
 
     // Check pay run lock / cut-off
     let payRun = null;

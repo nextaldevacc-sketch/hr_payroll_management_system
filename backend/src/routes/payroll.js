@@ -8,6 +8,8 @@ const router = Router();
 
 router.use(authenticate);
 
+router.get('/overview', requirePermission('salary', 'view'), payrollController.getPayrollOverview);
+
 // ==========================================
 // Pay Runs Lifecycle
 // ==========================================

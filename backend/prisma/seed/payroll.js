@@ -1,94 +1,74 @@
 /**
  * Seed Module: Payroll & Pay Runs
+ *
+ * Implements real payroll lifecycle via PayrollService:
+ * - September 2026: Created, Calculated, Validated by HR, Approved & Locked by GM, Marked Paid by Finance.
+ * - October 2026: Created and Calculated by PayrollService for both company visas.
+ *   Contains authentic variances vs September and statutory blocking issues.
  */
+import { PayrollService } from '../../src/services/payrollService.js';
+
 export async function seedPayroll(prisma, {
   company1,
   visas1,
   seededEmployees,
-  seededContracts,
-  rulesMap1,
   demoUsersMap,
 }) {
-  console.log('Seeding Locked Pay Run for September 2026...');
+  const payrollService = new PayrollService(prisma);
+
+  const userHR1 = demoUsersMap['hr.mgr@gulftech.ae'];
+  const userGM1 = demoUsersMap['gm@gulftech.ae'];
   const userFinance1 = demoUsersMap['finance@gulftech.ae'];
   const userAdmin1 = demoUsersMap['admin@gulftech.ae'];
-  const userHR1 = demoUsersMap['hr.mgr@gulftech.ae'];
 
-  const septRun = await prisma.pay_runs.create({
-    data: {
-      company_id: company1.id,
+  // =========================================================================
+  // 1. September 2026 Pay Runs (Real Service Lifecycle)
+  // =========================================================================
+  console.log('Seeding real September 2026 Pay Runs via PayrollService...');
+
+  // 1a. September Pay Run for Visa 1 (MOHRE Dubai - 30 employees)
+  const septRun1 = await payrollService.createPayRun(
+    company1.id,
+    {
       company_visa_id: visas1.visa1_01.id,
+      period_month: '2026-09-01',
+      cutoff_date: '2026-09-25',
       run_type: 'Regular',
-      period_month: new Date('2026-09-01'),
-      cutoff_date: new Date('2026-09-25'),
-      status: 'Draft',
     },
-  });
+    userHR1.id
+  );
+  await payrollService.calculatePayRun(company1.id, septRun1.id, userHR1.id);
+  await payrollService.validatePayRun(company1.id, septRun1.id, userHR1.id);
+  await payrollService.lockPayRun(company1.id, septRun1.id, userGM1.id);
+  await payrollService.markPayRunPaid(company1.id, septRun1.id, userFinance1.id);
 
-  // Populate September payslips for all 40 employees with valid bank accounts
-  for (let idx = 0; idx < 40; idx++) {
-    const emp = seededEmployees[idx];
-    const contract = seededContracts[idx];
-    const basic = Number(contract.basic);
-    const housing = Number(contract.housing || 0);
-    const transport = Number(contract.transport || 0);
-    const other = Number(contract.other_allowances || 0);
-    const gross = basic + housing + transport + other;
+  // 1b. September Pay Run for Visa 2 (DIFC Freezone - 9 active employees in Sep)
+  const septRun2 = await payrollService.createPayRun(
+    company1.id,
+    {
+      company_visa_id: visas1.visa1_02.id,
+      period_month: '2026-09-01',
+      cutoff_date: '2026-09-25',
+      run_type: 'Regular',
+    },
+    userHR1.id
+  );
+  await payrollService.calculatePayRun(company1.id, septRun2.id, userHR1.id);
+  await payrollService.validatePayRun(company1.id, septRun2.id, userHR1.id);
+  await payrollService.lockPayRun(company1.id, septRun2.id, userGM1.id);
+  await payrollService.markPayRunPaid(company1.id, septRun2.id, userFinance1.id);
 
-    const septPs = await prisma.payslips.create({
-      data: {
-        company_id: company1.id,
-        pay_run_id: septRun.id,
-        employee_id: emp.id,
-        contract_id: contract.id,
-        period_from: new Date('2026-09-01'),
-        period_to: new Date('2026-09-30'),
-        paid_days: 30.0,
-        worked_days: 22.0,
-        basic,
-        gross,
-        total_deductions: 0.0,
-        net: gross,
-        status: 'Calculated',
-      },
-    });
+  console.log('September 2026 Pay Runs successfully calculated, validated, locked and paid.');
 
-    const sLines = [
-      { salary_rule_id: rulesMap1['BASIC'].id, code: 'BASIC', name: 'Basic Salary', amount: basic },
-      { salary_rule_id: rulesMap1['HRA'].id, code: 'HRA', name: 'Housing Allowance', amount: housing },
-      { salary_rule_id: rulesMap1['TRA'].id, code: 'TRA', name: 'Transport Allowance', amount: transport },
-      { salary_rule_id: rulesMap1['OTH'].id, code: 'OTH', name: 'Other Allowance', amount: other },
-      { salary_rule_id: rulesMap1['GROSS'].id, code: 'GROSS', name: 'Gross Salary', amount: gross },
-      { salary_rule_id: rulesMap1['NET'].id, code: 'NET', name: 'Net Pay to WPS', amount: gross },
-    ];
-
-    for (const l of sLines) {
-      await prisma.payslip_lines.create({
-        data: {
-          company_id: company1.id,
-          payslip_id: septPs.id,
-          salary_rule_id: l.salary_rule_id,
-          code: l.code,
-          name: l.name,
-          amount: l.amount,
-        },
-      });
-    }
-  }
-
-  // Lock September pay run
-  await prisma.$executeRaw`
-    UPDATE pay_runs 
-    SET status = 'Locked', locked_at = '2026-09-28T10:00:00Z'::timestamp, locked_by = ${userFinance1.id}::uuid 
-    WHERE id = ${septRun.id}::uuid
-  `;
-
-  // Seed scheduled salary adjustments for October 2026
+  // =========================================================================
+  // 2. Scheduled Salary Adjustments (Loans & Advances starting October 2026)
+  // =========================================================================
   console.log('Seeding scheduled salary adjustments (loans & advances)...');
   const adjsToSeed = [
-    { empIdx: 5, type: 'Loan', total: 20000.0, monthly: 2000.0, bal: 18000.0, reason: 'Personal renovation loan' },
-    { empIdx: 6, type: 'Loan', total: 15000.0, monthly: 1500.0, bal: 13500.0, reason: 'Vehicle repair loan' },
-    { empIdx: 7, type: 'Loan', total: 10000.0, monthly: 1000.0, bal: 9000.0, reason: 'Family support loan' },
+    { empIdx: 0, type: 'Loan', total: 6000.0, monthly: 500.0, bal: 6000.0, reason: 'Staff education loan' },
+    { empIdx: 5, type: 'Loan', total: 20000.0, monthly: 2000.0, bal: 20000.0, reason: 'Personal renovation loan' },
+    { empIdx: 6, type: 'Loan', total: 15000.0, monthly: 1500.0, bal: 15000.0, reason: 'Vehicle repair loan' },
+    { empIdx: 7, type: 'Loan', total: 10000.0, monthly: 1000.0, bal: 10000.0, reason: 'Family support loan' },
     { empIdx: 12, type: 'Advance', total: 800.0, monthly: 800.0, bal: 800.0, reason: 'Mid-month salary advance' },
   ];
 
@@ -111,251 +91,61 @@ export async function seedPayroll(prisma, {
     }
   }
 
-  // October 2026 Pay Run
-  console.log('Seeding October 2026 Pay Run, Payslips & Payslip Lines...');
-  const payRun1 = await prisma.pay_runs.create({
-    data: {
-      company_id: company1.id,
+  // =========================================================================
+  // 3. October 2026 Pay Runs (Calculated via PayrollService)
+  // =========================================================================
+  console.log('Seeding October 2026 Pay Runs via PayrollService for both visas...');
+
+  // 3a. October Pay Run for Visa 1 (MOHRE Dubai - 30 employees)
+  const payRun1 = await payrollService.createPayRun(
+    company1.id,
+    {
       company_visa_id: visas1.visa1_01.id,
+      period_month: '2026-10-01',
+      cutoff_date: '2026-10-25',
       run_type: 'Regular',
-      period_month: new Date('2026-10-01'),
-      cutoff_date: new Date('2026-10-25'),
-      status: 'Calculated',
-      calculated_at: new Date('2026-10-25T14:30:00Z'),
+    },
+    userHR1.id
+  );
+  const oct1Result = await payrollService.calculatePayRun(company1.id, payRun1.id, userHR1.id);
+  console.log(`October Visa 1 calculated: ${oct1Result.employee_count} employees, Net: AED ${oct1Result.total_net}`);
+
+  // 3b. October Pay Run for Visa 2 (DIFC Freezone - 12 employees, including 3 October joiners)
+  const payRun2 = await payrollService.createPayRun(
+    company1.id,
+    {
+      company_visa_id: visas1.visa1_02.id,
+      period_month: '2026-10-01',
+      cutoff_date: '2026-10-25',
+      run_type: 'Regular',
+    },
+    userHR1.id
+  );
+  const oct2Result = await payrollService.calculatePayRun(company1.id, payRun2.id, userHR1.id);
+  console.log(`October Visa 2 calculated: ${oct2Result.employee_count} employees, Net: AED ${oct2Result.total_net}`);
+
+  // 3c. Enter demo variance explanations for Visa 1 variances via service API
+  const oct1PayslipsWithVariance = await prisma.payslips.findMany({
+    where: {
+      pay_run_id: payRun1.id,
+      variance_pct: { not: null },
     },
   });
 
-  // Pay run issues
-  await prisma.pay_run_issues.createMany({
-    data: [
-      {
-        company_id: company1.id,
-        pay_run_id: payRun1.id,
-        employee_id: seededEmployees[40].id,
-        issue_code: 'MISSING_IBAN',
-        message: 'Employee has no IBAN on primary bank account',
-        severity: 'Blocking',
-      },
-      {
-        company_id: company1.id,
-        pay_run_id: payRun1.id,
-        employee_id: seededEmployees[41].id,
-        issue_code: 'MISSING_ROUTING_CODE',
-        message: 'Bank routing code missing for SIF file export',
-        severity: 'Blocking',
-      },
-    ],
-  });
-
-  // Payslips and lines for all 42 employees
-  for (let idx = 0; idx < 42; idx++) {
-    const emp = seededEmployees[idx];
-    const contract = seededContracts[idx];
-    const basic = Number(contract.basic);
-
-    const linesToCreate = [];
-
-    // Basic
-    linesToCreate.push({
-      salary_rule_id: rulesMap1['BASIC'].id,
-      code: 'BASIC',
-      name: 'Basic Salary',
-      category: 'Basic',
-      amount: basic,
-    });
-
-    // Housing
-    const housing = Number(contract.housing || 0);
-    linesToCreate.push({
-      salary_rule_id: rulesMap1['HRA'].id,
-      code: 'HRA',
-      name: 'Housing Allowance',
-      category: 'Allowance',
-      amount: housing,
-    });
-
-    // Transport
-    const transport = Number(contract.transport || 0);
-    linesToCreate.push({
-      salary_rule_id: rulesMap1['TRA'].id,
-      code: 'TRA',
-      name: 'Transport Allowance',
-      category: 'Allowance',
-      amount: transport,
-    });
-
-    // Other
-    const other = Number(contract.other_allowances || 0);
-    linesToCreate.push({
-      salary_rule_id: rulesMap1['OTH'].id,
-      code: 'OTH',
-      name: 'Other Allowance',
-      category: 'Allowance',
-      amount: other,
-    });
-
-    // Overtime
-    if (idx === 0) {
-      linesToCreate.push({
-        salary_rule_id: rulesMap1['OT_NORMAL'].id,
-        code: 'OT_NORMAL',
-        name: 'Normal Overtime (1.25x)',
-        category: 'Addition',
-        amount: 4200.00,
-      });
-    } else if (idx === 1) {
-      linesToCreate.push({
-        salary_rule_id: rulesMap1['OT_NIGHT'].id,
-        code: 'OT_NIGHT',
-        name: 'Night Overtime (1.50x)',
-        category: 'Addition',
-        amount: 2016.00,
-      });
-    } else if (idx === 2) {
-      linesToCreate.push({
-        salary_rule_id: rulesMap1['OT_REST'].id,
-        code: 'OT_REST',
-        name: 'Rest Day Overtime (1.50x)',
-        category: 'Addition',
-        amount: 1008.00,
-      });
-    } else if (idx === 3) {
-      linesToCreate.push({
-        salary_rule_id: rulesMap1['OT_REST'].id,
-        code: 'OT_REST',
-        name: 'Holiday Overtime (1.50x)',
-        category: 'Addition',
-        amount: 1196.50,
-      });
-    }
-
-    const computedGross = linesToCreate
-      .filter((l) => ['Basic', 'Allowance', 'Addition'].includes(l.category))
-      .reduce((sum, l) => sum + l.amount, 0);
-
-    linesToCreate.push({
-      salary_rule_id: rulesMap1['GROSS'].id,
-      code: 'GROSS',
-      name: 'Gross Salary',
-      category: 'Gross',
-      amount: computedGross,
-    });
-
-    // Deductions: Loans
-    if (idx === 5) {
-      linesToCreate.push({
-        salary_rule_id: rulesMap1['LOAN'].id,
-        code: 'LOAN',
-        name: 'Loan Recovery',
-        category: 'Deduction',
-        amount: 2000.00,
-      });
-    } else if (idx === 6) {
-      linesToCreate.push({
-        salary_rule_id: rulesMap1['LOAN'].id,
-        code: 'LOAN',
-        name: 'Loan Recovery',
-        category: 'Deduction',
-        amount: 1500.00,
-      });
-    } else if (idx === 7) {
-      linesToCreate.push({
-        salary_rule_id: rulesMap1['LOAN'].id,
-        code: 'LOAN',
-        name: 'Loan Recovery',
-        category: 'Deduction',
-        amount: 1000.00,
-      });
-    }
-
-    // Deductions: Absence
-    if (idx === 8 || idx === 9) {
-      linesToCreate.push({
-        salary_rule_id: rulesMap1['ABS'].id,
-        code: 'ABS',
-        name: 'Absence / Unpaid Leave Deduction',
-        category: 'Deduction',
-        amount: 1590.00,
-      });
-    }
-
-    // Deductions: Late penalties
-    if (idx === 10) {
-      linesToCreate.push({
-        salary_rule_id: rulesMap1['LATE'].id,
-        code: 'LATE',
-        name: 'Late Penalty Deduction',
-        category: 'Deduction',
-        amount: 250.00,
-      });
-    } else if (idx === 11) {
-      linesToCreate.push({
-        salary_rule_id: rulesMap1['LATE'].id,
-        code: 'LATE',
-        name: 'Late Penalty Deduction',
-        category: 'Deduction',
-        amount: 200.00,
-      });
-    }
-
-    // Deductions: Salary advance
-    if (idx === 12) {
-      linesToCreate.push({
-        salary_rule_id: rulesMap1['ADV'].id,
-        code: 'ADV',
-        name: 'Salary Advance Recovery',
-        category: 'Deduction',
-        amount: 800.00,
-      });
-    }
-
-    const computedDeductions = linesToCreate
-      .filter((l) => l.category === 'Deduction')
-      .reduce((sum, l) => sum + l.amount, 0);
-
-    const computedNet = computedGross - computedDeductions;
-
-    linesToCreate.push({
-      salary_rule_id: rulesMap1['NET'].id,
-      code: 'NET',
-      name: 'Net Pay to WPS',
-      category: 'Net',
-      amount: computedNet,
-    });
-
-    const payslip = await prisma.payslips.create({
-      data: {
-        company_id: company1.id,
-        pay_run_id: payRun1.id,
-        employee_id: emp.id,
-        contract_id: contract.id,
-        period_from: new Date('2026-10-01'),
-        period_to: new Date('2026-10-31'),
-        paid_days: 30.00,
-        worked_days: 22.00,
-        basic: basic,
-        gross: computedGross,
-        total_deductions: computedDeductions,
-        net: computedNet,
-        status: 'Calculated',
-      },
-    });
-
-    for (const line of linesToCreate) {
-      await prisma.payslip_lines.create({
-        data: {
-          company_id: company1.id,
-          payslip_id: payslip.id,
-          salary_rule_id: line.salary_rule_id,
-          code: line.code,
-          name: line.name,
-          amount: line.amount,
-        },
-      });
+  for (const ps of oct1PayslipsWithVariance) {
+    if (Math.abs(Number(ps.variance_pct)) >= 10.0) {
+      await payrollService.updateVarianceReason(
+        company1.id,
+        ps.id,
+        'Approved operational variance (shift & overtime adjustment)',
+        userHR1.id
+      );
     }
   }
 
-  // Initial audit logs
+  // =========================================================================
+  // 4. Initial Audit Logs
+  // =========================================================================
   console.log('Seeding initial audit logs...');
   await prisma.audit_logs.create({
     data: {
@@ -369,20 +159,11 @@ export async function seedPayroll(prisma, {
     },
   });
 
-  await prisma.audit_logs.create({
-    data: {
-      company_id: company1.id,
-      user_id: userHR1.id,
-      action: 'CALCULATE',
-      table_name: 'pay_runs',
-      record_id: payRun1.id,
-      new_values: { period_month: '2026-10-01', status: 'Calculated' },
-      ip_address: '127.0.0.1',
-    },
-  });
-
   return {
+    septRun1,
+    septRun2,
     payRun1,
+    payRun2,
   };
 }
 

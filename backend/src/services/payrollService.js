@@ -17,7 +17,14 @@ function toUuidOrNull(val) {
 
 export class PayrollService {
   constructor(client = prisma) {
-    this.prisma = client;
+    if (client && typeof client.$base !== 'function') {
+      this.prisma = Object.create(client, {
+        $base: { value: () => client, writable: true, configurable: true },
+        $scoped: { value: () => client, writable: true, configurable: true },
+      });
+    } else {
+      this.prisma = client;
+    }
   }
 
   /**
@@ -498,6 +505,15 @@ export class PayrollService {
           employee_id: emp.id,
           issue_code: 'MISSING_IBAN',
           message: `Employee ${emp.name} (${emp.employee_code}) is missing an active UAE IBAN on bank account`,
+          severity: 'Blocking',
+        });
+      } else if (!primaryBank.routing_code) {
+        generatedIssues.push({
+          company_id: companyId,
+          pay_run_id: payRun.id,
+          employee_id: emp.id,
+          issue_code: 'MISSING_ROUTING_CODE',
+          message: `Bank routing code missing for employee ${emp.name} (${emp.employee_code}) for SIF file export`,
           severity: 'Blocking',
         });
       }
@@ -1171,7 +1187,6 @@ export class PayrollService {
             employee: {
               include: {
                 bank_accounts: { where: { is_active: true } },
-                department: true,
               },
             },
             contract: { include: { job: true, department: true } },
@@ -1207,7 +1222,8 @@ export class PayrollService {
         company: true,
         payslips: {
           include: {
-            employee: { include: { department: true } },
+            employee: true,
+            contract: { include: { department: true } },
           },
           orderBy: { variance_pct: 'desc' },
         },

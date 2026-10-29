@@ -199,7 +199,6 @@ describe('NFR-7: 500-Employee Payroll Calculation Performance Benchmark (< 30s)'
     try {
       if (perfCompany) {
         // Direct cleanup
-        await prisma.$base().$executeRaw`UPDATE pay_runs SET status = 'Draft' WHERE company_id = ${perfCompany.id}::uuid`;
         await prisma.$base().pay_run_issues.deleteMany({ where: { company_id: perfCompany.id } });
         await prisma.$base().payslip_lines.deleteMany({ where: { company_id: perfCompany.id } });
         await prisma.$base().payslips.deleteMany({ where: { company_id: perfCompany.id } });

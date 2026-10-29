@@ -153,3 +153,16 @@ Tenant safety is guaranteed at multiple layers:
 2. **Prisma Client Extension**: Automatically injects `where: { company_id }` into all queries and creates; queries without a tenant scope throw a runtime exception.
 3. **Cross-Tenant Guard**: Endpoints explicitly verify that requested entity IDs belong to the active company before returning or mutating data.
 4. **Platform Admin Boundary**: Platform Admins have zero visibility into tenant records unless an unexpired `support_access_grants` record has been issued by the company admin.
+
+---
+
+## 5. Database Integrity & Migration Rules
+
+> [!IMPORTANT]
+> **Database & Schema Invariants**:
+> - Never change the database schema or data by hand.
+> - Never bypass a trigger or the status flow, not even temporarily.
+> - Schema changes go in a NEW Prisma migration. Applied migration files are never edited.
+> - Demo data comes only from backend/prisma/seed/.
+> - Test data is created inside the test that needs it.
+

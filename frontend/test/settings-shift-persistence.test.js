@@ -64,7 +64,7 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
 
       // 1. Check or start API on port 5000
       try {
-        await waitForHttp(`http://localhost:${API_PORT}/api/v1/health`, 1500);
+        await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 1500);
         console.log('API server already running on port 5000');
       } catch {
         console.log('Starting API server on port 5000...');
@@ -72,22 +72,22 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
           cwd: apiDir,
           env: { ...process.env, PORT: String(API_PORT), NODE_ENV: 'production' },
         });
-        await waitForHttp(`http://localhost:${API_PORT}/api/v1/health`, 20000);
+        await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 20000);
         console.log('API server ready on port 5000');
       }
 
-      // 2. Check or start Web on port 3000
+      // 2. Check or start Web on port 3100
       try {
-        await waitForHttp(`http://localhost:${WEB_PORT}/login`, 1500);
-        console.log('Web server already running on port 3000');
+        await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 1500);
+        console.log('Web server already running on port 3100');
       } catch {
-        console.log('Starting Next.js server on port 3000...');
+        console.log('Starting Next.js server on port 3100...');
         webProcess = spawn(process.execPath, [nextBin, 'start', '-p', String(WEB_PORT)], {
           cwd: webDir,
           env: { ...process.env, NODE_ENV: 'production' },
         });
-        await waitForHttp(`http://localhost:${WEB_PORT}/login`, 25000);
-        console.log('Web server ready on port 3000');
+        await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 25000);
+        console.log('Web server ready on port 3100');
       }
 
       // 3. Launch Playwright Chromium
@@ -113,7 +113,7 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
     const page = await context.newPage();
 
     // 1. Log in as Company Admin
-    await page.goto(`http://localhost:${WEB_PORT}/login`);
+    await page.goto(`http://127.0.0.1:${WEB_PORT}/login`);
     await page.waitForSelector('input[type="email"]');
     await page.fill('input[type="email"]', 'admin@gulftech.ae');
     await page.fill('input[type="password"]', 'Nextal@2026!');
@@ -123,7 +123,7 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
     await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10000 });
 
     // 2. Navigate to /settings
-    await page.goto(`http://localhost:${WEB_PORT}/settings`);
+    await page.goto(`http://127.0.0.1:${WEB_PORT}/settings`);
     await page.waitForSelector('#settings-tile-shifts_policies');
 
     // 3. Open Shifts & Attendance Policies drawer

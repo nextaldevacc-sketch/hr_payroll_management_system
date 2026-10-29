@@ -165,7 +165,21 @@ export async function downloadVarianceReportExcel(req, res, next) {
   }
 }
 
+export async function getPayrollOverview(req, res, next) {
+  try {
+    const result = await payrollService.listPayRuns(req.companyId);
+    res.json({
+      status: 'success',
+      count: result.total,
+      data: result.items,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export default {
+  getPayrollOverview,
   listPayRuns,
   getPayRun,
   listPayRunPayslips,

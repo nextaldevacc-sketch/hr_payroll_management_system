@@ -585,9 +585,9 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
   });
 
   it('T20: Given Locked run, then a mistake found -> Expected Payslip cannot be edited; an approved correction payslip in a later run, linked to the original and shown in the audit history', async () => {
-    // 1. Locate locked September 2026 pay run
+    // 1. Locate locked or paid September 2026 pay run
     const lockedRun = await prisma.$base().pay_runs.findFirst({
-      where: { company_id: companyA.id, status: 'Locked' },
+      where: { company_id: companyA.id, status: { in: ['Locked', 'Paid'] } },
       include: { payslips: true },
     });
     assert(lockedRun && lockedRun.payslips.length > 0, 'Locked pay run with payslips must exist');
@@ -650,9 +650,9 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
   // =========================================================================
   it('T25: Given Visa expiring in 85 days -> Expected Status Expiring Soon; reminder sent to the document owner and HR', { todo: 'Phase 9' }, () => {});
   it('T26: Given SIF for one company visa -> Expected SCR total equals the sum of EDR lines; each EDR matches its payslip', async () => {
-    // Locate locked pay run
+    // Locate locked or paid pay run
     const lockedRun = await prisma.$base().pay_runs.findFirst({
-      where: { company_id: companyA.id, status: 'Locked' },
+      where: { company_id: companyA.id, status: { in: ['Locked', 'Paid'] } },
     });
     assert(lockedRun, 'Locked pay run must exist for SIF generation');
 
@@ -713,12 +713,11 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
   // T28–T30: Payroll Validation & SIF Locking (Phase 6)
   // =========================================================================
   it('T28: Given Pay run with one employee missing an IBAN -> Expected Validation lists the error; the run cannot be calculated until it is fixed', async () => {
-    const testMonth = '2026-11-01';
+    const testMonth = '2027-01-01';
     let testRun = await prisma.$base().pay_runs.findFirst({
       where: { company_visa_id: testEmpA.company_visa_id, period_month: new Date(testMonth) },
     });
     if (testRun) {
-      await prisma.$executeRaw`UPDATE pay_runs SET status = 'Draft' WHERE id = ${testRun.id}::uuid`;
       await prisma.$base().pay_run_issues.deleteMany({ where: { pay_run_id: testRun.id } });
       await prisma.$base().payslip_lines.deleteMany({ where: { payslip: { pay_run_id: testRun.id } } });
       await prisma.$base().payslips.deleteMany({ where: { pay_run_id: testRun.id } });
@@ -773,36 +772,32 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
   });
 
   it("T29: Given Employee's net is 25% higher than last month, threshold 10% -> Expected Shown in the variance report; the run cannot be validated until a reason is entered", async () => {
-    const testMonth = '2026-11-01';
+    const testMonth = '2027-02-01';
     let testRun = await prisma.$base().pay_runs.findFirst({
       where: { company_visa_id: testEmpA.company_visa_id, period_month: new Date(testMonth) },
       include: { payslips: true },
     });
 
     if (testRun) {
-      await prisma.$executeRaw`UPDATE pay_runs SET status = 'Calculated' WHERE id = ${testRun.id}::uuid`;
+      await prisma.$base().pay_run_issues.deleteMany({ where: { pay_run_id: testRun.id } });
+      await prisma.$base().payslip_lines.deleteMany({ where: { payslip: { pay_run_id: testRun.id } } });
+      await prisma.$base().payslips.deleteMany({ where: { pay_run_id: testRun.id } });
+      await prisma.$base().pay_runs.delete({ where: { id: testRun.id } });
     }
 
-    if (!testRun) {
-      testRun = await payrollService.createPayRun(
-        companyA.id,
-        {
-          company_visa_id: testEmpA.company_visa_id,
-          period_month: testMonth,
-        },
-        'admin-id'
-      );
-    }
+    testRun = await payrollService.createPayRun(
+      companyA.id,
+      {
+        company_visa_id: testEmpA.company_visa_id,
+        period_month: testMonth,
+      },
+      'admin-id'
+    );
+    await payrollService.calculatePayRun(companyA.id, testRun.id, 'admin-id');
 
     let payslip = await prisma.$base().payslips.findFirst({
       where: { pay_run_id: testRun.id },
     });
-    if (!payslip) {
-      await payrollService.calculatePayRun(companyA.id, testRun.id, 'admin-id');
-      payslip = await prisma.$base().payslips.findFirst({
-        where: { pay_run_id: testRun.id },
-      });
-    }
     assert(payslip);
 
     await prisma.$base().payslips.update({
@@ -815,21 +810,24 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
       },
     });
 
-    await prisma.$base().pay_runs.update({
-      where: { id: testRun.id },
-      data: { status: 'Calculated' },
-    });
-
-    // Provide reasons for all other seasonal variances in the run so only test payslip is unreasoned
-    await prisma.$base().payslips.updateMany({
+    // Provide reasons for all other seasonal variances in the run via API so only test payslip is unreasoned
+    const otherVariances = await prisma.$base().payslips.findMany({
       where: {
         pay_run_id: testRun.id,
         id: { not: payslip.id },
       },
-      data: {
-        variance_reason: 'Regular seasonal shift adjustments',
-      },
+      select: { id: true, variance_pct: true, variance_reason: true },
     });
+    for (const otherPs of otherVariances) {
+      if (Math.abs(Number(otherPs.variance_pct || 0)) >= 10.0 && !otherPs.variance_reason) {
+        await payrollService.updateVarianceReason(
+          companyA.id,
+          otherPs.id,
+          'Regular seasonal shift adjustments',
+          'admin-id'
+        );
+      }
+    }
 
     // Clean any blocking issues so test specifically verifies variance reason enforcement
     await prisma.$base().pay_run_issues.deleteMany({
@@ -848,51 +846,79 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
       }
     );
 
-    // Enter variance justification reason for the test payslip
-    await payrollService.updateVarianceReason(
-      companyA.id,
-      payslip.id,
-      'Promotion and annual performance bonus approved by GM',
-      'admin-id'
-    );
+    // Enter variance justification reason for the test payslip through the API
+    const patchRes = await request(app)
+      .patch(`/api/v1/payroll/payslips/${payslip.id}/variance`)
+      .set('Authorization', `Bearer ${adminAToken}`)
+      .send({ reason: 'Promotion and annual performance bonus approved by GM' });
+    assert.equal(patchRes.status, 200);
 
     const validated = await payrollService.validatePayRun(companyA.id, testRun.id, 'admin-id');
     assert.equal(validated.status, 'Validated');
   });
 
   it('T30: Given Ask for the SIF of a run that is Validated but not Locked -> Expected Refused; the SIF is made only from a locked run', async () => {
-    const testMonth = '2026-11-01';
-    const run = await prisma.$base().pay_runs.findFirst({
-      where: { company_visa_id: testEmpA.company_visa_id, period_month: new Date(testMonth) },
-    });
-    assert(run);
+    // Uses Company B (Emirates Horizon Trading LLC) to keep Company A's future settings dating clean
+    const loginB = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'admin@horizon.ae', password: testUserPassword });
+    assert.equal(loginB.status, 200);
+    const adminBToken = loginB.body.token;
 
-    await prisma.$base().pay_runs.update({
-      where: { id: run.id },
-      data: { status: 'Validated' },
+    const visaB = await prisma.$base().company_visas.findFirst({
+      where: { company_id: companyB.id },
     });
+    assert(visaB, 'Company B visa must exist');
+
+    const testMonth = '2026-10-01';
+    let run = await prisma.$base().pay_runs.findFirst({
+      where: { company_visa_id: visaB.id, period_month: new Date(testMonth) },
+    });
+    if (!run) {
+      run = await payrollService.createPayRun(
+        companyB.id,
+        {
+          company_visa_id: visaB.id,
+          period_month: testMonth,
+        },
+        'admin-b-id'
+      );
+      await payrollService.calculatePayRun(companyB.id, run.id, 'admin-b-id');
+    }
+    await prisma.$base().pay_run_issues.deleteMany({
+      where: { pay_run_id: run.id, severity: 'Blocking' },
+    });
+    const unreasoned = await prisma.$base().payslips.findMany({
+      where: { pay_run_id: run.id, variance_reason: null },
+      select: { id: true, variance_pct: true },
+    });
+    for (const ps of unreasoned) {
+      if (Math.abs(Number(ps.variance_pct || 0)) >= 10) {
+        await payrollService.updateVarianceReason(
+          companyB.id,
+          ps.id,
+          'Company B verification baseline reason',
+          'admin-b-id'
+        );
+      }
+    }
+    run = await payrollService.validatePayRun(companyB.id, run.id, 'admin-b-id');
 
     const res = await request(app)
       .get(`/api/v1/payroll/runs/${run.id}/sif`)
-      .set('Authorization', `Bearer ${adminAToken}`);
+      .set('Authorization', `Bearer ${adminBToken}`);
 
     assert.equal(res.status, 400);
     assert.equal(res.body.code, 'SIF_REQUIRES_LOCKED_RUN');
 
-    await prisma.$base().pay_runs.update({
-      where: { id: run.id },
-      data: { status: 'Locked' },
-    });
+    await payrollService.lockPayRun(companyB.id, run.id, 'admin-b-id');
 
     const resLocked = await request(app)
       .get(`/api/v1/payroll/runs/${run.id}/sif`)
-      .set('Authorization', `Bearer ${adminAToken}`);
+      .set('Authorization', `Bearer ${adminBToken}`);
 
     assert.equal(resLocked.status, 200);
     assert(resLocked.text.startsWith('SCR,'));
-
-    // Reset status to Draft so it doesn't block future test runs
-    await prisma.$executeRaw`UPDATE pay_runs SET status = 'Draft' WHERE id = ${run.id}::uuid`;
   });
 
   // =========================================================================
@@ -1067,7 +1093,6 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
       where: { company_visa_id: testEmpA.company_visa_id, period_month: new Date(decMonth) },
     });
     if (decRun) {
-      await prisma.$executeRaw`UPDATE pay_runs SET status = 'Draft' WHERE id = ${decRun.id}::uuid`;
       await prisma.$base().pay_run_issues.deleteMany({ where: { pay_run_id: decRun.id } });
       await prisma.$base().payslip_lines.deleteMany({ where: { payslip: { pay_run_id: decRun.id } } });
       await prisma.$base().payslips.deleteMany({ where: { pay_run_id: decRun.id } });
