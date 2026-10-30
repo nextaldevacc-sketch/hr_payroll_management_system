@@ -202,5 +202,62 @@
       "next": "Next Step",
       "back": "Back"
     }
+  },
+  "offboarding": {
+    "title": "Offboarding & Final Settlement",
+    "subtitle": "Manage resignations, multi-department clearance checklists, and statutory end-of-service settlements",
+    "newSeparation": "Initiate Separation",
+    "tabs": {
+      "separations": "Separations & Clearance",
+      "settlement": "Final Settlement",
+      "reports": "Provisions & Liability Reports"
+    },
+    "types": {
+      "resignation": "Resignation",
+      "termination": "Termination"
+    },
+    "fields": {
+      "employee": "Employee",
+      "type": "Separation Type",
+      "noticeDate": "Notice Date",
+      "lastWorkingDay": "Last Working Day",
+      "reason": "Reason",
+      "status": "Status",
+      "clearanceStatus": "Clearance Progress",
+      "settlementStatus": "Settlement Status",
+      "netPayable": "Net Settlement"
+    },
+    "clearance": {
+      "title": "Clearance Checklist",
+      "it": "IT & Assets",
+      "admin": "Admin & Facilities",
+      "finance": "Finance & Recoveries",
+      "hr": "HR & Visa Cancellation",
+      "cleared": "Cleared",
+      "pending": "Pending",
+      "clearItem": "Clear Item",
+      "amountDue": "Amount Due / Recovery (AED)",
+      "notes": "Notes / Asset Condition"
+    },
+    "settlement": {
+      "title": "Final Settlement Breakdown",
+      "salaryDue": "Pro-rated Salary to Last Day",
+      "gratuity": "Statutory Gratuity (Article 51)",
+      "leaveEncashment": "Unused Leave Encashment",
+      "totalDues": "Total Dues",
+      "noticeShortfall": "Notice Shortfall Deduction",
+      "loanRecovery": "Outstanding Loan Recovery",
+      "trainingRecovery": "Training Cost Recovery",
+      "clearanceRecovery": "Clearance Checklist Deductions",
+      "totalRecoveries": "Total Deductions & Recoveries",
+      "netPayable": "Net Settlement Payable",
+      "negativeNetWarning": "Negative Net Balance: Employee owes company AED",
+      "prepare": "Prepare Settlement",
+      "validate": "Validate Settlement",
+      "approve": "GM Approve",
+      "pay": "Finance Mark Paid",
+      "downloadPdf": "Download Settlement Payslip (PDF)",
+      "frozenBadge": "Frozen & Locked (Article 51)"
+    }
   }
 }

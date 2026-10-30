@@ -157,10 +157,17 @@ export class AuthService {
       throw err;
     }
 
-    // 4. Check user status (Active / Invited / Disabled)
-    if (user.status === 'Disabled') {
+    // 4. Check user status & employee archive status (T36)
+    if (user.employee && user.employee.status === 'Archived') {
+      const err = new Error('Your employee account has been archived following final settlement. Login refused.');
+      err.status = 403;
+      err.code = 'ACCOUNT_ARCHIVED';
+      throw err;
+    }
+
+    if (['Disabled', 'Archived', 'Deactivated'].includes(user.status)) {
       const err = new Error('Your user account has been disabled. Please contact your company administrator.');
-      err.status = 401;
+      err.status = 403;
       err.code = 'ACCOUNT_DISABLED';
       throw err;
     }

@@ -48,3 +48,13 @@ The following thresholds are seeded as sensible UAE corporate defaults but repre
    - *Current Default*: `DIV_30` (Gross / 30 * absent days) — standard corporate commercial convention in UAE.
    - *Alternative Option*: `DAYS_365` (Gross * 12 / 365 * absent days) — statutory formula matching Article 51 gratuity daily rate.
    - *Question for Client*: Confirm client's employment contract terms for unapproved absence divisor (`DIV_30` vs `DIV_365`).
+
+---
+
+## 3. End-of-Service Gratuity Maximum Cap Basis (Article 51)
+*Tagged in UI as: "Company policy setting, default basic × 24"*
+
+- **Current Default**: `basic * 24` (2 years' basic salary = 24 months of employee's last basic wage).
+- **Statutory Context**: UAE Federal Decree-Law No. 33 of 2021 (Article 51, Clause 5) provides that the end of service gratuity in its entirety shall not exceed the wage of two years.
+- **Open Question for Client**: Confirm whether the client's employment contracts define the two-year ceiling on the basis of **Basic Wage** (`basic * 24`) or **Total Wage (Gross)** (`gross * 24`). The system supports both options via the `gratuity_cap_basis` setting (default: `'Basic'`).
+

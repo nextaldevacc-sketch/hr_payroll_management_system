@@ -17,3 +17,4 @@ try {
   fs.writeFileSync(outPath, output, 'utf8');
   console.log(`Saved raw acceptance output to ${outPath} (${output.length} chars)`);
 }
+

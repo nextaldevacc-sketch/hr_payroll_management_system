@@ -27,6 +27,7 @@ import {
   EyeOff,
   AlertCircle,
   FileCheck,
+  UserMinus,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../context/AuthContext';
@@ -322,6 +323,15 @@ export function EmployeeProfileFeature({ id } = {}) {
                   {employee.employee_code}
                 </span>
                 <StatusPill status={employee.status} />
+                {employee.status === 'Archived' && (
+                  <Link
+                    href="/offboarding"
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-colors"
+                  >
+                    <UserMinus className="w-3 h-3" />
+                    <span>Offboarded / Settlement</span>
+                  </Link>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-muted pt-1">

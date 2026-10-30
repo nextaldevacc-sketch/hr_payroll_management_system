@@ -1,6 +1,6 @@
 # Spec Section 15 Acceptance Test Results (T1–T37)
 
-*Generated automatically from `docs/reports/acceptance-raw.txt` on 2026-10-29T10:57:24.466Z*
+*Generated automatically from `docs/reports/acceptance-raw.txt` on 2026-10-30T05:01:56.315Z*
 
 | ID | Given | Expected | Status |
 | :--- | :--- | :--- | :--- |
@@ -24,10 +24,10 @@
 | **T18** | Loan 6,000 at 500 a month, third month | AED 500 deducted; balance AED 4,500 | **PASS** |
 | **T19** | Ahmed's month (T6, T11, T18) | Net AED 7,044.80 | **PASS** |
 | **T20** | Locked run, then a mistake found | Payslip cannot be edited; an approved correction payslip in a later run, linked to the original and shown in the audit history | **PASS** |
-| **T21** | Gratuity, basic 5,000, 3 years 6 months | AED 12,082.19 | **TODO (Phase 8)** |
-| **T22** | Gratuity, basic 6,000, 7 years | AED 32,547.95 | **TODO (Phase 8)** |
-| **T23** | Gratuity, 11 months' service | Not eligible; AED 0 | **TODO (Phase 8)** |
-| **T24** | Leave encashment, 12 days, basic 6,000 | AED 2,367.12 | **TODO (Phase 8)** |
+| **T21** | Gratuity, basic 5,000, 3 years 6 months | AED 12,082.19 | **PASS** |
+| **T22** | Gratuity, basic 6,000, 7 years | AED 32,547.95 | **PASS** |
+| **T23** | Gratuity, 11 months' service | Not eligible; AED 0 | **PASS** |
+| **T24** | Leave encashment, 12 days, basic 6,000 | AED 2,367.12 | **PASS** |
 | **T25** | Visa expiring in 85 days | Status Expiring Soon; reminder sent to the document owner and HR | **TODO (Phase 9)** |
 | **T26** | SIF for one company visa | SCR total equals the sum of EDR lines; each EDR matches its payslip | **PASS** |
 | **T27** | New employee with no bank account | Cannot be set to Active | **PASS** |
@@ -38,12 +38,12 @@
 | **T32** | Approved 5-day leave is cancelled | Balance goes back up by 5 days | **PASS** |
 | **T33** | Employee requests 2 OT hours in self-service; manager approves as normal OT | AED 52.08 in the next pay run inputs | **PASS** |
 | **T34** | Department manager has not confirmed the team's attendance at cut-off | Those days are held for next month; validation shows them | **PASS** |
-| **T35** | Settlement with the laptop item not cleared | Settlement cannot be approved | **TODO (Phase 8)** |
-| **T36** | Settlement approved and the final working date has passed | Login refused; status Archived | **TODO (Phase 8)** |
+| **T35** | Settlement with the laptop item not cleared | Settlement cannot be approved | **PASS** |
+| **T36** | Settlement approved and the final working date has passed | Login refused; status Archived | **PASS** |
 | **T37** | Salary adjustment entered but not approved | Not used by the pay run | **PASS** |
 
 ## Summary
 - **Total Tests**: 37
-- **Passed**: 30
-- **Todo**: 7 (T21, T22, T23, T24, T25, T35, T36)
+- **Passed**: 36
+- **Todo**: 1 (T25)
 - **Failed**: 0

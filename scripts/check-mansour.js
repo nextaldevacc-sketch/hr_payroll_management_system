@@ -15,3 +15,4 @@ async function run() {
 }
 
 run().catch(console.error).finally(() => process.exit(0));
+

@@ -10,6 +10,10 @@ import overtimeService from '../../src/services/overtimeService.js';
 import leaveService from '../../src/services/leaveService.js';
 import payrollService from '../../src/services/payrollService.js';
 import salaryAdjustmentService from '../../src/services/salaryAdjustmentService.js';
+import separationService from '../../src/services/separationService.js';
+import settlementService from '../../src/services/settlementService.js';
+import { runDeactivationJob } from '../../src/jobs/deactivationJob.js';
+import bcrypt from 'bcrypt';
 import {
   calculateOpeningLeaveAllocation,
   checkActivationRequirements,
@@ -30,6 +34,11 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
   let testEmpB;
   let annualLeaveType;
   let flaggedLeaveType;
+  let payrollUser;
+  let gmUser;
+  let hrMgrUser;
+  let testEmpSep;
+  let testSep;
 
   const testUserPassword = 'Nextal@2026!';
 
@@ -137,6 +146,59 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
         },
       });
     }
+
+    // Offboarding & Settlement Test Personas & Test Employee
+    payrollUser = await prisma.$base().users.findFirst({ where: { email: 'payroll@gulftech.ae' } });
+    gmUser = await prisma.$base().users.findFirst({ where: { email: 'gm@gulftech.ae' } });
+    hrMgrUser = await prisma.$base().users.findFirst({ where: { email: 'hr.mgr@gulftech.ae' } });
+
+    testEmpSep = await prisma.$base().employees.create({
+      data: {
+        company_id: companyA.id,
+        company_visa_id: testEmpA.company_visa_id,
+        branch_id: testEmpA.branch_id,
+        department_id: testEmpA.department_id,
+        employee_code: `SEP_${Date.now()}`.slice(0, 18),
+        name: 'Separation Test Employee',
+        gender: 'Male',
+        nationality: 'ARE',
+        joining_date: new Date('2023-04-01'),
+        status: 'Active',
+      },
+    });
+
+    const baseContract = testEmpA.contracts[0];
+    await prisma.$base().contracts.create({
+      data: {
+        company_id: companyA.id,
+        employee_id: testEmpSep.id,
+        contract_type: 'Unlimited',
+        start_date: new Date('2023-04-01'),
+        job_id: baseContract.job_id,
+        department_id: baseContract.department_id,
+        shift_id: baseContract.shift_id,
+        attendance_policy_id: baseContract.attendance_policy_id,
+        structure_id: baseContract.structure_id,
+        basic: 5000.0,
+        housing: 3000.0,
+        gross: 8000.0,
+        effective_date: new Date('2023-04-01'),
+        status: 'Active',
+      },
+    });
+
+    testSep = await separationService.createSeparation(
+      companyA.id,
+      {
+        employee_id: testEmpSep.id,
+        type: 'Resignation',
+        reason: 'Career transition',
+        notice_date: '2026-09-01',
+        last_working_day: '2026-10-31',
+        auto_approve: true,
+      },
+      hrMgrUser.id
+    );
   });
 
   // =========================================================================
@@ -640,10 +702,37 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
   // =========================================================================
   // T21–T24: Gratuity & Offboarding (Phase 8)
   // =========================================================================
-  it('T21: Given Gratuity, basic 5,000, 3 years 6 months -> Expected AED 12,082.19', { todo: 'Phase 8' }, () => {});
-  it('T22: Given Gratuity, basic 6,000, 7 years -> Expected AED 32,547.95', { todo: 'Phase 8' }, () => {});
-  it("T23: Given Gratuity, 11 months' service -> Expected Not eligible; AED 0", { todo: 'Phase 8' }, () => {});
-  it('T24: Given Leave encashment, 12 days, basic 6,000 -> Expected AED 2,367.12', { todo: 'Phase 8' }, () => {});
+  it('T21: Given Gratuity, basic 5,000, 3 years 6 months -> Expected AED 12,082.19', async () => {
+    const calc = await settlementService.calculateSettlement(companyA.id, testSep.id, {
+      basicSalary: 5000.0,
+      serviceYears: 3.5,
+    });
+    assert.equal(calc.gratuity, 12082.19, 'Gratuity for 3.5 years at basic 5000 must be 12,082.19');
+  });
+
+  it('T22: Given Gratuity, basic 6,000, 7 years -> Expected AED 32,547.95', async () => {
+    const calc = await settlementService.calculateSettlement(companyA.id, testSep.id, {
+      basicSalary: 6000.0,
+      serviceYears: 7.0,
+    });
+    assert.equal(calc.gratuity, 32547.95, 'Gratuity for 7 years at basic 6000 must be 32,547.95');
+  });
+
+  it("T23: Given Gratuity, 11 months' service -> Expected Not eligible; AED 0", async () => {
+    const calc = await settlementService.calculateSettlement(companyA.id, testSep.id, {
+      basicSalary: 5000.0,
+      serviceYears: 11 / 12,
+    });
+    assert.equal(calc.gratuity, 0, 'Gratuity for under 1 year service must be 0');
+  });
+
+  it('T24: Given Leave encashment, 12 days, basic 6,000 -> Expected AED 2,367.12', async () => {
+    const calc = await settlementService.calculateSettlement(companyA.id, testSep.id, {
+      basicSalary: 6000.0,
+      unusedLeaveDays: 12,
+    });
+    assert.equal(calc.leave_encashment, 2367.12, 'Leave encashment for 12 days at basic 6000 must be 2,367.12');
+  });
 
   // =========================================================================
   // T25–T26: Compliance & SIF (Phase 9 / Phase 6)
@@ -1066,8 +1155,112 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
   // =========================================================================
   // T35–T37: Offboarding Clearance & Unapproved Adjustments (Phase 8 & Phase 6)
   // =========================================================================
-  it('T35: Given Settlement with the laptop item not cleared -> Expected Settlement cannot be approved', { todo: 'Phase 8' }, () => {});
-  it('T36: Given Settlement approved and the final working date has passed -> Expected Login refused; status Archived', { todo: 'Phase 8' }, () => {});
+  it('T35: Given Settlement with the laptop item not cleared -> Expected Settlement cannot be approved', async () => {
+    // 1. Prepare settlement
+    const settlement = await settlementService.prepareSettlement(
+      companyA.id,
+      testSep.id,
+      {},
+      payrollUser.id
+    );
+
+    // 2. Mark non-laptop items as Cleared, keep laptop item as Pending
+    const items = await prisma.$base().clearance_items.findMany({
+      where: { separation_id: testSep.id },
+    });
+    for (const item of items) {
+      if (!item.item.toLowerCase().includes('laptop')) {
+        await separationService.updateClearanceItem(
+          companyA.id,
+          item.id,
+          { status: 'Cleared' },
+          hrMgrUser
+        );
+      } else {
+        await separationService.updateClearanceItem(
+          companyA.id,
+          item.id,
+          { status: 'Pending' },
+          hrMgrUser
+        );
+      }
+    }
+
+    // 3. Validation must fail because laptop item is uncleared
+    await assert.rejects(
+      async () => {
+        await settlementService.validateSettlement(companyA.id, settlement.id, hrMgrUser.id);
+      },
+      (err) => {
+        assert.equal(err.code, 'CLEARANCE_ITEMS_PENDING');
+        return true;
+      }
+    );
+  });
+
+  it('T36: Given Settlement approved and the final working date has passed -> Expected Login refused; status Archived', async () => {
+    // 1. Clear the laptop item so settlement can proceed
+    const laptopItem = await prisma.$base().clearance_items.findFirst({
+      where: { separation_id: testSep.id, item: { contains: 'Laptop' } },
+    });
+    if (laptopItem) {
+      await separationService.updateClearanceItem(
+        companyA.id,
+        laptopItem.id,
+        { status: 'Cleared' },
+        hrMgrUser
+      );
+    }
+
+    // 2. Validate settlement (by HR Manager)
+    const settlement = await prisma.$base().final_settlements.findUnique({
+      where: { separation_id: testSep.id },
+    });
+    await settlementService.validateSettlement(companyA.id, settlement.id, hrMgrUser.id);
+
+    // 3. Approve settlement (by GM)
+    await settlementService.approveSettlement(companyA.id, settlement.id, gmUser.id);
+
+    // 4. Set final working day to yesterday so it has passed
+    const pastDate = new Date();
+    pastDate.setDate(pastDate.getDate() - 1);
+    await prisma.$base().separations.update({
+      where: { id: testSep.id },
+      data: { last_working_day: pastDate },
+    });
+
+    // 5. Link user to test employee to verify login refusal
+    const empUser = await prisma.$base().users.create({
+      data: {
+        company_id: companyA.id,
+        employee_id: testEmpSep.id,
+        email: `leaver_${Date.now()}@gulftech.ae`,
+        password_hash: await bcrypt.hash('Nextal@2026!', 10),
+        status: 'Active',
+      },
+    });
+
+    // 6. Run nightly deactivation job
+    await runDeactivationJob(new Date());
+
+    // 7. Verify employee record is Archived
+    const updatedEmp = await prisma.$base().employees.findUnique({
+      where: { id: testEmpSep.id },
+    });
+    assert.equal(updatedEmp.status, 'Archived');
+
+    // 8. Verify login is refused (HTTP 403)
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: empUser.email, password: 'Nextal@2026!' });
+    assert.equal(loginRes.status, 403);
+
+    // 9. Verify separation tasks for HR were created
+    const tasks = await prisma.$base().separation_tasks.findMany({
+      where: { separation_id: testSep.id },
+    });
+    assert(tasks.length >= 2, 'Visa and labour card cancellation tasks must be opened');
+  });
   it('T37: Given Salary adjustment entered but not approved -> Expected Not used by the pay run', async () => {
     // 0. Clean prior adjustments for test employee to isolate unapproved adjustment test
     await prisma.$base().salary_adjustments.deleteMany({

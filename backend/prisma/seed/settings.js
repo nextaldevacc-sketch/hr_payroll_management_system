@@ -56,6 +56,25 @@ export async function seedSettings(prisma, { company1, company2, rolesMap }) {
     ],
   });
 
+  const separationFlow1 = await prisma.approval_flows.create({
+    data: {
+      company_id: company1.id,
+      request_type: 'Separation',
+      name: 'Separation & Exit Approval Flow',
+      priority: 1,
+      is_active: true,
+    },
+  });
+  await prisma.approval_flow_steps.create({
+    data: {
+      company_id: company1.id,
+      flow_id: separationFlow1.id,
+      step_no: 1,
+      role_id: rolesMap['HR_MANAGER'].id,
+      approver_rule: 'SpecificRole',
+    },
+  });
+
   // 2. Shifts & Policies for Company 1
   console.log('Seeding shifts and attendance policies for Company 1...');
   const shift1 = await prisma.shifts.create({
