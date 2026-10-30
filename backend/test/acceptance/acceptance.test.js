@@ -12,6 +12,8 @@ import payrollService from '../../src/services/payrollService.js';
 import salaryAdjustmentService from '../../src/services/salaryAdjustmentService.js';
 import separationService from '../../src/services/separationService.js';
 import settlementService from '../../src/services/settlementService.js';
+import complianceService, { runComplianceJob } from '../../src/services/complianceService.js';
+import mailer from '../../src/lib/mailer.js';
 import { runDeactivationJob } from '../../src/jobs/deactivationJob.js';
 import bcrypt from 'bcrypt';
 import {
@@ -894,7 +896,72 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
   // =========================================================================
   // T25–T26: Compliance & SIF (Phase 9 / Phase 6)
   // =========================================================================
-  it('T25: Given Visa expiring in 85 days -> Expected Status Expiring Soon; reminder sent to the document owner and HR', { todo: 'Phase 9' }, () => {});
+  it('T25: Given Visa expiring in 85 days -> Expected Status Expiring Soon; reminder sent to the document owner and HR', async () => {
+    // 1. Create or ensure an employee document with Visa expiring in 85 days from reference date
+    const targetRefDate = new Date('2026-10-15T10:00:00.000Z');
+    const expiryDate = new Date('2027-01-08T00:00:00.000Z'); // 85 days in Dubai calendar time
+
+    let visaDoc = await prisma.$base().employee_documents.findFirst({
+      where: { employee_id: testEmpA.id, doc_type: 'VISA' },
+    });
+
+    if (visaDoc) {
+      visaDoc = await prisma.$base().employee_documents.update({
+        where: { id: visaDoc.id },
+        data: {
+          doc_number: 'VISA-T25-85D',
+          expiry_date: expiryDate,
+          status: 'Valid',
+          last_alert_days: null,
+          last_alert_sent_at: null,
+          verification_status: 'Verified',
+        },
+      });
+    } else {
+      visaDoc = await prisma.$base().employee_documents.create({
+        data: {
+          company_id: companyA.id,
+          employee_id: testEmpA.id,
+          doc_type: 'VISA',
+          doc_number: 'VISA-T25-85D',
+          expiry_date: expiryDate,
+          status: 'Valid',
+          verification_status: 'Verified',
+        },
+      });
+    }
+
+    // 2. Run the compliance job
+    const jobResult = await complianceService.runComplianceJob({
+      referenceDate: targetRefDate,
+      companyId: companyA.id,
+    });
+    assert(jobResult.scanned > 0, 'Job must scan active employee documents');
+
+    // 3. Assert document status is updated to 'Expiring Soon'
+    const updatedDoc = await prisma.$base().employee_documents.findUnique({
+      where: { id: visaDoc.id },
+    });
+    assert.equal(updatedDoc.status, 'Expiring Soon', 'Document status must be Expiring Soon');
+    assert.equal(updatedDoc.last_alert_days, 90, 'Milestone 90 alert must be recorded on document');
+
+    // 4. Assert in-app notifications created for HR
+    const notifications = await prisma.$base().notifications.findMany({
+      where: {
+        company_id: companyA.id,
+        type: 'DOCUMENT_EXPIRING',
+      },
+      orderBy: { created_at: 'desc' },
+    });
+    assert(notifications.length > 0, 'In-app notification must be sent');
+    const t25Notif = notifications.find((n) => n.body.includes('VISA-T25-85D'));
+    assert(t25Notif, 'Notification must mention the expiring document number');
+
+    // 5. Assert mailer was called
+    const recentSent = mailer.getRecentSent(20);
+    const docMail = recentSent.find((m) => m.subject.includes('VISA') || m.text.includes('VISA-T25-85D'));
+    assert(docMail, 'Reminder email must be dispatched via mailer');
+  });
   it('T26: Given SIF for one company visa -> Expected SCR total equals the sum of EDR lines; each EDR matches its payslip', async () => {
     // Locate locked or paid pay run
     const lockedRun = await prisma.$base().pay_runs.findFirst({

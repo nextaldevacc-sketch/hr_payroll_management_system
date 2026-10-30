@@ -444,6 +444,20 @@ export class CompanyService {
   }
 
   /**
+   * List support access grants for a company
+   */
+  async listSupportAccessGrants({ companyId }) {
+    return await this.prisma.$base().support_access_grants.findMany({
+      where: { company_id: companyId },
+      orderBy: { created_at: 'desc' },
+      include: {
+        platform_user: { select: { id: true, email: true, employee: { select: { name: true } } } },
+        grantor: { select: { id: true, email: true, employee: { select: { name: true } } } },
+      },
+    });
+  }
+
+  /**
    * Check if a Platform Admin has an active, unrevoked support access grant (FR-PL3)
    */
   async checkSupportAccess({ companyId, platformUserId }) {

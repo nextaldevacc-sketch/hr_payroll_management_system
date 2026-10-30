@@ -145,4 +145,9 @@ router.get('/versions/:entityType/:entityId', authorizeSettings('general', 'view
 router.get('/defaults-diff/:section', authorizeSettings('general', 'view'), settingsController.getDefaultsDiff);
 router.post('/reset-defaults/:section', authorizeSettings('general', 'edit'), settingsController.resetDefaults);
 
+// 13. Support Access (FR-PL3) - Company Admin grants & revokes time-limited support access
+router.get('/support-access', authorizeSettings('company', 'view'), settingsController.getSupportGrants);
+router.post('/support-access', authorizeSettings('company', 'edit'), settingsController.createSupportGrant);
+router.delete('/support-access/:id', authorizeSettings('company', 'edit'), settingsController.revokeSupportGrant);
+
 export default router;

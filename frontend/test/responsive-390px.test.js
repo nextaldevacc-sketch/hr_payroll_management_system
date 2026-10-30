@@ -69,11 +69,12 @@ describe('Phase 7: 390px Mobile Responsive Layout (No Horizontal Scroll)', { tim
     try {
       await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 1500);
     } catch {
-      const hasBuild = fs.existsSync(path.join(webDir, '.next'));
+      const distDir = fs.existsSync(path.join(webDir, '.next-build')) ? '.next-build' : (fs.existsSync(path.join(webDir, '.next')) ? '.next' : null);
+      const hasBuild = Boolean(distDir);
       const commandArgs = hasBuild ? [nextBin, 'start', '-p', String(WEB_PORT)] : [nextBin, 'dev', '-p', String(WEB_PORT)];
       webProcess = spawn(process.execPath, commandArgs, {
         cwd: webDir,
-        env: { ...process.env, PORT: String(WEB_PORT), NODE_ENV: hasBuild ? 'production' : 'development' },
+        env: { ...process.env, PORT: String(WEB_PORT), NODE_ENV: hasBuild ? 'production' : 'development', NEXT_DIST_DIR: distDir || '.next' },
         stdio: 'ignore',
       });
       await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 35000);

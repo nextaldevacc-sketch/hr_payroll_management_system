@@ -1,4 +1,6 @@
 import settingsService from '../services/settingsService.js';
+import companyService from '../services/companyService.js';
+import prisma from '../lib/prisma.js';
 
 export async function getOverview(req, res, next) {
   try {
@@ -502,6 +504,55 @@ export async function resetDefaults(req, res, next) {
   } catch (err) { next(err); }
 }
 
+export async function getSupportGrants(req, res, next) {
+  try {
+    const grants = await companyService.listSupportAccessGrants({
+      companyId: req.companyId,
+    });
+    res.json({ status: 'success', data: grants });
+  } catch (err) { next(err); }
+}
+
+export async function createSupportGrant(req, res, next) {
+  try {
+    let platformUserId = req.body.platform_user_id;
+
+    // If platform_user_id not passed, find platform admin user
+    if (!platformUserId) {
+      const platformAdmin = await prisma.$base().users.findFirst({
+        where: { is_platform_admin: true },
+      });
+      if (platformAdmin) {
+        platformUserId = platformAdmin.id;
+      } else {
+        const err = new Error('No platform admin user found to grant support access to');
+        err.status = 400;
+        throw err;
+      }
+    }
+
+    const grant = await companyService.grantSupportAccess({
+      companyId: req.companyId,
+      platformUserId,
+      grantedBy: req.user.id || req.user.userId,
+      reason: req.body.reason || 'Customer Support Troubleshooting',
+      durationHours: Number(req.body.duration_hours || req.body.hours || 24),
+    });
+
+    res.status(201).json({ status: 'success', data: grant });
+  } catch (err) { next(err); }
+}
+
+export async function revokeSupportGrant(req, res, next) {
+  try {
+    const grant = await companyService.revokeSupportAccess({
+      grantId: req.params.id,
+      revokedBy: req.user.id || req.user.userId,
+    });
+    res.json({ status: 'success', data: grant, message: 'Support access revoked' });
+  } catch (err) { next(err); }
+}
+
 export default {
   getOverview,
   getCompany,
@@ -551,4 +602,7 @@ export default {
   getVersionHistory,
   getDefaultsDiff,
   resetDefaults,
+  getSupportGrants,
+  createSupportGrant,
+  revokeSupportGrant,
 };

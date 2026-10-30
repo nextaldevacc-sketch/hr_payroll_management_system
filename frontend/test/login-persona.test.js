@@ -50,6 +50,7 @@ describe('Demo Persona Bar Production Build Protection', () => {
       env: {
         ...process.env,
         NODE_ENV: 'production',
+        NEXT_DIST_DIR: '.next-build',
         NEXT_PUBLIC_DEMO_MODE: 'false',
       },
     });
@@ -75,7 +76,7 @@ describe('Demo Persona Bar Production Build Protection', () => {
       while (Date.now() - startTime < 15000) {
         try {
           await new Promise((resolve, reject) => {
-            const req = http.get(`http://localhost:${testPort}/login`, (res) => {
+            const req = http.get(`http://127.0.0.1:${testPort}/login`, (res) => {
               res.resume();
               if (res.statusCode === 200) {
                 ready = true;
@@ -100,7 +101,7 @@ describe('Demo Persona Bar Production Build Protection', () => {
 
       // Fetch the login page HTML
       const html = await new Promise((resolve, reject) => {
-        http.get(`http://localhost:${testPort}/login`, (res) => {
+        http.get(`http://127.0.0.1:${testPort}/login`, (res) => {
           let body = '';
           res.on('data', (chunk) => (body += chunk));
           res.on('end', () => resolve(body));

@@ -331,3 +331,21 @@ export async function fetchDefaultsDiff(section) {
 export async function resetDefaults(section) {
   return request(`/reset-defaults/${section}`, { method: 'POST' }, null);
 }
+
+// 12. Support Access (FR-PL3)
+export async function fetchSupportGrants() {
+  return request('/support-access', { method: 'GET' }, []);
+}
+
+export async function createSupportGrant(payload) {
+  return request('/support-access', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function revokeSupportGrant(id) {
+  return request(`/support-access/${id}`, {
+    method: 'DELETE',
+  });
+}

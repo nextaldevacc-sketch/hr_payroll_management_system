@@ -45,3 +45,20 @@ Every screen has been verified via automated browser assertions: zero HTTP 404s,
 | `final_settlement_en_dark.png` | Shows final settlement with verified 32,547.95 and 44,915.07 amounts in English Dark mode with gold highlights. |
 | `final_settlement_ar_light.png` | Shows final settlement statement with 32,547.95 and 44,915.07 statutory values in Arabic RTL Light mode. |
 | `final_settlement_ar_dark.png` | Shows final settlement statement with 32,547.95 and 44,915.07 statutory values in Arabic RTL Dark mode. |
+
+## Phase 9: Compliance, Reports & Audit Matrix (`docs/screenshots/phase9/`)
+
+| Screenshot File | Verification & Visual Review |
+| :--- | :--- |
+| `compliance_en_light.png` | English Light mode Document Expiry Tracker with 6-tile bento summary (Expired, ≤ 30, ≤ 60, ≤ 90, Missing Data, Total Tracking), active document rows with expiry countdowns, status pills, and Renewal action buttons. |
+| `compliance_en_dark.png` | English Dark mode Document Expiry Tracker with dark inset boxes, border-free containers, high-contrast urgency badges (red/amber/emerald), and clean typography. |
+| `compliance_ar_light.png` | Arabic RTL Light mode layout displaying localized headings ('راصد الامتثال وصلاحية الوثائق'), translated document types (جواز سفر، بطاقة عمل), and natural right-to-left alignment. |
+| `compliance_ar_dark.png` | Arabic RTL Dark mode layout with mirrored status indicators, crisp Arabic numerals, and accessible dark surfaces. |
+| `reports_hub_en_light.png` | English Light mode Reports & Financial Exports Hub displaying 8 categorized report cards, period filters, dynamic cost centre badges, and direct Excel/CSV download buttons. |
+| `reports_hub_en_dark.png` | English Dark mode Reports Hub with dark slate cards, emerald and cyan accent icons, and balanced role-based download actions. |
+| `reports_hub_ar_light.png` | Arabic RTL Light mode Reports Hub with Arabic titles ('مركز التقارير والتصدير المالي'), mirrored grid layout, and localized report descriptions. |
+| `reports_hub_ar_dark.png` | Arabic RTL Dark mode Reports Hub with high-contrast text, clear format badges (Excel/CSV), and accessible action triggers. |
+| `audit_history_en_light.png` | English Light mode Immutable Audit History showing full timeline of operational, authentication, and salary actions, filter dropdowns (User, Action, Table), and CSV export button. |
+| `audit_history_en_dark.png` | English Dark mode Audit History table with dark surface rows, subtle division lines, before/after JSON diff expanders, and timestamp badges. |
+| `audit_history_ar_light.png` | Arabic RTL Light mode Audit History displaying translated action tags ('إنشاء', 'تحديث', 'اعتماد'), right-aligned actor identities, and Arabic labels. |
+| `audit_history_ar_dark.png` | Arabic RTL Dark mode Audit History with dark contrast compliance, RTL table headers, and clean action pill indicators. |

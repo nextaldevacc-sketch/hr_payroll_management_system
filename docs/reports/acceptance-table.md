@@ -1,6 +1,6 @@
 # Spec Section 15 Acceptance Test Results (T1–T37)
 
-*Generated automatically from `docs/reports/acceptance-raw.txt` on 2026-10-30T10:50:21.789Z*
+*Generated automatically from `docs/reports/acceptance-raw.txt` on 2026-10-30T14:13:49.502Z*
 
 | ID | Given | Expected | Status |
 | :--- | :--- | :--- | :--- |
@@ -28,7 +28,7 @@
 | **T22** | Gratuity, basic 6,000, 7 years | AED 32,547.95 | **PASS** |
 | **T23** | Gratuity, 11 months' service | Not eligible; AED 0 | **PASS** |
 | **T24** | Leave encashment, 12 days, basic 6,000 | AED 2,367.12 | **PASS** |
-| **T25** | Visa expiring in 85 days | Status Expiring Soon; reminder sent to the document owner and HR | **TODO (Phase 9)** |
+| **T25** | Visa expiring in 85 days | Status Expiring Soon; reminder sent to the document owner and HR | **PASS** |
 | **T26** | SIF for one company visa | SCR total equals the sum of EDR lines; each EDR matches its payslip | **PASS** |
 | **T27** | New employee with no bank account | Cannot be set to Active | **PASS** |
 | **T28** | Pay run with one employee missing an IBAN | Validation lists the error; the run cannot be calculated until it is fixed | **PASS** |
@@ -44,6 +44,6 @@
 
 ## Summary
 - **Total Tests**: 37
-- **Passed**: 36
-- **Todo**: 1 (T25)
+- **Passed**: 37
+- **Todo**: 0 ()
 - **Failed**: 0

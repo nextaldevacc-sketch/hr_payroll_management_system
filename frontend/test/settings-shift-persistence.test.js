@@ -2,6 +2,7 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, execSync } from 'node:child_process';
 import http from 'node:http';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -82,9 +83,10 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
         console.log('Web server already running on port 3100');
       } catch {
         console.log('Starting Next.js server on port 3100...');
+        const distDir = fs.existsSync(path.join(webDir, '.next-build')) ? '.next-build' : '.next';
         webProcess = spawn(process.execPath, [nextBin, 'start', '-p', String(WEB_PORT)], {
           cwd: webDir,
-          env: { ...process.env, NODE_ENV: 'production' },
+          env: { ...process.env, NODE_ENV: 'production', NEXT_DIST_DIR: distDir },
         });
         await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 25000);
         console.log('Web server ready on port 3100');

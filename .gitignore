@@ -41,6 +41,7 @@ prisma/*.db-journal
 # Uploads / storage
 backend/storage/*
 !backend/storage/.gitkeep
+storage/
 
 # Document Storage (Spec Rule C)
 apps/api/storage/documents/*
