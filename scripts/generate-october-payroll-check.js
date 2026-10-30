@@ -77,6 +77,8 @@ async function run() {
       'other deductions',
       'net',
       'net vs contract gross %',
+      'expected_net',
+      'match',
     ].join(','),
   ];
 
@@ -87,8 +89,8 @@ async function run() {
     const contractGross = Number(contract?.gross || 0);
     const ps = payslipMap.get(emp.id);
     const attList = attendanceMap.get(emp.id) || [];
-    const workedDays = attList.filter(
-      (a) => a.day_type === 'WorkDay' && (a.punch_in_at || a.total_work_minutes > 0)
+    const workedDays = ps ? Number(ps.worked_days) : attList.filter(
+      (a) => a.day_type === 'WorkDay' && (a.check_in || Number(a.worked_hours) > 0)
     ).length;
 
     if (!ps) {
@@ -109,6 +111,8 @@ async function run() {
           '0.00',
           '0.00',
           'N/A (Archived - Excluded)',
+          '0.00',
+          'EXCLUDED',
         ].join(',')
       );
       continue;
@@ -137,6 +141,8 @@ async function run() {
     }
 
     const net = Number(ps.net);
+    const expectedNet = contractGross + otAmount - (absDeduction + loanAdv + gpssa + otherDeductions);
+    const match = Math.abs(net - expectedNet) < 0.01 ? 'MATCH' : 'MISMATCH';
     const diffPct = contractGross > 0 ? ((net - contractGross) / contractGross) * 100 : 0;
     const diffPctStr = `${diffPct.toFixed(2)}%`;
 
@@ -147,7 +153,7 @@ async function run() {
         emp.status,
         emp.joining_date.toISOString().slice(0, 10),
         contractGross.toFixed(2),
-        ps.month_days || 31,
+        ps.paid_days || 31,
         ps.paid_days || 31,
         workedDays,
         otAmount.toFixed(2),
@@ -157,6 +163,8 @@ async function run() {
         otherDeductions.toFixed(2),
         net.toFixed(2),
         `"${diffPctStr}"`,
+        expectedNet.toFixed(2),
+        match,
       ].join(',')
     );
 

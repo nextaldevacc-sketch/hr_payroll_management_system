@@ -58,3 +58,50 @@ The following thresholds are seeded as sensible UAE corporate defaults but repre
 - **Statutory Context**: UAE Federal Decree-Law No. 33 of 2021 (Article 51, Clause 5) provides that the end of service gratuity in its entirety shall not exceed the wage of two years.
 - **Open Question for Client**: Confirm whether the client's employment contracts define the two-year ceiling on the basis of **Basic Wage** (`basic * 24`) or **Total Wage (Gross)** (`gross * 24`). The system supports both options via the `gratuity_cap_basis` setting (default: `'Basic'`).
 
+---
+
+## 4. UAE WPS SIF (Salary Information File) Layout Specifications
+*For corporate banking partner verification prior to live WPS channel activation.*
+
+The Wages Protection System (WPS) file generator implements the standard UAE Central Bank / MOHRE `.SIF` layout:
+
+### 4.1 SCR Header Line (Summary Record)
+```csv
+SCR,EmployerID,RoutingCode,CreationDate,CreationTime,SalaryMonth,TotalRecords,TotalSalaries,AED,EmployerReference
+```
+
+| Field No | Field Name | Format / Length | Description |
+|---|---|---|---|
+| 1 | Record Type | `SCR` | Constant string identifying the header record |
+| 2 | Employer ID | 13 digits | MOHRE Establishment ID (Employer MOL Code) |
+| 3 | Bank Routing Code | 9 digits | Corporate bank / routing agent code |
+| 4 | File Creation Date | `YYYY-MM-DD` | Calendar date of file generation |
+| 5 | File Creation Time | `HHMM` | 4-digit 24-hour time without separators |
+| 6 | Salary Month | `MMYYYY` | 6-digit salary month and year |
+| 7 | Total Records | Integer | Count of employee EDR detail lines in file |
+| 8 | Total Salaries | Decimal `0.00` | Sum of (Fixed + Variable) of all EDRs = Total Net |
+| 9 | Currency | `AED` | Fixed 3-letter currency code |
+| 10 | Employer Reference | String | Unique transaction batch reference (`NEXTAL-PR-...`) |
+
+### 4.2 EDR Record Line (Employee Detail Record)
+```csv
+EDR,PersonID,RoutingCode,IBAN,StartDate,EndDate,DaysInPeriod,FixedIncome,VariableIncome,DaysOnLeave
+```
+
+| Field No | Field Name | Format / Length | Description |
+|---|---|---|---|
+| 1 | Record Type | `EDR` | Constant string identifying employee detail record |
+| 2 | Person ID | 14 digits | MOHRE 14-digit Labour Card / Person Identifier |
+| 3 | Bank Routing Code | 9 digits | Employee's receiving bank agent code |
+| 4 | Employee IBAN | 23 chars | Valid mod-97 UAE IBAN (`AE...`) |
+| 5 | Pay Period Start Date | `YYYY-MM-DD` | Start of salary period |
+| 6 | Pay Period End Date | `YYYY-MM-DD` | End of salary period |
+| 7 | Days in Period | Integer (e.g. 30/31) | Calendar days in payment period |
+| 8 | Fixed Income | Decimal `0.00` | Net pay minus variable earnings |
+| 9 | Variable Income | Decimal `0.00` | Overtime, commissions, and variable additions |
+| 10 | Days on Leave | Integer | Number of leave days taken during the period |
+
+> [!NOTE]
+> Mathematical Integrity Guard: For every employee record, `Fixed Income + Variable Income` strictly equals `Payslip Net Pay`. The SCR `Total Salaries` strictly equals `Σ(Fixed Income + Variable Income)` across all EDR records. Deductions (absence, loans, pension) are applied before netting into the transferred salary amount.
+
+

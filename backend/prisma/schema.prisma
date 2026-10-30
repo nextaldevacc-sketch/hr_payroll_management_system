@@ -597,6 +597,7 @@ model bank_accounts {
   company          companies @relation(fields: [company_id], references: [id], onDelete: Restrict)
   employee         employees @relation(fields: [employee_id], references: [id], onDelete: Restrict)
 
+  @@unique([company_id, iban])
   @@index([company_id])
   @@index([employee_id])
 }

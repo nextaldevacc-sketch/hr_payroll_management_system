@@ -9,7 +9,15 @@ function run() {
     throw new Error(`Raw acceptance output not found at ${rawPath}`);
   }
 
-  const content = fs.readFileSync(rawPath, 'utf8');
+  let buf = fs.readFileSync(rawPath);
+  let content;
+  if ((buf[0] === 0xff && buf[1] === 0xfe) || buf.includes(0x00)) {
+    content = buf.toString('utf16le');
+  } else {
+    content = buf.toString('utf8');
+  }
+  // Also strip any BOM if present
+  content = content.replace(/^\uFEFF/, '');
   const lines = content.split('\n');
 
   const rows = [];

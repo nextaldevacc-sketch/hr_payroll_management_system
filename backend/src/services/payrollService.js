@@ -1,7 +1,7 @@
 import Decimal from 'decimal.js';
 import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
-import { executeRuleEngine, roundToCurrency, STATUTORY_UAE_DEFAULT_RULES } from '@nextal/shared';
+import { executeRuleEngine, roundToCurrency, STATUTORY_UAE_DEFAULT_RULES, mapContractAndInputsToEngineVariables } from '@nextal/shared';
 import { generateWpsSif } from '../lib/wps/sifGenerator.js';
 import { generatePayslipPdf } from '../lib/pdf.js';
 import { generatePayrollRegisterExcel, generateVarianceReportExcel } from '../lib/reports/payrollReportGenerator.js';
@@ -631,44 +631,50 @@ export class PayrollService {
       }
 
       // Pension parameters
-      const isUaeNational = emp.residency_type === 'UAENational' || emp.nationality === 'ARE' || emp.nationality === 'Emirati';
+      const isUaeNational = emp.residency_type === 'UAENational' || emp.residency_type === 'National' || emp.nationality === 'ARE' || emp.nationality === 'Emirati';
       const gpssaSalary = isUaeNational ? basicSalary.plus(hra) : new Decimal(0);
 
-      // Execute calculation rule engine
-      const ruleResult = executeRuleEngine(salaryRules.length > 0 ? salaryRules : undefined, {
-        basic: basicSalary.toNumber(),
-        hra: hra.toNumber(),
-        housing: hra.toNumber(),
-        tra: tra.toNumber(),
-        transport: tra.toNumber(),
-        oth: oth.toNumber(),
-        other_allowances: oth.toNumber(),
-        contract: {
+      // Confirmed worked days from attendance records
+      const confirmedWorkedDaysCount = confirmedDays.filter(
+        (a) => a.day_type === 'WorkDay' && (a.check_in || Number(a.worked_hours) > 0)
+      ).length;
+      const workedDays = confirmedDays.length > 0
+        ? new Decimal(confirmedWorkedDaysCount)
+        : new Decimal(paidDays - absentDays);
+
+      // Single mapping function shared with simulator & tests
+      const engineInputs = mapContractAndInputsToEngineVariables(
+        {
           basic: basicSalary.toNumber(),
-          hra: hra.toNumber(),
           housing: hra.toNumber(),
-          tra: tra.toNumber(),
           transport: tra.toNumber(),
-          oth: oth.toNumber(),
           other_allowances: oth.toNumber(),
         },
-        paid_days: paidDays,
-        month_days: monthDays,
-        absent_days: absentDays,
-        late_units: lateUnits,
-        sick_half_days: sickHalfDays,
-        sick_none_days: sickNoneDays,
-        ot_hours_normal: otHoursNormal.toNumber(),
-        ot_hours_night: otHoursNight.toNumber(),
-        ot_hours_rest: otHoursRest.toNumber(),
-        loan_instalment: loanInstalment.toNumber(),
-        adv_instalment: advInstalment.toNumber(),
-        gpssa_salary: gpssaSalary.toNumber(),
-        is_legacy: false,
-      });
+        {
+          paid_days: paidDays,
+          month_days: monthDays,
+          absent_days: absentDays,
+          late_units: lateUnits,
+          sick_half_days: sickHalfDays,
+          sick_none_days: sickNoneDays,
+          ot_hours_normal: otHoursNormal.toNumber(),
+          ot_hours_night: otHoursNight.toNumber(),
+          ot_hours_rest: otHoursRest.toNumber(),
+          loan_instalment: loanInstalment.toNumber(),
+          adv_instalment: advInstalment.toNumber(),
+          gpssa_salary: gpssaSalary.toNumber(),
+          isUaeNational,
+          is_legacy: false,
+          absence_divisor: payRun.company?.absence_divisor || 'DAYS_30',
+        }
+      );
+
+      // Execute calculation rule engine
+      const ruleResult = executeRuleEngine(salaryRules.length > 0 ? salaryRules : undefined, engineInputs);
 
       const netAmount = new Decimal(ruleResult.net || 0);
-      const grossAmount = new Decimal(ruleResult.gross || grossSalary);
+      // "Total Gross" on payslips = all earnings (BASIC + HRA + TRA + OTH + OT + other earnings)
+      const grossAmount = new Decimal(ruleResult.totalGross || ruleResult.gross || grossSalary);
       const totalDeductions = new Decimal(ruleResult.totalDeductions || 0);
 
       // Negative salary protection
@@ -711,7 +717,7 @@ export class PayrollService {
           period_from: periodFrom,
           period_to: periodTo,
           paid_days: new Decimal(paidDays),
-          worked_days: new Decimal(paidDays - absentDays),
+          worked_days: workedDays,
           basic: basicSalary,
           gross: grossAmount,
           total_deductions: totalDeductions,

@@ -111,16 +111,52 @@ async function main() {
     });
 
     const page = await context.newPage();
+    const consoleErrors = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') {
+        const text = msg.text();
+        if (!text.includes('favicon.ico')) {
+          consoleErrors.push(text);
+        }
+      }
+    });
 
-    // 4. Login as Finance Manager
-    console.log('4. Logging in as finance@gulftech.ae...');
+    async function assertScreenValid(screenName, { expectedHeading, expectRows = true }) {
+      const bodyText = await page.innerText('body');
+      if (bodyText.includes('404') && (bodyText.includes('could not be found') || bodyText.includes('Not Found'))) {
+        throw new Error(`Verification failed on ${screenName}: 404 page detected`);
+      }
+      if (expectedHeading) {
+        const headingMatch = page.locator('h1, h2, h3, [role="heading"], button', { hasText: expectedHeading });
+        const count = await headingMatch.count();
+        if (count === 0) {
+          throw new Error(`Verification failed on ${screenName}: Expected heading/control '${expectedHeading}' not found`);
+        }
+      }
+      if (expectRows) {
+        const rows = page.locator('tbody tr, .data-row, [role="row"]');
+        const rowCount = await rows.count();
+        if (rowCount === 0) {
+          throw new Error(`Verification failed on ${screenName}: Expected data rows > 0, found 0`);
+        }
+      }
+      if (consoleErrors.length > 0) {
+        const errs = [...consoleErrors];
+        consoleErrors.length = 0;
+        throw new Error(`Verification failed on ${screenName}: Console errors: ${errs.join(' | ')}`);
+      }
+    }
+
+    // 4. Login as Payroll Officer (has full access to pay runs, validation, variances, payslips)
+    console.log('4. Logging in as payroll@gulftech.ae...');
     await page.goto(`http://localhost:${WEB_PORT}/login`, { waitUntil: 'networkidle' });
     await page.waitForSelector('input[type="email"]', { timeout: 15000 });
-    await page.fill('input[type="email"]', 'finance@gulftech.ae');
+    await page.fill('input[type="email"]', 'payroll@gulftech.ae');
     await page.fill('input[type="password"]', 'Nextal@2026!');
     await page.click('button[type="submit"]');
     await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
     console.log('Login successful.');
+    consoleErrors.length = 0;
 
     // Helper to configure theme & language
     async function setEnvironment(theme, lang) {
@@ -152,16 +188,19 @@ async function main() {
 
     for (const cfg of configs) {
       console.log(`\n--- Capturing matrix for [${cfg.suffix}] ---`);
+      consoleErrors.length = 0;
 
       // 1. Pay Runs List
       await page.goto(`http://localhost:${WEB_PORT}/payroll`, { waitUntil: 'networkidle' });
       await setEnvironment(cfg.theme, cfg.lang);
       await page.waitForTimeout(1000);
+      await assertScreenValid(`pay_runs_list_${cfg.suffix}`, { expectedHeading: /Pay Run|مسير الرواتب/i, expectRows: true });
       const listPath = path.join(outDir, `pay_runs_list_${cfg.suffix}.png`);
       await page.screenshot({ path: listPath });
       console.log(`Saved: ${listPath}`);
 
       // 2. Pay Run Detail - Validation tab
+      consoleErrors.length = 0;
       await page.goto(`http://localhost:${WEB_PORT}/payroll/${runId}`, { waitUntil: 'networkidle' });
       await setEnvironment(cfg.theme, cfg.lang);
       const validationTab = page.locator('button', { hasText: /Validation|التحقق/i });
@@ -169,21 +208,25 @@ async function main() {
         await validationTab.first().click();
         await page.waitForTimeout(800);
       }
+      await assertScreenValid(`pay_run_detail_validation_${cfg.suffix}`, { expectedHeading: /Validation|التحقق/i, expectRows: false });
       const valPath = path.join(outDir, `pay_run_detail_validation_${cfg.suffix}.png`);
       await page.screenshot({ path: valPath });
       console.log(`Saved: ${valPath}`);
 
       // 3. Pay Run Detail - Variances tab
+      consoleErrors.length = 0;
       const variancesTab = page.locator('button', { hasText: /Variances|الفروقات/i });
       if (await variancesTab.count() > 0) {
         await variancesTab.first().click();
         await page.waitForTimeout(800);
       }
+      await assertScreenValid(`pay_run_detail_variances_${cfg.suffix}`, { expectedHeading: /Variances|الفروقات/i, expectRows: false });
       const varPath = path.join(outDir, `pay_run_detail_variances_${cfg.suffix}.png`);
       await page.screenshot({ path: varPath });
       console.log(`Saved: ${varPath}`);
 
       // 4. Payslip (Open Payslips tab and click Breakdown modal)
+      consoleErrors.length = 0;
       const payslipsTab = page.locator('button', { hasText: /Payslips|قسائم/i });
       if (await payslipsTab.count() > 0) {
         await payslipsTab.first().click();
@@ -194,6 +237,7 @@ async function main() {
         await breakdownBtn.first().click();
         await page.waitForTimeout(800);
       }
+      await assertScreenValid(`payslip_${cfg.suffix}`, { expectedHeading: /Payslip|قسيمة/i, expectRows: false });
       const payslipPath = path.join(outDir, `payslip_${cfg.suffix}.png`);
       await page.screenshot({ path: payslipPath });
       console.log(`Saved: ${payslipPath}`);

@@ -7,6 +7,7 @@ import { clearSessionCache } from '../../src/middleware/authCache.js';
 import { deepScanForSalaryBankData } from '../../src/serializers/index.js';
 import employeeService from '../../src/services/employeeService.js';
 import { getContractOn } from '@nextal/shared';
+import { generateValidUaeIban } from '../../prisma/seed/employees.js';
 
 describe('Phase 4: Employee Management, Verification & Security Tests', () => {
   let company1;
@@ -348,12 +349,13 @@ describe('Phase 4: Employee Management, Verification & Security Tests', () => {
       assert.equal(contractRes.status, 201);
 
       // Add Bank Account with valid UAE IBAN
+      const testIban1 = generateValidUaeIban(33, Date.now() + Math.floor(Math.random() * 1000));
       const bankRes = await request(app)
         .post(`/api/v1/employees/${completeEmpId}/bank-accounts`)
         .set('Authorization', `Bearer ${hrMgrToken}`)
         .send({
           bank_name: 'Emirates NBD',
-          iban: 'AE070331234567890123456',
+          iban: testIban1,
           routing_code: 'ENBD001',
         });
       assert.equal(bankRes.status, 200);
@@ -466,17 +468,18 @@ describe('Phase 4: Employee Management, Verification & Security Tests', () => {
     });
 
     it('accepts valid UAE IBAN with ISO-7064 mod-97 verification', async () => {
+      const testIban2 = generateValidUaeIban(33, Date.now() + 5000 + Math.floor(Math.random() * 1000));
       const res = await request(app)
         .post(`/api/v1/employees/${empId}/bank-accounts`)
         .set('Authorization', `Bearer ${hrMgrToken}`)
         .send({
           bank_name: 'FAB',
-          iban: 'AE070331234567890123456',
+          iban: testIban2,
           routing_code: 'FAB001',
         });
 
       assert.equal(res.status, 200);
-      assert.equal(res.body.data.iban, 'AE070331234567890123456');
+      assert.equal(res.body.data.iban, testIban2);
     });
 
     it('rejects UAE IBAN with invalid checksum (mod-97 failure)', async () => {
@@ -485,7 +488,7 @@ describe('Phase 4: Employee Management, Verification & Security Tests', () => {
         .set('Authorization', `Bearer ${hrMgrToken}`)
         .send({
           bank_name: 'FAB',
-          iban: 'AE990331234567890123456', // corrupted check digits
+          iban: 'AE990330000000000999102', // corrupted check digits
           routing_code: 'FAB001',
         });
 

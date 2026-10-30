@@ -241,7 +241,7 @@ export async function seedAttendance(prisma, {
         continue;
       }
 
-      // Exception 2: 2 Unapproved Absences (Emp 8 and Emp 9 on Oct 22)
+      // Exception 2: 2 Unapproved Absences (Emp 8 and Emp 9 on Oct 22) - HR Confirmed
       if ((e === 8 || e === 9) && d === 22) {
         attendanceBatch.push({
           company_id: company1.id,
@@ -255,8 +255,8 @@ export async function seedAttendance(prisma, {
           net_hours: 0.00,
           late_minutes: 0,
           early_out_minutes: 0,
-          day_type: 'Absent',
-          review_status: 'PendingReview',
+          day_type: 'Absence',
+          review_status: 'HRConfirmed',
         });
         continue;
       }

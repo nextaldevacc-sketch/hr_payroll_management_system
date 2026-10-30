@@ -630,20 +630,177 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
     assert.equal(newBalance.toFixed(2), '4500.00', 'Balance after third month must equal AED 4,500.00');
   });
 
-  it("T19: Given Ahmed's month (T6, T11, T18) -> Expected Net AED 7,044.80", () => {
-    // Gross: 8,000.00
-    // Normal OT (3h): +78.13
-    // Absence (2 days): -533.33
-    // Loan: -500.00
-    // Net: 8,000.00 + 78.13 - 533.33 - 500.00 = 7,044.80
-    const result = executeRuleEngine(undefined, {
-      basic: 5000.0,
-      hra: 3000.0,
-      ot_hours_normal: 3.0,
-      absent_days: 2.0,
-      loan_instalment: 500.0,
+  it("T19: Given Ahmed's month (T6, T11, T18) -> Expected Net AED 7,044.80", async () => {
+    // Create dedicated test employee for Ahmed in companyA through real database entities
+    const testBranch = await prisma.$base().branches.findFirst({
+      where: { company_id: companyA.id },
     });
-    assert.equal(result.net, 7044.8, "Ahmed's combined net pay must equal exactly AED 7,044.80");
+    const testDept = await prisma.$base().departments.findFirst({
+      where: { company_id: companyA.id },
+    });
+    const testJob = await prisma.$base().jobs.findFirst({
+      where: { company_id: companyA.id },
+    });
+    const testShift = await prisma.$base().shifts.findFirst({
+      where: { company_id: companyA.id },
+    });
+    const testPolicy = await prisma.$base().attendance_policies.findFirst({
+      where: { company_id: companyA.id },
+    });
+    const testStructure = await prisma.$base().salary_structures.findFirst({
+      where: { company_id: companyA.id },
+    });
+
+    // Create an isolated test visa for this run
+    const testRunCode = Date.now().toString().slice(-4);
+    const molEstId = `${Date.now().toString()}`.padEnd(13, '0').slice(0, 13);
+    const ahmedVisa = await prisma.$base().company_visas.create({
+      data: {
+        company_id: companyA.id,
+        name: `Ahmed Test Visa ${testRunCode}`,
+        mol_establishment_id: molEstId,
+        bank_routing_code: '033123456',
+        emirate: 'Dubai',
+        pension_fund: 'GPSSA',
+      },
+    });
+
+    const ahmedEmp = await prisma.$base().employees.create({
+      data: {
+        company_id: companyA.id,
+        company_visa_id: ahmedVisa.id,
+        branch_id: testBranch.id,
+        employee_code: `EMP-T19-${testRunCode}`,
+        name: 'Ahmed Mansoor (T19 Test)',
+        gender: 'Male',
+        nationality: 'EGY',
+        residency_type: 'Resident', // Expatriate resident: no GPSSA pension deduction
+        joining_date: new Date('2024-01-01'),
+        status: 'Active',
+      },
+    });
+
+    // Contract: Basic 5,000 / Housing 2,000 / Transport 500 / Other 500 (Gross 8,000)
+    await prisma.$base().contracts.create({
+      data: {
+        company_id: companyA.id,
+        employee_id: ahmedEmp.id,
+        contract_type: 'Unlimited',
+        start_date: new Date('2024-01-01'),
+        effective_date: new Date('2024-01-01'),
+        job_id: testJob.id,
+        department_id: testDept.id,
+        shift_id: testShift.id,
+        attendance_policy_id: testPolicy.id,
+        structure_id: testStructure.id,
+        basic: 5000.0,
+        housing: 2000.0,
+        transport: 500.0,
+        other_allowances: 500.0,
+        gross: 8000.0,
+        status: 'Approved',
+      },
+    });
+
+    // Valid UAE IBAN
+    await prisma.$base().bank_accounts.create({
+      data: {
+        company_id: companyA.id,
+        employee_id: ahmedEmp.id,
+        bank_name: 'Emirates NBD',
+        iban: `AE45033${Date.now().toString().slice(-16)}`,
+        routing_code: 'ENBD001',
+        is_primary: true,
+        is_active: true,
+      },
+    });
+
+    // Approved Overtime: 3 hours Normal OT (1.25x) -> AED 78.13
+    await prisma.$base().overtime_requests.create({
+      data: {
+        company_id: companyA.id,
+        employee_id: ahmedEmp.id,
+        work_date: new Date('2026-11-10'),
+        hours: 3.0,
+        ot_type: 'Normal',
+        rate: 1.25,
+        compensation: 'Pay',
+        status: 'Approved',
+      },
+    });
+
+    // 2 Unapproved Absence Days (÷30 divisor) -> AED 533.33
+    await prisma.$base().attendance_days.createMany({
+      data: [
+        {
+          company_id: companyA.id,
+          employee_id: ahmedEmp.id,
+          work_date: new Date('2026-11-15'),
+          day_type: 'Absence',
+          review_status: 'HRConfirmed',
+          worked_hours: 0,
+        },
+        {
+          company_id: companyA.id,
+          employee_id: ahmedEmp.id,
+          work_date: new Date('2026-11-16'),
+          day_type: 'Absence',
+          review_status: 'HRConfirmed',
+          worked_hours: 0,
+        },
+      ],
+    });
+
+    // Approved 500 loan deduction
+    await prisma.$base().salary_adjustments.create({
+      data: {
+        company_id: companyA.id,
+        employee_id: ahmedEmp.id,
+        type: 'Loan',
+        total_amount: 6000.0,
+        monthly_amount: 500.0,
+        balance: 4500.0,
+        start_month: new Date('2026-11-01'),
+        status: 'Approved',
+        reason: 'Staff education loan instalment',
+      },
+    });
+
+    // Run payroll through real PayrollService
+    const testRun = await payrollService.createPayRun(companyA.id, {
+      company_visa_id: ahmedVisa.id,
+      period_month: '2026-11-01',
+      cutoff_date: '2026-11-25',
+      run_type: 'Regular',
+    });
+
+    await payrollService.calculatePayRun(companyA.id, testRun.id);
+
+    // Retrieve generated payslip and lines
+    const payslip = await prisma.$base().payslips.findFirst({
+      where: { pay_run_id: testRun.id, employee_id: ahmedEmp.id },
+      include: { lines: true },
+    });
+    assert(payslip, 'Payslip must be generated by calculation engine');
+
+    const linesByCode = {};
+    for (const l of payslip.lines) {
+      linesByCode[l.code] = Number(l.amount);
+    }
+
+    // Assert exact payslip lines:
+    // BASIC 5,000, HRA 2,000, TRA 500, OTH 500, OT 78.13, ABS 533.33, LOAN 500, NET 7,044.80
+    assert.equal(linesByCode['BASIC'], 5000.0, 'BASIC must equal 5000.00');
+    assert.equal(linesByCode['HRA'], 2000.0, 'HRA must equal 2000.00');
+    assert.equal(linesByCode['TRA'], 500.0, 'TRA must equal 500.00');
+    assert.equal(linesByCode['OTH'], 500.0, 'OTH must equal 500.00');
+    assert.equal(linesByCode['OT_NORMAL'] || linesByCode['OT'], 78.13, 'Overtime must equal 78.13');
+    assert.equal(linesByCode['ABS'], 533.33, 'Absence must equal 533.33');
+    assert.equal(linesByCode['LOAN'], 500.0, 'Loan recovery must equal 500.00');
+    assert.equal(linesByCode['NET'], 7044.8, 'NET line must equal 7044.80');
+    assert.equal(Number(payslip.net), 7044.8, 'Payslip net must equal AED 7,044.80');
+    assert.equal(Number(payslip.gross), 8078.13, 'Total gross must include all earnings (8000 contract + 78.13 OT = 8078.13)');
+    assert.equal(Number(payslip.total_deductions), 1033.33, 'Total deductions must equal 1033.33 (533.33 ABS + 500 LOAN)');
   });
 
   it('T20: Given Locked run, then a mistake found -> Expected Payslip cannot be edited; an approved correction payslip in a later run, linked to the original and shown in the audit history', async () => {
@@ -742,6 +899,7 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
     // Locate locked or paid pay run
     const lockedRun = await prisma.$base().pay_runs.findFirst({
       where: { company_id: companyA.id, status: { in: ['Locked', 'Paid'] } },
+      include: { payslips: true },
     });
     assert(lockedRun, 'Locked pay run must exist for SIF generation');
 
@@ -749,15 +907,27 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
     assert(sif.content.startsWith('SCR,'));
     assert(sif.edrLines.length > 0);
 
-    // Calculate sum of EDR nets
-    let sumEdr = new Decimal(0);
+    // 1. Check SCR Total = sum of (fixed + variable) across all EDR lines
+    let sumFixedPlusVariable = new Decimal(0);
     for (const edr of sif.edrLines) {
-      sumEdr = sumEdr.plus(new Decimal(edr.net));
+      const fixed = new Decimal(edr.fixed);
+      const variable = new Decimal(edr.variable);
+      const lineNet = fixed.plus(variable);
+      sumFixedPlusVariable = sumFixedPlusVariable.plus(lineNet);
+
+      // 2. Each EDR's fixed + variable = its payslip net
+      assert.equal(lineNet.toFixed(2), edr.net, `EDR fixed (${edr.fixed}) + variable (${edr.variable}) must equal payslip net (${edr.net})`);
+
+      // 3. Days on leave field is valid
+      assert(edr.daysOnLeave !== undefined && edr.daysOnLeave >= 0, 'EDR daysOnLeave field must be a valid non-negative number');
     }
 
-    // Exact mathematical match between SCR TotalSalaries and sum of EDR nets
-    assert.equal(sif.totalSalaries, sumEdr.toFixed(2), 'SCR TotalSalaries must strictly equal sum of EDR net lines');
+    // 4. Exact mathematical match between SCR TotalSalaries and sum of (fixed + variable)
+    assert.equal(sif.totalSalaries, sumFixedPlusVariable.toFixed(2), 'SCR TotalSalaries must strictly equal sum of EDR (fixed + variable)');
+
+    // 5. EDR count strictly equals payslip count
     assert.equal(sif.totalRecords, sif.edrLines.length, 'SCR TotalRecords must equal count of EDR lines');
+    assert.equal(sif.edrLines.length, lockedRun.payslips.length, 'EDR count must equal payslip count');
   });
 
   // =========================================================================
@@ -822,17 +992,16 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
       'admin-id'
     );
 
-    // Temporarily clear IBAN on test employee
+    // Temporarily deactivate primary bank account on test employee to trigger MISSING_IBAN
     const bank = await prisma.$base().bank_accounts.findFirst({
       where: { employee_id: testEmpA.id, is_primary: true },
     });
-    const origIban = bank?.iban;
 
     try {
       if (bank) {
         await prisma.$base().bank_accounts.update({
           where: { id: bank.id },
-          data: { iban: '' },
+          data: { is_active: false },
         });
       }
 
@@ -851,10 +1020,10 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
         }
       );
     } finally {
-      if (bank && origIban) {
+      if (bank) {
         await prisma.$base().bank_accounts.update({
           where: { id: bank.id },
-          data: { iban: origIban },
+          data: { is_active: true },
         });
       }
     }

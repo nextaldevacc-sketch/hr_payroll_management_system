@@ -331,7 +331,7 @@ export function OffboardingFeature() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+            <div className="p-2.5 rounded-xl bg-primary/10 text-primary border border-primary/20">
               <UserMinus className="w-6 h-6" />
             </div>
             <div>
@@ -369,7 +369,7 @@ export function OffboardingFeature() {
 
           <button
             onClick={() => setIsInitiateModalOpen(true)}
-            className="px-4 py-2 text-sm font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-2 shadow-sm transition-colors"
+            className="px-4 py-2 text-sm font-bold rounded-lg bg-primary text-black hover:opacity-90 flex items-center gap-2 shadow-sm transition-all"
           >
             <Plus className="w-4 h-4" />
             <span>{t('offboarding.newSeparation')}</span>
@@ -383,7 +383,7 @@ export function OffboardingFeature() {
           onClick={() => setActiveTab('list')}
           className={`pb-3 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${
             activeTab === 'list'
-              ? 'border-rose-500 text-rose-600 dark:text-rose-400'
+              ? 'border-primary text-primary'
               : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
           }`}
         >
@@ -400,7 +400,7 @@ export function OffboardingFeature() {
               onClick={() => setActiveTab('clearance')}
               className={`pb-3 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${
                 activeTab === 'clearance'
-                  ? 'border-rose-500 text-rose-600 dark:text-rose-400'
+                  ? 'border-primary text-primary'
                   : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
             >
@@ -416,7 +416,7 @@ export function OffboardingFeature() {
                 onClick={() => setActiveTab('settlement')}
                 className={`pb-3 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${
                   activeTab === 'settlement'
-                    ? 'border-rose-500 text-rose-600 dark:text-rose-400'
+                    ? 'border-primary text-primary'
                     : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                 }`}
               >
@@ -1114,7 +1114,7 @@ export function OffboardingFeature() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
+                  className="px-4 py-2 text-xs font-bold rounded-lg bg-primary text-black hover:opacity-90 shadow-sm transition-all"
                 >
                   Submit Separation
                 </button>
@@ -1201,7 +1201,7 @@ export function OffboardingFeature() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
+                  className="px-4 py-2 text-xs font-bold rounded-lg bg-primary text-black hover:opacity-90 shadow-sm transition-all"
                 >
                   Save Clearance
                 </button>

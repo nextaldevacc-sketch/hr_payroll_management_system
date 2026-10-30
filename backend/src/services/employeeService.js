@@ -242,27 +242,27 @@ export class EmployeeService {
     const [departments, branches, visas, jobs, shifts, policies] = await Promise.all([
       this.prisma.departments.findMany({
         where: { company_id: companyId },
-        select: { id: true, name: true, code: true },
+        select: { id: true, name: true, name_ar: true, cost_centre: true },
         orderBy: { name: 'asc' },
       }),
       this.prisma.branches.findMany({
         where: { company_id: companyId },
-        select: { id: true, name: true, code: true, city: true },
+        select: { id: true, name: true, name_ar: true, emirate: true },
         orderBy: { name: 'asc' },
       }),
       this.prisma.company_visas.findMany({
         where: { company_id: companyId },
-        select: { id: true, visa_entity_name: true, establishment_card_no: true },
-        orderBy: { visa_entity_name: 'asc' },
+        select: { id: true, name: true, mol_establishment_id: true, emirate: true },
+        orderBy: { name: 'asc' },
       }),
       this.prisma.jobs.findMany({
         where: { company_id: companyId },
-        select: { id: true, title: true, code: true },
+        select: { id: true, title: true, title_ar: true, job_code: true },
         orderBy: { title: 'asc' },
       }),
       this.prisma.shifts.findMany({
         where: { company_id: companyId },
-        select: { id: true, name: true, code: true, start_time: true, end_time: true },
+        select: { id: true, name: true, start_time: true, end_time: true },
         orderBy: { name: 'asc' },
       }),
       this.prisma.attendance_policies.findMany({
@@ -1061,6 +1061,21 @@ export class EmployeeService {
       const err = new Error('Bank routing code is required for WPS compliance');
       err.status = 400;
       err.code = 'MISSING_ROUTING_CODE';
+      throw err;
+    }
+
+    const cleanIban = data.iban.replace(/[\s-]/g, '').toUpperCase();
+    const existingIban = await this.prisma.bank_accounts.findFirst({
+      where: {
+        company_id: companyId,
+        iban: cleanIban,
+        ...(data.id ? { id: { not: data.id } } : {}),
+      },
+    });
+    if (existingIban) {
+      const err = new Error('This IBAN is already registered for another employee in this company');
+      err.status = 400;
+      err.code = 'DUPLICATE_IBAN';
       throw err;
     }
 

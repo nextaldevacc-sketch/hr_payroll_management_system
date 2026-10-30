@@ -21,6 +21,29 @@ function ensureDemoPlaceholderPdf() {
 }
 
 /**
+ * Generate a valid ISO 7064 Mod-97 UAE IBAN (23 characters: AE + 2 check digits + 3 bank code + 16 account)
+ */
+export function generateValidUaeIban(bankCode, accountSeq) {
+  const b = String(bankCode).padStart(3, '0');
+  const a = String(accountSeq).padStart(16, '0');
+  const checkStr = b + a + '101400';
+  const rem = BigInt(checkStr) % 97n;
+  const cd = String(98n - rem).padStart(2, '0');
+  return 'AE' + cd + b + a;
+}
+
+/**
+ * Validate a UAE IBAN according to ISO 7064 Mod-97
+ */
+export function validateUaeIban(iban) {
+  if (!iban || typeof iban !== 'string') return false;
+  const clean = iban.replace(/[\s-]/g, '').toUpperCase();
+  if (!/^AE\d{21}$/.test(clean)) return false;
+  const rearranged = clean.slice(4) + '1014' + clean.slice(2, 4);
+  return BigInt(rearranged) % 97n === 1n;
+}
+
+/**
  * Seed Module: Employees
  * Seeds 42 employees for Company 1 and 10 employees for Company 2
  */
@@ -211,7 +234,7 @@ export async function seedEmployees(prisma, {
         company_id: company1.id,
         employee_id: emp.id,
         bank_name: 'Emirates NBD',
-        iban: hasIban ? `AE${String(i).padStart(2, '0')}0331234567890123456` : '',
+        iban: hasIban ? generateValidUaeIban('033', 1000000000 + i) : '',
         routing_code: hasRouting ? 'ENBD001' : '',
         salary_split_pct: 100.00,
         is_primary: true,
@@ -370,7 +393,7 @@ export async function seedEmployees(prisma, {
         company_id: company2.id,
         employee_id: emp2.id,
         bank_name: 'Abu Dhabi Commercial Bank',
-        iban: `AE${String(j).padStart(2, '0')}0031234567890123456`,
+        iban: generateValidUaeIban('003', 2000000000 + j),
         routing_code: 'ADCB001',
         is_primary: true,
       },
@@ -390,6 +413,22 @@ export async function seedEmployees(prisma, {
       },
     });
   }
+
+  // Seed-time assertion: every seeded non-blank IBAN must pass mod-97 and no two employees share an IBAN
+  const allAccounts = await prisma.bank_accounts.findMany();
+  const nonBlankAccounts = allAccounts.filter((b) => b.iban && b.iban.trim().length > 0);
+  const seenIbans = new Set();
+  for (const acc of nonBlankAccounts) {
+    if (!validateUaeIban(acc.iban)) {
+      throw new Error(`Seed assertion failed: Invalid mod-97 UAE IBAN '${acc.iban}' for employee ${acc.employee_id}`);
+    }
+    const key = `${acc.company_id}:${acc.iban}`;
+    if (seenIbans.has(key)) {
+      throw new Error(`Seed assertion failed: Duplicate IBAN '${acc.iban}' in company ${acc.company_id}`);
+    }
+    seenIbans.add(key);
+  }
+  console.log(`Validated ${nonBlankAccounts.length} seeded UAE IBANs: 100% mod-97 valid, 0 duplicates.`);
 
   return {
     seededEmployees,

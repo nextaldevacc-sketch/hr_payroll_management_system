@@ -390,15 +390,75 @@ export function executeRuleEngine(rules = STATUTORY_UAE_DEFAULT_RULES, inputCont
 
   const finalNetStep = steps.find((s) => s.code === 'NET');
   const finalGrossStep = steps.find((s) => s.code === 'GROSS');
+  const totalEarnings = calculatedGross.plus(totalAllowances);
 
   return {
     steps,
     gross: finalGrossStep ? finalGrossStep.amount : calculatedGross.toNumber(),
+    totalGross: totalEarnings.toNumber(),
+    totalEarnings: totalEarnings.toNumber(),
     totalAllowances: totalAllowances.toNumber(),
     totalDeductions: totalDeductions.toNumber(),
     net: finalNetStep ? finalNetStep.amount : 0,
     formattedNet: finalNetStep ? finalNetStep.formattedAmount : 'AED 0.00',
     gpssa_gov_share: govShareAmount.toNumber(),
+  };
+}
+
+/**
+ * Single shared mapping function: contract + approved inputs -> engine variables
+ * Shared across the real pay run, salary simulator, and tests.
+ */
+export function mapContractAndInputsToEngineVariables(contract = {}, inputs = {}) {
+  const basic = Number(contract.basic || 0);
+  const hra = Number(contract.housing || contract.hra || 0);
+  const tra = Number(contract.transport || contract.tra || 0);
+  const oth = Number(contract.other_allowances || contract.oth || 0);
+
+  const isUaeNational = Boolean(
+    inputs.isUaeNational ||
+    inputs.residency_type === 'UAENational' ||
+    inputs.residency_type === 'National' ||
+    inputs.nationality === 'ARE' ||
+    inputs.nationality === 'Emirati'
+  );
+
+  const gpssaSalary = isUaeNational
+    ? (inputs.gpssa_salary !== undefined ? Number(inputs.gpssa_salary) : (basic + hra))
+    : (inputs.gpssa_salary ? Number(inputs.gpssa_salary) : 0);
+
+  return {
+    basic,
+    hra,
+    housing: hra,
+    tra,
+    transport: tra,
+    oth,
+    other_allowances: oth,
+    contract: {
+      basic,
+      hra,
+      housing: hra,
+      tra,
+      transport: tra,
+      oth,
+      other_allowances: oth,
+    },
+    paid_days: inputs.paid_days !== undefined ? Number(inputs.paid_days) : 30,
+    month_days: inputs.month_days !== undefined ? Number(inputs.month_days) : 30,
+    absent_days: Number(inputs.absent_days || 0),
+    late_units: Number(inputs.late_units || 0),
+    sick_half_days: Number(inputs.sick_half_days || 0),
+    sick_none_days: Number(inputs.sick_none_days || 0),
+    ot_hours_normal: Number(inputs.ot_hours_normal || inputs.ot_hours || 0),
+    ot_hours_night: Number(inputs.ot_hours_night || inputs.ot_night_hours || 0),
+    ot_hours_rest: Number(inputs.ot_hours_rest || inputs.ot_rest_hours || 0),
+    loan_instalment: Number(inputs.loan_instalment || inputs.loan_installment || 0),
+    adv_instalment: Number(inputs.adv_instalment || inputs.advance_amount || 0),
+    gpssa_salary: gpssaSalary,
+    is_legacy: inputs.is_legacy !== undefined ? inputs.is_legacy : false,
+    absence_divisor: inputs.absence_divisor || 'DAYS_30',
+    pension_rates: inputs.pension_rates,
   };
 }
 

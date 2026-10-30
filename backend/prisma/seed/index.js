@@ -13,6 +13,7 @@ import { seedSettings } from './settings.js';
 import { seedEmployees } from './employees.js';
 import { seedAttendance } from './attendance.js';
 import { seedPayroll } from './payroll.js';
+import { seedSeparations } from './separations.js';
 
 const prisma = new PrismaClient();
 
@@ -90,6 +91,16 @@ export async function main() {
     seededContracts: employees.seededContracts,
     rulesMap1: settings.rulesMap1,
     demoUsersMap: users.demoUsersMap,
+  });
+
+  // 7. Offboarding & Final Settlements (Separation in progress + Omar approved settlement)
+  await seedSeparations(prisma, {
+    company1: org.company1,
+    seededEmployees: employees.seededEmployees,
+    demoUsersMap: users.demoUsersMap,
+    salaryStructure1: settings.salaryStructure1,
+    shift1: settings.shift1,
+    policy1: settings.policy1,
   });
 
   console.log('\n--- Modular Database Seed Completed Successfully ---');

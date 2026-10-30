@@ -51,13 +51,14 @@ describe('Payslip Lines Calculation & Sum Integrity Tests', () => {
     assert.equal(payslipsWithLines.length, 41, 'Expected exactly 41 active payslips');
   });
 
-  it('2. Every payslip gross equals contractual package lines (BASIC + HRA + TRA + OTH)', () => {
+  it('2. Every payslip gross equals all earnings lines (BASIC + HRA + TRA + OTH + OT + allowances)', () => {
     for (const payslip of payslipsWithLines) {
-      const packageLines = payslip.lines.filter((line) =>
-        ['BASIC', 'HRA', 'TRA', 'OTH'].includes(line.code)
+      const earningLines = payslip.lines.filter((line) =>
+        ['Basic', 'Allowance', 'Addition'].includes(line.salary_rule?.category) &&
+        !['GROSS', 'NET'].includes(line.code)
       );
 
-      const calculatedGross = packageLines.reduce(
+      const calculatedGross = earningLines.reduce(
         (sum, line) => sum + Number(line.amount),
         0
       );
@@ -65,7 +66,7 @@ describe('Payslip Lines Calculation & Sum Integrity Tests', () => {
       assert.equal(
         Number(payslip.gross).toFixed(2),
         calculatedGross.toFixed(2),
-        `Payslip ID ${payslip.id} gross (${payslip.gross}) does not match sum of contractual package lines (${calculatedGross})`
+        `Payslip ID ${payslip.id} gross (${payslip.gross}) does not match sum of earning lines (${calculatedGross})`
       );
     }
   });
@@ -89,19 +90,37 @@ describe('Payslip Lines Calculation & Sum Integrity Tests', () => {
     }
   });
 
-  it('4. Every payslip net equals gross plus additions/overtime minus total_deductions', () => {
+  it('4. Every payslip net equals gross minus total_deductions (Net = Earnings - Deductions)', () => {
     for (const payslip of payslipsWithLines) {
-      const additionLines = payslip.lines.filter(
-        (line) =>
-          ['Addition', 'Allowance'].includes(line.salary_rule?.category) &&
-          !['BASIC', 'HRA', 'TRA', 'OTH', 'GROSS', 'NET'].includes(line.code)
-      );
-      const totalAdditions = additionLines.reduce((sum, line) => sum + Number(line.amount), 0);
-      const expectedNet = Number(payslip.gross) + totalAdditions - Number(payslip.total_deductions);
+      const expectedNet = Number(payslip.gross) - Number(payslip.total_deductions);
       assert.equal(
         Number(payslip.net).toFixed(2),
         expectedNet.toFixed(2),
-        `Payslip ID ${payslip.id} net (${payslip.net}) does not equal gross + additions - total_deductions (${expectedNet})`
+        `Payslip ID ${payslip.id} net (${payslip.net}) does not equal gross minus total_deductions (${expectedNet})`
+      );
+    }
+  });
+
+  it('4b. Reconciliation: for every payslip in seeded October run, net = (independently computed) contract gross + OT - deductions', () => {
+    for (const payslip of payslipsWithLines) {
+      // Contract package lines
+      const contractLines = payslip.lines.filter((l) => ['BASIC', 'HRA', 'TRA', 'OTH'].includes(l.code));
+      const contractGross = contractLines.reduce((s, l) => s + Number(l.amount), 0);
+
+      // Overtime lines
+      const otLines = payslip.lines.filter((l) => l.code.startsWith('OT_'));
+      const otAmount = otLines.reduce((s, l) => s + Number(l.amount), 0);
+
+      // Deductions
+      const deductionLines = payslip.lines.filter((l) => l.salary_rule?.category === 'Deduction');
+      const deductions = deductionLines.reduce((s, l) => s + Number(l.amount), 0);
+
+      const independentlyComputedNet = contractGross + otAmount - deductions;
+
+      assert.equal(
+        Number(payslip.net).toFixed(2),
+        independentlyComputedNet.toFixed(2),
+        `Payslip for employee ${payslip.employee?.employee_code} failed independent reconciliation: net (${payslip.net}) != contract gross (${contractGross}) + OT (${otAmount}) - deductions (${deductions})`
       );
     }
   });

@@ -49,7 +49,7 @@ async function main() {
         gender: 'Male',
         nationality: 'ARE',
         residency_type: 'National',
-        joining_date: new Date('2019-10-31'),
+        joining_date: new Date('2019-11-03'),
         status: 'Active',
       },
     });
@@ -60,7 +60,7 @@ async function main() {
         company_id: company.id,
         employee_id: omar.id,
         contract_type: 'Unlimited',
-        start_date: new Date('2019-10-31'),
+        start_date: new Date('2019-11-03'),
         job_id: c.job_id,
         department_id: c.department_id,
         shift_id: c.shift_id,
@@ -70,7 +70,7 @@ async function main() {
         housing: 3000.0,
         transport: 1000.0,
         gross: 10000.0,
-        effective_date: new Date('2019-10-31'),
+        effective_date: new Date('2019-11-03'),
         status: 'Active',
       },
     });

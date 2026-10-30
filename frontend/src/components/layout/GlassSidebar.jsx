@@ -296,18 +296,14 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
           {/* Persona Switcher Popup */}
           {isPersonaDrawerOpen && (
             <div
-              className="absolute bottom-full mb-2 start-0 w-64 p-2 rounded-2xl border shadow-2xl z-50 space-y-1 backdrop-blur-xl"
-              style={{
-                background: 'var(--bg-surface)',
-                borderColor: 'var(--glass-border)',
-              }}
+              className="absolute start-full ms-2 bottom-0 w-72 p-2 rounded-2xl border shadow-2xl z-[9999] opacity-100 space-y-1 bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700"
             >
-              <div className="px-2 py-1 text-[10px] uppercase font-bold text-text-muted flex justify-between">
+              <div className="px-2 py-1 text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
                 <span>Switch Demo Persona</span>
                 <span className="text-amber-500 font-mono">Sec 5.2</span>
               </div>
 
-              <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
+              <div className="max-h-72 overflow-y-auto space-y-1 pr-1 py-1">
                 {Object.entries(DEMO_USERS).map(([key, demo]) => {
                   const isActive = user?.email === demo.email;
                   return (
@@ -318,15 +314,17 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
                         setIsPersonaDrawerOpen(false);
                       }}
                       className={`w-full text-start p-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                        isActive ? 'bg-amber-500/20 text-amber-400' : 'hover:bg-neutral-800/50 text-neutral-300'
+                        isActive
+                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium'
+                          : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200'
                       }`}
                     >
                       <div className="truncate">
                         <span className="font-semibold block truncate text-[11px]">{demo.roleNameEn}</span>
-                        <span className="text-[9px] block text-neutral-400 font-mono truncate">{demo.email}</span>
+                        <span className="text-[9px] block text-slate-400 dark:text-slate-500 font-mono truncate">{demo.email}</span>
                       </div>
                       {demo.sees_salary && (
-                        <span className="text-[8px] px-1 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 ml-1">
+                        <span className="text-[8px] px-1 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 ml-1">
                           WPS
                         </span>
                       )}
@@ -335,11 +333,11 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
                 })}
               </div>
 
-              <div className="pt-1 border-t border-neutral-800 flex justify-between">
+              <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex justify-between">
                 <Link
                   href="/login"
                   onClick={() => setIsPersonaDrawerOpen(false)}
-                  className="text-[10px] text-amber-400 hover:underline px-2 py-1"
+                  className="text-[10px] text-amber-600 dark:text-amber-400 hover:underline px-2 py-1"
                 >
                   Go to Login Screen
                 </Link>
@@ -349,7 +347,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
                     setIsPersonaDrawerOpen(false);
                     router.push('/login');
                   }}
-                  className="text-[10px] text-rose-400 hover:underline px-2 py-1 flex items-center gap-1"
+                  className="text-[10px] text-rose-500 dark:text-rose-400 hover:underline px-2 py-1 flex items-center gap-1"
                 >
                   <LogOut className="w-2.5 h-2.5" />
                   <span>Logout</span>

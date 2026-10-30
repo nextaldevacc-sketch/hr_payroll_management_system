@@ -55,19 +55,19 @@ describe('Phase 7: 390px Mobile Responsive Layout (No Horizontal Scroll)', { tim
   before(async () => {
     // 1. Ensure API is running
     try {
-      await waitForHttp(`http://localhost:${API_PORT}/api/v1/health`, 1500);
+      await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 1500);
     } catch {
-      apiProcess = spawn(process.execPath, ['--env-file=.env', 'src/server.js'], {
+      apiProcess = spawn(process.execPath, [path.resolve(apiDir, 'src/server.js')], {
         cwd: apiDir,
-        env: { ...process.env, PORT: String(API_PORT), NODE_ENV: 'test' },
-        stdio: 'inherit',
+        env: { ...process.env, PORT: String(API_PORT), NODE_ENV: 'production' },
+        stdio: 'ignore',
       });
-      await waitForHttp(`http://localhost:${API_PORT}/api/v1/health`, 25000);
+      await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 25000);
     }
 
     // 2. Ensure Web is running
     try {
-      await waitForHttp(`http://localhost:${WEB_PORT}/login`, 1500);
+      await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 1500);
     } catch {
       const hasBuild = fs.existsSync(path.join(webDir, '.next'));
       const commandArgs = hasBuild ? [nextBin, 'start', '-p', String(WEB_PORT)] : [nextBin, 'dev', '-p', String(WEB_PORT)];
@@ -76,7 +76,7 @@ describe('Phase 7: 390px Mobile Responsive Layout (No Horizontal Scroll)', { tim
         env: { ...process.env, PORT: String(WEB_PORT), NODE_ENV: hasBuild ? 'production' : 'development' },
         stdio: 'ignore',
       });
-      await waitForHttp(`http://localhost:${WEB_PORT}/login`, 35000);
+      await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 35000);
     }
 
     // 3. Launch mobile browser at exactly 390px
@@ -100,7 +100,7 @@ describe('Phase 7: 390px Mobile Responsive Layout (No Horizontal Scroll)', { tim
     const page = await context.newPage();
 
     // Log in as employee
-    await page.goto(`http://localhost:${WEB_PORT}/login`, { waitUntil: 'networkidle' });
+    await page.goto(`http://127.0.0.1:${WEB_PORT}/login`, { waitUntil: 'networkidle' });
     await page.waitForSelector('input[type="email"]', { timeout: 15000 });
     await page.fill('input[type="email"]', 'employee@gulftech.ae');
     await page.fill('input[type="password"]', 'Nextal@2026!');
@@ -131,7 +131,7 @@ describe('Phase 7: 390px Mobile Responsive Layout (No Horizontal Scroll)', { tim
       }, cfg);
 
       for (const route of selfServiceUrls) {
-        await page.goto(`http://localhost:${WEB_PORT}${route}`, { waitUntil: 'networkidle' });
+        await page.goto(`http://127.0.0.1:${WEB_PORT}${route}`, { waitUntil: 'networkidle' });
         await page.waitForTimeout(600);
 
         const overflow = await page.evaluate(() => {

@@ -109,12 +109,12 @@ async function main() {
     fs.writeFileSync(sifPath, sifContent, 'utf-8');
     console.log(`Saved SIF: ${sifPath}`);
 
-    // Parse SCR record from SIF
+    // Parse SCR record from SIF (SCR: 1:SCR, 2:MOL, 3:Routing, 4:Date, 5:Time, 6:Month, 7:Count, 8:Total, 9:Currency, 10:Ref)
     const lines = sifContent.trim().split('\n').map((l) => l.trim()).filter(Boolean);
     const scrLine = lines.find((l) => l.startsWith('SCR,'));
     const scrParts = scrLine ? scrLine.split(',') : [];
-    const scrEmpCount = scrParts[7];
-    const scrTotal = scrParts[6];
+    const scrEmpCount = scrParts[6];
+    const scrTotal = scrParts[7];
 
     // Compute actual run net
     const refreshedRun = await prisma.$base().pay_runs.findUnique({

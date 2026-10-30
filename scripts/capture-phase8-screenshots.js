@@ -117,7 +117,7 @@ async function main() {
         gender: 'Male',
         nationality: 'ARE',
         residency_type: 'National',
-        joining_date: new Date('2019-10-31'),
+        joining_date: new Date('2019-11-03'),
         status: 'Active',
       },
     });
@@ -128,7 +128,7 @@ async function main() {
         company_id: company.id,
         employee_id: omar.id,
         contract_type: 'Unlimited',
-        start_date: new Date('2019-10-31'),
+        start_date: new Date('2019-11-03'),
         job_id: c.job_id,
         department_id: c.department_id,
         shift_id: c.shift_id,
@@ -247,32 +247,74 @@ async function main() {
       deviceScaleFactor: 2,
     });
     const page = await context.newPage();
+    const consoleErrors = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') {
+        const text = msg.text();
+        if (!text.includes('favicon.ico')) {
+          consoleErrors.push(text);
+        }
+      }
+    });
+
+    async function assertScreenValid(screenName, { expectedHeading, expectRows = true }) {
+      const bodyText = await page.innerText('body');
+      if (bodyText.includes('404') && (bodyText.includes('could not be found') || bodyText.includes('Not Found'))) {
+        throw new Error(`Verification failed on ${screenName}: 404 page detected`);
+      }
+      if (expectedHeading) {
+        const headingMatch = page.locator('h1, h2, h3, [role="heading"], button, th, div', { hasText: expectedHeading });
+        const count = await headingMatch.count();
+        if (count === 0) {
+          throw new Error(`Verification failed on ${screenName}: Expected heading '${expectedHeading}' not found`);
+        }
+      }
+      if (expectRows) {
+        const rows = page.locator('tbody tr, .data-row, [role="row"], .space-y-4 > div');
+        const rowCount = await rows.count();
+        if (rowCount === 0) {
+          throw new Error(`Verification failed on ${screenName}: Expected data rows > 0, found 0`);
+        }
+      }
+      if (consoleErrors.length > 0) {
+        const errs = [...consoleErrors];
+        consoleErrors.length = 0;
+        throw new Error(`Verification failed on ${screenName}: Console errors: ${errs.join(' | ')}`);
+      }
+    }
+
     await loginAs(page, 'hr.mgr@gulftech.ae');
+    consoleErrors.length = 0;
 
     for (const cfg of configs) {
       console.log(`- Capturing [${cfg.suffix}]`);
 
       // Screen 1: Separations List
+      consoleErrors.length = 0;
       await page.goto(`http://localhost:${WEB_PORT}/offboarding`, { waitUntil: 'networkidle' });
       await setEnvironment(page, cfg.theme, cfg.lang);
       await page.waitForTimeout(1000);
+      await assertScreenValid(`Separation List [${cfg.suffix}]`, { expectedHeading: /Offboarding|نهاية الخدمة|إنهاء الخدمة/i });
       const listPath = path.join(outDir, `separation_list_${cfg.suffix}.png`);
       await page.screenshot({ path: listPath });
       console.log(`  Saved: ${listPath}`);
 
       // Click on Manage to open detailed clearance tab
-      const manageBtn = await page.locator('button:has-text("Manage")').first();
+      consoleErrors.length = 0;
+      const manageBtn = await page.locator('button:has-text("Manage"), button:has-text("إدارة")').first();
       if (await manageBtn.isVisible()) {
         await manageBtn.click();
         await page.waitForTimeout(800);
       }
 
       // Screen 2: Clearance Checklist
+      await assertScreenValid(`Clearance Checklist [${cfg.suffix}]`, { expectedHeading: /Clearance|إخلاء|براءة الذمة/i, expectRows: false });
       const clearPath = path.join(outDir, `clearance_checklist_${cfg.suffix}.png`);
       await page.screenshot({ path: clearPath });
       console.log(`  Saved: ${clearPath}`);
 
       // Click on Settlement tab
+      consoleErrors.length = 0;
       const settlementTab = await page.locator('button:has-text("Final Settlement"), button:has-text("التسوية النهائية")').first();
       if (await settlementTab.isVisible()) {
         await settlementTab.click();
@@ -280,6 +322,7 @@ async function main() {
       }
 
       // Screen 3: Final Settlement
+      await assertScreenValid(`Final Settlement [${cfg.suffix}]`, { expectedHeading: /Settlement|التسوية/i, expectRows: false });
       const setPath = path.join(outDir, `final_settlement_${cfg.suffix}.png`);
       await page.screenshot({ path: setPath });
       console.log(`  Saved: ${setPath}`);
