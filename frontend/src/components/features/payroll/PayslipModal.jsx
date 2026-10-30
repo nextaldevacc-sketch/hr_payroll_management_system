@@ -6,13 +6,21 @@ import { Modal } from '../../primitives/Modal';
 import { StatusPill } from '../../primitives/StatusPill';
 import { downloadPayslipPdf } from '../../../services/payrollApi';
 
+function maskIban(iban) {
+  if (!iban) return 'AE** **** **** **** ****';
+  const clean = String(iban).replace(/[\s-]/g, '').toUpperCase();
+  if (clean.length < 4) return clean;
+  const last4 = clean.slice(-4);
+  return `AE** **** **** **** ${last4}`;
+}
+
 export function PayslipModal({ isOpen, onClose, payslip }) {
   if (!payslip) return null;
 
   const emp = payslip.employee || {};
   const contract = payslip.contract || {};
   const payRun = payslip.pay_run || {};
-  const bank = emp.bank_accounts?.find((b) => b.is_primary) || emp.bank_accounts?.[0] || {};
+  const bank = payslip.bankAccount || emp.bank_accounts?.find((b) => b.is_primary) || emp.bank_accounts?.[0] || {};
 
   const lines = payslip.lines || [];
   const earnings = lines.filter((l) =>
@@ -49,7 +57,7 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
     >
       <div className="space-y-6 overflow-y-auto max-h-[75vh] pr-1">
         {/* Header Metadata */}
-        <div className="glass-card p-4 rounded-xl border border-border/60 bg-surface/40 flex flex-wrap items-center justify-between gap-4">
+        <div className="glass-card p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-surface/40 flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-lg text-text dark:text-gold">{emp.name}</h3>
@@ -75,32 +83,32 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
 
         {/* Banking and WPS Details */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <div className="p-3 rounded-xl bg-surface-raised/40 border border-border/40">
+          <div className="p-3 rounded-xl bg-surface-raised/40 border border-slate-200 dark:border-slate-700">
             <span className="text-text-muted flex items-center gap-1">
               <CreditCard className="w-3.5 h-3.5 text-primary" /> Bank Name
             </span>
             <p className="font-semibold text-text mt-1">{bank.bank_name || 'Emirates NBD'}</p>
           </div>
-          <div className="p-3 rounded-xl bg-surface-raised/40 border border-border/40">
+          <div className="p-3 rounded-xl bg-surface-raised/40 border border-slate-200 dark:border-slate-700">
             <span className="text-text-muted flex items-center gap-1">
               <CreditCard className="w-3.5 h-3.5 text-secondary" /> UAE IBAN
             </span>
             <p className="font-mono font-medium text-text mt-1">
-              {bank.iban ? `${bank.iban.slice(0, 4)}••••${bank.iban.slice(-4)}` : 'AE••••••••••••1234'}
+              {maskIban(bank.iban)}
             </p>
           </div>
-          <div className="p-3 rounded-xl bg-surface-raised/40 border border-border/40">
+          <div className="p-3 rounded-xl bg-surface-raised/40 border border-slate-200 dark:border-slate-700">
             <span className="text-text-muted flex items-center gap-1">
               <Building className="w-3.5 h-3.5 text-amber-500" /> Establishment / Routing
             </span>
-            <p className="font-semibold text-text mt-1">{payRun.company_visa?.bank_routing_code || 'ENBD001'}</p>
+            <p className="font-mono font-medium text-text mt-1">{bank.routing_code || payRun.company_visa?.bank_routing_code || 'ENBD001'}</p>
           </div>
         </div>
 
         {/* Earnings & Deductions Breakdown */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Earnings Column */}
-          <div className="p-4 rounded-xl border border-secondary/20 bg-secondary/5">
+          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-secondary/5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-secondary mb-3 flex items-center justify-between">
               <span>Earnings / المستحقات</span>
               <span className="text-[10px] text-text-muted">AED</span>
@@ -108,32 +116,32 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
             <div className="space-y-2 text-xs">
               {earnings.length > 0 ? (
                 earnings.map((line, idx) => (
-                  <div key={idx} className="flex justify-between py-1 border-b border-border/20 last:border-0">
+                  <div key={idx} className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-700/60 last:border-0">
                     <span className="text-text-muted">{line.name}</span>
                     <span className="font-medium text-text">{Number(line.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 ))
               ) : (
                 <>
-                  <div className="flex justify-between py-1 border-b border-border/20">
+                  <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-700/60">
                     <span className="text-text-muted">Basic Salary</span>
                     <span className="font-medium text-text">{Number(payslip.basic || 0).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-border/20">
+                  <div className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-700/60">
                     <span className="text-text-muted">Allowances</span>
                     <span className="font-medium text-text">{(Number(payslip.gross || 0) - Number(payslip.basic || 0)).toFixed(2)}</span>
                   </div>
                 </>
               )}
             </div>
-            <div className="mt-4 pt-3 border-t border-secondary/30 flex justify-between font-bold text-sm text-text">
+            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between font-bold text-sm text-text">
               <span>Total Gross Salary</span>
               <span className="text-secondary">AED {Number(payslip.gross || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
 
           {/* Deductions Column */}
-          <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/5">
+          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-red-500/5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-red-500 mb-3 flex items-center justify-between">
               <span>Deductions / الاستقطاعات</span>
               <span className="text-[10px] text-text-muted">AED</span>
@@ -141,7 +149,7 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
             <div className="space-y-2 text-xs">
               {deductions.length > 0 ? (
                 deductions.map((line, idx) => (
-                  <div key={idx} className="flex justify-between py-1 border-b border-border/20 last:border-0">
+                  <div key={idx} className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-700/60 last:border-0">
                     <span className="text-text-muted">{line.name}</span>
                     <span className="font-medium text-red-500">-{Number(line.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
@@ -152,7 +160,7 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
                 </div>
               )}
             </div>
-            <div className="mt-4 pt-3 border-t border-red-500/30 flex justify-between font-bold text-sm text-text">
+            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between font-bold text-sm text-text">
               <span>Total Deductions</span>
               <span className="text-red-500">AED {Number(payslip.total_deductions || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
@@ -161,7 +169,7 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
 
         {/* Company Pension Contribution (if applicable) */}
         {contributions.length > 0 && (
-          <div className="p-3 rounded-xl border border-blue-500/20 bg-blue-500/5 text-xs">
+          <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-blue-500/5 text-xs">
             <div className="flex justify-between items-center text-blue-400 font-semibold mb-1">
               <span>Employer Pension Contribution (GPSSA)</span>
               <span>AED {Number(contributions[0].amount || 0).toFixed(2)}</span>

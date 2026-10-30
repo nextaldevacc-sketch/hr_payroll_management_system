@@ -89,7 +89,8 @@ export function OffboardingFeature() {
     try {
       setLoading(true);
       const res = await listSeparations();
-      setSeparations(res.data?.items || []);
+      const items = Array.isArray(res) ? res : (res?.items || res?.data?.items || res?.data || []);
+      setSeparations(items);
     } catch (err) {
       console.error('Failed to load separations:', err);
     } finally {
@@ -105,7 +106,10 @@ export function OffboardingFeature() {
   useEffect(() => {
     if (isInitiateModalOpen && employeesList.length === 0) {
       fetchEmployees({ limit: 100 })
-        .then((res) => setEmployeesList(res.data?.items || []))
+        .then((res) => {
+          const list = Array.isArray(res) ? res : (res?.items || res?.data?.items || res?.data || []);
+          setEmployeesList(list);
+        })
         .catch((err) => console.error(err));
     }
   }, [isInitiateModalOpen, employeesList.length]);
@@ -120,13 +124,15 @@ export function OffboardingFeature() {
 
       // Refresh full separation details
       const detailRes = await getSeparation(sep.id);
-      setSelectedSeparation(detailRes.data);
+      const fullSep = detailRes?.data !== undefined && detailRes?.data !== null ? detailRes.data : detailRes;
+      setSelectedSeparation(fullSep || sep);
 
       if (seesSalary) {
         setSettlementLoading(true);
         try {
           const setRes = await getSettlementBySeparation(sep.id);
-          setSettlement(setRes.data || null);
+          const fullSet = setRes?.data !== undefined && setRes?.data !== null ? setRes.data : setRes;
+          setSettlement(fullSet || null);
         } catch {
           setSettlement(null);
         } finally {
@@ -210,7 +216,7 @@ export function OffboardingFeature() {
       await updateClearanceItem(activeClearItem.id, clearItemForm);
       setIsClearItemModalOpen(false);
       const detailRes = await getSeparation(selectedSeparation.id);
-      setSelectedSeparation(detailRes.data);
+      setSelectedSeparation(detailRes?.data !== undefined ? detailRes.data : detailRes);
       fetchSeparations();
     } catch (err) {
       setActionError(err.message || 'Failed to update clearance item');
@@ -223,7 +229,7 @@ export function OffboardingFeature() {
     setActionError(null);
     try {
       const res = await prepareSettlement(selectedSeparation.id);
-      setSettlement(res.data);
+      setSettlement(res?.data !== undefined ? res.data : res);
       setActionSuccess('Settlement calculated and prepared successfully.');
       fetchSeparations();
     } catch (err) {
@@ -236,7 +242,7 @@ export function OffboardingFeature() {
     setActionError(null);
     try {
       const res = await validateSettlement(settlement.id);
-      setSettlement(res.data);
+      setSettlement(res?.data !== undefined ? res.data : res);
       setActionSuccess('Settlement validated by HR Manager.');
       fetchSeparations();
     } catch (err) {
@@ -249,7 +255,7 @@ export function OffboardingFeature() {
     setActionError(null);
     try {
       const res = await approveSettlement(settlement.id);
-      setSettlement(res.data);
+      setSettlement(res?.data !== undefined ? res.data : res);
       setActionSuccess('Settlement approved by General Manager. Financial snapshot is now frozen.');
       fetchSeparations();
     } catch (err) {
@@ -262,7 +268,7 @@ export function OffboardingFeature() {
     setActionError(null);
     try {
       const res = await paySettlement(settlement.id);
-      setSettlement(res.data);
+      setSettlement(res?.data !== undefined ? res.data : res);
       setActionSuccess('Settlement marked as Paid by Finance.');
       fetchSeparations();
     } catch (err) {

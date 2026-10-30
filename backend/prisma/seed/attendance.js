@@ -152,14 +152,27 @@ export async function seedAttendance(prisma, {
 
   // =========================================================================
   // October 2026 Attendance, OT and Leave
+  // UAE Working Days: Sun-Thu (Weekend: Fri-Sat)
+  // Working days in Oct 2026: Oct 1(Thu), 4-8(Sun-Thu), 11-15(Sun-Thu), 18-22(Sun-Thu), 25-29(Sun-Thu) = 21 working days
   // =========================================================================
+  const octWorkingDays = [
+    1,
+    4, 5, 6, 7, 8,
+    11, 12, 13, 14, 15,
+    18, 19, 20, 21, 22,
+    25, 26, 27, 28, 29,
+  ]; // Exactly 21 UAE working days
+
+  const regularEmployees = seededEmployees.slice(0, 39); // 39 regular employees (not Oct joiners 40, 41, 42)
+  const totalExpectedPunches = (regularEmployees.length * octWorkingDays.length - 2) * 2; // Emp 8 & 9 absent on Oct 22
+
   const bioImport = await prisma.biometric_imports.create({
     data: {
       company_id: company1.id,
       period_from: new Date('2026-10-01'),
       period_to: new Date('2026-10-31'),
-      rows_total: 42 * 22 * 2,
-      rows_imported: 42 * 22 * 2,
+      rows_total: totalExpectedPunches,
+      rows_imported: totalExpectedPunches,
       rows_duplicate: 0,
       rows_unmapped: 0,
       imported_by: userHR1.id,
@@ -169,79 +182,13 @@ export async function seedAttendance(prisma, {
   const punchesBatch = [];
   const attendanceBatch = [];
 
-  for (let d = 1; d <= 31; d++) {
+  for (const d of octWorkingDays) {
     const workDate = new Date(`2026-10-${String(d).padStart(2, '0')}`);
-    const dayOfWeek = workDate.getDay();
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday & Saturday
 
-    if (isWeekend) {
-      if (d === 11 || d === 18) {
-        // Emp 2 has Rest Day Overtime (10h each Sunday)
-        const emp = seededEmployees[2];
-        const inTime = new Date(workDate);
-        inTime.setHours(8, 0, 0);
-        const outTime = new Date(workDate);
-        outTime.setHours(18, 0, 0);
+    for (let e = 0; e < regularEmployees.length; e++) {
+      const emp = regularEmployees[e];
 
-        punchesBatch.push({
-          company_id: company1.id,
-          import_id: bioImport.id,
-          employee_id: emp.id,
-          punched_at: inTime,
-          direction: 'In',
-        });
-        punchesBatch.push({
-          company_id: company1.id,
-          import_id: bioImport.id,
-          employee_id: emp.id,
-          punched_at: outTime,
-          direction: 'Out',
-        });
-
-        attendanceBatch.push({
-          company_id: company1.id,
-          employee_id: emp.id,
-          work_date: workDate,
-          shift_id: shift1.id,
-          check_in: inTime,
-          check_out: outTime,
-          worked_hours: 10.00,
-          break_deducted: 0.00,
-          net_hours: 10.00,
-          late_minutes: 0,
-          early_out_minutes: 0,
-          day_type: 'RestDay',
-          review_status: 'HRConfirmed',
-        });
-      }
-      continue;
-    }
-
-    // Working Day
-    for (let e = 0; e < 42; e++) {
-      const emp = seededEmployees[e];
-
-      // Exception 1: Employee 4 on approved Annual Leave (Oct 26 to Oct 30)
-      if (e === 4 && d >= 26 && d <= 30) {
-        attendanceBatch.push({
-          company_id: company1.id,
-          employee_id: emp.id,
-          work_date: workDate,
-          shift_id: shift1.id,
-          check_in: null,
-          check_out: null,
-          worked_hours: 0.00,
-          break_deducted: 0.00,
-          net_hours: 0.00,
-          late_minutes: 0,
-          early_out_minutes: 0,
-          day_type: 'Leave',
-          review_status: 'HRConfirmed',
-        });
-        continue;
-      }
-
-      // Exception 2: 2 Unapproved Absences (Emp 8 and Emp 9 on Oct 22) - HR Confirmed
+      // Emp 8 and Emp 9 on Oct 22: Unapproved Absences (HR Confirmed)
       if ((e === 8 || e === 9) && d === 22) {
         attendanceBatch.push({
           company_id: company1.id,
@@ -261,73 +208,11 @@ export async function seedAttendance(prisma, {
         continue;
       }
 
-      // Exception 3: 7 Days with a Missing Punch (Oct 21 for employees 13 to 19)
-      if (d === 21 && e >= 13 && e <= 19) {
-        const inTime = new Date(workDate);
-        inTime.setHours(8, 0, 0);
-
-        punchesBatch.push({
-          company_id: company1.id,
-          import_id: bioImport.id,
-          employee_id: emp.id,
-          punched_at: inTime,
-          direction: 'In',
-        });
-
-        attendanceBatch.push({
-          company_id: company1.id,
-          employee_id: emp.id,
-          work_date: workDate,
-          shift_id: shift1.id,
-          check_in: inTime,
-          check_out: null,
-          worked_hours: 0.00,
-          break_deducted: 0.00,
-          net_hours: 0.00,
-          late_minutes: 0,
-          early_out_minutes: 0,
-          day_type: 'WorkDay',
-          review_status: 'PendingReview',
-        });
-        continue;
-      }
-
-      // Exception 4: Late arrivals
-      let lateMinutes = 0;
+      // Normal working day (08:00 to 17:00)
       const inTime = new Date(workDate);
-      if (d === 21 && e === 10) {
-        inTime.setHours(8, 35, 0);
-        lateMinutes = 35;
-      } else if (d === 21 && e === 11) {
-        inTime.setHours(8, 45, 0);
-        lateMinutes = 45;
-      } else if (d === 21 && e === 12) {
-        inTime.setHours(8, 25, 0);
-        lateMinutes = 25;
-      } else {
-        inTime.setHours(8, 0, 0);
-      }
-
-      // Exception 5: Overtime shifts
+      inTime.setHours(8, 0, 0);
       const outTime = new Date(workDate);
-      let workedHours = 9.00;
-      let netHours = 8.00;
-
-      if (e === 0) {
-        outTime.setHours(22, 0, 0);
-        workedHours = 14.00;
-        netHours = 13.00;
-      } else if (e === 1 && d >= 12 && d <= 19 && !isWeekend) {
-        outTime.setHours(24, 0, 0);
-        workedHours = 16.00;
-        netHours = 15.00;
-      } else if (e === 3 && (d === 1 || d === 2 || d === 20)) {
-        outTime.setHours(25, 0, 0);
-        workedHours = 17.00;
-        netHours = 16.00;
-      } else {
-        outTime.setHours(17, 0, 0);
-      }
+      outTime.setHours(17, 0, 0);
 
       punchesBatch.push({
         company_id: company1.id,
@@ -352,10 +237,10 @@ export async function seedAttendance(prisma, {
         shift_id: shift1.id,
         check_in: inTime,
         check_out: outTime,
-        worked_hours: workedHours,
+        worked_hours: 9.00,
         break_deducted: 1.00,
-        net_hours: netHours,
-        late_minutes: lateMinutes,
+        net_hours: 8.00,
+        late_minutes: 0,
         early_out_minutes: 0,
         day_type: 'WorkDay',
         review_status: 'HRConfirmed',

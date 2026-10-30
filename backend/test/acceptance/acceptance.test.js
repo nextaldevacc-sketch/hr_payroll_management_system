@@ -1128,14 +1128,18 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
     });
     assert(visaB, 'Company B visa must exist');
 
-    // Use an isolated unique future month for Company B
-    const uniqueYear = 2028 + Math.floor(Math.random() * 5);
-    const uniqueM = Math.floor(Math.random() * 12) + 1;
-    const testMonth = `${uniqueYear}-${String(uniqueM).padStart(2, '0')}-01`;
-    let run = await prisma.$base().pay_runs.findFirst({
-      where: { company_visa_id: visaB.id, period_month: new Date(testMonth) },
-    });
-    if (!run) {
+    // Find a unique period month that does not already exist
+    let uniqueYear = 2035;
+    let run = null;
+    while (!run) {
+      const testMonth = `${uniqueYear}-06-01`;
+      const exists = await prisma.$base().pay_runs.findFirst({
+        where: { company_visa_id: visaB.id, period_month: new Date(testMonth) },
+      });
+      if (exists) {
+        uniqueYear++;
+        continue;
+      }
       run = await payrollService.createPayRun(
         companyB.id,
         {

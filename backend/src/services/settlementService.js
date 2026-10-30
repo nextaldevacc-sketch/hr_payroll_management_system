@@ -554,6 +554,35 @@ export class SettlementService {
   }
 
   /**
+   * Get Final Settlement by Separation ID
+   */
+  async getSettlementBySeparationId(companyId, separationId) {
+    const settlement = await this.prisma.$base().final_settlements.findFirst({
+      where: { separation_id: separationId, company_id: companyId },
+      include: {
+        separation: {
+          include: {
+            employee: {
+              include: {
+                contracts: {
+                  include: { department: true, job: true },
+                  orderBy: { effective_date: 'desc' },
+                },
+                company_visa: true,
+              },
+            },
+            clearance_items: {
+              include: { department: true, owner_user: true, clearer: true },
+            },
+          },
+        },
+      },
+    });
+
+    return settlement || null;
+  }
+
+  /**
    * Generate Settlement Payslip PDF
    */
   async generateSettlementPdf(companyId, settlementId) {

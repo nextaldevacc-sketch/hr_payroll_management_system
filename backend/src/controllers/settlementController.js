@@ -75,6 +75,20 @@ export async function getSettlement(req, res, next) {
   }
 }
 
+export async function getSettlementBySeparation(req, res, next) {
+  try {
+    const companyId = req.user.companyId;
+    const { separationId } = req.params;
+    const settlement = await settlementService.getSettlementBySeparationId(companyId, separationId);
+    if (!settlement) {
+      return res.status(200).json({ status: 'success', data: null });
+    }
+    res.status(200).json({ status: 'success', data: settlement });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function downloadSettlementPdf(req, res, next) {
   try {
     const companyId = req.user.companyId;

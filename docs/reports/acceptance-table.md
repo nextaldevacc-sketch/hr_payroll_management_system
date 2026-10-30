@@ -1,6 +1,6 @@
 # Spec Section 15 Acceptance Test Results (T1–T37)
 
-*Generated automatically from `docs/reports/acceptance-raw.txt` on 2026-10-30T06:02:08.048Z*
+*Generated automatically from `docs/reports/acceptance-raw.txt` on 2026-10-30T10:50:21.789Z*
 
 | ID | Given | Expected | Status |
 | :--- | :--- | :--- | :--- |

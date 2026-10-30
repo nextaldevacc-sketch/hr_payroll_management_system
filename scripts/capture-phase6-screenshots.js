@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import http from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import treeKill from 'tree-kill';
@@ -246,6 +247,23 @@ async function main() {
       await page.keyboard.press('Escape');
       await page.waitForTimeout(300);
     }
+
+    // Verify SHA-256 uniqueness across all captured screenshots
+    console.log(`\nVerifying SHA-256 uniqueness of screenshots in ${outDir}...`);
+    const files = fs.readdirSync(outDir).filter((f) => f.endsWith('.png'));
+    const hashes = new Map();
+    for (const file of files) {
+      const filePath = path.join(outDir, file);
+      const buffer = fs.readFileSync(filePath);
+      const hash = crypto.createHash('sha256').update(buffer).digest('hex');
+      if (hashes.has(hash)) {
+        throw new Error(
+          `Byte-identical duplicate screenshot detected: '${file}' matches '${hashes.get(hash)}' (SHA-256: ${hash})`
+        );
+      }
+      hashes.set(hash, file);
+    }
+    console.log(`Success: All ${files.length} screenshots have unique SHA-256 hashes.`);
 
     console.log('\nAll 16 Phase 6 matrix screenshots captured successfully!');
   } finally {

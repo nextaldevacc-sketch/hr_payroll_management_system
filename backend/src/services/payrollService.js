@@ -206,6 +206,10 @@ export class PayrollService {
               arabic_name: true,
               residency_type: true,
               nationality: true,
+              bank_accounts: {
+                where: { is_active: true },
+                select: { id: true, bank_name: true, iban: true, routing_code: true, is_primary: true },
+              },
             },
           },
           contract: {
@@ -227,7 +231,22 @@ export class PayrollService {
       this.prisma.$base().payslips.count({ where }),
     ]);
 
-    return { items, total };
+    const formatted = items.map((ps) => {
+      const primaryBank = ps.employee?.bank_accounts?.find((b) => b.is_primary) || ps.employee?.bank_accounts?.[0] || null;
+      return {
+        ...ps,
+        bankAccount: primaryBank
+          ? {
+              id: primaryBank.id,
+              bank_name: primaryBank.bank_name,
+              iban: primaryBank.iban,
+              routing_code: primaryBank.routing_code,
+            }
+          : null,
+      };
+    });
+
+    return { items: formatted, total };
   }
 
   /**
@@ -431,11 +450,11 @@ export class PayrollService {
       return rule;
     });
 
-    // 3. Fetch confirmed attendance inputs for all employees in date range up to cutoff
+    // 3. Fetch confirmed attendance inputs for all employees in date range up to periodTo
     const attendanceDays = await this.prisma.$base().attendance_days.findMany({
       where: {
         company_id: companyId,
-        work_date: { gte: periodFrom, lte: cutoff },
+        work_date: { gte: periodFrom, lte: periodTo },
       },
     });
 
@@ -564,8 +583,9 @@ export class PayrollService {
       // Attendance processing
       const empAttendance = attendanceDays.filter((a) => a.employee_id === emp.id);
 
-      // Check for unconfirmed attendance days held for next month
-      const unconfirmedDays = empAttendance.filter((a) => a.review_status?.toLowerCase() !== 'hrconfirmed');
+      // Check for unconfirmed attendance days held for next month (up to cutoff)
+      const cutoffAttendance = empAttendance.filter((a) => new Date(a.work_date) <= cutoff);
+      const unconfirmedDays = cutoffAttendance.filter((a) => a.review_status?.toLowerCase() !== 'hrconfirmed');
       if (unconfirmedDays.length > 0) {
         generatedIssues.push({
           company_id: companyId,
@@ -577,15 +597,15 @@ export class PayrollService {
         });
       }
 
-      // Confirmed days only contribute to deductions in this run
-      const confirmedDays = empAttendance.filter((a) => a.review_status?.toLowerCase() === 'hrconfirmed');
+      // Confirmed days up to cutoff contribute to deductions in this run
+      const confirmedDaysForDeductions = cutoffAttendance.filter((a) => a.review_status?.toLowerCase() === 'hrconfirmed');
 
       let absentDays = 0;
       let lateUnits = 0;
       let sickHalfDays = 0;
       let sickNoneDays = 0;
 
-      for (const d of confirmedDays) {
+      for (const d of confirmedDaysForDeductions) {
         if (d.day_type === 'Absence' || d.day_type === 'UnpaidLeave') {
           absentDays += 1;
         }
@@ -634,11 +654,12 @@ export class PayrollService {
       const isUaeNational = emp.residency_type === 'UAENational' || emp.residency_type === 'National' || emp.nationality === 'ARE' || emp.nationality === 'Emirati';
       const gpssaSalary = isUaeNational ? basicSalary.plus(hra) : new Decimal(0);
 
-      // Confirmed worked days from attendance records
-      const confirmedWorkedDaysCount = confirmedDays.filter(
-        (a) => a.day_type === 'WorkDay' && (a.check_in || Number(a.worked_hours) > 0)
+      // Confirmed worked days from attendance records across the period
+      const allConfirmedDays = empAttendance.filter((a) => a.review_status?.toLowerCase() === 'hrconfirmed');
+      const confirmedWorkedDaysCount = allConfirmedDays.filter(
+        (a) => a.day_type === 'WorkDay'
       ).length;
-      const workedDays = confirmedDays.length > 0
+      const workedDays = allConfirmedDays.length > 0
         ? new Decimal(confirmedWorkedDaysCount)
         : new Decimal(paidDays - absentDays);
 
@@ -1160,7 +1181,19 @@ export class PayrollService {
       throw err;
     }
 
-    return payslip;
+    const primaryBank = payslip.employee?.bank_accounts?.find((b) => b.is_primary) || payslip.employee?.bank_accounts?.[0] || null;
+
+    return {
+      ...payslip,
+      bankAccount: primaryBank
+        ? {
+            id: primaryBank.id,
+            bank_name: primaryBank.bank_name,
+            iban: primaryBank.iban,
+            routing_code: primaryBank.routing_code,
+          }
+        : null,
+    };
   }
 
   /**

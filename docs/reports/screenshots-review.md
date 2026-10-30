@@ -2,7 +2,7 @@
 
 Review of Phase 6 (Payroll Management & Pay Runs) and Phase 8 (Offboarding, Multi-Department Clearance & Final Settlement) across English (LTR) / Arabic (RTL) and Light / Dark modes.
 
-Every screen has been verified via automated browser assertions: zero HTTP 404s, correct locale headings and typography, active data records (> 0 rows), and zero console errors.
+Every screen has been verified via automated browser assertions: zero HTTP 404s, correct locale headings and typography, active data records (> 0 rows), zero console errors, verified data assertions (Omar Al-Hashimi, 4 clearance items, exact statutory settlement amounts 32,547.95 & 44,915.07), and unique SHA-256 hashes across all image files.
 
 ---
 
@@ -22,8 +22,8 @@ Every screen has been verified via automated browser assertions: zero HTTP 404s,
 | `pay_run_detail_variances_en_dark.png` | English Dark variance table showing color-coded delta metrics and input controls. |
 | `pay_run_detail_variances_ar_light.png` | Arabic RTL Light variance tab with correct RTL numerical alignments and translated variance categories. |
 | `pay_run_detail_variances_ar_dark.png` | Arabic RTL Dark variance analysis with clean borders and contrast-compliant typography. |
-| `payslip_en_light.png` | English Light payslip itemization breakdown displaying all earnings (Basic, HRA, TRA, OTH, OT), deductions, and net. |
-| `payslip_en_dark.png` | English Dark payslip modal with glassmorphic cards, clear monetary itemization, and statutory GPSSA deductions. |
+| `payslip_en_light.png` | English Light payslip itemization breakdown displaying all earnings (Basic, HRA, TRA, OTH, OT), deductions, masked IBAN, routing code, and net. |
+| `payslip_en_dark.png` | English Dark payslip modal with slate-200/700 card borders, clear monetary itemization, and statutory GPSSA deductions. |
 | `payslip_ar_light.png` | Arabic RTL Light payslip modal with mirrored currency layout, localized earnings line codes, and Arabic labels. |
 | `payslip_ar_dark.png` | Arabic RTL Dark payslip view with high readability, distinct net pay highlight, and proper RTL number formats. |
 
@@ -33,15 +33,15 @@ Every screen has been verified via automated browser assertions: zero HTTP 404s,
 
 | Screenshot File | Verification & Visual Review |
 | :--- | :--- |
-| `separation_list_en_light.png` | English Light separations list displaying active resignations, clearances in progress, and approved settlements. |
-| `separation_list_en_dark.png` | English Dark separations dashboard with dark slate surfaces, status badges, and action triggers. |
-| `separation_list_ar_light.png` | Arabic RTL Light separations table with RTL alignment, Arabic employee names, and separation categories. |
-| `separation_list_ar_dark.png` | Arabic RTL Dark separations table with mirrored controls, clear badges, and accessible contrast. |
-| `clearance_checklist_en_light.png` | English Light clearance checklist detailing 4 departmental tasks (IT, Admin, Finance, HR) with cleared/pending items. |
-| `clearance_checklist_en_dark.png` | English Dark clearance checklist with dark cards, departmental tags, and amount due tracking. |
-| `clearance_checklist_ar_light.png` | Arabic RTL Light clearance checklist with translated department titles, status chips, and Arabic notes. |
-| `clearance_checklist_ar_dark.png` | Arabic RTL Dark clearance checklist with mirrored task indicators and high-contrast inputs. |
-| `final_settlement_en_light.png` | English Light final settlement statement showing exact pro-rated salary, gratuity, leave encashment, and net payable. |
-| `final_settlement_en_dark.png` | English Dark final settlement card with gold accent highlights, clear breakdown, and approval status. |
-| `final_settlement_ar_light.png` | Arabic RTL Light settlement breakdown displaying statutory UAE Article 51 gratuity calculation in Arabic. |
-| `final_settlement_ar_dark.png` | Arabic RTL Dark settlement view with RTL table layout, net settlement total, and audit timestamps. |
+| `separation_list_en_light.png` | Shows separation list with Omar Al-Hashimi record in English Light mode with active status and manage action. |
+| `separation_list_en_dark.png` | Shows separation list with Omar Al-Hashimi record in English Dark mode with dark surfaces and clear badges. |
+| `separation_list_ar_light.png` | Shows separation list with Omar Al-Hashimi record in Arabic RTL Light mode with Arabic typography and layout. |
+| `separation_list_ar_dark.png` | Shows separation list with Omar Al-Hashimi record in Arabic RTL Dark mode with mirrored controls and badges. |
+| `clearance_checklist_en_light.png` | Shows clearance checklist with 4 department items (IT, Admin, Finance, HR) in English Light mode. |
+| `clearance_checklist_en_dark.png` | Shows clearance checklist with 4 department items in English Dark mode with departmental status badges. |
+| `clearance_checklist_ar_light.png` | Shows clearance checklist with 4 department items in Arabic RTL Light mode with translated departmental tags. |
+| `clearance_checklist_ar_dark.png` | Shows clearance checklist with 4 department items in Arabic RTL Dark mode with RTL card alignments. |
+| `final_settlement_en_light.png` | Shows final settlement with verified statutory calculations of 32,547.95 (gratuity) and 44,915.07 (net payable) in English Light mode. |
+| `final_settlement_en_dark.png` | Shows final settlement with verified 32,547.95 and 44,915.07 amounts in English Dark mode with gold highlights. |
+| `final_settlement_ar_light.png` | Shows final settlement statement with 32,547.95 and 44,915.07 statutory values in Arabic RTL Light mode. |
+| `final_settlement_ar_dark.png` | Shows final settlement statement with 32,547.95 and 44,915.07 statutory values in Arabic RTL Dark mode. |

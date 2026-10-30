@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import prisma from '../backend/src/lib/prisma.js';
 import { PayrollService } from '../backend/src/services/payrollService.js';
 import { generateVarianceReportPdf } from '../backend/src/lib/pdf.js';
+import { generateValidUaeIban } from '../backend/prisma/seed/employees.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,7 +69,7 @@ async function main() {
     for (const ba of emptyIbans) {
       await prisma.$base().bank_accounts.update({
         where: { id: ba.id },
-        data: { iban: 'AE400331234567890123456', routing_code: 'ENBD001' },
+        data: { iban: generateValidUaeIban(33, 41), routing_code: 'ENBD001' },
       });
     }
 

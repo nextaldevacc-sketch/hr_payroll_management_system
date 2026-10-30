@@ -34,6 +34,8 @@ router.get('/runs/:id/reports/variance', requirePermission('pay_runs', 'view'), 
 // Payslips & Variances
 // ==========================================
 router.get('/payslips/:id', payrollController.getPayslip);
+router.get('/runs/:runId/payslips/:id', payrollController.getPayslip);
+router.get('/pay-runs/:runId/payslips/:id', payrollController.getPayslip);
 router.get('/payslips/:id/pdf', payrollController.downloadPayslipPdf);
 router.patch('/payslips/:id/variance', requirePermission('pay_runs', 'validate'), payrollController.updateVarianceReason);
 

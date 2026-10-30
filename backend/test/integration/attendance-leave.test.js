@@ -311,6 +311,18 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
       const checkInUtc = new Date('2026-10-11T04:30:00Z');
       const checkOutUtc = new Date('2026-10-11T13:00:00Z');
 
+      // Clear any seeded punches and attendance_days for this date so the test
+      // controls the exact punch scenario (seed creates on-time 04:00 UTC punches
+      // which would otherwise prevent the late-arrival assertion from passing).
+      const oct11Start = new Date('2026-10-11T00:00:00Z');
+      const oct11End = new Date('2026-10-11T23:59:59Z');
+      await prisma.$base().attendance_days.deleteMany({
+        where: { employee_id: testEmpA.id, work_date: new Date('2026-10-11') },
+      });
+      await prisma.$base().punches.deleteMany({
+        where: { employee_id: testEmpA.id, punched_at: { gte: oct11Start, lte: oct11End } },
+      });
+
       await prisma.$base().punches.createMany({
         data: [
           { company_id: companyA.id, employee_id: testEmpA.id, punched_at: checkInUtc, direction: 'IN' },
@@ -712,53 +724,55 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
     });
 
     it('HR Manager can re-open an HR-confirmed day before cut-off with mandatory reason', async () => {
-      const confirmedDay = await prisma.$base().attendance_days.findFirst({
-        where: {
-          company_id: companyA.id,
-          review_status: 'HrConfirmed',
-          work_date: { gte: new Date('2026-10-01') },
-        },
-      });
-      assert(confirmedDay, 'Must have at least one HrConfirmed day in current open month');
-
-      // Reopen without reason should fail (HTTP 400)
-      const resFail = await request(app)
-        .post(`/api/v1/attendance/days/${confirmedDay.id}/reopen`)
-        .set('Authorization', `Bearer ${hrMgrAToken}`)
-        .send({});
-      assert.equal(resFail.status, 400);
-      assert.equal(resFail.body.code, 'REASON_REQUIRED');
-
-      // Employee cannot reopen (HTTP 403)
-      const resForbidden = await request(app)
-        .post(`/api/v1/attendance/days/${confirmedDay.id}/reopen`)
-        .set('Authorization', `Bearer ${employeeAToken}`)
-        .send({ reason: 'Employee self-reopen' });
-      assert.equal(resForbidden.status, 403);
-
-      // Locate pay run for this day and set cutoff to the future for "before cut-off" test
-      const workDate = new Date(confirmedDay.work_date);
-      const periodMonth = new Date(Date.UTC(workDate.getUTCFullYear(), workDate.getUTCMonth(), 1));
+      // Create dedicated test pay run and attendance day for complete isolation
       const emp = await prisma.$base().employees.findUnique({
-        where: { id: confirmedDay.employee_id },
+        where: { id: testEmpA.id },
         select: { company_visa_id: true },
       });
-      const payRun = await prisma.$base().pay_runs.findFirst({
-        where: {
+
+      const uniqueYear = 2040 + Math.floor(Math.random() * 50);
+      const uniqueMonth = Math.floor(Math.random() * 12) + 1;
+      const testPeriod = new Date(`${uniqueYear}-${String(uniqueMonth).padStart(2, '0')}-01T00:00:00Z`);
+      const testWorkDate = new Date(`${uniqueYear}-${String(uniqueMonth).padStart(2, '0')}-10T00:00:00Z`);
+      const cutoffDate = new Date(`${uniqueYear}-${String(uniqueMonth).padStart(2, '0')}-25T00:00:00Z`);
+
+      const testPayRun = await prisma.$base().pay_runs.create({
+        data: {
           company_id: companyA.id,
           company_visa_id: emp.company_visa_id,
-          period_month: periodMonth,
+          period_month: testPeriod,
+          cutoff_date: cutoffDate,
+          run_type: 'Regular',
+          status: 'Draft',
         },
       });
-      const originalCutoff = payRun?.cutoff_date;
+
+      const confirmedDay = await prisma.$base().attendance_days.create({
+        data: {
+          company_id: companyA.id,
+          employee_id: testEmpA.id,
+          work_date: testWorkDate,
+          day_type: 'WorkDay',
+          review_status: 'HrConfirmed',
+          worked_hours: 8.0,
+        },
+      });
 
       try {
-        if (payRun) {
-          await prisma.$base().pay_runs.update({
-            where: { id: payRun.id },
-            data: { cutoff_date: new Date(Date.now() + 7 * 86400000) },
-          });
-        }
+        // Reopen without reason should fail (HTTP 400)
+        const resFail = await request(app)
+          .post(`/api/v1/attendance/days/${confirmedDay.id}/reopen`)
+          .set('Authorization', `Bearer ${hrMgrAToken}`)
+          .send({});
+        assert.equal(resFail.status, 400);
+        assert.equal(resFail.body.code, 'REASON_REQUIRED');
+
+        // Employee cannot reopen (HTTP 403)
+        const resForbidden = await request(app)
+          .post(`/api/v1/attendance/days/${confirmedDay.id}/reopen`)
+          .set('Authorization', `Bearer ${employeeAToken}`)
+          .send({ reason: 'Employee self-reopen' });
+        assert.equal(resForbidden.status, 403);
 
         // HR Manager reopens before cut-off with valid reason
         const resSuccess = await request(app)
@@ -781,30 +795,24 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
           data: { review_status: 'HrConfirmed' },
         });
 
-        // Now test past cut-off rejection
-        if (payRun) {
-          await prisma.$base().pay_runs.update({
-            where: { id: payRun.id },
-            data: { cutoff_date: new Date('2026-10-01') },
-          });
+        // Now test past cut-off rejection (cutoff in the past relative to now)
+        await prisma.$base().pay_runs.update({
+          where: { id: testPayRun.id },
+          data: { cutoff_date: new Date('2020-01-01T00:00:00Z') },
+        });
 
-          const resPastCutoff = await request(app)
-            .post(`/api/v1/attendance/days/${confirmedDay.id}/reopen`)
-            .set('Authorization', `Bearer ${hrMgrAToken}`)
-            .send({ reason: 'Attempting reopen past cut-off' });
-          assert.equal(resPastCutoff.status, 400);
-          assert.equal(resPastCutoff.body.code, 'PAST_CUTOFF_DATE');
-        }
+        const resPastCutoff = await request(app)
+          .post(`/api/v1/attendance/days/${confirmedDay.id}/reopen`)
+          .set('Authorization', `Bearer ${hrMgrAToken}`)
+          .send({ reason: 'Attempting reopen past cut-off' });
+        assert.equal(resPastCutoff.status, 400);
+        assert.equal(resPastCutoff.body.code, 'PAST_CUTOFF_DATE');
       } finally {
-        if (payRun && originalCutoff) {
-          await prisma.$base().pay_runs.update({
-            where: { id: payRun.id },
-            data: { cutoff_date: originalCutoff },
-          });
-        }
-        await prisma.$base().attendance_days.update({
+        await prisma.$base().attendance_days.deleteMany({
           where: { id: confirmedDay.id },
-          data: { review_status: 'HrConfirmed' },
+        });
+        await prisma.$base().pay_runs.deleteMany({
+          where: { id: testPayRun.id },
         });
       }
     });

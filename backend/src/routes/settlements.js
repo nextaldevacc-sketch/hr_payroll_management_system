@@ -8,6 +8,7 @@ import {
   approveSettlement,
   markSettlementPaid,
   getSettlement,
+  getSettlementBySeparation,
   downloadSettlementPdf,
   downloadGratuityProvisionExcel,
   downloadLeaveLiabilityExcel,
@@ -32,6 +33,7 @@ router.post('/:id/approve', approveSettlement);
 router.post('/:id/pay', markSettlementPaid);
 
 // Read & PDF
+router.get('/by-separation/:separationId', getSettlementBySeparation);
 router.get('/:id', getSettlement);
 router.get('/:id/pdf', downloadSettlementPdf);
 

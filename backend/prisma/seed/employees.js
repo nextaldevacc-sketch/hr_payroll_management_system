@@ -225,8 +225,11 @@ export async function seedEmployees(prisma, {
     seededContracts.push(activeContract);
     totalSeededGross += empGross;
 
-    // Bank accounts: 40 valid, 1 missing IBAN (emp 41), 1 missing routing code (emp 42)
-    const hasIban = i !== 41;
+    // Bank accounts: 41 valid, 1 missing routing code (emp 42)
+    // EMP-DXB-041 (i === 41) uses generateValidUaeIban(33, 41)
+    const iban = i === 41
+      ? generateValidUaeIban(33, 41)
+      : generateValidUaeIban('033', 1000000000 + i);
     const hasRouting = i !== 42;
 
     await prisma.bank_accounts.create({
@@ -234,7 +237,7 @@ export async function seedEmployees(prisma, {
         company_id: company1.id,
         employee_id: emp.id,
         bank_name: 'Emirates NBD',
-        iban: hasIban ? generateValidUaeIban('033', 1000000000 + i) : '',
+        iban: iban,
         routing_code: hasRouting ? 'ENBD001' : '',
         salary_split_pct: 100.00,
         is_primary: true,
@@ -414,21 +417,22 @@ export async function seedEmployees(prisma, {
     });
   }
 
-  // Seed-time assertion: every seeded non-blank IBAN must pass mod-97 and no two employees share an IBAN
-  const allAccounts = await prisma.bank_accounts.findMany();
-  const nonBlankAccounts = allAccounts.filter((b) => b.iban && b.iban.trim().length > 0);
-  const seenIbans = new Set();
-  for (const acc of nonBlankAccounts) {
-    if (!validateUaeIban(acc.iban)) {
-      throw new Error(`Seed assertion failed: Invalid mod-97 UAE IBAN '${acc.iban}' for employee ${acc.employee_id}`);
+  // Seed-time assertion: ALL employees with active bank accounts must have a valid mod-97 UAE IBAN, and no two employees share an IBAN
+  const activeBankAccounts = await prisma.bank_accounts.findMany({
+    where: { is_active: true },
+    include: { employee: true },
+  });
+  const seenIbans = new Map();
+  for (const acc of activeBankAccounts) {
+    if (!acc.iban || !validateUaeIban(acc.iban)) {
+      throw new Error(`Seed assertion failed: Invalid or missing mod-97 UAE IBAN '${acc.iban}' for employee ${acc.employee?.employee_code || acc.employee_id}`);
     }
-    const key = `${acc.company_id}:${acc.iban}`;
-    if (seenIbans.has(key)) {
-      throw new Error(`Seed assertion failed: Duplicate IBAN '${acc.iban}' in company ${acc.company_id}`);
+    if (seenIbans.has(acc.iban)) {
+      throw new Error(`Seed assertion failed: Duplicate IBAN '${acc.iban}' shared between employee ${seenIbans.get(acc.iban)} and ${acc.employee?.employee_code || acc.employee_id}`);
     }
-    seenIbans.add(key);
+    seenIbans.set(acc.iban, acc.employee?.employee_code || acc.employee_id);
   }
-  console.log(`Validated ${nonBlankAccounts.length} seeded UAE IBANs: 100% mod-97 valid, 0 duplicates.`);
+  console.log(`Validated ${activeBankAccounts.length} active UAE IBANs: 100% mod-97 valid, 0 duplicates.`);
 
   return {
     seededEmployees,
