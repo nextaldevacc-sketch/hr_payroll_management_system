@@ -23,46 +23,13 @@ describe('Phase 7: Self-service, Live Dashboard & Notifications Integration Test
     emp1Token = res1.body.token;
     companyId = res1.body.user.company_id || res1.body.user.companyId;
 
-    // 2. Create and Authenticate Employee 2 for cross-boundary testing
-    const empRole = await prisma.$base().roles.findUnique({ where: { code: 'EMPLOYEE' } });
-    const emp2Record = await prisma.$base().employees.findFirst({
-      where: {
-        company_id: companyId,
-        employee_code: { not: 'EMP-DXB-001' },
-      },
-    });
-
-    const bcrypt = await import('bcrypt');
-    const pwdHash = await bcrypt.default.hash('Nextal@2026!', 10);
-    emp2User = await prisma.$base().users.upsert({
-      where: { email: 'temp.emp2@gulftech.ae' },
-      update: { employee_id: emp2Record.id },
-      create: {
-        company_id: companyId,
-        employee_id: emp2Record.id,
-        email: 'temp.emp2@gulftech.ae',
-        password_hash: pwdHash,
-        status: 'Active',
-      },
-    });
-
-    await prisma.$base().user_roles.deleteMany({
-      where: { user_id: emp2User.id },
-    });
-    await prisma.$base().user_roles.create({
-      data: {
-        company_id: companyId,
-        user_id: emp2User.id,
-        role_id: empRole.id,
-        scope_type: 'Company',
-      },
-    });
-
+    // 2. Authenticate Employee 2 for cross-boundary testing (seeded emp-dxb-002)
     const res2 = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: 'temp.emp2@gulftech.ae', password: 'Nextal@2026!' });
+      .send({ email: 'emp-dxb-002@gulftech.ae', password: 'Nextal@2026!' });
     assert.strictEqual(res2.status, 200, `Login emp2 failed: ${res2.body.message}`);
     emp2Token = res2.body.token;
+    emp2User = res2.body.user;
 
     // 3. Authenticate HR Manager
     const resHr = await request(app)

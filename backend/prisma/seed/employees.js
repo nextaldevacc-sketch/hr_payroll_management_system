@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import bcrypt from 'bcrypt';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,6 +60,7 @@ export async function seedEmployees(prisma, {
   leaveTypesMap1,
   accrualPlan1,
   demoUsersMap,
+  rolesMap,
   company2,
   visa2,
   branch2,
@@ -495,6 +497,53 @@ export async function seedEmployees(prisma, {
     seenIbans.set(acc.iban, acc.employee?.employee_code || acc.employee_id);
   }
   console.log(`Validated ${activeBankAccounts.length} active UAE IBANs: 100% mod-97 valid, 0 duplicates.`);
+
+  // Seed user logins for every active employee of both companies (RC3 Part 1 / Item 9)
+  const employeeRole = rolesMap ? rolesMap['EMPLOYEE'] : await prisma.roles.findUnique({ where: { code: 'EMPLOYEE' } });
+  const defaultPasswordHash = await bcrypt.hash('Nextal@2026!', 10);
+
+  const allEmps = await prisma.employees.findMany({
+    where: { company_id: { in: [company1.id, company2.id] } },
+  });
+
+  for (const emp of allEmps) {
+    // If this employee is already linked to a user (e.g. employee@gulftech.ae), skip to maintain unique constraint
+    const existingWithEmployeeId = await prisma.users.findUnique({ where: { employee_id: emp.id } });
+    if (existingWithEmployeeId) {
+      continue;
+    }
+
+    const domain = emp.company_id === company1.id ? 'gulftech.ae' : 'horizon.ae';
+    const email = `${emp.employee_code.toLowerCase()}@${domain}`;
+
+    const existing = await prisma.users.findUnique({ where: { email } });
+    if (!existing) {
+      const user = await prisma.users.create({
+        data: {
+          company_id: emp.company_id,
+          email,
+          password_hash: defaultPasswordHash,
+          status: emp.status === 'Archived' ? 'Archived' : 'Active',
+          employee_id: emp.id,
+        },
+      });
+      if (employeeRole) {
+        await prisma.user_roles.create({
+          data: {
+            company_id: emp.company_id,
+            user_id: user.id,
+            role_id: employeeRole.id,
+            scope_type: 'Company',
+          },
+        });
+      }
+    } else if (!existing.employee_id) {
+      await prisma.users.update({
+        where: { id: existing.id },
+        data: { employee_id: emp.id },
+      });
+    }
+  }
 
   return {
     seededEmployees,

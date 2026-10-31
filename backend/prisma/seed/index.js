@@ -63,6 +63,7 @@ export async function main() {
     leaveTypesMap1: settings.leaveTypesMap1,
     accrualPlan1: settings.accrualPlan1,
     demoUsersMap: users.demoUsersMap,
+    rolesMap: users.rolesMap,
     company2: org.company2,
     visa2: org.visa2,
     branch2: org.branch2,

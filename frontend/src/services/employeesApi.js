@@ -1,20 +1,16 @@
+import { API_BASE as ROOT_API_BASE } from './apiClient.js';
+
 /**
  * Employee API Client
  * Connects Employee List, 7-tab Profile, and Onboarding Wizard to /api/v1/employees/* endpoints.
  */
 
-const API_BASE = 'http://localhost:5000/api/v1/employees';
+const API_BASE = `${ROOT_API_BASE}/employees`;
 
 function getHeaders(isMultipart = false) {
   const headers = {};
   if (!isMultipart) {
     headers['Content-Type'] = 'application/json';
-  }
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('nextal_token');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
   }
   return headers;
 }

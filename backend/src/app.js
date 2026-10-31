@@ -126,7 +126,17 @@ app.get(['/health', '/api/v1/health'], async (req, res, next) => {
 
 // 9. API Modules
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/platform', platformRoutes);
+if (process.env.FEATURE_PLATFORM_ADMIN === 'true') {
+  app.use('/api/v1/platform', platformRoutes);
+} else {
+  app.use('/api/v1/platform', (req, res) => {
+    res.status(404).json({
+      status: 'error',
+      code: 'NOT_FOUND',
+      message: 'Platform administration is disabled in this release (Phase 2)',
+    });
+  });
+}
 app.use('/api/v1/company', usersRoutes);
 app.use('/api/v1/approvals', approvalsRoutes);
 app.use('/api/v1/employees', employeesRoutes);

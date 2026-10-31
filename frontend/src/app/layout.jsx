@@ -3,7 +3,6 @@ import { cookies } from 'next/headers';
 import { Manrope, IBM_Plex_Sans_Arabic } from 'next/font/google';
 import '../styles/globals.css';
 import { Providers } from '../context/Providers';
-import { AppShell } from '../components/layout/AppShell';
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -39,7 +38,7 @@ export default function RootLayout({ children }) {
     >
       <body className="antialiased min-h-screen">
         <Providers initialLocale={locale}>
-          <AppShell>{children}</AppShell>
+          {children}
         </Providers>
       </body>
     </html>

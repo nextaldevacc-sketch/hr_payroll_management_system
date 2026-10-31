@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AppShell } from '../../layout/AppShell';
-import { useAuth, DEMO_USERS } from '../../../context/AuthContext';
+import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import {
   Users,

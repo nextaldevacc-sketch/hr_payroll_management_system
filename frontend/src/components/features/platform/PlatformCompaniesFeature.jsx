@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth, DEMO_USERS } from '../../../context/AuthContext';
+import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import {
   Building2,
@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 
 export function PlatformCompaniesFeature() {
-  const { user, switchDemoUser } = useAuth();
+  const { user } = useAuth();
   const { locale, isRTL } = useLanguage();
 
   const [companies, setCompanies] = useState([]);
@@ -223,22 +223,6 @@ export function PlatformCompaniesFeature() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Quick switcher to Platform Admin if not already */}
-            {!user?.is_platform_admin && (
-              <button
-                onClick={() => switchDemoUser('PLATFORM_ADMIN')}
-                className="px-3 py-2 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all hover:scale-95"
-                style={{
-                  background: 'var(--bg-surface)',
-                  borderColor: 'var(--primary)',
-                  color: 'var(--primary-strong)',
-                }}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{locale === 'ar' ? 'التبديل إلى مدير المنصة' : 'Switch to Platform Admin'}</span>
-              </button>
-            )}
-
             <button
               onClick={() => setIsCreateModalOpen(true)}
               className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg transition-transform active:scale-95"

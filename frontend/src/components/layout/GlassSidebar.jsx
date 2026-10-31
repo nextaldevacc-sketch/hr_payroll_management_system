@@ -30,14 +30,13 @@ import {
 } from 'lucide-react';
 import { IconWell } from '../primitives/IconWell';
 import { useLanguage } from '../../context/LanguageContext';
-import { useAuth, DEMO_USERS } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
   const pathname = usePathname();
   const router = useRouter();
   const { t, locale } = useLanguage();
-  const { user, seesSalary, switchDemoUser, logout } = useAuth();
-  const [isPersonaDrawerOpen, setIsPersonaDrawerOpen] = useState(false);
+  const { user, seesSalary, logout } = useAuth();
 
   // Section 5.3 Permissions Matrix Filter for Sidebar Navigation
   const isEmployeeOnly = user?.roles?.includes('EMPLOYEE') && user.roles.length === 1;
@@ -261,107 +260,45 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
         </nav>
       </div>
 
-      {/* User Session Profile & Demo Switcher in Footer */}
-      <div className="p-3 border-t border-border/50 dark:border-border hidden xl:block space-y-2">
-        {/* Active User Card with Switcher Toggle */}
-        <div className="relative">
+      {/* User Session Profile in Footer */}
+      <div className="p-2 xl:p-3 border-t border-border/50 dark:border-border space-y-2">
+        <div className="p-2 xl:p-2.5 rounded-xl border flex items-center justify-between text-start"
+          style={{
+            background: 'var(--bg-well)',
+            borderColor: 'var(--glass-border)',
+          }}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0"
+              style={{
+                background: 'var(--primary)',
+                color: 'var(--on-primary)',
+              }}
+            >
+              {user?.name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+            <div className="truncate hidden xl:block">
+              <span className="text-xs font-bold block truncate leading-tight text-text">
+                {user?.name || user?.email}
+              </span>
+              <span className="text-[10px] block truncate font-medium text-amber-500">
+                {user?.roles?.[0] || 'USER'}
+              </span>
+            </div>
+          </div>
           <button
             type="button"
-            onClick={() => setIsPersonaDrawerOpen(!isPersonaDrawerOpen)}
-            className="w-full p-2.5 rounded-xl border flex items-center justify-between text-start transition-all hover:bg-neutral-800/40"
-            style={{
-              background: 'var(--bg-well)',
-              borderColor: 'var(--glass-border)',
-            }}
+            onClick={logout}
+            title={isAr ? 'تسجيل الخروج' : 'Sign out'}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors shrink-0"
           >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0"
-                style={{
-                  background: 'var(--primary)',
-                  color: 'var(--on-primary)',
-                }}
-              >
-                {user?.name?.charAt(0) || 'U'}
-              </div>
-              <div className="truncate">
-                <span className="text-xs font-bold block truncate leading-tight text-text">
-                  {user?.name || user?.email}
-                </span>
-                <span className="text-[10px] block truncate font-medium text-amber-400">
-                  {user?.roles?.[0] || 'USER'}
-                </span>
-              </div>
-            </div>
-            <ChevronUp className={`w-3.5 h-3.5 text-neutral-400 transition-transform ${isPersonaDrawerOpen ? 'rotate-180' : ''}`} />
+            <LogOut className="w-4 h-4" />
           </button>
-
-          {/* Persona Switcher Popup */}
-          {isPersonaDrawerOpen && (
-            <div
-              className="absolute start-full ms-2 bottom-0 w-72 p-2 rounded-2xl border shadow-2xl z-[9999] opacity-100 space-y-1 bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700"
-            >
-              <div className="px-2 py-1 text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
-                <span>{isAr ? 'تبديل المستخدم التجريبي' : 'Switch Demo Persona'}</span>
-                <span className="text-amber-500 font-mono">{isAr ? 'بند 5.2' : 'Sec 5.2'}</span>
-              </div>
-
-              <div className="max-h-72 overflow-y-auto space-y-1 pr-1 py-1">
-                {Object.entries(DEMO_USERS).map(([key, demo]) => {
-                  const isActive = user?.email === demo.email;
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        switchDemoUser(key);
-                        setIsPersonaDrawerOpen(false);
-                      }}
-                      className={`w-full text-start p-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                        isActive
-                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium'
-                          : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200'
-                      }`}
-                    >
-                      <div className="truncate">
-                        <span className="font-semibold block truncate text-[11px]">{isAr ? demo.roleNameAr : demo.roleNameEn}</span>
-                        <span className="text-[9px] block text-slate-400 dark:text-slate-500 font-mono truncate">{demo.email}</span>
-                      </div>
-                      {demo.sees_salary && (
-                        <span className="text-[8px] px-1 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 ml-1">
-                          WPS
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex justify-between">
-                <Link
-                  href="/login"
-                  onClick={() => setIsPersonaDrawerOpen(false)}
-                  className="text-[10px] text-amber-600 dark:text-amber-400 hover:underline px-2 py-1"
-                >
-                  {isAr ? 'الذهاب لشاشة الدخول' : 'Go to Login Screen'}
-                </Link>
-                <button
-                  onClick={() => {
-                    logout();
-                    setIsPersonaDrawerOpen(false);
-                    router.push('/login');
-                  }}
-                  className="text-[10px] text-rose-500 dark:text-rose-400 hover:underline px-2 py-1 flex items-center gap-1"
-                >
-                  <LogOut className="w-2.5 h-2.5" />
-                  <span>{isAr ? 'تسجيل الخروج' : 'Logout'}</span>
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Legal notice */}
-        <div className="flex items-center gap-2 px-2 py-1 text-[10px] text-text-muted">
+        <div className="hidden xl:flex items-center gap-2 px-2 py-1 text-[10px] text-text-muted">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           <span>{isAr ? 'متوافق مع مرسوم بقانون رقم 33 لسنة 2021' : 'UAE Decree 33/2021 Compliant'}</span>
         </div>

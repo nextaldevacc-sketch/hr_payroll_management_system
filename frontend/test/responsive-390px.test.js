@@ -75,7 +75,14 @@ describe('Phase 7: 390px Mobile Responsive Layout (No Horizontal Scroll)', { tim
       const commandArgs = hasBuild ? [nextBin, 'start', '-p', String(WEB_PORT)] : [nextBin, 'dev', '-p', String(WEB_PORT)];
       webProcess = spawn(process.execPath, commandArgs, {
         cwd: webDir,
-        env: { ...process.env, PORT: String(WEB_PORT), NODE_ENV: hasBuild ? 'production' : 'development', NEXT_DIST_DIR: distDir || '.next' },
+        env: {
+          ...process.env,
+          PORT: String(WEB_PORT),
+          NODE_ENV: hasBuild ? 'production' : 'development',
+          NEXT_DIST_DIR: distDir || '.next',
+          NEXT_PUBLIC_API_URL: `http://127.0.0.1:${API_PORT}/api/v1`,
+          NEXT_PUBLIC_FEATURE_PLATFORM_ADMIN: 'false',
+        },
         stdio: 'ignore',
       });
       await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 35000);
@@ -102,7 +109,7 @@ describe('Phase 7: 390px Mobile Responsive Layout (No Horizontal Scroll)', { tim
     const page = await context.newPage();
 
     // Log in as employee
-    await page.goto(`http://127.0.0.1:${WEB_PORT}/login`, { waitUntil: 'networkidle' });
+    await page.goto(`http://127.0.0.1:${WEB_PORT}/login`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('input[type="email"]', { timeout: 15000 });
     await page.fill('input[type="email"]', 'employee@gulftech.ae');
     await page.fill('input[type="password"]', 'Nextal@2026!');
@@ -133,7 +140,7 @@ describe('Phase 7: 390px Mobile Responsive Layout (No Horizontal Scroll)', { tim
       }, cfg);
 
       for (const route of selfServiceUrls) {
-        await page.goto(`http://127.0.0.1:${WEB_PORT}${route}`, { waitUntil: 'networkidle' });
+        await page.goto(`http://127.0.0.1:${WEB_PORT}${route}`, { waitUntil: 'domcontentloaded' });
         await page.waitForTimeout(600);
 
         const overflow = await page.evaluate(() => {

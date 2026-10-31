@@ -4,7 +4,7 @@
 
 | ID | Given | Expected | Status |
 | :--- | :--- | :--- | :--- |
-| **T1** | Platform admin creates Company B | Company B starts with UAE defaults; its admin is invited | **PASS** |
+| **T1** | Platform admin creates Company B | Company B starts with UAE defaults; its admin is invited | **DEFERRED (Phase 2 – platform admin)** |
 | **T2** | A Company A user asks for a Company B employee | Refused and logged | **PASS** |
 | **T3** | Department Manager opens a team member's profile | Salary and bank tabs are hidden | **PASS** |
 | **T4** | Biometric file imported twice | No duplicate punches | **PASS** |
@@ -44,6 +44,7 @@
 
 ## Summary
 - **Total Tests**: 37
-- **Passed**: 37
-- **Todo**: 0 ()
+- **Passed**: 36
+- **Deferred (Phase 2)**: 1 (T1)
+- **Todo**: 0
 - **Failed**: 0

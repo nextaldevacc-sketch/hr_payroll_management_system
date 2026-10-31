@@ -63,6 +63,9 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
   before(async () => {
     try {
       prisma = new PrismaClient({ datasources: { db: { url: testDbUrl } } });
+      await prisma.users.updateMany({
+        data: { failed_logins: 0, locked_until: null },
+      });
 
       // 1. Check or start API on port 5000 targeting test DB
       try {
@@ -87,7 +90,14 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
         const distDir = fs.existsSync(path.join(webDir, '.next-build')) ? '.next-build' : '.next';
         webProcess = spawn(process.execPath, [nextBin, 'start', '-p', String(WEB_PORT)], {
           cwd: webDir,
-          env: { ...process.env, NODE_ENV: 'production', NEXT_DIST_DIR: distDir },
+          env: {
+            ...process.env,
+            PORT: String(WEB_PORT),
+            NODE_ENV: 'production',
+            NEXT_DIST_DIR: distDir,
+            NEXT_PUBLIC_API_URL: `http://127.0.0.1:${API_PORT}/api/v1`,
+            NEXT_PUBLIC_FEATURE_PLATFORM_ADMIN: 'false',
+          },
         });
         await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 25000);
         console.log('Web server ready on port 3100');

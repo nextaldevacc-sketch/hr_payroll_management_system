@@ -11,12 +11,20 @@ export const forgotPasswordSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Reset token is required'),
-  new_password: z.string().min(8, 'Password must be at least 8 characters'),
+  new_password: z
+    .string()
+    .min(10, 'Password must be at least 10 characters')
+    .regex(/[a-zA-Z]/, 'Password must contain letters')
+    .regex(/\d/, 'Password must contain numbers'),
 });
 
 export const setPasswordInviteSchema = z.object({
   token: z.string().min(1, 'Invite token is required'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z
+    .string()
+    .min(10, 'Password must be at least 10 characters')
+    .regex(/[a-zA-Z]/, 'Password must contain letters')
+    .regex(/\d/, 'Password must contain numbers'),
 });
 
 export default {

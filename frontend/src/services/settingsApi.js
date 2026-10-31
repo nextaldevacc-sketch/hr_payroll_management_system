@@ -18,17 +18,12 @@ import {
   INITIAL_PAYROLL_ALERTS,
 } from '../components/features/settings/settingsData.js';
 
-const API_BASE = 'http://localhost:5000/api/v1/settings';
+import { API_BASE as ROOT_API_BASE } from './apiClient.js';
+
+const API_BASE = `${ROOT_API_BASE}/settings`;
 
 function getHeaders() {
-  const headers = { 'Content-Type': 'application/json' };
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('nextal_token');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-  }
-  return headers;
+  return { 'Content-Type': 'application/json' };
 }
 
 async function request(endpoint, options = {}, fallback = null) {

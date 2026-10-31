@@ -9,7 +9,7 @@ import companyService from '../../src/services/companyService.js';
 import approvalService from '../../src/services/approvalService.js';
 import jwt from 'jsonwebtoken';
 import { deepScanForSalaryBankData, FORBIDDEN_SALARY_BANK_KEYS } from '../../src/serializers/index.js';
-import { clearSessionCache } from '../../src/middleware/authCache.js';
+import { clearSessionCache, invalidateCompanySessions } from '../../src/middleware/authCache.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'nextal_super_secret_jwt_key_2026_uae';
 
@@ -560,53 +560,66 @@ describe('Phase 2: Authentication, Roles, Permissions Matrix & Approval Engine T
   // 7. Platform Admin Data Isolation & Support Access (FR-PL3)
   // =========================================================================
   describe('7. Platform Admin Data Isolation & Support Access (FR-PL3)', () => {
-    let platformToken;
+    if (process.env.FEATURE_PLATFORM_ADMIN !== 'true') {
+      it('Platform Admin is disabled in this release (HTTP 403 on login, 404 on platform routes)', async () => {
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: 'platform@nextal.ae', password: testUserPassword });
+        assert.equal(loginRes.status, 403);
+        assert.equal(loginRes.body.code, 'FEATURE_DISABLED');
 
-    before(async () => {
-      const loginRes = await request(app)
-        .post('/api/v1/auth/login')
-        .send({ email: 'platform@nextal.ae', password: testUserPassword });
-      platformToken = loginRes.body.token;
-
-      // Clean up any residual support access grants
-      await prisma.$base().support_access_grants.deleteMany({
-        where: { company_id: company1.id },
+        const platformRes = await request(app).get('/api/v1/platform/companies');
+        assert.equal(platformRes.status, 404);
       });
-    });
+    } else {
+      let platformToken;
 
-    it('Platform Admin is BLOCKED (HTTP 403) from company employee data without active grant', async () => {
-      const res = await request(app)
-        .get(`/api/v1/platform/companies/${company1.id}/data`)
-        .set('Authorization', `Bearer ${platformToken}`);
+      before(async () => {
+        const loginRes = await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: 'platform@nextal.ae', password: testUserPassword });
+        platformToken = loginRes.body.token;
 
-      assert.equal(res.status, 403);
-      assert.equal(res.body.code, 'SUPPORT_GRANT_REQUIRED');
-    });
-
-    it('Platform Admin can access company data when an active time-limited support grant exists', async () => {
-      const grantRes = await request(app)
-        .post(`/api/v1/platform/companies/${company1.id}/support-grants`)
-        .set('Authorization', `Bearer ${platformToken}`)
-        .send({
-          reason: 'Diagnosing biometric punch sync issue',
-          duration_hours: 4,
+        // Clean up any residual support access grants
+        await prisma.$base().support_access_grants.deleteMany({
+          where: { company_id: company1.id },
         });
+      });
 
-      assert.equal(grantRes.status, 201);
-      const grantId = grantRes.body.data.id;
+      it('Platform Admin is BLOCKED (HTTP 403) from company employee data without active grant', async () => {
+        const res = await request(app)
+          .get(`/api/v1/platform/companies/${company1.id}/data`)
+          .set('Authorization', `Bearer ${platformToken}`);
 
-      const accessRes = await request(app)
-        .get(`/api/v1/platform/companies/${company1.id}/data`)
-        .set('Authorization', `Bearer ${platformToken}`);
+        assert.equal(res.status, 403);
+        assert.equal(res.body.code, 'SUPPORT_GRANT_REQUIRED');
+      });
 
-      assert.equal(accessRes.status, 200);
-      assert.ok(accessRes.body.count >= 42);
+      it('Platform Admin can access company data when an active time-limited support grant exists', async () => {
+        const grantRes = await request(app)
+          .post(`/api/v1/platform/companies/${company1.id}/support-grants`)
+          .set('Authorization', `Bearer ${platformToken}`)
+          .send({
+            reason: 'Diagnosing biometric punch sync issue',
+            duration_hours: 4,
+          });
 
-      // Clean up grant
-      await request(app)
-        .delete(`/api/v1/platform/support-grants/${grantId}`)
-        .set('Authorization', `Bearer ${platformToken}`);
-    });
+        assert.equal(grantRes.status, 201);
+        const grantId = grantRes.body.data.id;
+
+        const accessRes = await request(app)
+          .get(`/api/v1/platform/companies/${company1.id}/data`)
+          .set('Authorization', `Bearer ${platformToken}`);
+
+        assert.equal(accessRes.status, 200);
+        assert.ok(accessRes.body.count >= 42);
+
+        // Clean up grant
+        await request(app)
+          .delete(`/api/v1/platform/support-grants/${grantId}`)
+          .set('Authorization', `Bearer ${platformToken}`);
+      });
+    }
   });
 
   // =========================================================================
@@ -626,29 +639,29 @@ describe('Phase 2: Authentication, Roles, Permissions Matrix & Approval Engine T
         .set('Authorization', `Bearer ${userToken}`);
       assert.equal(test1.status, 200);
 
-      // 2. Platform admin suspends Company 1
-      const platformLogin = await request(app)
-        .post('/api/v1/auth/login')
-        .send({ email: 'platform@nextal.ae', password: testUserPassword });
+      // 2. Suspend Company 1
+      try {
+        await prisma.$base().companies.update({
+          where: { id: company1.id },
+          data: { status: 'Suspended' },
+        });
+        invalidateCompanySessions(company1.id);
 
-      await request(app)
-        .patch(`/api/v1/platform/companies/${company1.id}/status`)
-        .set('Authorization', `Bearer ${platformLogin.body.token}`)
-        .send({ status: 'Suspended' });
+        // 3. User uses the SAME token on the next request -> MUST receive HTTP 403 COMPANY_SUSPENDED
+        const test2 = await request(app)
+          .get('/api/v1/auth/me')
+          .set('Authorization', `Bearer ${userToken}`);
 
-      // 3. User uses the SAME token on the next request -> MUST receive HTTP 403 COMPANY_SUSPENDED
-      const test2 = await request(app)
-        .get('/api/v1/auth/me')
-        .set('Authorization', `Bearer ${userToken}`);
-
-      assert.equal(test2.status, 403);
-      assert.equal(test2.body.code, 'COMPANY_SUSPENDED');
-
-      // Reactivate Company 1 for subsequent tests
-      await request(app)
-        .patch(`/api/v1/platform/companies/${company1.id}/status`)
-        .set('Authorization', `Bearer ${platformLogin.body.token}`)
-        .send({ status: 'Active' });
+        assert.equal(test2.status, 403);
+        assert.equal(test2.body.code, 'COMPANY_SUSPENDED');
+      } finally {
+        // Reactivate Company 1 for subsequent tests
+        await prisma.$base().companies.update({
+          where: { id: company1.id },
+          data: { status: 'Active' },
+        });
+        invalidateCompanySessions(company1.id);
+      }
     });
 
     it('disabling a user causes their existing token to receive HTTP 401 on the next request', async () => {

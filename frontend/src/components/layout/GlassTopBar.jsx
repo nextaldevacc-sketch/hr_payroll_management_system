@@ -19,6 +19,7 @@ import {
   Clock,
   Banknote,
   AlertTriangle,
+  LogOut,
 } from 'lucide-react';
 import { IconWell } from '../primitives/IconWell';
 import { useLanguage } from '../../context/LanguageContext';
@@ -38,6 +39,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
   const [mounted, setMounted] = useState(false);
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -321,29 +323,73 @@ export function GlassTopBar({ onToggleMobileNav }) {
         </div>
 
         {/* User Menu */}
-        <Link
-          href="/login"
-          title="Switch User / Sign In"
-          className="flex items-center gap-2.5 ps-2 border-s border-border/60 dark:border-border hover:opacity-85 transition-opacity"
-        >
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-black/10 dark:ring-0 shadow-sm"
-            style={{
-              background: 'var(--primary)',
-              color: 'var(--on-primary)',
-            }}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+            className="flex items-center gap-2.5 ps-2 border-s border-border/60 dark:border-border hover:opacity-85 transition-opacity"
           >
-            {user?.name ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'GT'}
-          </div>
-          <div className="hidden sm:block text-start">
-            <span className="text-xs font-bold text-text block leading-tight">
-              {user?.name || user?.email || 'Demo User'}
-            </span>
-            <span className="text-[10px] text-amber-500 font-semibold block leading-tight">
-              {user?.roles?.[0] || 'COMPANY_ADMIN'}
-            </span>
-          </div>
-        </Link>
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-black/10 dark:ring-0 shadow-sm"
+              style={{
+                background: 'var(--primary)',
+                color: 'var(--on-primary)',
+              }}
+            >
+              {user?.name ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'U'}
+            </div>
+            <div className="hidden sm:block text-start">
+              <span className="text-xs font-bold text-text block leading-tight">
+                {user?.name || user?.email || 'User'}
+              </span>
+              <span className="text-[10px] text-amber-500 font-semibold block leading-tight">
+                {user?.roles?.[0] || 'EMPLOYEE'}
+              </span>
+            </div>
+            <ChevronDown className="w-3.5 h-3.5 text-text-muted hidden sm:block" />
+          </button>
+
+          {isUserMenuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setIsUserMenuOpen(false)}
+              />
+              <div className="absolute end-0 mt-2 w-56 p-2 rounded-2xl border shadow-xl z-50 bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800 space-y-2">
+                <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+                  <p className="text-xs font-bold text-text truncate leading-tight">
+                    {user?.name || user?.email}
+                  </p>
+                  <p className="text-[10px] text-text-muted font-mono truncate mt-0.5">
+                    {user?.email}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {user?.roles?.map((r) => (
+                      <span
+                        key={r}
+                        className="text-[9px] px-1.5 py-0.5 rounded font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                      >
+                        {r}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsUserMenuOpen(false);
+                    logout();
+                  }}
+                  className="w-full text-start p-2 rounded-xl text-xs font-medium text-rose-500 hover:bg-rose-500/10 flex items-center gap-2 transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>{language === 'ar' ? 'تسجيل الخروج' : 'Sign out'}</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );

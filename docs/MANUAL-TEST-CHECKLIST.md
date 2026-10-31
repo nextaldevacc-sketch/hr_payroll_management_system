@@ -21,7 +21,36 @@ All demo user accounts share the common password: **`Nextal@2026!`**
 | **Payroll Officer** | `payroll@gulftech.ae` | Pay run calculation, variance justification, settlement prep | Company 1 (Full salary & payslip access) |
 | **Finance Officer** | `finance@gulftech.ae` | WPS SIF export, payment execution (Mark Paid), GL export | Company 1 (Payment & disbursement only) |
 | **Department Manager** | `dept.mgr@gulftech.ae` | Team attendance & leave review (Operations department) | Scoped to Operations team (Salary hidden) |
-| **Employee Self-Service** | `employee@gulftech.ae` | View payslips, request leave, punch missing punch | Linked to Ahmed Al-Mansoor (`EMP-DXB-043`) |
+| **Employee Self-Service (Ahmed)** | `employee@gulftech.ae` | View payslips, request leave, punch missing punch | Linked to Ahmed Al-Mansoor (`EMP-DXB-043`) |
+
+> **Note on Platform Administrator**: In accordance with the release decision, the Platform Admin interface is deferred to Phase 2 (`FEATURE_PLATFORM_ADMIN=false`). Companies are provisioned via CLI `node scripts/create-company.js`. The Company Administrator (`admin@gulftech.ae`) is the primary administrative persona for Gulf Tech Logistics LLC.
+
+### All Active Employee Self-Service Logins
+
+Every active employee in Gulf Tech Logistics LLC and Emirates Horizon Trading LLC has an individual login account with password `Nextal@2026!`:
+
+#### Gulf Tech Logistics LLC (Company 1)
+| Employee Code | Name | Login Email | Role |
+| :--- | :--- | :--- | :--- |
+| `EMP-DXB-001` | Tariq Al-Hashimi | `emp-dxb-001@gulftech.ae` | EMPLOYEE |
+| `EMP-DXB-002` | Maryam Al-Nuaimi | `emp-dxb-002@gulftech.ae` | EMPLOYEE |
+| `EMP-DXB-003` | Saeed Al-Ketbi | `emp-dxb-003@gulftech.ae` | EMPLOYEE |
+| `EMP-DXB-004` | Zaid Al-Marzooqi | `emp-dxb-004@gulftech.ae` | EMPLOYEE |
+| `EMP-DXB-005` | Fatima Al-Zaabi | `emp-dxb-005@gulftech.ae` | EMPLOYEE |
+| `EMP-DXB-006` | Rashid Al-Falasi | `emp-dxb-006@gulftech.ae` | EMPLOYEE |
+| `EMP-DXB-007` | Hassan Al-Balooshi | `emp-dxb-007@gulftech.ae` | EMPLOYEE |
+| `EMP-DXB-008` | Aisha Al-Maktoum | `emp-dxb-008@gulftech.ae` | EMPLOYEE |
+| `EMP-DXB-009` | Omar Al-Shamsi | `emp-dxb-009@gulftech.ae` | EMPLOYEE |
+| `EMP-DXB-010` | Noura Al-Suwaidi | `emp-dxb-010@gulftech.ae` | EMPLOYEE |
+| `EMP-DXB-011`–`EMP-DXB-041` | Specialists & Associates (31 staff) | `emp-dxb-011@gulftech.ae` … `emp-dxb-041@gulftech.ae` | EMPLOYEE |
+| `EMP-DXB-042` | Omar Al-Hashimi (Separated) | `emp-dxb-042@gulftech.ae` | EMPLOYEE (Settlement approved) |
+| `EMP-DXB-043` | Ahmed Al-Mansoor (Spec Example) | `emp-dxb-043@gulftech.ae` & `employee@gulftech.ae` | EMPLOYEE (Oct Net AED 7,044.80) |
+| `EMP-DXB-044` | Sara Al-Nuaimi (Separation in Progress) | `emp-dxb-044@gulftech.ae` | EMPLOYEE (Gratuity AED 12,082.19) |
+
+#### Emirates Horizon Trading LLC (Company 2)
+| Employee Code | Name | Login Email | Role |
+| :--- | :--- | :--- | :--- |
+| `EMP-AUH-001`–`EMP-AUH-010` | Horizon Specialists 1–10 | `emp-auh-001@horizon.ae` … `emp-auh-010@horizon.ae` | EMPLOYEE |
 
 ---
 

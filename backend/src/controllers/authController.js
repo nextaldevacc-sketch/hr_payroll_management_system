@@ -7,10 +7,11 @@ export async function login(req, res, next) {
 
     const result = await authService.login({ email, password, ipAddress });
 
-    // Set httpOnly secure cookie with 8-hour expiry
+    // Set httpOnly cookie with 8-hour expiry (secure only over HTTPS or when COOKIE_SECURE=true)
+    const isSecure = process.env.COOKIE_SECURE === 'true' || Boolean(req.secure);
     res.cookie('nextal_token', result.token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: result.sessionDurationMs,
     });
@@ -26,12 +27,37 @@ export async function login(req, res, next) {
   }
 }
 
-export function logout(req, res) {
-  res.clearCookie('nextal_token');
-  res.json({
-    status: 'success',
-    message: 'Logged out successfully',
-  });
+export async function logout(req, res, next) {
+  try {
+    const token =
+      req.cookies?.nextal_token ||
+      (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7).trim() : null);
+
+    if (token) {
+      try {
+        const decoded = authService.verifyToken(token);
+        if (decoded?.userId) {
+          await authService.logout(decoded.userId);
+        }
+      } catch (err) {
+        // Token might already be expired or invalid, continue clearing cookie
+      }
+    }
+
+    const isSecure = process.env.COOKIE_SECURE === 'true' || Boolean(req.secure);
+    res.clearCookie('nextal_token', {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'lax',
+    });
+
+    res.json({
+      status: 'success',
+      message: 'Logged out successfully',
+    });
+  } catch (err) {
+    next(err);
+  }
 }
 
 export async function getCurrentUser(req, res, next) {

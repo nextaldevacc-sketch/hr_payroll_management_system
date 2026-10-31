@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
+import mailer from '../lib/mailer.js';
 import { invalidateUserSession } from '../middleware/authCache.js';
 import { SALARY_ROLES, hasSalaryAccess } from '../serializers/index.js';
 
@@ -149,7 +150,15 @@ export class AuthService {
       throw err;
     }
 
-    // 3. Password is valid: check company status (FR-PL2: suspended companies cannot log in)
+    // 3. Password is valid: check platform admin feature flag (Phase 2)
+    if (user.is_platform_admin && process.env.FEATURE_PLATFORM_ADMIN !== 'true') {
+      const err = new Error('Not available in this release');
+      err.status = 403;
+      err.code = 'FEATURE_DISABLED';
+      throw err;
+    }
+
+    // 4. Check company status (FR-PL2: suspended companies cannot log in)
     if (user.company && user.company.status === 'Suspended') {
       const err = new Error('Your company account is currently suspended. Please contact Nextal platform support.');
       err.status = 403;
@@ -252,6 +261,24 @@ export class AuthService {
   }
 
   /**
+   * Log out a user and immediately invalidate existing JWT tokens by bumping token_version
+   */
+  async logout(userId) {
+    if (!userId) return;
+    try {
+      await this.prisma.$base().users.update({
+        where: { id: userId },
+        data: {
+          token_version: { increment: 1 },
+        },
+      });
+      invalidateUserSession(userId);
+    } catch (e) {
+      // User may not exist or error during logout
+    }
+  }
+
+  /**
    * Verify JWT Token and decode payload
    */
   verifyToken(token) {
@@ -282,6 +309,14 @@ export class AuthService {
       },
     });
 
+    const inviteUrl = `http://localhost:3100/accept-invite?token=${rawToken}`;
+    await mailer.sendMail({
+      to: user.email,
+      subject: '[Nextal HR] Welcome! Set your account password',
+      html: `<p>Welcome to Nextal HR. Please click the link below to set your account password:</p><p><a href="${inviteUrl}">${inviteUrl}</a></p>`,
+      text: `Welcome to Nextal HR. Please visit the link below to set your account password:\n${inviteUrl}`,
+    }).catch(() => {});
+
     return rawToken;
   }
 
@@ -296,8 +331,8 @@ export class AuthService {
       throw err;
     }
 
-    if (password.length < 8) {
-      const err = new Error('Password must be at least 8 characters');
+    if (password.length < 10 || !/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
+      const err = new Error('Password must be at least 10 characters and contain letters and numbers');
       err.status = 400;
       err.code = 'VALIDATION_ERROR';
       throw err;
@@ -399,11 +434,19 @@ export class AuthService {
       },
     });
 
+    const resetUrl = `http://localhost:3100/reset-password?token=${rawToken}`;
+    await mailer.sendMail({
+      to: cleanEmail,
+      subject: '[Nextal HR] Password Reset Request',
+      html: `<p>A password reset was requested for your Nextal HR account. Click the link below to set a new password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link expires in 1 hour.</p>`,
+      text: `A password reset was requested for your Nextal HR account. Visit the link below to set a new password:\n${resetUrl}\n\nThis link expires in 1 hour.`,
+    }).catch(() => {});
+
     return {
       status: 'success',
       message: 'If the email is registered, a password reset link has been dispatched.',
       resetToken: rawToken, // Returned for UI testing / demo convenience
-      resetUrl: `/login?tab=reset&token=${rawToken}`,
+      resetUrl,
     };
   }
 
@@ -418,8 +461,8 @@ export class AuthService {
       throw err;
     }
 
-    if (newPassword.length < 8) {
-      const err = new Error('Password must be at least 8 characters');
+    if (newPassword.length < 10 || !/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+      const err = new Error('Password must be at least 10 characters and contain letters and numbers');
       err.status = 400;
       err.code = 'VALIDATION_ERROR';
       throw err;

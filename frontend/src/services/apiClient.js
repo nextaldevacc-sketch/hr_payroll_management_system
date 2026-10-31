@@ -1,20 +1,16 @@
 /**
  * Base API Client for Nextal HR & Payroll
- * Shared request handler with authentication headers and error mapping.
+ * Shared request handler with authentication cookies (credentials: include) and error mapping.
  */
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+const DEFAULT_API_HOST = '127.0.0.1';
+const DEFAULT_API_PORT = '5000';
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || `http://${DEFAULT_API_HOST}:${DEFAULT_API_PORT}/api/v1`;
 
 export function getHeaders(isMultipart = false) {
   const headers = {};
   if (!isMultipart) {
     headers['Content-Type'] = 'application/json';
-  }
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('nextal_token');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
   }
   return headers;
 }
@@ -34,6 +30,9 @@ export async function request(endpoint, options = {}, fallback = null) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
+      if (res.status === 401 && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('nextal:session-expired'));
+      }
       const err = new Error(data.message || `API error: ${res.status}`);
       err.status = res.status;
       err.code = data.code;
