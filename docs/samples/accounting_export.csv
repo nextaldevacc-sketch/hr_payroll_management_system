@@ -1,17 +1,50 @@
 Cost Centre,Account Code,Account Name,Rule Code,Rule Name,Description,Debit,Credit
-"Administration","5101","Salaries & Wages — Basic","BASIC","Basic Salary","Payroll Journal 2026-10 — Basic Salary",159000.00,0.00
-"Administration","5102","Housing Allowance Expense","HRA","Housing Allowance","Payroll Journal 2026-10 — Housing Allowance",79500.00,0.00
-"Administration","5103","Transport Allowance Expense","TRA","Transport Allowance","Payroll Journal 2026-10 — Transport Allowance",13250.00,0.00
-"Administration","5104","Other Allowances Expense","OTH","Other Allowance","Payroll Journal 2026-10 — Other Allowance",13250.00,0.00
-"Administration","5101","Salaries & Wages — Contra / Absence Offset","ABS","Absence / Unpaid Leave","Payroll Journal 2026-10 — Absence / Unpaid Leave",0.00,550.00
-"Administration","5199","Normal Overtime (1.25x)","OT_NORMAL","Normal Overtime (1.25x)","Payroll Journal 2026-10 — Normal Overtime (1.25x)",10018.75,0.00
-"Administration","2199","GPSSA UAE National Pension (Employee Share)","GPSSA_EE","GPSSA UAE National Pension (Employee Share)","Payroll Journal 2026-10 — GPSSA UAE National Pension (Employee Share)",0.00,8316.00
-"Administration","5199","GPSSA UAE National Pension (Employer Share)","GPSSA_ER","GPSSA UAE National Pension (Employer Share)","Payroll Journal 2026-10 — GPSSA UAE National Pension (Employer Share)",0.00,0.00
-"Administration","5105","GPSSA Employer Pension Expense","GPSSA_ER","GPSSA Employer Pension Expense","Payroll Journal 2026-10 — GPSSA Employer Pension Expense",10012.50,0.00
-"Corporate / Treasury","2105","GPSSA Pension Payable","GPSSA_ER","GPSSA Employer Pension Payable","Payroll Journal 2026-10 — GPSSA Employer Pension Payable",0.00,10012.50
-"Administration","1150","Employee Loans & Advances Receivable","LOAN","Loan Recovery","Payroll Journal 2026-10 — Loan Recovery",0.00,5000.00
-"Administration","2199","Salary Advance Recovery","ADV","Salary Advance Recovery","Payroll Journal 2026-10 — Salary Advance Recovery",0.00,800.00
-"Administration","5199","Night Overtime 10pm-4am (1.50x)","OT_NIGHT","Night Overtime 10pm-4am (1.50x)","Payroll Journal 2026-10 — Night Overtime 10pm-4am (1.50x)",3465.00,0.00
-"Administration","5199","Rest Day / Holiday Overtime (1.50x)","OT_REST","Rest Day / Holiday Overtime (1.50x)","Payroll Journal 2026-10 — Rest Day / Holiday Overtime (1.50x)",1350.00,0.00
-"Corporate / Treasury","2101","Accrued Payroll & Salaries Payable","NET_PAY","Net Salaries Payable to Employees","Payroll Journal 2026-10 — Net Salaries Payable to Employees",0.00,265167.75
+"CC-OPS - Operations","5101","Salaries & Wages — Basic","BASIC","Basic Salary","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Basic Salary",30000.00,0.00
+"CC-OPS - Operations","5102","Housing Allowance Expense","HRA","Housing Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Housing Allowance",15000.00,0.00
+"CC-OPS - Operations","5103","Transport Allowance Expense","TRA","Transport Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Transport Allowance",2500.00,0.00
+"CC-OPS - Operations","5104","Other Allowances Expense","OTH","Other Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Other Allowance",2500.00,0.00
+"CC-OPS - Operations","5101","Salaries & Wages — Contra / Absence Offset","ABS","Absence / Unpaid Leave","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Absence / Unpaid Leave",0.00,266.67
+"CC-SALES - Sales & Support","5101","Salaries & Wages — Basic","BASIC","Basic Salary","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Basic Salary",26400.00,0.00
+"CC-SALES - Sales & Support","5102","Housing Allowance Expense","HRA","Housing Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Housing Allowance",13200.00,0.00
+"CC-SALES - Sales & Support","5103","Transport Allowance Expense","TRA","Transport Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Transport Allowance",2200.00,0.00
+"CC-SALES - Sales & Support","5104","Other Allowances Expense","OTH","Other Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Other Allowance",2200.00,0.00
+"CC-SALES - Sales & Support","5101","Salaries & Wages — Contra / Absence Offset","ABS","Absence / Unpaid Leave","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Absence / Unpaid Leave",0.00,283.33
+"CC-LOG - Logistics & Fleet","5101","Salaries & Wages — Basic","BASIC","Basic Salary","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Basic Salary",17400.00,0.00
+"CC-LOG - Logistics & Fleet","5102","Housing Allowance Expense","HRA","Housing Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Housing Allowance",8700.00,0.00
+"CC-LOG - Logistics & Fleet","5103","Transport Allowance Expense","TRA","Transport Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Transport Allowance",1450.00,0.00
+"CC-LOG - Logistics & Fleet","5104","Other Allowances Expense","OTH","Other Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Other Allowance",1450.00,0.00
+"CC-ENG - Engineering","5101","Salaries & Wages — Basic","BASIC","Basic Salary","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Basic Salary",32700.00,0.00
+"CC-ENG - Engineering","5102","Housing Allowance Expense","HRA","Housing Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Housing Allowance",16350.00,0.00
+"CC-ENG - Engineering","5103","Transport Allowance Expense","TRA","Transport Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Transport Allowance",2725.00,0.00
+"CC-ENG - Engineering","5104","Other Allowances Expense","OTH","Other Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Other Allowance",2725.00,0.00
+"CC-FIN - Finance","5101","Salaries & Wages — Basic","BASIC","Basic Salary","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Basic Salary",27600.00,0.00
+"CC-FIN - Finance","5102","Housing Allowance Expense","HRA","Housing Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Housing Allowance",13800.00,0.00
+"CC-FIN - Finance","5103","Transport Allowance Expense","TRA","Transport Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Transport Allowance",2300.00,0.00
+"CC-FIN - Finance","5104","Other Allowances Expense","OTH","Other Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Other Allowance",2300.00,0.00
+"CC-HR - HR & Admin","5101","Salaries & Wages — Basic","BASIC","Basic Salary","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Basic Salary",24900.00,0.00
+"CC-HR - HR & Admin","5102","Housing Allowance Expense","HRA","Housing Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Housing Allowance",12450.00,0.00
+"CC-HR - HR & Admin","5103","Transport Allowance Expense","TRA","Transport Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Transport Allowance",2075.00,0.00
+"CC-HR - HR & Admin","5104","Other Allowances Expense","OTH","Other Allowance","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Other Allowance",2075.00,0.00
+"CC-ENG - Engineering","5199","Night Overtime 10pm-4am (1.50x)","OT_NIGHT","Night Overtime 10pm-4am (1.50x)","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Night Overtime 10pm-4am (1.50x)",3465.00,0.00
+"CC-ENG - Engineering","2199","GPSSA UAE National Pension (Employee Share)","GPSSA_EE","GPSSA UAE National Pension (Employee Share)","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — GPSSA UAE National Pension (Employee Share)",0.00,2178.00
+"CC-ENG - Engineering","5199","GPSSA UAE National Pension (Employer Share)","GPSSA_ER","GPSSA UAE National Pension (Employer Share)","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — GPSSA UAE National Pension (Employer Share)",0.00,0.00
+"CC-ENG - Engineering","5105","GPSSA Employer Pension Expense","GPSSA_ER","GPSSA Employer Pension Expense","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — GPSSA Employer Pension Expense",2475.00,0.00
+"Corporate / Treasury","2105","GPSSA Pension Payable","GPSSA_ER","GPSSA Employer Pension Payable","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — GPSSA Employer Pension Payable",0.00,10012.50
+"CC-OPS - Operations","1150","Employee Loans & Advances Receivable","LOAN","Loan Recovery","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Loan Recovery",0.00,1000.00
+"CC-OPS - Operations","2199","Salary Advance Recovery","ADV","Salary Advance Recovery","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Salary Advance Recovery",0.00,800.00
+"CC-SALES - Sales & Support","5199","Normal Overtime (1.25x)","OT_NORMAL","Normal Overtime (1.25x)","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Normal Overtime (1.25x)",1425.00,0.00
+"CC-SALES - Sales & Support","2199","GPSSA UAE National Pension (Employee Share)","GPSSA_EE","GPSSA UAE National Pension (Employee Share)","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — GPSSA UAE National Pension (Employee Share)",0.00,1881.00
+"CC-SALES - Sales & Support","5199","GPSSA UAE National Pension (Employer Share)","GPSSA_ER","GPSSA UAE National Pension (Employer Share)","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — GPSSA UAE National Pension (Employer Share)",0.00,0.00
+"CC-SALES - Sales & Support","5105","GPSSA Employer Pension Expense","GPSSA_ER","GPSSA Employer Pension Expense","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — GPSSA Employer Pension Expense",2137.50,0.00
+"CC-FIN - Finance","1150","Employee Loans & Advances Receivable","LOAN","Loan Recovery","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Loan Recovery",0.00,3500.00
+"CC-HR - HR & Admin","5199","Normal Overtime (1.25x)","OT_NORMAL","Normal Overtime (1.25x)","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Normal Overtime (1.25x)",8593.75,0.00
+"CC-HR - HR & Admin","1150","Employee Loans & Advances Receivable","LOAN","Loan Recovery","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Loan Recovery",0.00,500.00
+"CC-HR - HR & Admin","2199","GPSSA UAE National Pension (Employee Share)","GPSSA_EE","GPSSA UAE National Pension (Employee Share)","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — GPSSA UAE National Pension (Employee Share)",0.00,2475.00
+"CC-HR - HR & Admin","5199","GPSSA UAE National Pension (Employer Share)","GPSSA_ER","GPSSA UAE National Pension (Employer Share)","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — GPSSA UAE National Pension (Employer Share)",0.00,0.00
+"CC-HR - HR & Admin","5105","GPSSA Employer Pension Expense","GPSSA_ER","GPSSA Employer Pension Expense","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — GPSSA Employer Pension Expense",3375.00,0.00
+"CC-OPS - Operations","5199","Rest Day / Holiday Overtime (1.50x)","OT_REST","Rest Day / Holiday Overtime (1.50x)","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Rest Day / Holiday Overtime (1.50x)",1350.00,0.00
+"CC-OPS - Operations","2199","GPSSA UAE National Pension (Employee Share)","GPSSA_EE","GPSSA UAE National Pension (Employee Share)","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — GPSSA UAE National Pension (Employee Share)",0.00,1782.00
+"CC-OPS - Operations","5199","GPSSA UAE National Pension (Employer Share)","GPSSA_ER","GPSSA UAE National Pension (Employer Share)","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — GPSSA UAE National Pension (Employer Share)",0.00,0.00
+"CC-OPS - Operations","5105","GPSSA Employer Pension Expense","GPSSA_ER","GPSSA Employer Pension Expense","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — GPSSA Employer Pension Expense",2025.00,0.00
+"Corporate / Treasury","2101","Accrued Payroll & Salaries Payable","NET_PAY","Net Salaries Payable to Employees","Payroll Journal 2026-10 [Visa 01 (MOHRE Dubai)] — Net Salaries Payable to Employees",0.00,265167.75
 "TOTAL",,,,,,"289846.25","289846.25"

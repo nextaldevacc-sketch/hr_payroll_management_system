@@ -24,6 +24,16 @@ const BORDER_STYLE = {
   right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
 };
 
+export const NATIONALITY_NAMES = {
+  ARE: { en: 'United Arab Emirates', ar: 'الإمارات العربية المتحدة' },
+  GBR: { en: 'United Kingdom', ar: 'المملكة المتحدة' },
+  IND: { en: 'India', ar: 'الهند' },
+  PAK: { en: 'Pakistan', ar: 'باكستان' },
+  EGY: { en: 'Egypt', ar: 'مصر' },
+  PHL: { en: 'Philippines', ar: 'الفلبين' },
+  JOR: { en: 'Jordan', ar: 'الأردن' },
+};
+
 export class ReportService {
   constructor(client = prisma) {
     this.prisma = client;
@@ -368,7 +378,13 @@ export class ReportService {
       this.prisma.$base().employees.findMany({
         where: { company_id: companyId },
         include: {
-          contracts: { where: { status: 'Active' }, include: { department: true }, take: 1 },
+          contracts: {
+            where: { status: { in: ['Approved', 'Active'] } },
+            include: { department: true },
+            orderBy: { version_no: 'desc' },
+            take: 1,
+          },
+          separations: { where: { status: 'Approved' }, take: 1 },
         },
       }),
       this.prisma.$base().departments.findMany({
@@ -382,8 +398,11 @@ export class ReportService {
       return jd >= yearStart && jd <= yearEnd;
     });
     const leavers = allEmployees.filter((e) => {
-      if (!e.end_date || e.status === 'Active') return false;
-      const ed = new Date(e.end_date);
+      const isLeaverStatus = e.status === 'Archived' || e.status === 'Separated' || e.separations?.length > 0;
+      if (!isLeaverStatus) return false;
+      const leaveDate = e.end_date || e.separations?.[0]?.last_working_day || e.updated_at;
+      if (!leaveDate) return true;
+      const ed = new Date(leaveDate);
       return ed >= yearStart && ed <= yearEnd;
     });
 
@@ -413,7 +432,7 @@ export class ReportService {
       if (departmentMap[did]) departmentMap[did].leavers++;
     }
 
-    // By Nationality
+    // By Nationality (stored as ISO code, mapped to localized names)
     const nationalityMap = {};
     for (const e of activeEmployees) {
       const nat = e.nationality || 'Other';
@@ -425,7 +444,10 @@ export class ReportService {
     const monthlyTrends = Array.from({ length: 12 }, (_, i) => {
       const monthNum = i + 1;
       const monthJoiners = joiners.filter((e) => new Date(e.joining_date).getUTCMonth() === i).length;
-      const monthLeavers = leavers.filter((e) => new Date(e.end_date).getUTCMonth() === i).length;
+      const monthLeavers = leavers.filter((e) => {
+        const lDate = e.end_date || e.separations?.[0]?.last_working_day || e.updated_at;
+        return lDate && new Date(lDate).getUTCMonth() === i;
+      }).length;
       return {
         month: monthNum,
         monthName: new Date(Date.UTC(targetYear, i, 1)).toLocaleString('en-US', { month: 'short' }),
@@ -441,7 +463,12 @@ export class ReportService {
       leaversCount: leavers.length,
       turnoverRate,
       departments: Object.values(departmentMap),
-      nationalities: Object.entries(nationalityMap).map(([nationality, count]) => ({ nationality, count })),
+      nationalities: Object.entries(nationalityMap).map(([code, count]) => ({
+        code,
+        nationality: NATIONALITY_NAMES[code]?.en || code,
+        nationality_ar: NATIONALITY_NAMES[code]?.ar || code,
+        count,
+      })),
       monthlyTrends,
       joinersList: joiners.map((j) => ({
         id: j.id,
@@ -456,7 +483,7 @@ export class ReportService {
         employee_code: l.employee_code,
         name: l.name,
         department: l.contracts?.[0]?.department?.name,
-        end_date: l.end_date,
+        end_date: l.end_date || l.separations?.[0]?.last_working_day,
         status: l.status,
       })),
     };
@@ -541,7 +568,12 @@ export class ReportService {
           include: {
             employee: {
               include: {
-                contracts: { where: { status: 'Active' }, include: { department: true }, take: 1 },
+                contracts: {
+                  where: { status: { in: ['Approved', 'Active'] } },
+                  include: { department: true },
+                  orderBy: { version_no: 'desc' },
+                  take: 1,
+                },
               },
             },
             lines: {
@@ -588,8 +620,9 @@ export class ReportService {
     let totalNetPay = new Decimal(0);
 
     for (const ps of payRun.payslips) {
-      const costCentre = ps.employee?.contracts?.[0]?.department?.name || 'Administration';
-      const costCentreCode = ps.employee?.contracts?.[0]?.department?.id?.slice(0, 8) || 'CC-GEN';
+      const dept = ps.employee?.contracts?.[0]?.department;
+      const costCentreCode = dept?.cost_centre || 'CC-OPS';
+      const costCentre = dept ? `${dept.cost_centre} - ${dept.name}` : 'CC-OPS - Operations';
       totalNetPay = totalNetPay.plus(new Decimal(ps.net || 0));
 
       for (const line of ps.lines) {
@@ -707,9 +740,10 @@ export class ReportService {
     const periodStr = typeof payRun.period_month === 'string'
       ? payRun.period_month.slice(0, 7)
       : new Date(payRun.period_month).toISOString().slice(0, 7);
+    const visaLabel = payRun.company_visa?.name || 'All Visas';
 
     for (const r of rows) {
-      const description = `Payroll Journal ${periodStr} — ${r.ruleName}`;
+      const description = `Payroll Journal ${periodStr} [${visaLabel}] — ${r.ruleName}`;
       const debitStr = r.debit.greaterThan(0) ? r.debit.toFixed(2) : '0.00';
       const creditStr = r.credit.greaterThan(0) ? r.credit.toFixed(2) : '0.00';
 

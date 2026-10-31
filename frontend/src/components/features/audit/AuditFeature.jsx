@@ -157,14 +157,14 @@ export default function AuditFeature() {
           }}
           className="px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
         >
-          <option value="">{isAr ? 'جميع العمليات (Actions)' : 'All Actions'}</option>
-          <option value="Create">{isAr ? 'إنشاء (Create)' : 'Create'}</option>
-          <option value="Update">{isAr ? 'تحديث (Update)' : 'Update'}</option>
-          <option value="Validate">{isAr ? 'تدقيق (Validate)' : 'Validate'}</option>
-          <option value="Lock">{isAr ? 'إقفال (Lock)' : 'Lock'}</option>
-          <option value="Pay">{isAr ? 'صرف (Pay)' : 'Pay'}</option>
-          <option value="Approve">{isAr ? 'اعتماد (Approve)' : 'Approve'}</option>
-          <option value="Reject">{isAr ? 'رفض (Reject)' : 'Reject'}</option>
+          <option value="">{isAr ? 'جميع العمليات' : 'All Actions'}</option>
+          <option value="Create">{isAr ? 'إنشاء' : 'Create'}</option>
+          <option value="Update">{isAr ? 'تحديث' : 'Update'}</option>
+          <option value="Validate">{isAr ? 'تدقيق' : 'Validate'}</option>
+          <option value="Lock">{isAr ? 'إقفال' : 'Lock'}</option>
+          <option value="Pay">{isAr ? 'صرف' : 'Pay'}</option>
+          <option value="Approve">{isAr ? 'اعتماد' : 'Approve'}</option>
+          <option value="Reject">{isAr ? 'رفض' : 'Reject'}</option>
           <option value="UploadDocument">{isAr ? 'رفع وثيقة' : 'Upload Document'}</option>
           <option value="RenewDocument">{isAr ? 'تجديد وثيقة' : 'Renew Document'}</option>
           <option value="VerifyDocument">{isAr ? 'التحقق من وثيقة' : 'Verify Document'}</option>
@@ -181,7 +181,7 @@ export default function AuditFeature() {
           }}
           className="px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
         >
-          <option value="">{isAr ? 'جميع الكيانات (Entities)' : 'All Entities / Tables'}</option>
+          <option value="">{isAr ? 'جميع الكيانات والجداول' : 'All Entities / Tables'}</option>
           <option value="employees">employees</option>
           <option value="contracts">contracts</option>
           <option value="pay_runs">pay_runs</option>
@@ -231,7 +231,7 @@ export default function AuditFeature() {
               <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
                 <th className="py-3 px-4 w-8"></th>
                 <th className="py-3 px-4">{isAr ? 'التاريخ والوقت' : 'Timestamp (UTC+4)'}</th>
-                <th className="py-3 px-4">{isAr ? 'المستخدم (Actor)' : 'User / Actor'}</th>
+                <th className="py-3 px-4">{isAr ? 'المستخدم الفاعل' : 'User / Actor'}</th>
                 <th className="py-3 px-4">{isAr ? 'نوع الحركة' : 'Action'}</th>
                 <th className="py-3 px-4">{isAr ? 'الجدول / الكيان' : 'Entity'}</th>
                 <th className="py-3 px-4">{isAr ? 'معرف السجل' : 'Record ID'}</th>
@@ -368,3 +368,4 @@ export default function AuditFeature() {
     </div>
   );
 }
+

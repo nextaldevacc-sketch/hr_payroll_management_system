@@ -913,11 +913,11 @@ export function OffboardingFeature() {
 
                 {/* Tile 2: Gratuity Breakdown */}
                 <div className="p-5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                  <div className="flex items-center gap-2 text-xs font-bold text-amber-500 dark:text-amber-400 uppercase tracking-wider">
                     <Briefcase className="w-4 h-4" />
                     Statutory Gratuity (Art. 51)
                   </div>
-                  <div className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400">
+                  <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">
                     AED {Number(settlement.gratuity).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </div>
                   <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">

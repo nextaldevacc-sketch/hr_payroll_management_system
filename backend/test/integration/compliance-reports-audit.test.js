@@ -98,6 +98,42 @@ describe('Phase 9: Compliance, Reports & Audit Integration Tests', () => {
       const evaluated = evaluateDocumentStatus({ doc_number: 'EID-TEST', expiry_date: expiry }, 90, justAfterMidnightDubai);
       assert.equal(evaluated.status, 'Expired');
     });
+
+    it('a document that expired 2 days ago shows Expired on read without running the cron job', async () => {
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+      const expiredDoc = await prisma.$base().employee_documents.create({
+        data: {
+          company_id: companyA.id,
+          employee_id: employeeA.id,
+          doc_type: 'PASSPORT',
+          doc_number: 'P-EXPIRED-2D',
+          expiry_date: twoDaysAgo,
+          status: 'Valid', // In DB it is marked 'Valid'
+          verification_status: 'Verified',
+        },
+      });
+
+      // Fetch via listComplianceDocuments service
+      const res = await complianceService.listComplianceDocuments(companyA.id, { search: 'P-EXPIRED-2D' });
+      const found = res.items.find((d) => d.id === expiredDoc.id);
+      assert.ok(found, 'Document must be found in list');
+      assert.equal(found.status, 'Expired', 'Document expiring 2 days ago must dynamically compute status as Expired on read');
+      assert(found.days_remaining <= -2, 'Days remaining must be negative');
+
+      // Also verify via API endpoint
+      const apiRes = await request(app)
+        .get('/api/v1/compliance/documents?search=P-EXPIRED-2D')
+        .set('Authorization', `Bearer ${hrMgrAToken}`);
+      assert.equal(apiRes.status, 200);
+      const apiDoc = apiRes.body.items?.find((d) => d.id === expiredDoc.id);
+      assert.ok(apiDoc, 'API must return document');
+      assert.equal(apiDoc.status, 'Expired', 'API response must show Expired');
+
+      // Clean up
+      await prisma.$base().employee_documents.delete({ where: { id: expiredDoc.id } });
+    });
   });
 
   // =========================================================================

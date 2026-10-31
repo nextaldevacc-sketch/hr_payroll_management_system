@@ -75,18 +75,27 @@ export async function seedEmployees(prisma, {
   const placeholderUrl = ensureDemoPlaceholderPdf();
 
   const employeeNames = [
-    { name: 'Rashid Al-Falasi', name_ar: 'راشد الفلاسي', nat: 'Emirati', gender: 'Male', uae: true, job: jobs1.jobHR, dept: depts1['HR & Admin'], gross: 25000 },
-    { name: 'Fatima Al-Mazrouei', name_ar: 'فاطمة المزروعي', nat: 'Emirati', gender: 'Female', uae: true, job: jobs1.jobEng, dept: depts1['Engineering'], gross: 22000 },
-    { name: 'Mansour Al-Ketbi', name_ar: 'منصور الكتبي', nat: 'Emirati', gender: 'Male', uae: true, job: jobs1.jobOps, dept: depts1['Operations'], gross: 18000 },
-    { name: 'Mariam Al-Zaabi', name_ar: 'مريم الزعابي', nat: 'Emirati', gender: 'Female', uae: true, job: jobs1.jobSales, dept: depts1['Sales & Support'], gross: 19000 },
-    { name: 'Alexander Wright', name_ar: 'ألكسندر رايت', nat: 'British', gender: 'Male', uae: false, job: jobs1.jobEng, dept: depts1['Engineering'], gross: 16000 },
-    { name: 'Rajesh Sharma', name_ar: 'راجيش شارما', nat: 'Indian', gender: 'Male', uae: false, job: jobs1.jobEng, dept: depts1['Engineering'], gross: 14000 },
-    { name: 'Sarah Jenkins', name_ar: 'سارة جينكينز', nat: 'British', gender: 'Female', uae: false, job: jobs1.jobEng, dept: depts1['Engineering'], gross: 15500 },
-    { name: 'Muhammad Tariq', name_ar: 'محمد طارق', nat: 'Pakistani', gender: 'Male', uae: false, job: jobs1.jobOps, dept: depts1['Operations'], gross: 7500 },
-    { name: 'Omar Farooq', name_ar: 'عمر فاروق', nat: 'Egyptian', gender: 'Male', uae: false, job: jobs1.jobOps, dept: depts1['Operations'], gross: 8000 },
-    { name: 'Kareem Abdelaziz', name_ar: 'كريم عبدالعزيز', nat: 'Egyptian', gender: 'Male', uae: false, job: jobs1.jobSales, dept: depts1['Sales & Support'], gross: 8500 },
-    { name: 'Vikram Patel', name_ar: 'فيكرام باتيل', nat: 'Indian', gender: 'Male', uae: false, job: jobs1.jobFleet, dept: depts1['Logistics & Fleet'], gross: 6500 },
-    { name: 'Anil Kumar', name_ar: 'أنيل كومار', nat: 'Indian', gender: 'Male', uae: false, job: jobs1.jobFleet, dept: depts1['Logistics & Fleet'], gross: 6000 },
+    { name: 'Rashid Al-Falasi', name_ar: 'راشد الفلاسي', nat: 'ARE', gender: 'Male', uae: true, job: jobs1.jobHR, dept: depts1['HR & Admin'], gross: 25000 },
+    { name: 'Fatima Al-Mazrouei', name_ar: 'فاطمة المزروعي', nat: 'ARE', gender: 'Female', uae: true, job: jobs1.jobEng, dept: depts1['Engineering'], gross: 22000 },
+    { name: 'Mansour Al-Ketbi', name_ar: 'منصور الكتبي', nat: 'ARE', gender: 'Male', uae: true, job: jobs1.jobOps, dept: depts1['Operations'], gross: 18000 },
+    { name: 'Mariam Al-Zaabi', name_ar: 'مريم الزعابي', nat: 'ARE', gender: 'Female', uae: true, job: jobs1.jobSales, dept: depts1['Sales & Support'], gross: 19000 },
+    { name: 'Alexander Wright', name_ar: 'ألكسندر رايت', nat: 'GBR', gender: 'Male', uae: false, job: jobs1.jobEng, dept: depts1['Engineering'], gross: 16000 },
+    { name: 'Rajesh Sharma', name_ar: 'راجيش شارما', nat: 'IND', gender: 'Male', uae: false, job: jobs1.jobFin, dept: depts1['Finance'], gross: 14000 },
+    { name: 'Sarah Jenkins', name_ar: 'سارة جينكينز', nat: 'GBR', gender: 'Female', uae: false, job: jobs1.jobFin, dept: depts1['Finance'], gross: 15500 },
+    { name: 'Muhammad Tariq', name_ar: 'محمد طارق', nat: 'PAK', gender: 'Male', uae: false, job: jobs1.jobOps, dept: depts1['Operations'], gross: 7500 },
+    { name: 'Omar Farooq', name_ar: 'عمر فاروق', nat: 'EGY', gender: 'Male', uae: false, job: jobs1.jobOps, dept: depts1['Operations'], gross: 8000 },
+    { name: 'Kareem Abdelaziz', name_ar: 'كريم عبدالعزيز', nat: 'EGY', gender: 'Male', uae: false, job: jobs1.jobSales, dept: depts1['Sales & Support'], gross: 8500 },
+    { name: 'Vikram Patel', name_ar: 'فيكرام باتيل', nat: 'IND', gender: 'Male', uae: false, job: jobs1.jobFleet, dept: depts1['Logistics & Fleet'], gross: 6500 },
+    { name: 'Anil Kumar', name_ar: 'أنيل كومار', nat: 'IND', gender: 'Male', uae: false, job: jobs1.jobFleet, dept: depts1['Logistics & Fleet'], gross: 6000 },
+  ];
+
+  const deptCycle = [
+    { dept: depts1['Operations'], job: jobs1.jobOps },
+    { dept: depts1['Engineering'], job: jobs1.jobEng },
+    { dept: depts1['Logistics & Fleet'], job: jobs1.jobFleet },
+    { dept: depts1['Sales & Support'], job: jobs1.jobSales },
+    { dept: depts1['Finance'], job: jobs1.jobFin },
+    { dept: depts1['HR & Admin'], job: jobs1.jobHR },
   ];
 
   const seededEmployees = [];
@@ -98,22 +107,38 @@ export async function seedEmployees(prisma, {
     const targetVisa = i <= 30 ? visas1.visa1_01 : visas1.visa1_02;
     const targetBranch = i <= 30 ? branches1.branch1_main : branches1.branch1_difc;
 
-    const baseInfo = i <= employeeNames.length
-      ? employeeNames[i - 1]
-      : {
-          name: `Logistics Associate ${i}`,
-          name_ar: `مساعد لوجستي ${i}`,
-          nat: i % 3 === 0 ? 'Filipino' : i % 2 === 0 ? 'Indian' : 'Pakistani',
-          gender: i % 4 === 0 ? 'Female' : 'Male',
-          uae: false,
-          job: i % 2 === 0 ? jobs1.jobFleet : jobs1.jobOps,
-          dept: i % 2 === 0 ? depts1['Logistics & Fleet'] : depts1['Operations'],
-          gross: i <= 32 ? 5500 : 6000,
-        };
+    let baseInfo;
+    if (i <= employeeNames.length) {
+      baseInfo = employeeNames[i - 1];
+    } else if (i === 42) {
+      baseInfo = {
+        name: 'Omar Al-Hashimi',
+        name_ar: 'عمر الهاشمي',
+        nat: 'ARE',
+        gender: 'Male',
+        uae: true,
+        job: jobs1.jobOps,
+        dept: depts1['Operations'],
+        gross: 10000,
+        joining_date: new Date('2019-11-03'),
+      };
+    } else {
+      const cycleItem = deptCycle[(i - 13) % deptCycle.length];
+      baseInfo = {
+        name: `Logistics Associate ${i}`,
+        name_ar: `مساعد لوجستي ${i}`,
+        nat: i % 3 === 0 ? 'PHL' : i % 2 === 0 ? 'IND' : 'PAK',
+        gender: i % 4 === 0 ? 'Female' : 'Male',
+        uae: false,
+        job: cycleItem.job,
+        dept: cycleItem.dept,
+        gross: i <= 32 ? 5500 : 6000,
+      };
+    }
 
-    const basic = Math.round(baseInfo.gross * 0.60);
-    const housing = Math.round(baseInfo.gross * 0.30);
-    const trans = Math.round(baseInfo.gross * 0.05);
+    const basic = i === 42 ? 6000 : Math.round(baseInfo.gross * 0.60);
+    const housing = i === 42 ? 3000 : Math.round(baseInfo.gross * 0.30);
+    const trans = i === 42 ? 1000 : Math.round(baseInfo.gross * 0.05);
     const oth = baseInfo.gross - (basic + housing + trans);
     const empGross = basic + housing + trans + oth;
 
@@ -124,8 +149,8 @@ export async function seedEmployees(prisma, {
         name: baseInfo.name,
         arabic_name: baseInfo.name_ar,
         legal_name: baseInfo.name,
-        status: i === 42 ? 'Archived' : 'Active', // 1 leaver
-        joining_date: i >= 40 ? new Date('2026-10-01') : new Date('2024-01-15'), // 3 joiners in Oct 2026
+        status: 'Active',
+        joining_date: baseInfo.joining_date || (i >= 40 ? new Date('2026-10-01') : new Date('2024-01-15')),
         residency_type: (i <= 4 || baseInfo.uae) ? 'UAENational' : 'Expat',
         nationality: baseInfo.nat,
         gender: baseInfo.gender,
@@ -133,7 +158,7 @@ export async function seedEmployees(prisma, {
         mohre_person_id: `MOHRE${String(1000000 + i)}`,
         company_visa_id: targetVisa.id,
         branch_id: targetBranch.id,
-        work_email: `emp${i}@gulftech.ae`,
+        work_email: i === 42 ? 'omar.alhashimi@gulftech.ae' : `emp${i}@gulftech.ae`,
         mobile: `+97150${String(1000000 + i).substring(1)}`,
       },
     });
@@ -199,14 +224,15 @@ export async function seedEmployees(prisma, {
       });
       activeContract = contract2;
     } else {
+      const contractStartDate = baseInfo.joining_date || (i >= 40 ? new Date('2026-10-01') : new Date('2024-01-15'));
       const contract1 = await prisma.contracts.create({
         data: {
           company_id: company1.id,
           employee_id: emp.id,
           version_no: 1,
-          effective_date: new Date('2024-01-15'),
-          contract_type: 'Limited',
-          start_date: new Date('2024-01-15'),
+          effective_date: contractStartDate,
+          contract_type: i === 42 ? 'Unlimited' : 'Limited',
+          start_date: contractStartDate,
           job_id: baseInfo.job.id,
           department_id: baseInfo.dept.id,
           shift_id: shift1.id,
@@ -225,12 +251,11 @@ export async function seedEmployees(prisma, {
     seededContracts.push(activeContract);
     totalSeededGross += empGross;
 
-    // Bank accounts: 41 valid, 1 missing routing code (emp 42)
+    // Bank accounts: all 42 employees have valid mod-97 UAE IBANs and routing codes
     // EMP-DXB-041 (i === 41) uses generateValidUaeIban(33, 41)
     const iban = i === 41
       ? generateValidUaeIban(33, 41)
       : generateValidUaeIban('033', 1000000000 + i);
-    const hasRouting = i !== 42;
 
     await prisma.bank_accounts.create({
       data: {
@@ -238,7 +263,7 @@ export async function seedEmployees(prisma, {
         employee_id: emp.id,
         bank_name: 'Emirates NBD',
         iban: iban,
-        routing_code: hasRouting ? 'ENBD001' : '',
+        routing_code: 'ENBD001',
         salary_split_pct: 100.00,
         is_primary: true,
         is_active: true,
@@ -362,7 +387,7 @@ export async function seedEmployees(prisma, {
         status: 'Active',
         joining_date: new Date('2025-03-01'),
         residency_type: 'Expat',
-        nationality: 'Jordanian',
+        nationality: 'JOR',
         gender: j % 2 === 0 ? 'Female' : 'Male',
         company_visa_id: visa2.id,
         branch_id: branch2.id,

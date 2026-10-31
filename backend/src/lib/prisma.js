@@ -51,11 +51,26 @@ export function isCompanyOwned(model) {
   return COMPANY_OWNED_MODELS.includes(model);
 }
 
+export function getActiveDbUrl() {
+  if (process.env.NODE_ENV === 'test' && process.env.DATABASE_URL_TEST) {
+    return process.env.DATABASE_URL_TEST;
+  }
+  return process.env.DATABASE_URL_OVERRIDE || process.env.DATABASE_URL;
+}
+
+const defaultActiveUrl = getActiveDbUrl();
+export const rawPrisma = new PrismaClient(
+  defaultActiveUrl ? { datasources: { db: { url: defaultActiveUrl } } } : undefined
+);
+
 /**
  * Creates a company-isolated Prisma Client instance
  */
 export function createScopedPrismaClient(explicitCompanyId = null, options = {}) {
-  const baseClient = new PrismaClient();
+  const activeUrl = getActiveDbUrl();
+  const baseClient = new PrismaClient(
+    activeUrl ? { datasources: { db: { url: activeUrl } } } : undefined
+  );
 
   return baseClient.$extends({
     name: 'companyIsolation',

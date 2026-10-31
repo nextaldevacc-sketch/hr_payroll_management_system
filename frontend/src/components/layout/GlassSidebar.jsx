@@ -42,6 +42,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
   // Section 5.3 Permissions Matrix Filter for Sidebar Navigation
   const isEmployeeOnly = user?.roles?.includes('EMPLOYEE') && user.roles.length === 1;
   const isPlatformAdmin = Boolean(user?.is_platform_admin);
+  const isAr = locale === 'ar';
 
   // Base navigation items
   const allNavItems = [
@@ -208,7 +209,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
                   <Building2 className="w-4 h-4 stroke-[1.8]" />
                 </IconWell>
                 <span className="text-sm tracking-tight hidden xl:inline-block flex-1 truncate">
-                  Companies (FR-PL1–3)
+                  {isAr ? 'الشركات والكيانات' : 'Companies'}
                 </span>
               </Link>
             </div>
@@ -238,7 +239,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
                   <Shield className="w-4 h-4 stroke-[1.8]" />
                 </IconWell>
                 <span className="text-sm tracking-tight hidden xl:inline-block flex-1 truncate">
-                  Users & Roles (5.1)
+                  {isAr ? 'المستخدمون والأدوار' : 'Users & Roles'}
                 </span>
               </Link>
             </div>
@@ -299,8 +300,8 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
               className="absolute start-full ms-2 bottom-0 w-72 p-2 rounded-2xl border shadow-2xl z-[9999] opacity-100 space-y-1 bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700"
             >
               <div className="px-2 py-1 text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
-                <span>Switch Demo Persona</span>
-                <span className="text-amber-500 font-mono">Sec 5.2</span>
+                <span>{isAr ? 'تبديل المستخدم التجريبي' : 'Switch Demo Persona'}</span>
+                <span className="text-amber-500 font-mono">{isAr ? 'بند 5.2' : 'Sec 5.2'}</span>
               </div>
 
               <div className="max-h-72 overflow-y-auto space-y-1 pr-1 py-1">
@@ -320,7 +321,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
                       }`}
                     >
                       <div className="truncate">
-                        <span className="font-semibold block truncate text-[11px]">{demo.roleNameEn}</span>
+                        <span className="font-semibold block truncate text-[11px]">{isAr ? demo.roleNameAr : demo.roleNameEn}</span>
                         <span className="text-[9px] block text-slate-400 dark:text-slate-500 font-mono truncate">{demo.email}</span>
                       </div>
                       {demo.sees_salary && (
@@ -339,7 +340,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
                   onClick={() => setIsPersonaDrawerOpen(false)}
                   className="text-[10px] text-amber-600 dark:text-amber-400 hover:underline px-2 py-1"
                 >
-                  Go to Login Screen
+                  {isAr ? 'الذهاب لشاشة الدخول' : 'Go to Login Screen'}
                 </Link>
                 <button
                   onClick={() => {
@@ -350,7 +351,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
                   className="text-[10px] text-rose-500 dark:text-rose-400 hover:underline px-2 py-1 flex items-center gap-1"
                 >
                   <LogOut className="w-2.5 h-2.5" />
-                  <span>Logout</span>
+                  <span>{isAr ? 'تسجيل الخروج' : 'Logout'}</span>
                 </button>
               </div>
             </div>
@@ -360,7 +361,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
         {/* Legal notice */}
         <div className="flex items-center gap-2 px-2 py-1 text-[10px] text-text-muted">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span>UAE Decree 33/2021 Compliant</span>
+          <span>{isAr ? 'متوافق مع مرسوم بقانون رقم 33 لسنة 2021' : 'UAE Decree 33/2021 Compliant'}</span>
         </div>
       </div>
     </div>

@@ -352,7 +352,12 @@ export class ComplianceService {
               employee_code: true,
               name: true,
               arabic_name: true,
-              contracts: { where: { status: 'Active' }, include: { department: true }, take: 1 },
+              contracts: {
+                where: { status: { in: ['Approved', 'Active'] } },
+                include: { department: true },
+                orderBy: { version_no: 'desc' },
+                take: 1,
+              },
             },
           },
           owner: { select: { id: true, email: true, employee: { select: { name: true } } } },
@@ -369,6 +374,13 @@ export class ComplianceService {
     const now = new Date();
     const formattedItems = items.map((doc) => {
       const daysRemaining = calculateDaysRemainingInDubai(doc.expiry_date, now);
+      // Status computed dynamically on read from date (Asia/Dubai)
+      let dynamicStatus = doc.status;
+      if (daysRemaining !== null) {
+        if (daysRemaining < 0) dynamicStatus = 'Expired';
+        else if (daysRemaining <= 90) dynamicStatus = 'Expiring Soon';
+        else dynamicStatus = 'Valid';
+      }
       return {
         id: doc.id,
         employee_id: doc.employee_id,
@@ -381,7 +393,7 @@ export class ComplianceService {
         issue_date: doc.issue_date,
         expiry_date: doc.expiry_date,
         days_remaining: daysRemaining,
-        status: doc.status,
+        status: dynamicStatus,
         verification_status: doc.verification_status,
         file_url: doc.file_url,
         owner: doc.owner,

@@ -14,6 +14,7 @@ import { seedEmployees } from './employees.js';
 import { seedAttendance } from './attendance.js';
 import { seedPayroll } from './payroll.js';
 import { seedSeparations } from './separations.js';
+import complianceService from '../../src/services/complianceService.js';
 
 const prisma = new PrismaClient();
 
@@ -83,7 +84,17 @@ export async function main() {
     leaveTypesMap1: settings.leaveTypesMap1,
   });
 
-  // 6. Payroll, Payslips & Audit Logs
+  // 6. Offboarding & Final Settlements (Separation in progress + Omar approved settlement)
+  await seedSeparations(prisma, {
+    company1: org.company1,
+    seededEmployees: employees.seededEmployees,
+    demoUsersMap: users.demoUsersMap,
+    salaryStructure1: settings.salaryStructure1,
+    shift1: settings.shift1,
+    policy1: settings.policy1,
+  });
+
+  // 7. Payroll, Payslips & Audit Logs (Calculates active employees: 30 Visa 1 + 11 Visa 2 = 41)
   await seedPayroll(prisma, {
     company1: org.company1,
     visas1: org.visas1,
@@ -93,15 +104,13 @@ export async function main() {
     demoUsersMap: users.demoUsersMap,
   });
 
-  // 7. Offboarding & Final Settlements (Separation in progress + Omar approved settlement)
-  await seedSeparations(prisma, {
-    company1: org.company1,
-    seededEmployees: employees.seededEmployees,
-    demoUsersMap: users.demoUsersMap,
-    salaryStructure1: settings.salaryStructure1,
-    shift1: settings.shift1,
-    policy1: settings.policy1,
-  });
+  // 8. Run Compliance Expiry Evaluation Job
+  console.log('Running compliance check on seeded documents...');
+  try {
+    await complianceService.runComplianceJob({ referenceDate: new Date('2026-10-31') });
+  } catch (err) {
+    console.warn('Compliance check notice:', err.message);
+  }
 
   console.log('\n--- Modular Database Seed Completed Successfully ---');
   console.log('Counting seeded rows per table across database...');

@@ -98,7 +98,7 @@ describe('Phase 4: Employee Management, Verification & Security Tests', () => {
       assert.ok(res.body.data.length > 0);
       res.body.data.forEach((emp) => {
         assert.equal(emp.status, 'Active');
-        assert.equal(emp.nationality, 'Emirati');
+        assert.ok(['ARE', 'Emirati'].includes(emp.nationality));
       });
     });
 

@@ -59,13 +59,14 @@ export async function seedOrganisation(prisma) {
     },
   });
 
-  // Departments
+  // Departments (6 Real Departments with Cost Centres)
   const deptNames = [
     { name: 'Engineering', name_ar: 'الهندسة والبرمجيات', cost_centre: 'CC-ENG' },
     { name: 'Operations', name_ar: 'العمليات اللوجستية', cost_centre: 'CC-OPS' },
     { name: 'Logistics & Fleet', name_ar: 'الخدمات اللوجستية والأسطول', cost_centre: 'CC-LOG' },
     { name: 'HR & Admin', name_ar: 'الموارد البشرية والإدارة', cost_centre: 'CC-HR' },
     { name: 'Sales & Support', name_ar: 'المبيعات وخدمة العملاء', cost_centre: 'CC-SALES' },
+    { name: 'Finance', name_ar: 'المالية والمحاسبة', cost_centre: 'CC-FIN' },
   ];
 
   const depts1 = {};
@@ -97,8 +98,11 @@ export async function seedOrganisation(prisma) {
   const jobSales = await prisma.jobs.create({
     data: { company_id: company1.id, department_id: depts1['Sales & Support'].id, title: 'Account Manager', title_ar: 'مدير حسابات', grade: 'L3' },
   });
+  const jobFin = await prisma.jobs.create({
+    data: { company_id: company1.id, department_id: depts1['Finance'].id, title: 'Senior Accountant', title_ar: 'محاسب أول', grade: 'L3' },
+  });
 
-  const jobs1 = { jobEng, jobOps, jobFleet, jobHR, jobSales };
+  const jobs1 = { jobEng, jobOps, jobFleet, jobHR, jobSales, jobFin };
 
   // Company 2: Emirates Horizon Trading LLC
   console.log('Seeding Company 2: Emirates Horizon Trading LLC...');

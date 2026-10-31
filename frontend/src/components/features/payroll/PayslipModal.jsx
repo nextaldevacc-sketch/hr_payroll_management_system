@@ -141,7 +141,7 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
           </div>
 
           {/* Deductions Column */}
-          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-red-500/5">
+          <div className="p-4 rounded-xl border border-slate-200 dark:border-white/5 bg-red-500/5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-red-500 mb-3 flex items-center justify-between">
               <span>Deductions / الاستقطاعات</span>
               <span className="text-[10px] text-text-muted">AED</span>
@@ -149,7 +149,7 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
             <div className="space-y-2 text-xs">
               {deductions.length > 0 ? (
                 deductions.map((line, idx) => (
-                  <div key={idx} className="flex justify-between py-1 border-b border-slate-200 dark:border-slate-700/60 last:border-0">
+                  <div key={idx} className="flex justify-between py-1 border-b border-slate-200 dark:border-white/5 last:border-0">
                     <span className="text-text-muted">{line.name}</span>
                     <span className="font-medium text-red-500">-{Number(line.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
@@ -160,7 +160,7 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
                 </div>
               )}
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between font-bold text-sm text-text">
+            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-white/5 flex justify-between font-bold text-sm text-text">
               <span>Total Deductions</span>
               <span className="text-red-500">AED {Number(payslip.total_deductions || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
@@ -169,8 +169,8 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
 
         {/* Company Pension Contribution (if applicable) */}
         {contributions.length > 0 && (
-          <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-blue-500/5 text-xs">
-            <div className="flex justify-between items-center text-blue-400 font-semibold mb-1">
+          <div className="p-3 rounded-xl border border-slate-200 dark:border-white/5 bg-amber-500/5 text-xs">
+            <div className="flex justify-between items-center text-amber-500 dark:text-amber-400 font-semibold mb-1">
               <span>Employer Pension Contribution (GPSSA)</span>
               <span>AED {Number(contributions[0].amount || 0).toFixed(2)}</span>
             </div>

@@ -29,6 +29,7 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
 
   const API_PORT = 5000;
   const WEB_PORT = 3100;
+  const testDbUrl = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@localhost:5432/nextal_hr_test?schema=public';
 
   function killProcWithTree(proc) {
     return new Promise((resolve) => {
@@ -61,9 +62,9 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
 
   before(async () => {
     try {
-      prisma = new PrismaClient();
+      prisma = new PrismaClient({ datasources: { db: { url: testDbUrl } } });
 
-      // 1. Check or start API on port 5000
+      // 1. Check or start API on port 5000 targeting test DB
       try {
         await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 1500);
         console.log('API server already running on port 5000');
@@ -71,7 +72,7 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
         console.log('Starting API server on port 5000...');
         apiProcess = spawn(process.execPath, [apiEntry], {
           cwd: apiDir,
-          env: { ...process.env, PORT: String(API_PORT), NODE_ENV: 'production' },
+          env: { ...process.env, PORT: String(API_PORT), NODE_ENV: 'test', DATABASE_URL: testDbUrl, DATABASE_URL_TEST: testDbUrl },
         });
         await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 20000);
         console.log('API server ready on port 5000');

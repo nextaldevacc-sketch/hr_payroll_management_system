@@ -3,11 +3,11 @@ TAP version 13
     # Subtest: T1: Given Platform admin creates Company B -> Expected Company B starts with UAE defaults; its admin is invited
     ok 1 - T1: Given Platform admin creates Company B -> Expected Company B starts with UAE defaults; its admin is invited
       ---
-      duration_ms: 237.204
+      duration_ms: 214.6376
       type: 'test'
       ...
 # [API Error]: Error: Employee not found
-#     at EmployeeService.getEmployeeById (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:342:19)
+#     at EmployeeService.getEmployeeById (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:368:19)
 #     at async getEmployeeById (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:52:18) {
 #   status: 404,
 #   code: 'NOT_FOUND'
@@ -15,13 +15,13 @@ TAP version 13
     # Subtest: T2: Given A Company A user asks for a Company B employee -> Expected Refused and logged
     ok 2 - T2: Given A Company A user asks for a Company B employee -> Expected Refused and logged
       ---
-      duration_ms: 18.1099
+      duration_ms: 16.964
       type: 'test'
       ...
     # Subtest: T3: Given Department Manager opens a team member's profile -> Expected Salary and bank tabs are hidden
     ok 3 - T3: Given Department Manager opens a team member's profile -> Expected Salary and bank tabs are hidden
       ---
-      duration_ms: 22.591
+      duration_ms: 27.0422
       type: 'test'
       ...
 # [API Error]: Error: Duplicate import rejected: This biometric file has already been imported
@@ -33,97 +33,97 @@ TAP version 13
     # Subtest: T4: Given Biometric file imported twice -> Expected No duplicate punches
     ok 4 - T4: Given Biometric file imported twice -> Expected No duplicate punches
       ---
-      duration_ms: 16185.9531
+      duration_ms: 15251.8296
       type: 'test'
       ...
     # Subtest: T5: Given Day with check-in only -> Expected Appears in the Missing Punch Queue
     ok 5 - T5: Given Day with check-in only -> Expected Appears in the Missing Punch Queue
       ---
-      duration_ms: 35.3762
+      duration_ms: 37.5602
       type: 'test'
       ...
     # Subtest: T6: Given 3 approved OT hours, normal day -> Expected AED 78.13
     ok 6 - T6: Given 3 approved OT hours, normal day -> Expected AED 78.13
       ---
-      duration_ms: 44.8268
+      duration_ms: 44.8949
       type: 'test'
       ...
     # Subtest: T7: Given 2 OT hours between 10 pm and midnight -> Expected AED 62.50 at 1.5×
     ok 7 - T7: Given 2 OT hours between 10 pm and midnight -> Expected AED 62.50 at 1.5×
       ---
-      duration_ms: 35.8998
+      duration_ms: 39.4556
       type: 'test'
       ...
     # Subtest: T8: Given 8 hours on a public holiday, paid -> Expected AED 250.00
     ok 8 - T8: Given 8 hours on a public holiday, paid -> Expected AED 250.00
       ---
-      duration_ms: 35.9706
+      duration_ms: 39.9055
       type: 'test'
       ...
     # Subtest: T9: Given Same holiday, substitute day chosen -> Expected No pay; one substitute day added
     ok 9 - T9: Given Same holiday, substitute day chosen -> Expected No pay; one substitute day added
       ---
-      duration_ms: 36.0269
+      duration_ms: 38.5566
       type: 'test'
       ...
     # Subtest: T10: Given OT not approved by cut-off -> Expected Not paid; carried to next month's inputs
     ok 10 - T10: Given OT not approved by cut-off -> Expected Not paid; carried to next month's inputs
       ---
-      duration_ms: 7.2891
+      duration_ms: 7.3349
       type: 'test'
       ...
     # Subtest: T11: Given 2 days unpaid absence, ÷ 30 policy -> Expected AED 533.33 deducted
     ok 11 - T11: Given 2 days unpaid absence, ÷ 30 policy -> Expected AED 533.33 deducted
       ---
-      duration_ms: 0.5465
+      duration_ms: 0.5599
       type: 'test'
       ...
     # Subtest: T12: Given Same, × 12 ÷ 365 policy -> Expected AED 526.03 deducted
     ok 12 - T12: Given Same, × 12 ÷ 365 policy -> Expected AED 526.03 deducted
       ---
-      duration_ms: 0.202
+      duration_ms: 0.1935
       type: 'test'
       ...
     # Subtest: T13: Given Sick days 16–20 of the year -> Expected AED 666.67 deducted (half pay)
     ok 13 - T13: Given Sick days 16–20 of the year -> Expected AED 666.67 deducted (half pay)
       ---
-      duration_ms: 0.1174
+      duration_ms: 0.1309
       type: 'test'
       ...
     # Subtest: T14: Given Sick day 46 of the year -> Expected Full day deducted
     ok 14 - T14: Given Sick day 46 of the year -> Expected Full day deducted
       ---
-      duration_ms: 0.1901
+      duration_ms: 0.1017
       type: 'test'
       ...
     # Subtest: T15: Given Leave request on a flagged type -> Expected Needs manager, HR and GM approval before it reaches payroll
     ok 15 - T15: Given Leave request on a flagged type -> Expected Needs manager, HR and GM approval before it reaches payroll
       ---
-      duration_ms: 17.1519
+      duration_ms: 14.7671
       type: 'test'
       ...
     # Subtest: T16: Given Employee with 4 months' service applies for annual leave -> Expected No accrued balance yet; request blocked or unpaid per policy
     ok 16 - T16: Given Employee with 4 months' service applies for annual leave -> Expected No accrued balance yet; request blocked or unpaid per policy
       ---
-      duration_ms: 11.0645
+      duration_ms: 12.431
       type: 'test'
       ...
     # Subtest: T17: Given Employee with 8 months' service -> Expected 16 annual leave days (2 for each month of service, once past 6 months)
     ok 17 - T17: Given Employee with 8 months' service -> Expected 16 annual leave days (2 for each month of service, once past 6 months)
       ---
-      duration_ms: 0.248
+      duration_ms: 0.2366
       type: 'test'
       ...
     # Subtest: T18: Given Loan 6,000 at 500 a month, third month -> Expected AED 500 deducted; balance AED 4,500
     ok 18 - T18: Given Loan 6,000 at 500 a month, third month -> Expected AED 500 deducted; balance AED 4,500
       ---
-      duration_ms: 45.6569
+      duration_ms: 38.0693
       type: 'test'
       ...
     # Subtest: T19: Given Ahmed's month (T6, T11, T18) -> Expected Net AED 7,044.80
     ok 19 - T19: Given Ahmed's month (T6, T11, T18) -> Expected Net AED 7,044.80
       ---
-      duration_ms: 167.3589
+      duration_ms: 174.1012
       type: 'test'
       ...
 # [API Error]: Error: Cannot update variance reason for a locked or paid pay run
@@ -135,57 +135,47 @@ TAP version 13
     # Subtest: T20: Given Locked run, then a mistake found -> Expected Payslip cannot be edited; an approved correction payslip in a later run, linked to the original and shown in the audit history
     ok 20 - T20: Given Locked run, then a mistake found -> Expected Payslip cannot be edited; an approved correction payslip in a later run, linked to the original and shown in the audit history
       ---
-      duration_ms: 58.5379
+      duration_ms: 54.4042
       type: 'test'
       ...
     # Subtest: T21: Given Gratuity, basic 5,000, 3 years 6 months -> Expected AED 12,082.19
     ok 21 - T21: Given Gratuity, basic 5,000, 3 years 6 months -> Expected AED 12,082.19
       ---
-      duration_ms: 13.5637
+      duration_ms: 14.2964
       type: 'test'
       ...
     # Subtest: T22: Given Gratuity, basic 6,000, 7 years -> Expected AED 32,547.95
     ok 22 - T22: Given Gratuity, basic 6,000, 7 years -> Expected AED 32,547.95
       ---
-      duration_ms: 9.6852
+      duration_ms: 8.2628
       type: 'test'
       ...
     # Subtest: T23: Given Gratuity, 11 months' service -> Expected Not eligible; AED 0
     ok 23 - T23: Given Gratuity, 11 months' service -> Expected Not eligible; AED 0
       ---
-      duration_ms: 8.6215
+      duration_ms: 8.2767
       type: 'test'
       ...
     # Subtest: T24: Given Leave encashment, 12 days, basic 6,000 -> Expected AED 2,367.12
     ok 24 - T24: Given Leave encashment, 12 days, basic 6,000 -> Expected AED 2,367.12
       ---
-      duration_ms: 10.1548
+      duration_ms: 8.2287
       type: 'test'
       ...
-# [Mailer] Sent email to: hr.mgr@gulftech.ae | Subject: "[Nextal HR] Reminder: EMIRATES_ID expires in 13 days"
-# [Mailer] Sent email to: hr.mgr@gulftech.ae | Subject: "[Nextal HR] Reminder: LABOUR_CARD expires in 29 days"
-# [Mailer] Sent email to: hr.mgr@gulftech.ae | Subject: "[Nextal HR] Reminder: PASSPORT expires in 40 days"
-# [Mailer] Sent email to: hr.mgr@gulftech.ae | Subject: "[Nextal HR] Reminder: EMIRATES_ID expires in 55 days"
-# [Mailer] Sent email to: hr.mgr@gulftech.ae | Subject: "[Nextal HR] Reminder: LABOUR_CARD expires in 60 days"
-# [Mailer] Sent email to: hr.mgr@gulftech.ae | Subject: "[Nextal HR] Reminder: PASSPORT expires in 65 days"
-# [Mailer] Sent email to: hr.mgr@gulftech.ae | Subject: "[Nextal HR] Reminder: EMIRATES_ID expires in 70 days"
-# [Mailer] Sent email to: hr.mgr@gulftech.ae | Subject: "[Nextal HR] Reminder: LABOUR_CARD expires in 85 days"
-# [Mailer] Sent email to: hr.mgr@gulftech.ae | Subject: "[Nextal HR] Reminder: PASSPORT expires in 90 days"
-# [Mailer] Sent email to: emp1@gulftech.ae | Subject: "[Nextal HR] Reminder: VISA expires in 85 days"
     # Subtest: T25: Given Visa expiring in 85 days -> Expected Status Expiring Soon; reminder sent to the document owner and HR
     ok 25 - T25: Given Visa expiring in 85 days -> Expected Status Expiring Soon; reminder sent to the document owner and HR
       ---
-      duration_ms: 105.3624
+      duration_ms: 38.1907
       type: 'test'
       ...
     # Subtest: T26: Given SIF for one company visa -> Expected SCR total equals the sum of EDR lines; each EDR matches its payslip
     ok 26 - T26: Given SIF for one company visa -> Expected SCR total equals the sum of EDR lines; each EDR matches its payslip
       ---
-      duration_ms: 18.9298
+      duration_ms: 19.8945
       type: 'test'
       ...
 # [API Error]: Error: Activation check failed. Missing requirements: contract, shift, bank_account, labour_card_or_person_id
-#     at EmployeeService.activateEmployee (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:693:19)
+#     at EmployeeService.activateEmployee (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:719:19)
 #     at async activateEmployee (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:150:18) {
 #   status: 400,
 #   code: 'ACTIVATION_REQUIREMENTS_UNMET',
@@ -194,19 +184,19 @@ TAP version 13
     # Subtest: T27: Given New employee with no bank account -> Expected Cannot be set to Active
     ok 27 - T27: Given New employee with no bank account -> Expected Cannot be set to Active
       ---
-      duration_ms: 15.959
+      duration_ms: 14.7575
       type: 'test'
       ...
     # Subtest: T28: Given Pay run with one employee missing an IBAN -> Expected Validation lists the error; the run cannot be calculated until it is fixed
     ok 28 - T28: Given Pay run with one employee missing an IBAN -> Expected Validation lists the error; the run cannot be calculated until it is fixed
       ---
-      duration_ms: 274.5532
+      duration_ms: 279.8441
       type: 'test'
       ...
     # Subtest: T29: Given Employee's net is 25% higher than last month, threshold 10% -> Expected Shown in the variance report; the run cannot be validated until a reason is entered
     ok 29 - T29: Given Employee's net is 25% higher than last month, threshold 10% -> Expected Shown in the variance report; the run cannot be validated until a reason is entered
       ---
-      duration_ms: 353.3543
+      duration_ms: 368.1675
       type: 'test'
       ...
 # [API Error]: Error: Cannot generate WPS SIF for pay run in 'Validated' status. SIF file can only be generated from a Locked or Paid pay run.
@@ -219,37 +209,37 @@ TAP version 13
     # Subtest: T30: Given Ask for the SIF of a run that is Validated but not Locked -> Expected Refused; the SIF is made only from a locked run
     ok 30 - T30: Given Ask for the SIF of a run that is Validated but not Locked -> Expected Refused; the SIF is made only from a locked run
       ---
-      duration_ms: 371.7621
+      duration_ms: 374.7279
       type: 'test'
       ...
     # Subtest: T31: Given Annual leave Monday to Friday with a public holiday on Wednesday -> Expected 4 days taken from the balance
     ok 31 - T31: Given Annual leave Monday to Friday with a public holiday on Wednesday -> Expected 4 days taken from the balance
       ---
-      duration_ms: 22.8604
+      duration_ms: 22.9608
       type: 'test'
       ...
     # Subtest: T32: Given Approved 5-day leave is cancelled -> Expected Balance goes back up by 5 days
     ok 32 - T32: Given Approved 5-day leave is cancelled -> Expected Balance goes back up by 5 days
       ---
-      duration_ms: 121.1499
+      duration_ms: 147.8431
       type: 'test'
       ...
     # Subtest: T33: Given Employee requests 2 OT hours in self-service; manager approves as normal OT -> Expected AED 52.08 in the next pay run inputs
     ok 33 - T33: Given Employee requests 2 OT hours in self-service; manager approves as normal OT -> Expected AED 52.08 in the next pay run inputs
       ---
-      duration_ms: 57.3987
+      duration_ms: 54.0767
       type: 'test'
       ...
     # Subtest: T34: Given Department manager has not confirmed the team's attendance at cut-off -> Expected Those days are held for next month; validation shows them
     ok 34 - T34: Given Department manager has not confirmed the team's attendance at cut-off -> Expected Those days are held for next month; validation shows them
       ---
-      duration_ms: 43.9709
+      duration_ms: 35.4094
       type: 'test'
       ...
     # Subtest: T35: Given Settlement with the laptop item not cleared -> Expected Settlement cannot be approved
     ok 35 - T35: Given Settlement with the laptop item not cleared -> Expected Settlement cannot be approved
       ---
-      duration_ms: 214.7088
+      duration_ms: 210.0525
       type: 'test'
       ...
 # [API Error]: Error: Your user account has been disabled. Please contact your company administrator.
@@ -261,19 +251,19 @@ TAP version 13
     # Subtest: T36: Given Settlement approved and the final working date has passed -> Expected Login refused; status Archived
     ok 36 - T36: Given Settlement approved and the final working date has passed -> Expected Login refused; status Archived
       ---
-      duration_ms: 320.2682
+      duration_ms: 340.6054
       type: 'test'
       ...
     # Subtest: T37: Given Salary adjustment entered but not approved -> Expected Not used by the pay run
     ok 37 - T37: Given Salary adjustment entered but not approved -> Expected Not used by the pay run
       ---
-      duration_ms: 347.0652
+      duration_ms: 320.1663
       type: 'test'
       ...
     1..37
 ok 1 - Spec Section 15: Acceptance Tests (T1–T37)
   ---
-  duration_ms: 19871.5577
+  duration_ms: 18888.7838
   type: 'suite'
   ...
 1..1
@@ -284,4 +274,4 @@ ok 1 - Spec Section 15: Acceptance Tests (T1–T37)
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 21353.99
+# duration_ms 20843.1755

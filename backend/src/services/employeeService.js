@@ -115,7 +115,33 @@ export class EmployeeService {
       where.company_visa_id = query.company_visa_id;
     }
     if (query.nationality) {
-      where.nationality = { equals: query.nationality, mode: 'insensitive' };
+      const natInput = query.nationality.trim().toUpperCase();
+      const codeMap = {
+        EMIRATI: 'ARE',
+        UAE: 'ARE',
+        'UNITED ARAB EMIRATES': 'ARE',
+        ARE: 'ARE',
+        BRITISH: 'GBR',
+        UK: 'GBR',
+        GBR: 'GBR',
+        INDIAN: 'IND',
+        INDIA: 'IND',
+        IND: 'IND',
+        PAKISTANI: 'PAK',
+        PAKISTAN: 'PAK',
+        PAK: 'PAK',
+        EGYPTIAN: 'EGY',
+        EGYPT: 'EGY',
+        EGY: 'EGY',
+        FILIPINO: 'PHL',
+        PHILIPPINES: 'PHL',
+        PHL: 'PHL',
+        JORDANIAN: 'JOR',
+        JORDAN: 'JOR',
+        JOR: 'JOR',
+      };
+      const isoCode = codeMap[natInput] || query.nationality;
+      where.nationality = { in: [query.nationality, isoCode], mode: 'insensitive' };
     }
     if (query.department_id) {
       where.contracts = {

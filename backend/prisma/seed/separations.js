@@ -68,67 +68,10 @@ export async function seedSeparations(prisma, {
   }
 
   // =========================================================================
-  // 2. Approved Settlement: Omar Al-Hashimi (7.00 years, Gratuity AED 32,547.95)
+  // 2. Approved Settlement: Omar Al-Hashimi (EMP-DXB-042, 7.00 years, Gratuity AED 32,547.95)
   // =========================================================================
-  console.log('Seeding approved final settlement for Omar Al-Hashimi...');
-  const baseEmp = seededEmployees[0];
-  const omarIban = generateValidUaeIban('033', 1000000099);
-
-  const omar = await prisma.employees.create({
-    data: {
-      company_id: company1.id,
-      company_visa_id: baseEmp.company_visa_id,
-      branch_id: baseEmp.branch_id,
-      department_id: baseEmp.department_id,
-      employee_code: 'EMP-DXB-043',
-      name: 'Omar Al-Hashimi',
-      arabic_name: 'عمر الهاشمي',
-      gender: 'Male',
-      nationality: 'ARE',
-      residency_type: 'National',
-      joining_date: new Date('2019-11-03'), // Exactly 2,555 calendar days to 2026-10-31 = 7.00 years
-      status: 'Active',
-    },
-  });
-
-  // Omar contract: Basic 6,000, Housing 3,000, Transport 1,000 (Gross 10,000)
-  const baseEmpContract = await prisma.contracts.findFirst({
-    where: { company_id: company1.id, status: 'Approved' },
-  });
-
-  const omarContract = await prisma.contracts.create({
-    data: {
-      company_id: company1.id,
-      employee_id: omar.id,
-      contract_type: 'Unlimited',
-      start_date: new Date('2019-11-03'),
-      effective_date: new Date('2019-11-03'),
-      job_id: baseEmpContract.job_id,
-      department_id: baseEmpContract.department_id,
-      shift_id: shift1.id,
-      attendance_policy_id: policy1.id,
-      structure_id: salaryStructure1.id,
-      basic: 6000.0,
-      housing: 3000.0,
-      transport: 1000.0,
-      gross: 10000.0,
-      status: 'Approved',
-    },
-  });
-
-  // Bank account
-  await prisma.bank_accounts.create({
-    data: {
-      company_id: company1.id,
-      employee_id: omar.id,
-      bank_name: 'Emirates NBD',
-      iban: omarIban,
-      routing_code: 'ENBD001',
-      salary_split_pct: 100.0,
-      is_primary: true,
-      is_active: true,
-    },
-  });
+  console.log('Seeding approved final settlement for Omar Al-Hashimi (EMP-DXB-042)...');
+  const omar = seededEmployees[41]; // EMP-DXB-042
 
   // Create separation for Omar
   const omarSep = await separationService.createSeparation(
@@ -174,6 +117,14 @@ export async function seedSeparations(prisma, {
 
   await settlementService.validateSettlement(company1.id, prepared.id, userHR1.id);
   const approvedSettlement = await settlementService.approveSettlement(company1.id, prepared.id, userGM1.id);
+
+  // Update employee record to Separated
+  await prisma.employees.update({
+    where: { id: omar.id },
+    data: {
+      status: 'Separated',
+    },
+  });
 
   console.log(`Omar settlement approved: Gratuity AED ${approvedSettlement.gratuity}, Total Net AED ${approvedSettlement.net_settlement}`);
   return { sepInProgress, omarSep, approvedSettlement };
