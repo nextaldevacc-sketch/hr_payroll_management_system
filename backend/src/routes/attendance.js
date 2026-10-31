@@ -1,9 +1,8 @@
 import { Router } from 'express';
-import multer from 'multer';
+import { safeFileUpload as upload } from '../middleware/fileUpload.js';
 import { authenticate } from '../middleware/auth.js';
 import attendanceController from '../controllers/attendanceController.js';
 
-const upload = multer({ limits: { fileSize: 25 * 1024 * 1024 } }); // 25 MB max
 const router = Router();
 router.use(authenticate);
 

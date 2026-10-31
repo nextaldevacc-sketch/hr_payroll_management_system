@@ -104,4 +104,33 @@ EDR,PersonID,RoutingCode,IBAN,StartDate,EndDate,DaysInPeriod,FixedIncome,Variabl
 > [!NOTE]
 > Mathematical Integrity Guard: For every employee record, `Fixed Income + Variable Income` strictly equals `Payslip Net Pay`. The SCR `Total Salaries` strictly equals `Σ(Fixed Income + Variable Income)` across all EDR records. Deductions (absence, loans, pension) are applied before netting into the transferred salary amount.
 
+---
+
+## 5. Additional Statutory & Operational Policy Decisions
+
+### 5.1 Rest-Day and Public Holiday Work Compensation
+- **Current System Default**: Paid overtime (150% for rest days; 150% + standard day or substitute day per UAE Labour Law Article 28).
+- **Question for Client**: Does company policy offer a compensatory substitute rest day (in-lieu) by default, or is direct cash overtime paid at 150% of the basic wage?
+
+### 5.2 Leave Approvals & Delegation of Authority
+- **Current System Default**: All leave requests <= 5 days require Department Manager approval. Requests > 5 days require Line Manager + General Manager approval. Maternity, Parental, and Hajj leave require HR Manager validation.
+- **Question for Client**: Does your delegation matrix require General Manager approval on all leaves above a certain threshold (e.g. 5, 10, or 15 days), or should emergency leaves follow an expedited path?
+
+### 5.3 Annual Leave Carry-Over Limits & Expiry
+- **Current System Default**: Up to 5 days of unused annual leave can be carried over into the next calendar year, expiring on March 31st if untaken. Cash encashment occurs only upon final settlement (Article 29).
+- **Question for Client**: What is your company's policy on carry-over limit (e.g. 0 days, 5 days, or 10 days) and expiry deadline?
+
+### 5.4 Training-Cost & Visa Expense Recovery on Resignation
+- **Current System Default**: Deductions for employer-borne visa and onboarding fees are strictly prohibited per MOHRE regulations. Legitimate, documented non-mandatory training costs with signed amortized recovery agreements can be deducted up to legal ceilings (capped at 1/6 of monthly wage or final settlement surplus).
+- **Question for Client**: Do you have signed clawback agreements for specialized certifications or external training that need to be captured during offboarding?
+
+### 5.5 Corporate Banking Partners & WPS Channels
+- **Current System Default**: Standard UAE Central Bank / MOHRE 2009/2019 WPS specification compatible with Emirates NBD, FAB, ADCB, Mashreq, and major exchange houses (Al Ansari, LuLu).
+- **Question for Client**: Which primary corporate banking or exchange house routing code (e.g. `023000000` for ENBD, `033000000` for FAB) will receive the generated `.SIF` files for monthly upload?
+
+### 5.6 Accounting Integration & ERP Target
+- **Current System Default**: Standard double-entry General Ledger CSV journal export grouped by cost centre (`CC-OPS`, `CC-ENG`, `CC-SALES`, `CC-LOG`, `CC-HR`, `CC-FIN`) with balancing Debits (Gross Salary, Allowances, Employer Pension) and Credits (Net Salaries Payable, Employee Pension Payable, Loan Recoveries).
+- **Question for Client**: Is the standard CSV journal format sufficient for initial go-live, or is a direct API integration planned for SAP, Oracle, Microsoft Dynamics 365, or QuickBooks?
+
+
 

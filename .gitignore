@@ -46,3 +46,7 @@ storage/
 # Document Storage (Spec Rule C)
 apps/api/storage/documents/*
 !apps/api/storage/.gitkeep
+
+# Database backups
+backups/*.sql
+!backups/.gitkeep

@@ -1,119 +1,140 @@
-# Nextal HR & Payroll Platform (UAE Multi-Company)
+# Nextal HR & Payroll Platform (UAE Enterprise Edition)
 
 Enterprise Human Resources and WPS Payroll Management Software engineered for UAE regulatory compliance (MOHRE, Federal Decree-Law No. 33 of 2021, and Central Bank SIF Wages Protection System).
 
 ---
 
-## 1. Demo Credentials (Section 5.2 & Phase 2 Delivery)
+## 1. Quick Start & Verification (< 15 Minutes)
 
-All demo accounts below are seeded in **Gulf Tech Logistics LLC** (Primary Demo Company) with active credentials for testing and evaluation.
+### Prerequisites
+- **Node.js**: v20.x or later (`node -v`)
+- **Docker**: For PostgreSQL 16 (`docker compose up -d postgres`)
+- **Git**: Clone or navigate to workspace
+
+### Step 1: Start PostgreSQL
+```bash
+docker compose up -d postgres
+```
+
+### Step 2: Install Dependencies & Run Database Migrations
+```bash
+npm install
+npx prisma migrate reset --force --schema=backend/prisma/schema.prisma
+```
+*(This applies all migrations and populates the clean demo database `nextal_hr_payroll` with Gulf Tech Logistics LLC: 42 employees, 2 separations, and realistic October/September payroll).*
+
+### Step 3: Run the Full Test Suite
+The automated test runner executes all unit, integration, and acceptance tests against an isolated test database (`nextal_hr_test`), leaving the demo database untouched:
+```bash
+npm test
+```
+**Verification Checks**:
+- **Shared Package**: 44 passed (UAE IBAN mod-97, Article 51 gratuity, WPS validators)
+- **Backend Package**: 215 passed (58 suites across auth, permissions, attendance, payroll, offboarding, compliance, audit)
+- **Acceptance Tests**: 37 passed (100% of Spec Section 15 acceptance criteria T1–T37)
+- **Frontend Package**: Arabic i18n & token assertions passed
+
+### Step 4: Start Applications
+```bash
+# Terminal 1: Backend API (Port 5000)
+npm run dev --workspace=backend
+
+# Terminal 2: Frontend Web App (Port 3000)
+npm run dev --workspace=frontend
+```
+- Web Application: `http://localhost:3000`
+- API Documentation (Swagger): `http://localhost:5000/api-docs`
+- Healthcheck Endpoint: `http://localhost:5000/health`
+
+---
+
+## 2. Demo User Credentials
+
+All demo accounts belong to **Gulf Technologies LLC** (Primary Demo Company) with active credentials for immediate role evaluation.
 
 > [!NOTE]
 > **Demo Password for all accounts below:** `Nextal@2026!`
 
-| Role (Section 5.2) | Person Name | Email | Sees Salary | Permissions & Primary Responsibilities |
+| Role | Name | Email | Sees Salary | Permissions & Primary Scope |
 |---|---|---|:---:|---|
-| **Platform Admin** | Nextal Platform Admin | `platform@nextal.ae` | Yes* | Manages companies, creates client instances with UAE defaults, suspends/reactivates (FR-PL1–2). *No tenant data access without a time-limited support grant (FR-PL3). |
-| **Company Admin** | Tariq Al-Hashemi | `admin@gulftech.ae` | **Yes** | Full company setup: users & roles, approval flows, shifts, company visas, branches, departments, salary rules. |
-| **HR Manager** | Maryam Al-Nuaimi | `hr.mgr@gulftech.ae` | **Yes** | Verifies new employees, edits HR records, approves salary adjustments & leave, validates pay runs & settlements. |
-| **HR Officer** | Saeed Al-Ketbi | `hr.officer@gulftech.ae` | **No** | Maintains employee documents & attendance, 2nd leave approval. **Salary numbers strictly masked & absent from API (Section 5.3).** |
-| **Payroll Officer** | Zaid Al-Marzooqi | `payroll@gulftech.ae` | **Yes** | Sets cut-offs, prepares pay runs, calculates settlements, SIF file export, edits Section 8.1 salary rules. |
-| **Dept Manager** | Fatima Al-Zaabi | `dept.mgr@gulftech.ae` | **No** | Oversees team attendance, approves team overtime, 1st leave approval. **Salary numbers hidden.** Scoped to Engineering department. |
-| **General Manager** | Rashid Al-Falasi | `gm@gulftech.ae` | **Yes** | Final executive approval on pay runs, final settlements, and flagged leave requests. |
-| **Finance** | Hassan Al-Balooshi | `finance@gulftech.ae` | **Yes** | Executes payments, marks pay runs as Paid, clearance of finance items, accounting ledger exports. |
-| **Employee** | Ahmed Al-Mansoori | `employee@gulftech.ae` | **No** | Self-service only (`/me/*`): personal profile, own payslips, attendance, leave balance, leave & OT submissions. |
+| **Platform Admin** | Super Administrator | `superadmin@nextal.ae` | Yes* | Multi-tenant management, company provisioning, global security. *Tenant data isolated without support grant. |
+| **Company Admin** | Tariq Al-Hashemi | `admin@gulftech.ae` | **Yes** | Full company setup: users & roles, departments, shifts, company visas, salary rules. |
+| **HR Manager** | Maryam Al-Nuaimi | `hr.mgr@gulftech.ae` | **Yes** | Full HR lifecycle, contracts, attendance sign-off, leave approvals, pay run validation. |
+| **HR Officer** | Saeed Al-Ketbi | `hr.officer@gulftech.ae` | **No** | Employee documents & attendance. **Salary fields strictly masked from API & UI.** |
+| **Payroll Officer** | Zaid Al-Marzooqi | `payroll@gulftech.ae` | **Yes** | Pay run calculation, variable inputs, variance documentation, PDF payslip generation. |
+| **Dept Manager** | Fatima Al-Zaabi | `dept.mgr@gulftech.ae` | **No** | Engineering team attendance, overtime review, 1st leave approval. **Salary numbers hidden.** |
+| **General Manager** | Rashid Al-Falasi | `gm@gulftech.ae` | **Yes** | Final executive approval on pay runs, final settlements, and extended leaves (> 5 days). |
+| **Finance** | Hassan Al-Balooshi | `finance@gulftech.ae` | **Yes** | WPS SIF export, pay run payment (`Mark as Paid`), accounting GL journal export, settlement disbursement. |
+| **Employee** | Ahmed Al-Mansoori | `employee@gulftech.ae` | **No** | Self-service (`/me/*`): personal profile, bilingual payslips, punch records, leave submission. |
 
 ---
 
-## 2. Phase 2: Login & Roles Architecture (Sections 5.1–5.4, FR-PL1–3)
-
-### A. Authentication & Security
-- **8-Hour Sessions**: Authenticated sessions issue an `httpOnly`, `SameSite=Lax` cookie `nextal_token` valid for 8 hours.
-- **Account Lockout**: 5 consecutive failed login attempts trigger an automatic **15-minute account lockout** (`status: Locked`, HTTP 423 Locked).
-- **Password Security**: Passwords are cryptographically salted and hashed with `bcrypt`.
-- **Company Suspension Guard (FR-PL2)**: Users belonging to a suspended company cannot authenticate.
-
-### B. Permissions Matrix (Section 5.3) & Salary Masking
-- Enforced at both the **API middleware level** and the **UI level**:
-  - `requirePermission(area, action)` blocks unauthorized API operations with HTTP 403 Forbidden.
-  - `salaryMaskMiddleware` inspects response payloads and recursively strips sensitive salary fields (`basic`, `housing`, `transport`, `other_allowances`, `gross`, `net`) for any user where `sees_salary === false`.
-  - In the UI, navigation menu items and dashboard cards dynamically hide or redact confidential figures.
-
-### C. Approval Engine & Self-Approval Prevention
-- Powered by `approval_flows`, `approval_flow_steps`, `approval_requests`, and `approval_actions`.
-- **Strict Spec Rule**: **"Nobody approves their own request"**. If a requester attempts to approve their own request, the system blocks the action with HTTP 403 (`SELF_APPROVAL_FORBIDDEN`).
-
-### D. Platform Admin Support Access Isolation (FR-PL3)
-- Platform administrators cannot access client employee or salary records unless an active, unexpired, and unrevoked record exists in `support_access_grants`.
-
----
-
-## 3. Project Structure
+## 3. Platform Architecture & Invariants
 
 ```
-hr-payroll-management/
-├── frontend/                    # Next.js 14 App Router Frontend
-│   ├── public/                  # Static assets and fonts
-│   ├── src/
-│   │   ├── app/                 # Next.js routes only (thin pages that compose features)
-│   │   ├── components/
-│   │   │   ├── primitives/      # GlassCard, BentoGrid, BentoTile, DataTable, Modal, Drawer...
-│   │   │   ├── layout/          # AppShell, GlassSidebar, GlassTopBar, ModulePlaceholder
-│   │   │   └── features/        # dashboard/, auth/, platform/, settings/, employees/
-│   │   ├── services/            # API clients per module (apiClient, authApi, settingsApi, employeesApi)
-│   │   ├── hooks/               # React hooks & queries
-│   │   ├── context/             # AuthContext, LanguageContext (EN / AR RTL), Providers
-│   │   ├── i18n/                # en.json, ar.json
-│   │   ├── lib/                 # formatters, constants, client-only utilities
-│   │   └── styles/              # globals.css (design system CSS tokens)
-│   └── test/                    # Production bundle protection & Playwright E2E persistence
-├── backend/                     # Node.js Express REST API
-│   ├── prisma/
-│   │   ├── schema.prisma        # 43-table PostgreSQL schema
-│   │   ├── migrations/          # Schema migrations & database triggers
-│   │   └── seed/                # Modular seeds (organisation, settings, employees, attendance, payroll)
-│   ├── src/
-│   │   ├── config/              # Zod environment loading & app constants
-│   │   ├── routes/              # Thin Express routers
-│   │   ├── controllers/         # HTTP request/response handlers
-│   │   ├── services/            # Core business logic services
-│   │   ├── validators/          # Zod validation schemas
-│   │   ├── serializers/         # Role-aware output & salary/bank masking
-│   │   ├── middleware/          # auth, permissions, companyContext, audit, errorHandler
-│   │   ├── jobs/                # Nightly document expiry & monthly accruals
-│   │   ├── lib/                 # prisma client, storage, mailer, pdf, excel
-│   │   └── server.js            # Express server initialization
-│   ├── storage/                 # Uploaded files (.gitkeep)
-│   └── test/                    # Integration & unit test suites (105 tests)
-├── shared/                      # Statutory formulas, UAE IBAN, employee utils, constants
-└── docs/                        # Specifications, ARCHITECTURE.md, TESTING.md, screenshots
+                               ┌─────────────────────────────────┐
+                               │   Next.js 14 Web Frontend       │
+                               │   (Tailwind, Glass UI, RTL/LTR) │
+                               └────────────────┬────────────────┘
+                                                │ REST / Cookies
+                               ┌────────────────▼────────────────┐
+                               │   Node.js / Express Backend     │
+                               │  (Helmet, RateLimit, RBAC, Zod) │
+                               └────────┬──────────────┬─────────┘
+                                        │              │
+                   ┌────────────────────┴───┐      ┌───┴────────────────┐
+                   │  PostgreSQL 16 Engine  │      │  Storage & Assets  │
+                   │  (43 Prisma Tables,    │      │  (Bilingual PDFs,  │
+                   │   Immutable Triggers)  │      │   WPS SIF, Excel)  │
+                   └────────────────────────┘      └────────────────────┘
 ```
+
+### Architectural Guarantees:
+1. **Zero Database Drift**: Schema changes occur exclusively through tracked Prisma migrations. Applied migration files are immutable.
+2. **Database-Enforced Status Machine**: Pay runs transition strictly along `Draft -> Calculated -> Validated -> Approved -> Locked -> Paid`. Database triggers prevent backwards movement or tampering with locked payslips.
+3. **Multi-Tenancy Isolation**: All database queries are filtered by `company_id`. Cross-tenant data leaks are mathematically prevented.
+4. **Isolated Test Database**: Automated tests run strictly against `DATABASE_URL_TEST` (`nextal_hr_test`), ensuring the demo database (`nextal_hr_payroll`) maintains 100% clean data integrity.
+5. **No-Outlines Glass Design System**: UI strictly follows modern design tokens (`InsetBox`, background glass fills, gold/amber financial accents, zero harsh 1px white borders in dark mode).
 
 ---
 
-## 4. Running Tests & Verifying
+## 4. Documentation Index
 
-To run the complete automated test suite across all workspaces:
+- [Comprehensive Product Specification](docs/spec.md)
+- [System Architecture & Invariants](docs/ARCHITECTURE.md)
+- [Testing Guide & Acceptance Verification](docs/TESTING.md)
+- [Cloud Deployment Guide (AWS & Azure UAE Sovereign Regions)](docs/DEPLOYMENT.md)
+- [Security Review & RBAC Permissions Matrix](docs/reports/security-review.md)
+- [Performance & Scalability Benchmark Report](docs/reports/performance.md)
+- [Acceptance Test Suite Report (T1–T37)](docs/reports/acceptance-table.md)
+- [Role-Based User Guides (8 Roles)](docs/guides/)
+- [Open Questions & Client Policy Confirmations](docs/OPEN-QUESTIONS.md)
+- [Known Limitations & Architecture Notes](KNOWN-LIMITATIONS.md)
+- [Changelog & Version Progression](CHANGELOG.md)
+
+---
+
+## 5. Automated Backup & Disaster Recovery
 
 ```bash
-npm test
-```
+# Automated database backup (30-day retention pruning)
+bash scripts/backup-db.sh
+# On Windows PowerShell:
+.\scripts\backup-db.ps1
 
-Or run individual workspace test suites:
-```bash
-npm test --workspace=shared     # 43 unit tests
-npm test --workspace=backend    # 105 integration & unit tests
-npm test --workspace=frontend   # 3 production bundle & Playwright E2E tests
+# Disaster recovery restoration
+bash scripts/restore-db.sh backups/db_backup_latest.sql nextal_hr_payroll
+# On Windows PowerShell:
+.\scripts\restore-db.ps1 backups/db_backup_latest.sql nextal_hr_payroll
 ```
 
 ---
 
-## 5. Development Server Commands
+## 6. Production Deployment
 
+Production orchestration is configured with Docker Compose, resource caps, and security middleware:
 ```bash
-# Start backend API (Port 5000)
-npm run dev --workspace=backend
-
-# Start frontend Web App (Port 3000)
-npm run dev --workspace=frontend
+# Build and launch production stack
+docker compose -f docker-compose.prod.yml up -d --build
 ```
+Refer to [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full instructions on setting up AWS ECS/RDS in `me-central-1` or Azure App Service/PostgreSQL in `UAE North`.

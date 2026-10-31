@@ -91,8 +91,8 @@ app.use(
   })
 );
 
-// 8. Health Check at /api/v1/health
-app.get('/api/v1/health', async (req, res, next) => {
+// 8. Health Check at /api/v1/health and /health
+app.get(['/health', '/api/v1/health'], async (req, res, next) => {
   try {
     // Ping PostgreSQL through raw query
     await prisma.$base().$queryRaw`SELECT 1`;
@@ -144,35 +144,6 @@ app.use('/api/v1/compliance', complianceRoutes);
 app.use('/api/v1/reports', reportsRoutes);
 app.use('/api/v1/audit-logs', auditRoutes);
 app.use('/api/v1/audit', auditRoutes);
-
-// 10. Audit history route
-app.get('/api/v1/audit/logs', async (req, res, next) => {
-  try {
-    if (!req.companyId && !req.isPlatformAdmin) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'X-Company-Id header or company context required',
-      });
-    }
-
-    const { table_name, record_id, limit, offset } = req.query;
-    const history = await auditService.getHistory({
-      companyId: req.companyId,
-      tableName: table_name,
-      recordId: record_id,
-      limit: limit ? parseInt(limit, 10) : 50,
-      offset: offset ? parseInt(offset, 10) : 0,
-    });
-
-    res.json({
-      status: 'success',
-      count: history.length,
-      data: history,
-    });
-  } catch (err) {
-    next(err);
-  }
-});
 
 // 11. Centralized Error Handler
 app.use(errorHandler);

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import multer from 'multer';
+import { safeFileUpload as upload } from '../middleware/fileUpload.js';
 import { authenticate } from '../middleware/auth.js';
 import { requirePermission } from '../middleware/permissions.js';
 import { salaryMaskMiddleware } from '../middleware/salaryMask.js';
@@ -12,10 +12,6 @@ import {
 import employeeController from '../controllers/employeeController.js';
 
 const router = Router();
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit
-});
 
 router.use(authenticate);
 
