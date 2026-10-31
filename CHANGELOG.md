@@ -154,3 +154,4 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - **Core Platform Architecture**:
   - Node.js / Express backend with modular controllers, services, and route middleware.
   - Next.js frontend with React Server and Client Components.
+

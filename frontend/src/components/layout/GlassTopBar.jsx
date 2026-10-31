@@ -34,6 +34,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { language, toggleLanguage, t, isRTL } = useLanguage();
   const { user, logout } = useAuth();
+  const isPlatformAdmin = Boolean(user?.is_platform_admin);
   const [mounted, setMounted] = useState(false);
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -104,60 +105,76 @@ export function GlassTopBar({ onToggleMobileNav }) {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Company Switcher */}
-        <div className="relative">
-          <button
-            onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
-            className="topbar-field flex items-center gap-2.5 px-3 py-1.5 rounded-control hover:bg-black/5 dark:hover:bg-inset-hover transition-colors text-start group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
+        {/* Company Switcher or Platform Admin Badge */}
+        {isPlatformAdmin ? (
+          <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-control bg-amber-500/10 border border-amber-500/20 text-amber-500">
             <IconWell size="sm" shape="square" color="primary">
               <Building2 className="w-3.5 h-3.5" />
             </IconWell>
             <div className="hidden sm:block">
-              <span className="text-xs font-bold text-text dark:gold-heading block leading-tight">
-                {selectedCompany.name}
+              <span className="text-xs font-bold block leading-tight">
+                {language === 'ar' ? 'إدارة المنصة الموحدة' : 'Platform Administration'}
               </span>
               <span className="text-[10px] text-text-muted block leading-tight">
-                {selectedCompany.visa}
+                {language === 'ar' ? 'المشغل العام للمنظومة' : 'Multi-Tenant Operator'}
               </span>
             </div>
-            <ChevronDown className="w-3.5 h-3.5 text-text-muted group-hover:text-text transition-transform duration-200 ms-1" />
-          </button>
-
-          {isCompanyDropdownOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-30"
-                onClick={() => setIsCompanyDropdownOpen(false)}
-              />
-              <div className="glass-panel rounded-control absolute top-full mt-2 start-0 w-72 p-2 z-40 shadow-xl border border-border dark:bg-surface-raised">
-                <span className="text-[10px] uppercase font-bold text-text-muted px-2 py-1 block">
-                  Select Company Visa / Entity
+          </div>
+        ) : (
+          <div className="relative">
+            <button
+              onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
+              className="topbar-field flex items-center gap-2.5 px-3 py-1.5 rounded-control hover:bg-black/5 dark:hover:bg-inset-hover transition-colors text-start group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <IconWell size="sm" shape="square" color="primary">
+                <Building2 className="w-3.5 h-3.5" />
+              </IconWell>
+              <div className="hidden sm:block">
+                <span className="text-xs font-bold text-text dark:gold-heading block leading-tight">
+                  {selectedCompany.name}
                 </span>
-                <div className="space-y-1 mt-1">
-                  {companies.map((c) => (
-                    <button
-                      key={c.name}
-                      onClick={() => {
-                        setSelectedCompany(c);
-                        setIsCompanyDropdownOpen(false);
-                      }}
-                      className="w-full text-start px-2.5 py-2 rounded-lg text-xs hover:bg-primary-wash/50 dark:hover:bg-inset-hover transition-colors flex items-center justify-between"
-                    >
-                      <div>
-                        <p className="font-semibold text-text">{c.name}</p>
-                        <p className="text-[10px] text-text-muted">{c.visa}</p>
-                      </div>
-                      {selectedCompany.name === c.name && (
-                        <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                      )}
-                    </button>
-                  ))}
-                </div>
+                <span className="text-[10px] text-text-muted block leading-tight">
+                  {selectedCompany.visa}
+                </span>
               </div>
-            </>
-          )}
-        </div>
+              <ChevronDown className="w-3.5 h-3.5 text-text-muted group-hover:text-text transition-transform duration-200 ms-1" />
+            </button>
+
+            {isCompanyDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setIsCompanyDropdownOpen(false)}
+                />
+                <div className="glass-panel rounded-control absolute top-full mt-2 start-0 w-72 p-2 z-40 shadow-xl border border-border dark:bg-surface-raised">
+                  <span className="text-[10px] uppercase font-bold text-text-muted px-2 py-1 block">
+                    Select Company Visa / Entity
+                  </span>
+                  <div className="space-y-1 mt-1">
+                    {companies.map((c) => (
+                      <button
+                        key={c.name}
+                        onClick={() => {
+                          setSelectedCompany(c);
+                          setIsCompanyDropdownOpen(false);
+                        }}
+                        className="w-full text-start px-2.5 py-2 rounded-lg text-xs hover:bg-primary-wash/50 dark:hover:bg-inset-hover transition-colors flex items-center justify-between"
+                      >
+                        <div>
+                          <p className="font-semibold text-text">{c.name}</p>
+                          <p className="text-[10px] text-text-muted">{c.visa}</p>
+                        </div>
+                        {selectedCompany.name === c.name && (
+                          <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Middle: Global Search */}

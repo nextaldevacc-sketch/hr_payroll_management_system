@@ -27,3 +27,4 @@ $cutoffDate = (Get-Date).AddDays(-$RetentionDays)
 Get-ChildItem -Path $BackupDir -Filter "nextal_backup_*.sql*" | Where-Object { $_.LastWriteTime -lt $cutoffDate } | Remove-Item -Force
 
 Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] Pruned backups older than $RetentionDays days. Backup cycle complete."
+

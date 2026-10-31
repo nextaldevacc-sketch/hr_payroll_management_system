@@ -165,26 +165,81 @@ async function runFlowB(browser) {
   await page.waitForTimeout(2000);
   await page.screenshot({ path: path.join(shotsDir, 'flow-b-2-payrun-list.png') });
 
-  // Open first pay run detail if available
-  const runLink = await page.$('a[href^="/payroll/"]');
+  // Open first pay run detail
+  const runLink = await page.$('a[href^="/payroll/"]:not([href*="adjustments"])');
   if (runLink) {
     await runLink.click();
     await page.waitForTimeout(2000);
+    // Explicitly click Variances tab so flow-b-3-payrun-detail-variance.png shows the Variances tab
+    const varTab = await page.$('button:has-text("Variances")');
+    if (varTab) {
+      await varTab.click();
+      await page.waitForTimeout(1500);
+    }
     await page.screenshot({ path: path.join(shotsDir, 'flow-b-3-payrun-detail-variance.png') });
   }
 
-  // 3. Finance checks WPS & Accounting export
-  console.log('Flow B.3: Finance reviews WPS & Reports');
+  // 3. HR Manager validates the pay run
+  console.log('Flow B.3: HR Manager validates pay run');
+  await login(page, 'hr.mgr@gulftech.ae');
+  await safeGoto(page, `http://localhost:${WEB_PORT}/payroll`);
+  await page.waitForTimeout(1500);
+  const hrRunLink = await page.$('a[href^="/payroll/"]:not([href*="adjustments"])');
+  if (hrRunLink) {
+    await hrRunLink.click();
+    await page.waitForTimeout(2000);
+    const validateBtn = await page.$('button:has-text("Validate Run")');
+    if (validateBtn) {
+      await validateBtn.click();
+      await page.waitForTimeout(2500);
+    }
+  }
+
+  // 4. GM approves and locks the pay run
+  console.log('Flow B.4: GM locks pay run');
+  await login(page, 'gm@gulftech.ae');
+  await safeGoto(page, `http://localhost:${WEB_PORT}/payroll`);
+  await page.waitForTimeout(1500);
+  const gmRunLink = await page.$('a[href^="/payroll/"]:not([href*="adjustments"])');
+  if (gmRunLink) {
+    await gmRunLink.click();
+    await page.waitForTimeout(2000);
+    const lockBtn = await page.$('button:has-text("Lock Pay Run")');
+    if (lockBtn) {
+      await lockBtn.click();
+      await page.waitForTimeout(2500);
+    }
+  }
+
+  // 5. Finance marks pay run as Paid and reviews reports
+  console.log('Flow B.5: Finance marks Paid and reviews reports');
   await login(page, 'finance@gulftech.ae');
+  await safeGoto(page, `http://localhost:${WEB_PORT}/payroll`);
+  await page.waitForTimeout(1500);
+  const finRunLink = await page.$('a[href^="/payroll/"]:not([href*="adjustments"])');
+  if (finRunLink) {
+    await finRunLink.click();
+    await page.waitForTimeout(2000);
+    const payBtn = await page.$('button:has-text("Mark as Paid")');
+    if (payBtn) {
+      await payBtn.click();
+      await page.waitForTimeout(2500);
+    }
+  }
   await safeGoto(page, `http://localhost:${WEB_PORT}/reports`);
   await page.waitForTimeout(2000);
   await page.screenshot({ path: path.join(shotsDir, 'flow-b-4-finance-reports.png') });
 
-  // 4. Employee views payslip in Self-Service
-  console.log('Flow B.4: Employee views payslips in ESS');
+  // 6. Employee views October payslip in Self-Service
+  console.log('Flow B.6: Employee views October payslip in ESS');
   await login(page, 'employee@gulftech.ae');
   await safeGoto(page, `http://localhost:${WEB_PORT}/me/payslips`);
   await page.waitForTimeout(2000);
+  const breakdownBtn = await page.$('button:has-text("Breakdown"), button:has-text("Details"), button:has-text("View")');
+  if (breakdownBtn) {
+    await breakdownBtn.click();
+    await page.waitForTimeout(1500);
+  }
   await page.screenshot({ path: path.join(shotsDir, 'flow-b-5-employee-payslip.png') });
 
   await context.close();
@@ -220,14 +275,29 @@ async function runFlowC(browser) {
   if (omarRow) {
     await omarRow.click();
     await page.waitForTimeout(2000);
+    const setTab = await page.$('button:has-text("Settlement"), button:has-text("تسوية")');
+    if (setTab) {
+      await setTab.click();
+      await page.waitForTimeout(1500);
+    }
   }
   await page.screenshot({ path: path.join(shotsDir, 'flow-c-2-clearance-and-settlement.png') });
 
   // 3. Finance disbursement view
-  console.log('Flow C.2: Finance logs in to review disbursement');
+  console.log('Flow C.3: Finance logs in to review disbursement');
   await login(page, 'finance@gulftech.ae');
   await safeGoto(page, `http://localhost:${WEB_PORT}/offboarding`);
   await page.waitForTimeout(2000);
+  const finOmarRow = await page.$('text=Omar Al-Hashimi');
+  if (finOmarRow) {
+    await finOmarRow.click();
+    await page.waitForTimeout(1500);
+    const finSetTab = await page.$('button:has-text("Settlement"), button:has-text("تسوية")');
+    if (finSetTab) {
+      await finSetTab.click();
+      await page.waitForTimeout(1500);
+    }
+  }
   await page.screenshot({ path: path.join(shotsDir, 'flow-c-3-finance-disbursement.png') });
 
   await context.close();

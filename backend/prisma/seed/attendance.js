@@ -163,8 +163,11 @@ export async function seedAttendance(prisma, {
     25, 26, 27, 28, 29,
   ]; // Exactly 21 UAE working days
 
-  const regularEmployees = seededEmployees.slice(0, 39); // 39 regular employees (not Oct joiners 40, 41, 42)
-  const totalExpectedPunches = (regularEmployees.length * octWorkingDays.length - 2) * 2; // Emp 8 & 9 absent on Oct 22
+  const regularEmployees = seededEmployees.filter(
+    (e) => (e.employee_code <= 'EMP-DXB-039' || e.employee_code === 'EMP-DXB-043') && e.status !== 'Separated'
+  );
+  // Absences: Emp 8 and Emp 9 on Oct 22 (1 day each = 2), Ahmed (EMP-DXB-043) on Oct 21 & 22 (2 days)
+  const totalExpectedPunches = (regularEmployees.length * octWorkingDays.length - 4) * 2;
 
   const bioImport = await prisma.biometric_imports.create({
     data: {
@@ -190,6 +193,26 @@ export async function seedAttendance(prisma, {
 
       // Emp 8 and Emp 9 on Oct 22: Unapproved Absences (HR Confirmed)
       if ((e === 8 || e === 9) && d === 22) {
+        attendanceBatch.push({
+          company_id: company1.id,
+          employee_id: emp.id,
+          work_date: workDate,
+          shift_id: shift1.id,
+          check_in: null,
+          check_out: null,
+          worked_hours: 0.00,
+          break_deducted: 0.00,
+          net_hours: 0.00,
+          late_minutes: 0,
+          early_out_minutes: 0,
+          day_type: 'Absence',
+          review_status: 'HRConfirmed',
+        });
+        continue;
+      }
+
+      // Ahmed (EMP-DXB-043) on Oct 21 and Oct 22: Unapproved Absences (HR Confirmed)
+      if (emp.employee_code === 'EMP-DXB-043' && (d === 21 || d === 22)) {
         attendanceBatch.push({
           company_id: company1.id,
           employee_id: emp.id,
@@ -313,6 +336,24 @@ export async function seedAttendance(prisma, {
       status: 'Approved',
     },
   });
+
+  // Spec Example: Ahmed Al-Mansoori (EMP-DXB-043) 3h approved normal OT on Oct 06
+  const ahmedEmp = seededEmployees.find((e) => e.employee_code === 'EMP-DXB-043');
+  if (ahmedEmp) {
+    await prisma.overtime_requests.create({
+      data: {
+        company_id: company1.id,
+        employee_id: ahmedEmp.id,
+        work_date: new Date('2026-10-06'),
+        hours: 3.00,
+        source: 'Attendance',
+        ot_type: 'Normal',
+        rate: 1.2500,
+        compensation: 'Pay',
+        status: 'Approved',
+      },
+    });
+  }
 
   // Sample Leave Requests
   console.log('Seeding sample leave requests...');

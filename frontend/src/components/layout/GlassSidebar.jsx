@@ -246,16 +246,18 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
           )}
 
           {/* Self-Service Section */}
-          <div className="pt-3 mt-3 border-t border-border/50">
-            <div className="px-3 pb-1 hidden xl:block">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted/70">
-                {t('menu.selfService')}
-              </span>
+          {!isPlatformAdmin && (
+            <div className="pt-3 mt-3 border-t border-border/50">
+              <div className="px-3 pb-1 hidden xl:block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted/70">
+                  {t('menu.selfService')}
+                </span>
+              </div>
+              <div className="space-y-1">
+                {selfServiceItems.map(renderNavLink)}
+              </div>
             </div>
-            <div className="space-y-1">
-              {selfServiceItems.map(renderNavLink)}
-            </div>
-          </div>
+          )}
         </nav>
       </div>
 

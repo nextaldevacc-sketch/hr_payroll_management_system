@@ -163,3 +163,4 @@ npm test --workspace=backend
 
 **RTO (Recovery Time Objective)**: < 15 minutes  
 **RPO (Recovery Point Objective)**: < 1 hour (with WAL archiving) / < 24 hours (with daily snapshot)
+

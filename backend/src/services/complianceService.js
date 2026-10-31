@@ -114,7 +114,7 @@ export class ComplianceService {
       const users = await this.prisma.$base().users.findMany({
         where: {
           company_id: compId,
-          status: 'ACTIVE',
+          status: { in: ['Active', 'ACTIVE'] },
           user_roles: {
             some: {
               role: {
@@ -173,6 +173,14 @@ export class ComplianceService {
           if (ownerUserId) recipientsToNotify.add(ownerUserId);
           for (const hr of hrUsers) {
             recipientsToNotify.add(hr.id);
+          }
+          if (recipientsToNotify.size === 0) {
+            const fallbackUsers = await this.prisma.$base().users.findMany({
+              where: { company_id: doc.company_id, status: { in: ['Active', 'ACTIVE'] } },
+              take: 2,
+              select: { id: true },
+            });
+            fallbackUsers.forEach((u) => recipientsToNotify.add(u.id));
           }
 
           for (const userId of recipientsToNotify) {

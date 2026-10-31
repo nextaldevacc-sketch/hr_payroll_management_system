@@ -37,3 +37,4 @@
 
 ## 6. Email & SMS Notification Delivery
 - **Production SMTP / SendGrid / Twilio**: In development and test environments, outgoing notifications are logged to the audit and system logs. In production, verified SMTP credentials (e.g., SendGrid, AWS SES, or corporate Microsoft 365 SMTP relay) must be configured in `.env.production` to deliver employee payslip notifications and expiry alerts.
+

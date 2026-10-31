@@ -26,57 +26,16 @@ async function main() {
     where: { company_id: company.id, email: { contains: 'payroll' } },
   });
 
-  const baseEmp = await prisma.$base().employees.findFirst({
-    where: { company_id: company.id, status: 'Active' },
-    include: { contracts: true },
-  });
-
-  // Find or create Omar Al-Hashimi
-  let omar = await prisma.$base().employees.findFirst({
-    where: { company_id: company.id, employee_code: 'EMP-SAMPLE-OMAR' },
+  // Find seeded Omar Al-Hashimi (EMP-DXB-042)
+  const omar = await prisma.$base().employees.findFirst({
+    where: { company_id: company.id, employee_code: 'EMP-DXB-042' },
   });
 
   if (!omar) {
-    omar = await prisma.$base().employees.create({
-      data: {
-        company_id: company.id,
-        company_visa_id: baseEmp.company_visa_id,
-        branch_id: baseEmp.branch_id,
-        department_id: baseEmp.department_id,
-        employee_code: 'EMP-SAMPLE-OMAR',
-        name: 'Omar Al-Hashimi',
-        arabic_name: 'عمر الهاشمي',
-        gender: 'Male',
-        nationality: 'ARE',
-        residency_type: 'National',
-        joining_date: new Date('2019-11-03'),
-        status: 'Active',
-      },
-    });
-
-    const c = baseEmp.contracts[0];
-    await prisma.$base().contracts.create({
-      data: {
-        company_id: company.id,
-        employee_id: omar.id,
-        contract_type: 'Unlimited',
-        start_date: new Date('2019-11-03'),
-        job_id: c.job_id,
-        department_id: c.department_id,
-        shift_id: c.shift_id,
-        attendance_policy_id: c.attendance_policy_id,
-        structure_id: c.structure_id,
-        basic: 6000.0,
-        housing: 3000.0,
-        transport: 1000.0,
-        gross: 10000.0,
-        effective_date: new Date('2019-11-03'),
-        status: 'Active',
-      },
-    });
+    throw new Error('Omar Al-Hashimi (EMP-DXB-042) not found in demo database');
   }
 
-  // Create separation for Omar
+  // Find separation for Omar
   let sep = await prisma.$base().separations.findFirst({
     where: { company_id: company.id, employee_id: omar.id },
   });

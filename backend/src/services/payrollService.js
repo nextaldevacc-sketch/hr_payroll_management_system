@@ -1137,6 +1137,19 @@ export class PayrollService {
       },
     });
 
+    // Automatically resolve corresponding blocking variance issue for this employee
+    await this.prisma.$base().pay_run_issues.updateMany({
+      where: {
+        pay_run_id: payslip.pay_run_id,
+        employee_id: payslip.employee_id,
+        issue_code: 'VARIANCE_EXCEEDED_THRESHOLD',
+        resolved_at: null,
+      },
+      data: {
+        resolved_at: new Date(),
+      },
+    });
+
     await auditService.log({
       companyId,
       userId,

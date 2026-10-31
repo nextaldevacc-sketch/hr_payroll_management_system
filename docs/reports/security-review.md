@@ -156,3 +156,4 @@ All multipart uploads (`/employees`, `/compliance`, `/attendance`) route through
 | `/api/v1/reports/accounting-export` | `GET` | `COMPANY_ADMIN`, `FINANCE`, `PAYROLL_OFFICER` | Generate balanced ERP General Ledger CSV |
 | `/api/v1/reports/headcount` | `GET` | `COMPANY_ADMIN`, `HR_MANAGER`, `GM` | Headcount, joiners, leavers, turnover % |
 | `/api/v1/audit/logs` | `GET, POST` | `COMPANY_ADMIN`, `PLATFORM_ADMIN`, `HR_MANAGER` | View immutable audit trail & export CSV |
+

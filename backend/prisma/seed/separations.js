@@ -26,19 +26,20 @@ export async function seedSeparations(prisma, {
   let sepInProgress = null;
 
   // =========================================================================
-  // 1. Separation In Progress: Employee Index 20 (Clearance partly done)
+  // 1. Separation In Progress: Sara Al-Nuaimi (EMP-DXB-044, 3.5 yrs, Gratuity AED 12,082.19)
   // =========================================================================
-  const empInProgress = seededEmployees[20];
-  if (empInProgress) {
-    console.log(`Seeding separation in progress for ${empInProgress.name}...`);
+  const sara = seededEmployees.find((e) => e.employee_code === 'EMP-DXB-044');
+  let saraPrepared = null;
+  if (sara) {
+    console.log(`Seeding separation in progress for Sara Al-Nuaimi (EMP-DXB-044)...`);
     sepInProgress = await separationService.createSeparation(
       company1.id,
       {
-        employee_id: empInProgress.id,
+        employee_id: sara.id,
         type: 'Resignation',
-        reason: 'Career transition to logistics management',
-        notice_date: '2026-10-15',
-        last_working_day: '2026-11-15',
+        reason: 'Career transition to new role',
+        notice_date: '2026-09-30',
+        last_working_day: '2026-10-31',
         auto_approve: true,
       },
       userHR1.id
@@ -65,13 +66,32 @@ export async function seedSeparations(prisma, {
         );
       }
     }
+
+    // Spec Example: Sara Al-Nuaimi: basic 5,000, 3 years 6 months service -> Gratuity 12,082.19
+    saraPrepared = await settlementService.prepareSettlement(
+      company1.id,
+      sepInProgress.id,
+      {
+        serviceYears: 3.5,
+        unusedLeaveDays: 0,
+        noticeRecoveryDays: 0,
+      },
+      userPayroll1.id
+    );
+    console.log(`Sara settlement prepared: Gratuity AED ${saraPrepared.gratuity}`);
+
+    // Update employee record to Separated
+    await prisma.employees.update({
+      where: { id: sara.id },
+      data: { status: 'Separated' },
+    });
   }
 
   // =========================================================================
   // 2. Approved Settlement: Omar Al-Hashimi (EMP-DXB-042, 7.00 years, Gratuity AED 32,547.95)
   // =========================================================================
   console.log('Seeding approved final settlement for Omar Al-Hashimi (EMP-DXB-042)...');
-  const omar = seededEmployees[41]; // EMP-DXB-042
+  const omar = seededEmployees.find((e) => e.employee_code === 'EMP-DXB-042');
 
   // Create separation for Omar
   const omarSep = await separationService.createSeparation(
@@ -126,7 +146,7 @@ export async function seedSeparations(prisma, {
     },
   });
 
-  console.log(`Omar settlement approved: Gratuity AED ${approvedSettlement.gratuity}, Total Net AED ${approvedSettlement.net_settlement}`);
+  console.log(`Omar settlement approved: Gratuity AED ${approvedSettlement.gratuity}, Total Net AED ${approvedSettlement.net_payable}`);
   return { sepInProgress, omarSep, approvedSettlement };
 }
 

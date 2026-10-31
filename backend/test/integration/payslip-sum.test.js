@@ -47,8 +47,8 @@ describe('Payslip Lines Calculation & Sum Integrity Tests', () => {
     await prisma.$disconnect();
   });
 
-  it('1. Confirms 41 active payslips exist for October 2026 pay runs (30 Visa 1 + 11 Visa 2)', () => {
-    assert.equal(payslipsWithLines.length, 41, 'Expected exactly 41 active payslips');
+  it('1. Confirms 42 active payslips exist for October 2026 pay runs (31 Visa 1 + 11 Visa 2)', () => {
+    assert.equal(payslipsWithLines.length, 42, 'Expected exactly 42 active payslips');
   });
 
   it('2. Every payslip gross equals all earnings lines (BASIC + HRA + TRA + OTH + OT + allowances)', () => {
@@ -266,6 +266,23 @@ describe('Payslip Lines Calculation & Sum Integrity Tests', () => {
       Number(associate31.net).toFixed(2),
       '5500.00',
       'Logistics Associate 31 hand-calculated net must be exactly AED 5,500.00'
+    );
+
+    // -----------------------------------------------------------------------
+    // Benchmark Employee 4: Ahmed Al-Mansoori (EMP-DXB-043) - Spec Benchmark
+    // -----------------------------------------------------------------------
+    // - Contract Gross: AED 8,000.00 (Basic 5000, Housing 2000, Transport 500, Other 500)
+    // - Overtime: 3h normal OT = (5000 / 240) * 1.25 * 3 = AED 78.13
+    // - Unapproved Absence: 2 days (÷30) = (8000 / 30) * 2 = AED 533.33
+    // - Loan: 6,000 at 500/month (3rd month installment) = AED 500.00
+    // - Expat: GPSSA = AED 0.00
+    // - Expected Net = 8,000 + 78.13 - 533.33 - 500.00 = AED 7,044.80
+    const ahmed = payslipsWithLines.find((p) => p.employee.employee_code === 'EMP-DXB-043');
+    assert(ahmed, 'Ahmed Al-Mansoori (EMP-DXB-043) payslip must exist');
+    assert.equal(
+      Number(ahmed.net).toFixed(2),
+      '7044.80',
+      'Ahmed Al-Mansoori hand-calculated net must be exactly AED 7,044.80'
     );
   });
 });

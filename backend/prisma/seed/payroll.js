@@ -91,6 +91,25 @@ export async function seedPayroll(prisma, {
     }
   }
 
+  // Spec Example: Ahmed Al-Mansoori (EMP-DXB-043) loan 6,000 at 500/month, 3rd month (starts 2026-08-01)
+  const ahmedEmp = seededEmployees.find((e) => e.employee_code === 'EMP-DXB-043');
+  if (ahmedEmp) {
+    await prisma.salary_adjustments.create({
+      data: {
+        company_id: company1.id,
+        employee_id: ahmedEmp.id,
+        type: 'Loan',
+        total_amount: 6000.0,
+        monthly_amount: 500.0,
+        balance: 5000.0, // Enters October (3rd month) with 5,000 remaining; Oct run deducts 500 -> 4,500
+        start_month: new Date('2026-08-01'),
+        status: 'Approved',
+        reason: 'Personal staff loan (3rd month)',
+        created_by: userFinance1.id,
+      },
+    });
+  }
+
   // =========================================================================
   // 3. October 2026 Pay Runs (Calculated via PayrollService)
   // =========================================================================
@@ -133,7 +152,7 @@ export async function seedPayroll(prisma, {
   });
 
   for (const ps of oct1PayslipsWithVariance) {
-    if (Math.abs(Number(ps.variance_pct)) >= 10.0) {
+    if (Math.abs(Number(ps.variance_pct)) >= 5.0) {
       await payrollService.updateVarianceReason(
         company1.id,
         ps.id,

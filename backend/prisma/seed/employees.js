@@ -70,7 +70,7 @@ export async function seedEmployees(prisma, {
   leaveType2,
   accrualPlan2,
 }) {
-  console.log('Seeding 42 employees for Company 1...');
+  console.log('Seeding 44 employees for Company 1...');
   const userHR1 = demoUsersMap['hr.mgr@gulftech.ae'];
   const placeholderUrl = ensureDemoPlaceholderPdf();
 
@@ -102,10 +102,10 @@ export async function seedEmployees(prisma, {
   const seededContracts = [];
   let totalSeededGross = 0;
 
-  for (let i = 1; i <= 42; i++) {
+  for (let i = 1; i <= 44; i++) {
     const code = `EMP-DXB-${String(i).padStart(3, '0')}`;
-    const targetVisa = i <= 30 ? visas1.visa1_01 : visas1.visa1_02;
-    const targetBranch = i <= 30 ? branches1.branch1_main : branches1.branch1_difc;
+    const targetVisa = (i <= 30 || i === 43) ? visas1.visa1_01 : visas1.visa1_02;
+    const targetBranch = (i <= 30 || i === 43) ? branches1.branch1_main : branches1.branch1_difc;
 
     let baseInfo;
     if (i <= employeeNames.length) {
@@ -120,7 +120,43 @@ export async function seedEmployees(prisma, {
         job: jobs1.jobOps,
         dept: depts1['Operations'],
         gross: 10000,
+        basic: 6000,
+        housing: 3000,
+        trans: 1000,
+        oth: 0,
         joining_date: new Date('2019-11-03'),
+      };
+    } else if (i === 43) {
+      baseInfo = {
+        name: 'Ahmed Al-Mansoori',
+        name_ar: 'أحمد المنصوري',
+        nat: 'EGY',
+        gender: 'Male',
+        uae: false,
+        job: jobs1.jobOps,
+        dept: depts1['Operations'],
+        gross: 8000,
+        basic: 5000,
+        housing: 2000,
+        trans: 500,
+        oth: 500,
+        joining_date: new Date('2024-01-15'),
+      };
+    } else if (i === 44) {
+      baseInfo = {
+        name: 'Sara Al-Nuaimi',
+        name_ar: 'سارة النعيمي',
+        nat: 'GBR',
+        gender: 'Female',
+        uae: false,
+        job: jobs1.jobSales,
+        dept: depts1['Sales & Support'],
+        gross: 8000,
+        basic: 5000,
+        housing: 2000,
+        trans: 500,
+        oth: 500,
+        joining_date: new Date('2023-05-01'), // 3 yrs 6 mos to 2026-10-31
       };
     } else {
       const cycleItem = deptCycle[(i - 13) % deptCycle.length];
@@ -136,10 +172,10 @@ export async function seedEmployees(prisma, {
       };
     }
 
-    const basic = i === 42 ? 6000 : Math.round(baseInfo.gross * 0.60);
-    const housing = i === 42 ? 3000 : Math.round(baseInfo.gross * 0.30);
-    const trans = i === 42 ? 1000 : Math.round(baseInfo.gross * 0.05);
-    const oth = baseInfo.gross - (basic + housing + trans);
+    const basic = baseInfo.basic !== undefined ? baseInfo.basic : Math.round(baseInfo.gross * 0.60);
+    const housing = baseInfo.housing !== undefined ? baseInfo.housing : Math.round(baseInfo.gross * 0.30);
+    const trans = baseInfo.trans !== undefined ? baseInfo.trans : Math.round(baseInfo.gross * 0.05);
+    const oth = baseInfo.oth !== undefined ? baseInfo.oth : (baseInfo.gross - (basic + housing + trans));
     const empGross = basic + housing + trans + oth;
 
     const emp = await prisma.employees.create({
@@ -150,7 +186,7 @@ export async function seedEmployees(prisma, {
         arabic_name: baseInfo.name_ar,
         legal_name: baseInfo.name,
         status: 'Active',
-        joining_date: baseInfo.joining_date || (i >= 40 ? new Date('2026-10-01') : new Date('2024-01-15')),
+        joining_date: baseInfo.joining_date || (i >= 40 && i <= 42 ? new Date('2026-10-01') : new Date('2024-01-15')),
         residency_type: (i <= 4 || baseInfo.uae) ? 'UAENational' : 'Expat',
         nationality: baseInfo.nat,
         gender: baseInfo.gender,
@@ -158,7 +194,7 @@ export async function seedEmployees(prisma, {
         mohre_person_id: `MOHRE${String(1000000 + i)}`,
         company_visa_id: targetVisa.id,
         branch_id: targetBranch.id,
-        work_email: i === 42 ? 'omar.alhashimi@gulftech.ae' : `emp${i}@gulftech.ae`,
+        work_email: i === 42 ? 'omar.alhashimi@gulftech.ae' : i === 43 ? 'ahmed.mansoori@gulftech.ae' : i === 44 ? 'sara.nuaimi@gulftech.ae' : `emp${i}@gulftech.ae`,
         mobile: `+97150${String(1000000 + i).substring(1)}`,
       },
     });
@@ -251,11 +287,11 @@ export async function seedEmployees(prisma, {
     seededContracts.push(activeContract);
     totalSeededGross += empGross;
 
-    // Bank accounts: all 42 employees have valid mod-97 UAE IBANs and routing codes
-    // EMP-DXB-041 (i === 41) uses generateValidUaeIban(33, 41)
-    const iban = i === 41
-      ? generateValidUaeIban(33, 41)
-      : generateValidUaeIban('033', 1000000000 + i);
+    // Bank accounts: all employees have valid mod-97 UAE IBANs and routing codes
+    const iban = generateValidUaeIban('033', 1000000000 + i);
+    if (!validateUaeIban(iban)) {
+      throw new Error(`Invalid generated UAE IBAN for employee ${code}: ${iban}`);
+    }
 
     await prisma.bank_accounts.create({
       data: {
@@ -366,11 +402,12 @@ export async function seedEmployees(prisma, {
     });
   }
 
-  // Link demo employee account to Employee 1
-  if (seededEmployees[0] && demoUsersMap['employee@gulftech.ae']) {
+  // Link demo employee account to Ahmed Al-Mansoori (EMP-DXB-043)
+  const ahmedEmp = seededEmployees.find((e) => e.employee_code === 'EMP-DXB-043');
+  if (ahmedEmp && demoUsersMap['employee@gulftech.ae']) {
     await prisma.users.update({
       where: { id: demoUsersMap['employee@gulftech.ae'].id },
-      data: { employee_id: seededEmployees[0].id },
+      data: { employee_id: ahmedEmp.id },
     });
   }
 

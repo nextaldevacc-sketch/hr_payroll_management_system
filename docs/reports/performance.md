@@ -96,3 +96,4 @@ All Non-Functional Requirements (NFR-7, NFR-8, NFR-9) have been comprehensively 
    - All tenant foreign keys (`company_id`, `employee_id`, `pay_run_id`, `separation_id`) have explicit B-tree indices.
    - Unique constraints on business keys (`[company_id, employee_code]`, `[company_id, iban]`) accelerate lookups to $O(\log n)$.
    - Timestamps (`expiry_date`, `created_at`, `punch_time`) indexed for range scans.
+

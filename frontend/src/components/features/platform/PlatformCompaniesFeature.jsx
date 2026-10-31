@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AppShell } from '../../layout/AppShell';
 import { useAuth, DEMO_USERS } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import {
@@ -167,8 +166,7 @@ export function PlatformCompaniesFeature() {
   );
 
   return (
-    <AppShell>
-      <div className="p-4 md:p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6">
         {/* Banner Alert if any */}
         {alertMessage && (
           <div
@@ -856,7 +854,6 @@ export function PlatformCompaniesFeature() {
           </div>
         )}
       </div>
-    </AppShell>
   );
 }
 

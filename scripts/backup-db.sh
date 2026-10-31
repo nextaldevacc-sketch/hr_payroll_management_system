@@ -30,3 +30,4 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Pruning backups older than ${RETENTION_DAYS
 find "${BACKUP_DIR}" -type f -name "nextal_backup_*.sql.gz" -mtime +"${RETENTION_DAYS}" -delete
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Backup & retention cycle completed."
+

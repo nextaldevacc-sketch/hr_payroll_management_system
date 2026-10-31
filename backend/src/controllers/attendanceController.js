@@ -29,6 +29,8 @@ export async function getAttendanceGrid(req, res, next) {
     const data = await attendanceService.getAttendanceGrid({
       companyId: req.companyId,
       month: req.query.month,
+      from: req.query.from,
+      to: req.query.to,
       departmentId: deptId,
       branchId: req.query.branch_id,
       search: req.query.search,

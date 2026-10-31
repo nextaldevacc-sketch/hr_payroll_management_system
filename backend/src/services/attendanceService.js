@@ -566,11 +566,38 @@ class AttendanceService {
   /**
    * 3. Daily Attendance Grid (employees x days)
    */
-  async getAttendanceGrid({ companyId, month, departmentId, branchId, search }) {
-    const monthKey = month || toDubaiDateString(new Date()).slice(0, 7);
-    const [y, m] = monthKey.split('-').map(Number);
-    const startOfMonth = new Date(Date.UTC(y, m - 1, 1));
-    const endOfMonth = new Date(Date.UTC(y, m, 0, 23, 59, 59));
+  async getAttendanceGrid({ companyId, month, from, to, departmentId, branchId, search }) {
+    let startDate;
+    let endDate;
+    let monthKey;
+
+    if (from && to) {
+      const [fy, fm, fd] = from.split('-').map(Number);
+      const [ty, tm, td] = to.split('-').map(Number);
+      startDate = new Date(Date.UTC(fy, fm - 1, fd, 0, 0, 0));
+      endDate = new Date(Date.UTC(ty, tm - 1, td, 23, 59, 59));
+      monthKey = from.slice(0, 7);
+    } else {
+      monthKey = month || toDubaiDateString(new Date()).slice(0, 7);
+      const [y, m] = monthKey.split('-').map(Number);
+      startDate = new Date(Date.UTC(y, m - 1, 1));
+      endDate = new Date(Date.UTC(y, m, 0, 23, 59, 59));
+    }
+
+    // Build list of day strings (YYYY-MM-DD) between startDate and endDate
+    const days = [];
+    const cur = new Date(startDate);
+    while (cur <= endDate) {
+      days.push(cur.toISOString().slice(0, 10));
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+
+    // Query departments for filter dropdown
+    const departments = await prisma.$base().departments.findMany({
+      where: { company_id: companyId },
+      select: { id: true, name: true, name_ar: true },
+      orderBy: { name: 'asc' },
+    });
 
     const whereEmp = { company_id: companyId, status: { in: ['Active', 'New Joined'] } };
     if (departmentId) whereEmp.department_id = departmentId;
@@ -605,7 +632,7 @@ class AttendanceService {
     const attendanceDays = await prisma.$base().attendance_days.findMany({
       where: {
         company_id: companyId,
-        work_date: { gte: startOfMonth, lte: endOfMonth },
+        work_date: { gte: startDate, lte: endDate },
         employee_id: { in: employees.map((e) => e.id) },
       },
       include: {
@@ -617,43 +644,50 @@ class AttendanceService {
 
     const grid = employees.map((emp) => {
       const empDays = attendanceDays.filter((d) => d.employee_id === emp.id);
-      return {
-        employee: {
-          id: emp.id,
-          employee_code: emp.employee_code,
-          name: emp.name,
-          arabic_name: emp.arabic_name,
-          department: emp.contracts[0]?.department?.name || 'Unassigned',
-          shift: emp.contracts[0]?.shift?.name || 'Standard',
-        },
-        days: empDays.map((d) => ({
+      const daysMap = {};
+      for (const d of empDays) {
+        const dateStr = toDubaiDateString(d.work_date);
+        daysMap[dateStr] = {
           id: d.id,
-          date: toDubaiDateString(d.work_date),
+          date: dateStr,
           day_type: d.day_type,
           check_in: d.check_in,
           check_out: d.check_out,
-          worked_hours: d.worked_hours,
-          net_hours: d.net_hours,
-          late_minutes: d.late_minutes,
-          early_out_minutes: d.early_out_minutes,
-          exception_codes: d.exception_codes,
+          worked_hours: d.worked_hours != null ? Number(d.worked_hours) : 0,
+          net_hours: d.net_hours != null ? Number(d.net_hours) : 0,
+          late_minutes: d.late_minutes || 0,
+          early_out_minutes: d.early_out_minutes || 0,
+          exception_codes: d.exception_codes || [],
           review_status: d.review_status,
           pay_band: d.pay_band,
           leave_name: d.leave_request?.leave_type?.name,
           holiday_name: d.public_holiday?.name,
-        })),
+        };
+      }
+
+      return {
+        employee: {
+          id: emp.id,
+          employee_code: emp.employee_code,
+          employee_number: emp.employee_code,
+          name: emp.name,
+          arabic_name: emp.arabic_name,
+          department: emp.contracts[0]?.department?.name || 'Operations',
+          shift: emp.contracts[0]?.shift?.name || 'Standard',
+        },
+        days: daysMap,
         summary: {
-          present_days: empDays.filter((d) => ['WorkDay', 'RestDayWork', 'HolidayWork'].includes(d.day_type) && d.check_in).length,
-          absent_days: empDays.filter((d) => d.day_type === 'WorkDay' && d.exception_codes.includes('ABSENT')).length,
+          present_days: empDays.filter((d) => ['WorkDay', 'RestDayWork', 'HolidayWork', 'Present'].includes(d.day_type) && d.check_in).length,
+          absent_days: empDays.filter((d) => (d.day_type === 'WorkDay' || d.day_type === 'Absent') && d.exception_codes?.includes('ABSENT')).length,
           late_days: empDays.filter((d) => d.late_minutes > 0).length,
           leave_days: empDays.filter((d) => d.day_type === 'Leave').length,
-          missing_punches: empDays.filter((d) => d.exception_codes.includes('MISSING_PUNCH')).length,
-          total_hours: empDays.reduce((acc, d) => acc + Number(d.net_hours || 0), 0).toFixed(2),
+          missing_punches: empDays.filter((d) => d.exception_codes?.includes('MISSING_PUNCH')).length,
+          total_hours: empDays.reduce((acc, d) => acc + Number(d.worked_hours || d.net_hours || 0), 0).toFixed(2),
         },
       };
     });
 
-    return { month: monthKey, grid };
+    return { month: monthKey, days, departments, grid };
   }
 
   /**
