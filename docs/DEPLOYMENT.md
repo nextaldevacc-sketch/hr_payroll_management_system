@@ -78,7 +78,25 @@
 
 ---
 
-## 4. Production Environment Configuration
+## 4. Production Environment Configuration & Same-Origin Path Routing
+
+Nextal uses single-domain same-origin routing in production via Application Load Balancer / Nginx reverse proxy:
+- `https://app.nextal.ae/api/v1/*` → routes to Backend REST API (`http://nextal-api:5000/api/v1/*`)
+- `https://app.nextal.ae/*` → routes to Next.js Frontend Web Service (`http://nextal-web:3100/*`)
+
+This guarantees that the `nextal_token` `httpOnly` authentication cookie is stored on the exact origin host (`app.nextal.ae`), eliminating domain/port cookie mismatches and cross-origin CORS latency.
+
+In Next.js local development, `next.config.js` provides the identical path proxy via Next.js `rewrites`:
+```javascript
+async rewrites() {
+  return [
+    {
+      source: '/api/v1/:path*',
+      destination: `${process.env.API_ORIGIN || 'http://localhost:5000'}/api/v1/:path*`,
+    },
+  ];
+}
+```
 
 Populate `.env` on the host/container from `.env.production.example`:
 
@@ -93,9 +111,16 @@ DATABASE_URL="postgresql://nextal_admin:SECURE_PASSWORD@nextal-postgres-prod.c.m
 # Cryptographic Token Signing Secret (min 32 chars)
 JWT_SECRET="c8f2a632e8c201729b47e2311497a43105df5e59b20726d34e9081e721516e88"
 
-# Public Access Points
+# Public Access Points & Reverse Proxy Routing
 FRONTEND_PUBLIC_URL="https://app.nextal.ae"
-NEXT_PUBLIC_API_URL="https://api.nextal.ae"
+NEXT_PUBLIC_API_URL="/api/v1"
+API_ORIGIN="http://nextal-api:5000"
+
+# Document Encryption Key (AES-256-GCM, 32-byte hex/base64 string)
+DOCUMENT_ENCRYPTION_KEY="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+# Scheduled Background Jobs
+ENABLE_JOBS=true
 
 # Backup Retention
 BACKUP_RETENTION_DAYS=30

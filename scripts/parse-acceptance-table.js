@@ -23,17 +23,20 @@ function run() {
   const rows = [];
   // Regex to match TAP test result lines:
   // e.g. ok 1 - T1: Given Platform admin creates Company B -> Expected Company B starts with UAE defaults; its admin is invited
+  // or   ok 1 - T1: Given Platform admin creates Company B -> Expected Company B starts with UAE defaults; its admin is invited # SKIP DEFERRED (Phase 2 – platform admin)
   // or   ok 21 - T21: Given Gratuity, basic 5,000, 3 years 6 months -> Expected AED 12,082.19 # TODO Phase 8
-  const testRegex = /^(ok|not ok)\s+(\d+)\s+-\s+(T\d+):\s+Given\s+(.+?)\s+->\s+Expected\s+(.+?)(?:\s+#\s+TODO\s*(.*))?$/;
+  const testRegex = /^(ok|not ok)\s+(\d+)\s+-\s+(T\d+):\s+Given\s+(.+?)\s+->\s+Expected\s+(.+?)(?:\s+#\s+(TODO|SKIP)\s*(.*))?$/;
 
   for (const line of lines) {
     const trimmed = line.trim();
     const match = trimmed.match(testRegex);
     if (match) {
-      const [_, result, numStr, id, given, expected, todoText] = match;
+      const [_, result, numStr, id, given, expected, directive, directiveText] = match;
       let status = 'PASS';
-      if (todoText) {
-        status = `TODO (${todoText.trim()})`;
+      if (directive === 'SKIP') {
+        status = directiveText?.trim() || 'SKIPPED';
+      } else if (directive === 'TODO') {
+        status = directiveText ? `TODO (${directiveText.trim()})` : 'TODO';
       } else if (result === 'not ok') {
         status = 'FAIL';
       }
@@ -64,6 +67,7 @@ function run() {
   }
 
   const passCount = rows.filter((r) => r.status === 'PASS').length;
+  const deferredCount = rows.filter((r) => r.status.includes('DEFERRED') || r.status === 'SKIPPED').length;
   const todoCount = rows.filter((r) => r.status.startsWith('TODO')).length;
   const failCount = rows.filter((r) => r.status === 'FAIL').length;
 
@@ -71,11 +75,14 @@ function run() {
   mdLines.push('## Summary');
   mdLines.push(`- **Total Tests**: ${rows.length}`);
   mdLines.push(`- **Passed**: ${passCount}`);
+  if (deferredCount > 0) {
+    mdLines.push(`- **Deferred**: ${deferredCount} (${rows.filter((r) => r.status.includes('DEFERRED') || r.status === 'SKIPPED').map((r) => r.id).join(', ')})`);
+  }
   mdLines.push(`- **Todo**: ${todoCount} (${rows.filter((r) => r.status.startsWith('TODO')).map((r) => r.id).join(', ')})`);
   mdLines.push(`- **Failed**: ${failCount}`);
 
   fs.writeFileSync(outPath, mdLines.join('\n'), 'utf8');
-  console.log(`Generated ${outPath} with ${rows.length} test cases (Passed: ${passCount}, Todo: ${todoCount}, Fail: ${failCount})`);
+  console.log(`Generated ${outPath} with ${rows.length} test cases (Passed: ${passCount}, Deferred: ${deferredCount}, Todo: ${todoCount}, Fail: ${failCount})`);
 }
 
 run();

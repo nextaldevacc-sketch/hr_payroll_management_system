@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const outPath = path.resolve('docs/reports/acceptance-raw.txt');
-const testDbUrl = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@localhost:5432/nextal_hr_test?schema=public';
+const testDbUrl = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
 try {
   const output = execSync('node --env-file=.env --test test/acceptance/acceptance.test.js', {
     cwd: path.resolve('backend'),

@@ -484,7 +484,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Header & Persona Role Indicator */}
+      {/* Header & Active Role Indicator */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -502,7 +502,7 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        {/* Persona Role Pill */}
+        {/* Active Role Pill */}
         <div
           className="px-3.5 py-2 rounded-xl border flex items-center gap-2.5 shrink-0 shadow-sm"
           style={{ background: 'var(--surface)', borderColor: 'var(--glass-border)' }}

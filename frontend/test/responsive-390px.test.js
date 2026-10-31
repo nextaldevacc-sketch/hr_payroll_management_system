@@ -57,7 +57,7 @@ describe('Phase 7: 390px Mobile Responsive Layout (No Horizontal Scroll)', { tim
     try {
       await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 1500);
     } catch {
-      const testDbUrl = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@localhost:5432/nextal_hr_test?schema=public';
+      const testDbUrl = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
       apiProcess = spawn(process.execPath, [path.resolve(apiDir, 'src/server.js')], {
         cwd: apiDir,
         env: { ...process.env, PORT: String(API_PORT), NODE_ENV: 'test', DATABASE_URL: testDbUrl, DATABASE_URL_TEST: testDbUrl },

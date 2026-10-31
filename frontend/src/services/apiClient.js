@@ -3,9 +3,7 @@
  * Shared request handler with authentication cookies (credentials: include) and error mapping.
  */
 
-const DEFAULT_API_HOST = '127.0.0.1';
-const DEFAULT_API_PORT = '5000';
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || `http://${DEFAULT_API_HOST}:${DEFAULT_API_PORT}/api/v1`;
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 export function getHeaders(isMultipart = false) {
   const headers = {};

@@ -29,7 +29,7 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
 
   const API_PORT = 5000;
   const WEB_PORT = 3100;
-  const testDbUrl = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@localhost:5432/nextal_hr_test?schema=public';
+  const testDbUrl = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
 
   function killProcWithTree(proc) {
     return new Promise((resolve) => {
@@ -95,7 +95,8 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
             PORT: String(WEB_PORT),
             NODE_ENV: 'production',
             NEXT_DIST_DIR: distDir,
-            NEXT_PUBLIC_API_URL: `http://127.0.0.1:${API_PORT}/api/v1`,
+            API_ORIGIN: `http://127.0.0.1:${API_PORT}`,
+            NEXT_PUBLIC_API_URL: '/api/v1',
             NEXT_PUBLIC_FEATURE_PLATFORM_ADMIN: 'false',
           },
         });

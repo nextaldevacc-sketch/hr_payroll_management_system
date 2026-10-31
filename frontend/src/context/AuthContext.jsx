@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { API_BASE } from '../services/apiClient';
 
 const AuthContext = createContext(null);
@@ -10,6 +11,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [status, setStatus] = useState('loading'); // 'loading' | 'authenticated' | 'unauthenticated'
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // Load session from server truth on mount (/api/v1/auth/me)
   const refreshUser = useCallback(async () => {
@@ -44,6 +46,7 @@ export function AuthProvider({ children }) {
   // Handle session expiration broadcast from API client
   useEffect(() => {
     const handleSessionExpired = () => {
+      queryClient.clear();
       setUser(null);
       setStatus('unauthenticated');
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
@@ -53,7 +56,7 @@ export function AuthProvider({ children }) {
 
     window.addEventListener('nextal:session-expired', handleSessionExpired);
     return () => window.removeEventListener('nextal:session-expired', handleSessionExpired);
-  }, [router]);
+  }, [router, queryClient]);
 
   // Log in with email + password via server truth
   const login = useCallback(
@@ -77,6 +80,7 @@ export function AuthProvider({ children }) {
           throw error;
         }
 
+        queryClient.clear();
         setUser(data.user);
         setStatus('authenticated');
 
@@ -95,7 +99,7 @@ export function AuthProvider({ children }) {
         throw err;
       }
     },
-    []
+    [queryClient]
   );
 
   // Log out via server truth (invalidates token_version and clears cookie)
@@ -107,11 +111,16 @@ export function AuthProvider({ children }) {
         credentials: 'include',
       }).catch(() => {});
     } finally {
+      queryClient.clear();
       setUser(null);
       setStatus('unauthenticated');
-      router.replace('/login');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      } else {
+        router.replace('/login');
+      }
     }
-  }, [router]);
+  }, [router, queryClient]);
 
   const seesSalary = Boolean(user?.sees_salary);
 

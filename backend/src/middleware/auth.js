@@ -110,6 +110,16 @@ async function validateUserSessionState(userId, tokenVersion) {
   return { valid: true };
 }
 
+function clearAuthCookie(req, res) {
+  const isSecure = process.env.COOKIE_SECURE === 'true' || Boolean(req.secure);
+  res.clearCookie('nextal_token', {
+    httpOnly: true,
+    secure: isSecure,
+    sameSite: 'lax',
+    path: '/',
+  });
+}
+
 /**
  * Authentication Middleware
  * Enforces valid 8-hour JWT session on protected endpoints
@@ -130,6 +140,7 @@ export async function authenticate(req, res, next) {
   try {
     decoded = jwt.verify(token, JWT_SECRET);
   } catch (err) {
+    clearAuthCookie(req, res);
     return res.status(401).json({
       status: 'error',
       code: 'UNAUTHORIZED',
@@ -140,6 +151,7 @@ export async function authenticate(req, res, next) {
   // Re-check live user & company state (with 60-second TTL cache)
   const validation = await validateUserSessionState(decoded.userId, decoded.tokenVersion);
   if (!validation.valid) {
+    clearAuthCookie(req, res);
     return res.status(validation.httpStatus).json({
       status: 'error',
       code: validation.code,

@@ -22,10 +22,6 @@ export function middleware(request) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (token && pathname === '/login') {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
-
   return NextResponse.next();
 }
 

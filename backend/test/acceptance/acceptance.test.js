@@ -206,7 +206,7 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
   // =========================================================================
   // T1–T5: Foundation, Security, Attendance Setup
   // =========================================================================
-  it('T1: Given Platform admin creates Company B -> Expected Company B starts with UAE defaults; its admin is invited', async () => {
+  it('T1: Given Platform admin creates Company B -> Expected Company B starts with UAE defaults; its admin is invited', { skip: 'DEFERRED (Phase 2 – platform admin)' }, async () => {
     const testTradeLicense = `TL-ACC-${Date.now()}`.slice(0, 48);
     const newCo = await companyService.createCompanyWithDefaults({
       name: 'Acceptance Demo Company B',

@@ -9,7 +9,7 @@ const backendDir = path.resolve(__dirname, '..');
 
 dotenv.config({ path: path.join(backendDir, '.env') });
 
-const testUrl = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@localhost:5432/nextal_hr_test?schema=public';
+const testUrl = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
 
 console.log(`[setupTestDb] Resetting isolated test database: ${testUrl}`);
 

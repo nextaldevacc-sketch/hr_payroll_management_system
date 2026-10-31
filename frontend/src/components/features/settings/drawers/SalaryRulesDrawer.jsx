@@ -482,7 +482,7 @@ export function SalaryRulesDrawer({
            ========================================================================= */}
         {activeTab === 'simulator' && (
           <div className="space-y-4">
-            {/* Persona Preset Buttons */}
+            {/* Benchmark Example Preset Buttons */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-bold text-text me-1">
                 {language === 'ar' ? 'اختر موظفاً تجريبياً:' : 'Select Demo Preset:'}

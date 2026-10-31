@@ -58,7 +58,7 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
   before(async () => {
     const testDbUrl =
       process.env.DATABASE_URL_TEST ||
-      'postgresql://postgres:postgres@localhost:5432/nextal_hr_test?schema=public';
+      'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
     prisma = new PrismaClient({ datasources: { db: { url: testDbUrl } } });
     await prisma.users.updateMany({
       data: { failed_logins: 0, locked_until: null },
@@ -248,7 +248,7 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
     // Click Sign out in sidebar or top bar
     const logoutBtn = page.locator('button[title*="Sign out"], button:has-text("Sign out"), button:has-text("تسجيل الخروج")').first();
     await logoutBtn.click({ force: true });
-    await page.waitForURL((url) => url.pathname.includes('/login'), { timeout: 15000 });
+    await page.waitForURL((url) => url.pathname.includes('/login'), { timeout: 15000, waitUntil: 'domcontentloaded' });
     assert.ok(page.url().includes('/login'), 'Must redirect to /login upon sign out');
 
     // Navigating back to protected page after logout redirects to /login
@@ -338,5 +338,104 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
       localhostGrep = '';
     }
     assert.equal(localhostGrep.trim(), '', `Found hard-coded localhost:5000 in frontend/src:\n${localhostGrep}`);
+  });
+
+  it('8. Same-origin proxy: login at http://localhost:3100 AND http://127.0.0.1:3100 reaches dashboard and survives reload', async () => {
+    for (const host of ['127.0.0.1', 'localhost']) {
+      const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const page = await context.newPage();
+
+      await page.goto(`http://${host}:${WEB_PORT}/login`, { waitUntil: 'domcontentloaded' });
+      await page.fill('input[type="email"]', 'admin@gulftech.ae');
+      await page.fill('input[type="password"]', TEST_PASSWORD);
+      await page.click('button[type="submit"]');
+
+      await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
+      assert.ok(!page.url().includes('/login'), `Host ${host} failed to reach dashboard`);
+
+      // Reload page and verify session survives
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(500);
+      assert.ok(!page.url().includes('/login'), `Host ${host} session failed after reload`);
+
+      await context.close();
+    }
+  });
+
+  it('9. Stale-cookie: invalid nextal_token cookie on / lands on /login once (no loop) and allows login', async () => {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    await context.addCookies([
+      {
+        name: 'nextal_token',
+        value: 'invalid.stale.token.value',
+        domain: '127.0.0.1',
+        path: '/',
+        httpOnly: true,
+      },
+    ]);
+
+    const page = await context.newPage();
+    let redirectCount = 0;
+    page.on('response', (res) => {
+      if (res.status() === 307 || res.status() === 308 || res.status() === 302) {
+        redirectCount++;
+      }
+    });
+
+    await page.goto(`http://127.0.0.1:${WEB_PORT}/`, { waitUntil: 'domcontentloaded' });
+    await page.waitForURL((url) => url.pathname.includes('/login'), { timeout: 10000 });
+    assert.ok(page.url().includes('/login'), 'Must land on /login with invalid token');
+    assert.ok(redirectCount <= 3, `Expected at most 1-2 redirects, got ${redirectCount} (redirect loop detected)`);
+
+    // Verify user can now sign in normally
+    await page.fill('input[type="email"]', 'admin@gulftech.ae');
+    await page.fill('input[type="password"]', TEST_PASSWORD);
+    await page.click('button[type="submit"]');
+    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
+    assert.ok(!page.url().includes('/login'), 'User could not sign in after stale token');
+
+    await context.close();
+  });
+
+  it('10. Logout and login clear cache: HR data never leaks to employee', async () => {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await context.newPage();
+
+    // 1. Log in as HR Manager
+    await page.goto(`http://127.0.0.1:${WEB_PORT}/login`, { waitUntil: 'domcontentloaded' });
+    await page.fill('input[type="email"]', 'hr.mgr@gulftech.ae');
+    await page.fill('input[type="password"]', TEST_PASSWORD);
+    await page.click('button[type="submit"]');
+    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
+
+    // Open employees page to cache employee data in React Query
+    await page.goto(`http://127.0.0.1:${WEB_PORT}/employees`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('text=Employees', { timeout: 10000 });
+
+    // 2. Sign out
+    const logoutBtn = page.locator('button[title*="Sign out"], button:has-text("Sign out"), button:has-text("تسجيل الخروج")').first();
+    await logoutBtn.click({ force: true });
+    await page.waitForURL((url) => url.pathname.includes('/login'), { timeout: 15000, waitUntil: 'domcontentloaded' });
+
+    // Track network requests when logging in as employee
+    let employeeDataRequested = false;
+    page.on('request', (req) => {
+      if (req.url().includes('/api/v1/employees') && !req.url().includes('/me')) {
+        employeeDataRequested = true;
+      }
+    });
+
+    // 3. Log in as Employee
+    await page.fill('input[type="email"]', 'employee@gulftech.ae');
+    await page.fill('input[type="password"]', TEST_PASSWORD);
+    await page.click('button[type="submit"]');
+    await page.waitForURL((url) => url.pathname.startsWith('/me'), { timeout: 15000 });
+
+    // Verify employee landed on /me and no HR employees endpoint was hit or leaked
+    assert.equal(employeeDataRequested, false, 'No /employees endpoint request should be made by employee session');
+    const bodyText = await page.textContent('body');
+    assert.ok(!bodyText.includes('Gulf Tech Employee Directory'), 'HR employee directory leaked to employee view');
+
+    await context.close();
   });
 });

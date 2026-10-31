@@ -1,6 +1,6 @@
 # Spec Section 15 Acceptance Test Results (T1–T37)
 
-*Generated automatically from `docs/reports/acceptance-raw.txt` on 2026-10-31T05:26:26.769Z*
+*Generated automatically from `docs/reports/acceptance-raw.txt` on 2026-10-31T15:27:18.845Z*
 
 | ID | Given | Expected | Status |
 | :--- | :--- | :--- | :--- |
@@ -45,6 +45,6 @@
 ## Summary
 - **Total Tests**: 37
 - **Passed**: 36
-- **Deferred (Phase 2)**: 1 (T1)
-- **Todo**: 0
+- **Deferred**: 1 (T1)
+- **Todo**: 0 ()
 - **Failed**: 0
