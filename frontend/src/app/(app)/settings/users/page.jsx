@@ -6,7 +6,7 @@ import { RouteGuard } from '@/components/common/RouteGuard';
 
 export default function UsersSettingsPage() {
   return (
-    <RouteGuard area="settings">
+    <RouteGuard area="settings" action="users">
       <UsersAndRolesFeature />
     </RouteGuard>
   );

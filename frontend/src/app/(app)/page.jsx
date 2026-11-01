@@ -45,13 +45,6 @@ export default function DashboardPage() {
   const [salaryData, setSalaryData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // If logged in as purely an employee, redirect to /me
-  useEffect(() => {
-    if (user?.roles?.includes('EMPLOYEE') && user?.roles?.length === 1) {
-      router.push('/me');
-    }
-  }, [user, router]);
-
   // Fetch overview metrics for all authorized users
   const loadOverview = async () => {
     try {
@@ -199,25 +192,21 @@ export default function DashboardPage() {
     totalHours: overviewData.overtimeMonth.totalHours,
   } : mockDashboardData.overtimeMonth;
 
-  const weekAheadData = overviewData?.weekAhead ? {
-    upcomingEvents: overviewData.weekAhead.leaves.map((l) => ({
-      date: l.dates,
-      employee: l.employeeName,
-      employeeAr: l.employeeName,
-      event: l.type,
-      type: 'leave',
-    })),
-  } : mockDashboardData.weekAhead;
+  const weekAheadData = Array.isArray(overviewData?.weekAhead)
+    ? overviewData.weekAhead
+    : mockDashboardData.weekAhead;
 
-  const recentActivityData = overviewData?.recentActivity ? {
-    items: overviewData.recentActivity.map((a) => ({
-      id: a.id,
-      user: a.userEmail,
-      action: a.action,
-      target: a.tableName,
-      time: new Date(a.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    })),
-  } : mockDashboardData.recentActivity;
+  const recentActivityData = Array.isArray(overviewData?.recentActivity)
+    ? overviewData.recentActivity.map((a) => ({
+        id: a.id,
+        avatar: a.userEmail ? a.userEmail.slice(0, 2).toUpperCase() : 'SY',
+        actor: a.userEmail || 'System',
+        role: 'Audit',
+        action: a.action,
+        target: a.tableName,
+        timestamp: new Date(a.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }))
+    : mockDashboardData.recentActivity;
 
   // Live Payroll metrics (only when seesSalary is true)
   const livePayrollData = salaryData?.livePayroll ? {

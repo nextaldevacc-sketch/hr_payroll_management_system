@@ -13,17 +13,21 @@ export function ExceptionsTile({ data = [], onSelectException }) {
   const getIcon = (id) => {
     switch (id) {
       case 'ex-1':
+      case 'missing':
         return <Fingerprint className="w-4 h-4 text-warning-text" />;
       case 'ex-2':
+      case 'late':
         return <Clock className="w-4 h-4 text-warning-text" />;
       case 'ex-3':
+      case 'absent':
         return <AlertCircle className="w-4 h-4 text-danger-text" />;
       default:
         return <AlertTriangle className="w-4 h-4 text-warning-text" />;
     }
   };
 
-  const totalExceptions = data.reduce((acc, curr) => acc + curr.count, 0);
+  const items = Array.isArray(data) ? data : data?.exceptions || [];
+  const totalExceptions = items.reduce((acc, curr) => acc + (curr.count || 0), 0);
 
   return (
     <BentoTile
@@ -45,18 +49,18 @@ export function ExceptionsTile({ data = [], onSelectException }) {
       <div className="space-y-2">
         {/* List starts DIRECTLY under header */}
         <div className="space-y-1.5">
-          {data.slice(0, 3).map((item) => (
+          {items.slice(0, 3).map((item, idx) => (
             <InsetBox
-              key={item.id}
+              key={item.id || item.code || idx}
               interactive
               onClick={() => onSelectException && onSelectException(item)}
               className="p-2.5 group flex items-center justify-between gap-2.5 text-xs"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <div className="flex-shrink-0">{getIcon(item.id)}</div>
+                <div className="flex-shrink-0">{getIcon(item.id || item.code)}</div>
                 <div className="min-w-0 flex-1">
                   <h4 className="font-semibold text-text group-hover:text-primary transition-colors truncate">
-                    {item.title}
+                    {item.title || item.type}
                   </h4>
                   <p className="text-[10px] text-text-muted truncate">
                     {item.subtitle}

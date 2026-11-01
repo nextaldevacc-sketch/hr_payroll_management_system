@@ -40,6 +40,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
 
   // Section 5.3 Permissions Matrix Filter for Sidebar Navigation
   const isEmployeeOnly = user?.roles?.includes('EMPLOYEE') && user.roles.length === 1;
+  const isEmployee = Boolean(user?.employee_id) || user?.roles?.includes('EMPLOYEE');
   const isPlatformAdmin = Boolean(user?.is_platform_admin);
   const isAr = locale === 'ar';
 
@@ -65,29 +66,68 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
     // Pure employee role only sees Self-Service
     if (isEmployeeOnly) return false;
 
-    // Payroll visible only to salary roles (Section 5.3)
-    if (item.area === 'payroll' && !seesSalary) return false;
+    // Dashboard: all enterprise roles in Section 5.3
+    if (item.area === 'dashboard') return true;
 
-    // Employee records: Finance has '—' in Section 5.3
-    if (item.area === 'employees' && user?.roles?.includes('FINANCE') && !user?.roles?.includes('COMPANY_ADMIN')) {
-      return false;
+    // Employees: Finance has '—' in Section 5.3
+    if (item.area === 'employees') {
+      return user?.roles?.some((r) =>
+        ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER'].includes(r)
+      );
     }
 
-    // Settings: Dept Manager, HR Officer have '—'
-    if (
-      item.area === 'settings' &&
-      user?.roles?.every((r) => ['EMPLOYEE', 'DEPT_MANAGER', 'HR_OFFICER', 'GM'].includes(r)) &&
-      !user?.roles?.includes('COMPANY_ADMIN')
-    ) {
-      return false;
+    // Attendance: Finance has '—' in Section 5.3
+    if (item.area === 'attendance') {
+      return user?.roles?.some((r) =>
+        ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER'].includes(r)
+      );
     }
 
-    // Audit: Visible only to HR Manager, GM, Company Admin (Section 5.3)
-    if (
-      item.area === 'audit' &&
-      !user?.roles?.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'GM'].includes(r))
-    ) {
-      return false;
+    // Leave & holidays: Finance has '—' in Section 5.3
+    if (item.area === 'leave') {
+      return user?.roles?.some((r) =>
+        ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER'].includes(r)
+      );
+    }
+
+    // Payroll: strictly salary roles (HR Manager, Payroll Officer, GM, Finance) per Section 5.3
+    if (item.area === 'payroll') {
+      return Boolean(seesSalary);
+    }
+
+    // Offboarding: Company Admin has no offboarding rights in Section 5.3
+    if (item.area === 'offboarding') {
+      return user?.roles?.some((r) =>
+        ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'DEPT_MANAGER'].includes(r)
+      );
+    }
+
+    // Compliance: Only Company Admin, HR Manager, HR Officer, GM in Section 5.3
+    if (item.area === 'compliance') {
+      return user?.roles?.some((r) =>
+        ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'GM'].includes(r)
+      );
+    }
+
+    // Reports: Section 5.3 reports roles (Company Admin, HR Manager, Payroll Officer, GM, Finance)
+    if (item.area === 'reports') {
+      return user?.roles?.some((r) =>
+        ['COMPANY_ADMIN', 'HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'FINANCE'].includes(r)
+      );
+    }
+
+    // Settings: Company Admin, HR Manager, Payroll Officer, Finance in Section 5.3
+    if (item.area === 'settings') {
+      return user?.roles?.some((r) =>
+        ['COMPANY_ADMIN', 'HR_MANAGER', 'PAYROLL_OFFICER', 'FINANCE'].includes(r)
+      );
+    }
+
+    // Audit: Company Admin, HR Manager, GM in Section 5.3
+    if (item.area === 'audit') {
+      return user?.roles?.some((r) =>
+        ['COMPANY_ADMIN', 'HR_MANAGER', 'GM'].includes(r)
+      );
     }
 
     return true;
@@ -244,8 +284,8 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
             </div>
           )}
 
-          {/* Self-Service Section */}
-          {!isPlatformAdmin && (
+          {/* Self-Service Section (Only for users with an employee record or employee role) */}
+          {isEmployee && !isPlatformAdmin && (
             <div className="pt-3 mt-3 border-t border-border/50">
               <div className="px-3 pb-1 hidden xl:block">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted/70">

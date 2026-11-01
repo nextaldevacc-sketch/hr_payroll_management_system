@@ -132,7 +132,7 @@ export function AuthProvider({ children }) {
 
       // Employee self-service
       if (area === 'me') {
-        return true;
+        return Boolean(user?.employee_id) || roles.includes('EMPLOYEE');
       }
 
       // Root Dashboard: all enterprise roles except employee-only
@@ -155,27 +155,27 @@ export function AuthProvider({ children }) {
           return roles.some((r) => ['HR_MANAGER', 'HR_OFFICER'].includes(r));
         }
         return roles.some((r) =>
-          ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'DEPT_MANAGER'].includes(r)
+          ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER'].includes(r)
         );
       }
 
       // Attendance
       if (area === 'attendance') {
-        return roles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'DEPT_MANAGER'].includes(r));
+        return roles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'DEPT_MANAGER', 'PAYROLL_OFFICER', 'GM'].includes(r));
       }
 
       // Leave
       if (area === 'leave') {
-        return roles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'DEPT_MANAGER', 'GM'].includes(r));
+        return roles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'DEPT_MANAGER', 'PAYROLL_OFFICER', 'GM'].includes(r));
       }
 
-      // Offboarding
+      // Offboarding (Company Admin has no offboarding rights per Section 5.3)
       if (area === 'offboarding') {
         if (action === 'approve') {
           return roles.includes('HR_MANAGER');
         }
         return roles.some((r) =>
-          ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'DEPT_MANAGER'].includes(r)
+          ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'DEPT_MANAGER'].includes(r)
         );
       }
 
@@ -191,12 +191,20 @@ export function AuthProvider({ children }) {
 
       // Settings
       if (area === 'settings') {
+        if (action === 'users') {
+          return roles.includes('COMPANY_ADMIN');
+        }
         return roles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'PAYROLL_OFFICER', 'FINANCE'].includes(r));
       }
 
       // Audit Logs
       if (area === 'audit') {
         return roles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'GM'].includes(r));
+      }
+
+      // Platform Admin: strictly platform admin
+      if (area === 'platform') {
+        return Boolean(user.is_platform_admin);
       }
 
       // Default: DENY
