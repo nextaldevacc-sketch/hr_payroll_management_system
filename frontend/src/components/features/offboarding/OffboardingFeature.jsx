@@ -33,6 +33,7 @@ import {
   createSeparation,
   actOnSeparation,
   updateClearanceItem,
+  updateSeparationTask,
 } from '../../../services/separationsApi';
 import {
   getSettlementBySeparation,
@@ -220,6 +221,24 @@ export function OffboardingFeature() {
       fetchSeparations();
     } catch (err) {
       setActionError(err.message || 'Failed to update clearance item');
+    }
+  };
+
+  const handleUpdateTask = async (taskId, newStatus, refNo, note) => {
+    try {
+      setActionError(null);
+      await updateSeparationTask(taskId, {
+        status: newStatus,
+        reference_number: refNo,
+        note,
+      });
+      setActionSuccess('Cancellation task updated successfully.');
+      if (selectedSeparation) {
+        handleSelectSeparation(selectedSeparation, activeTab);
+      }
+      fetchSeparations();
+    } catch (err) {
+      setActionError(err.message || 'Failed to update cancellation task');
     }
   };
 
@@ -757,6 +776,90 @@ export function OffboardingFeature() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Cancellation Tasks (FR-OF7) */}
+          <div className="mt-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-amber-500" />
+                  {t('offboarding.tasks.title')}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {t('offboarding.tasks.subtitle')}
+                </p>
+              </div>
+              <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                {selectedSeparation.tasks?.length || 0} Tasks
+              </span>
+            </div>
+
+            {(!selectedSeparation.tasks || selectedSeparation.tasks.length === 0) ? (
+              <div className="text-center py-6 text-xs text-slate-400">
+                No active cancellation tasks. Tasks are automatically scheduled upon final working date and approved settlement.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {selectedSeparation.tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        {task.task_type === 'VISA_CANCELLATION'
+                          ? t('offboarding.tasks.visaTask')
+                          : t('offboarding.tasks.labourTask')}
+                      </span>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                          task.status === 'Done'
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                            : task.status === 'In Progress'
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                            : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                        }`}
+                      >
+                        {task.status}
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-slate-500 space-y-1">
+                      <div>Due Date: <strong>{new Date(task.due_date).toLocaleDateString()}</strong></div>
+                      {task.reference_number && (
+                        <div>Reference #: <strong className="font-mono">{task.reference_number}</strong></div>
+                      )}
+                      {task.note && <div className="italic">{task.note}</div>}
+                    </div>
+
+                    {task.status !== 'Done' && (
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                        <button
+                          onClick={() => {
+                            const ref = prompt('Enter cancellation reference / application number:', task.reference_number || '');
+                            if (ref !== null) {
+                              handleUpdateTask(task.id, 'Done', ref, task.note);
+                            }
+                          }}
+                          className="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                        >
+                          {t('offboarding.tasks.markDone')}
+                        </button>
+                        {task.status === 'Open' && (
+                          <button
+                            onClick={() => handleUpdateTask(task.id, 'In Progress', task.reference_number, task.note)}
+                            className="px-2.5 py-1 text-xs font-semibold rounded bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+                          >
+                            {t('offboarding.tasks.markInProgress')}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

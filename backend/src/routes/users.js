@@ -11,7 +11,7 @@ import userController from '../controllers/userController.js';
 
 const router = Router();
 
-router.use(authenticate, requireRole('COMPANY_ADMIN', 'HR_MANAGER'));
+router.use(authenticate, requireRole('COMPANY_ADMIN'));
 
 router.get('/roles', userController.listRoles);
 router.get('/users', userController.listUsers);

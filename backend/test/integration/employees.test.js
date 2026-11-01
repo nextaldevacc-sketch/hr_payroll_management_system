@@ -314,7 +314,7 @@ describe('Phase 4: Employee Management, Verification & Security Tests', () => {
       // Create employee
       const empRes = await request(app)
         .post('/api/v1/employees')
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${hrOfficerToken}`)
         .send({
           employee_code: `T-CMP-${Date.now().toString().slice(-6)}`,
           name: 'Complete Test Employee',
@@ -328,10 +328,10 @@ describe('Phase 4: Employee Management, Verification & Security Tests', () => {
         });
       completeEmpId = empRes.body.data.id;
 
-      // Add Contract with shift
+      // Add Contract with shift (Payroll Officer creates, HR Manager approves per Spec 5.3)
       const contractRes = await request(app)
         .post(`/api/v1/employees/${completeEmpId}/contracts`)
-        .set('Authorization', `Bearer ${hrMgrToken}`)
+        .set('Authorization', `Bearer ${payrollToken}`)
         .send({
           effective_date: '2026-11-01',
           start_date: '2026-11-01',
@@ -347,6 +347,10 @@ describe('Phase 4: Employee Management, Verification & Security Tests', () => {
           gross: 10000,
         });
       assert.equal(contractRes.status, 201);
+
+      await request(app)
+        .post(`/api/v1/employees/${completeEmpId}/contracts/${contractRes.body.data.id}/approve`)
+        .set('Authorization', `Bearer ${hrMgrToken}`);
 
       // Add Bank Account with valid UAE IBAN
       const testIban1 = generateValidUaeIban(33, Date.now() + Math.floor(Math.random() * 1000));
@@ -440,7 +444,7 @@ describe('Phase 4: Employee Management, Verification & Security Tests', () => {
       // 2026-09 is locked in Gulf Tech Logistics
       const res = await request(app)
         .post(`/api/v1/employees/${empId}/contracts`)
-        .set('Authorization', `Bearer ${hrMgrToken}`)
+        .set('Authorization', `Bearer ${payrollToken}`)
         .send({
           effective_date: '2026-09-15',
           start_date: '2026-09-15',
@@ -610,14 +614,15 @@ describe('Phase 4: Employee Management, Verification & Security Tests', () => {
       assert.equal(verifyRes.body.code, 'SELF_VERIFICATION_BLOCKED');
       assert.ok(verifyRes.body.message.includes('Self-verification is not permitted'));
 
-      // Company Admin (different user) verifies successfully
-      const adminVerifyRes = await request(app)
+      // Second HR Manager (hr@gulftech.ae) verifies successfully per Spec 5.3 P5
+      const hr2Token = await login('hr@gulftech.ae');
+      const hr2VerifyRes = await request(app)
         .post(`/api/v1/employees/${createdEmpId}/verify`)
-        .set('Authorization', `Bearer ${adminToken}`)
-        .send({ action: 'APPROVE', comment: 'Approved by admin' });
+        .set('Authorization', `Bearer ${hr2Token}`)
+        .send({ action: 'APPROVE', comment: 'Approved by second HR Manager' });
 
-      assert.equal(adminVerifyRes.status, 200);
-      assert.equal(adminVerifyRes.body.data.status, 'New Joined');
+      assert.equal(hr2VerifyRes.status, 200);
+      assert.equal(hr2VerifyRes.body.data.status, 'New Joined');
     });
 
     it('records audit log entries for changes and retrieves them on History tab (Rule F)', async () => {

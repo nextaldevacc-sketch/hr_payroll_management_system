@@ -366,7 +366,7 @@ export function PayRunDetailFeature() {
           { key: 'payslips', label: `Payslips (${payRun.employee_count || 0})`, icon: FileText },
           {
             key: 'variances',
-            label: `Variances > 10% (${variancePayslips.length})`,
+            label: `Variances > ${payRun.variance_threshold_pct || payRun.company?.variance_threshold_pct || 10}% (${variancePayslips.length})`,
             icon: AlertTriangle,
             badge: payRun.pending_variance_count > 0 ? `${payRun.pending_variance_count} Pending` : null,
           },

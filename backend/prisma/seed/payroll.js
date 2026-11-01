@@ -17,6 +17,7 @@ export async function seedPayroll(prisma, {
   const payrollService = new PayrollService(prisma);
 
   const userHR1 = demoUsersMap['hr.mgr@gulftech.ae'];
+  const userPayroll1 = demoUsersMap['payroll@gulftech.ae'];
   const userGM1 = demoUsersMap['gm@gulftech.ae'];
   const userFinance1 = demoUsersMap['finance@gulftech.ae'];
   const userAdmin1 = demoUsersMap['admin@gulftech.ae'];
@@ -35,9 +36,9 @@ export async function seedPayroll(prisma, {
       cutoff_date: '2026-09-25',
       run_type: 'Regular',
     },
-    userHR1.id
+    userPayroll1.id
   );
-  await payrollService.calculatePayRun(company1.id, septRun1.id, userHR1.id);
+  await payrollService.calculatePayRun(company1.id, septRun1.id, userPayroll1.id);
   await payrollService.validatePayRun(company1.id, septRun1.id, userHR1.id);
   await payrollService.lockPayRun(company1.id, septRun1.id, userGM1.id);
   await payrollService.markPayRunPaid(company1.id, septRun1.id, userFinance1.id);
@@ -51,9 +52,9 @@ export async function seedPayroll(prisma, {
       cutoff_date: '2026-09-25',
       run_type: 'Regular',
     },
-    userHR1.id
+    userPayroll1.id
   );
-  await payrollService.calculatePayRun(company1.id, septRun2.id, userHR1.id);
+  await payrollService.calculatePayRun(company1.id, septRun2.id, userPayroll1.id);
   await payrollService.validatePayRun(company1.id, septRun2.id, userHR1.id);
   await payrollService.lockPayRun(company1.id, septRun2.id, userGM1.id);
   await payrollService.markPayRunPaid(company1.id, septRun2.id, userFinance1.id);
@@ -124,9 +125,9 @@ export async function seedPayroll(prisma, {
       cutoff_date: '2026-10-25',
       run_type: 'Regular',
     },
-    userHR1.id
+    userPayroll1.id
   );
-  const oct1Result = await payrollService.calculatePayRun(company1.id, payRun1.id, userHR1.id);
+  const oct1Result = await payrollService.calculatePayRun(company1.id, payRun1.id, userPayroll1.id);
   console.log(`October Visa 1 calculated: ${oct1Result.employee_count} employees, Net: AED ${oct1Result.total_net}`);
 
   // 3b. October Pay Run for Visa 2 (DIFC Freezone - 12 employees, including 3 October joiners)
@@ -138,9 +139,9 @@ export async function seedPayroll(prisma, {
       cutoff_date: '2026-10-25',
       run_type: 'Regular',
     },
-    userHR1.id
+    userPayroll1.id
   );
-  const oct2Result = await payrollService.calculatePayRun(company1.id, payRun2.id, userHR1.id);
+  const oct2Result = await payrollService.calculatePayRun(company1.id, payRun2.id, userPayroll1.id);
   console.log(`October Visa 2 calculated: ${oct2Result.employee_count} employees, Net: AED ${oct2Result.total_net}`);
 
   // 3c. Enter demo variance explanations for Visa 1 variances via service API

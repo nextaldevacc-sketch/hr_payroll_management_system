@@ -113,13 +113,16 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
   });
 
   after(async () => {
-    if (browser) {
-      await browser.close().catch(() => {});
+    try {
+      if (browser) {
+        await browser.close().catch(() => {});
+      }
+      if (prisma) {
+        await prisma.$disconnect().catch(() => {});
+      }
+    } finally {
+      await Promise.all([killProcWithTree(apiProcess), killProcWithTree(webProcess)]);
     }
-    if (prisma) {
-      await prisma.$disconnect().catch(() => {});
-    }
-    await Promise.all([killProcWithTree(apiProcess), killProcWithTree(webProcess)]);
   });
 
   it('changes shift grace minutes in UI, reloads page, confirms persistence, and verifies audit & version records in DB', async () => {

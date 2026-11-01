@@ -53,52 +53,61 @@ describe('Phase 7: 390px Mobile Responsive Layout (No Horizontal Scroll)', { tim
   }
 
   before(async () => {
-    // 1. Ensure API is running
     try {
-      await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 1500);
-    } catch {
-      const testDbUrl = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
-      apiProcess = spawn(process.execPath, [path.resolve(apiDir, 'src/server.js')], {
-        cwd: apiDir,
-        env: { ...process.env, PORT: String(API_PORT), NODE_ENV: 'test', DATABASE_URL: testDbUrl, DATABASE_URL_TEST: testDbUrl },
-        stdio: 'ignore',
-      });
-      await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 25000);
-    }
+      // 1. Ensure API is running
+      try {
+        await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 1500);
+      } catch {
+        const testDbUrl = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
+        apiProcess = spawn(process.execPath, [path.resolve(apiDir, 'src/server.js')], {
+          cwd: apiDir,
+          env: { ...process.env, PORT: String(API_PORT), NODE_ENV: 'test', DATABASE_URL: testDbUrl, DATABASE_URL_TEST: testDbUrl },
+          stdio: 'ignore',
+        });
+        await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 25000);
+      }
 
-    // 2. Ensure Web is running
-    try {
-      await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 1500);
-    } catch {
-      const distDir = fs.existsSync(path.join(webDir, '.next-build')) ? '.next-build' : (fs.existsSync(path.join(webDir, '.next')) ? '.next' : null);
-      const hasBuild = Boolean(distDir);
-      const commandArgs = hasBuild ? [nextBin, 'start', '-p', String(WEB_PORT)] : [nextBin, 'dev', '-p', String(WEB_PORT)];
-      webProcess = spawn(process.execPath, commandArgs, {
-        cwd: webDir,
-        env: {
-          ...process.env,
-          PORT: String(WEB_PORT),
-          NODE_ENV: hasBuild ? 'production' : 'development',
-          NEXT_DIST_DIR: distDir || '.next',
-          NEXT_PUBLIC_API_URL: `http://127.0.0.1:${API_PORT}/api/v1`,
-          NEXT_PUBLIC_FEATURE_PLATFORM_ADMIN: 'false',
-        },
-        stdio: 'ignore',
-      });
-      await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 35000);
-    }
+      // 2. Ensure Web is running
+      try {
+        await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 1500);
+      } catch {
+        const distDir = fs.existsSync(path.join(webDir, '.next-build')) ? '.next-build' : (fs.existsSync(path.join(webDir, '.next')) ? '.next' : null);
+        const hasBuild = Boolean(distDir);
+        const commandArgs = hasBuild ? [nextBin, 'start', '-p', String(WEB_PORT)] : [nextBin, 'dev', '-p', String(WEB_PORT)];
+        webProcess = spawn(process.execPath, commandArgs, {
+          cwd: webDir,
+          env: {
+            ...process.env,
+            PORT: String(WEB_PORT),
+            NODE_ENV: hasBuild ? 'production' : 'development',
+            NEXT_DIST_DIR: distDir || '.next',
+            API_ORIGIN: `http://127.0.0.1:${API_PORT}`,
+            NEXT_PUBLIC_API_URL: '/api/v1',
+            NEXT_PUBLIC_FEATURE_PLATFORM_ADMIN: 'false',
+          },
+          stdio: 'ignore',
+        });
+        await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 30000);
+      }
 
-    // 3. Launch mobile browser at exactly 390px
-    browser = await chromium.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+      // 3. Launch mobile browser at exactly 390px
+      browser = await chromium.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+    } catch (err) {
+      if (browser) await browser.close().catch(() => {});
+      await Promise.all([killProcWithTree(apiProcess), killProcWithTree(webProcess)]);
+      throw err;
+    }
   });
 
   after(async () => {
-    if (browser) await browser.close().catch(() => {});
-    if (apiProcess) await killProcWithTree(apiProcess);
-    if (webProcess) await killProcWithTree(webProcess);
+    try {
+      if (browser) await browser.close().catch(() => {});
+    } finally {
+      await Promise.all([killProcWithTree(apiProcess), killProcWithTree(webProcess)]);
+    }
   });
 
   it('390px viewport has zero horizontal scroll across all Self-Service screens in en & ar', async () => {

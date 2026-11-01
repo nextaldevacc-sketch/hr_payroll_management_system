@@ -2,6 +2,15 @@ import settlementService from '../services/settlementService.js';
 
 export async function calculateSettlement(req, res, next) {
   try {
+    const roles = req.user?.roles || [];
+    if (!roles.includes('PAYROLL_OFFICER')) {
+      return res.status(403).json({
+        status: 'error',
+        code: 'FORBIDDEN',
+        message: 'Access denied: Only Payroll Officer can calculate final settlements.',
+      });
+    }
+
     const companyId = req.user.companyId;
     const { separationId } = req.params;
     const calculation = await settlementService.calculateSettlement(
@@ -17,6 +26,15 @@ export async function calculateSettlement(req, res, next) {
 
 export async function prepareSettlement(req, res, next) {
   try {
+    const roles = req.user?.roles || [];
+    if (!roles.includes('PAYROLL_OFFICER')) {
+      return res.status(403).json({
+        status: 'error',
+        code: 'FORBIDDEN',
+        message: 'Access denied: Only Payroll Officer can prepare final settlements.',
+      });
+    }
+
     const companyId = req.user.companyId;
     const { separationId } = req.params;
     const settlement = await settlementService.prepareSettlement(
@@ -33,6 +51,15 @@ export async function prepareSettlement(req, res, next) {
 
 export async function validateSettlement(req, res, next) {
   try {
+    const roles = req.user?.roles || [];
+    if (!roles.includes('HR_MANAGER')) {
+      return res.status(403).json({
+        status: 'error',
+        code: 'FORBIDDEN',
+        message: 'Access denied: Only HR Manager can validate final settlements.',
+      });
+    }
+
     const companyId = req.user.companyId;
     const { id } = req.params;
     const settlement = await settlementService.validateSettlement(companyId, id, req.user.userId);
@@ -44,6 +71,15 @@ export async function validateSettlement(req, res, next) {
 
 export async function approveSettlement(req, res, next) {
   try {
+    const roles = req.user?.roles || [];
+    if (!roles.includes('GM')) {
+      return res.status(403).json({
+        status: 'error',
+        code: 'FORBIDDEN',
+        message: 'Access denied: Only GM can approve final settlements.',
+      });
+    }
+
     const companyId = req.user.companyId;
     const { id } = req.params;
     const settlement = await settlementService.approveSettlement(companyId, id, req.user.userId);
@@ -55,6 +91,15 @@ export async function approveSettlement(req, res, next) {
 
 export async function markSettlementPaid(req, res, next) {
   try {
+    const roles = req.user?.roles || [];
+    if (!roles.includes('FINANCE')) {
+      return res.status(403).json({
+        status: 'error',
+        code: 'FORBIDDEN',
+        message: 'Access denied: Only Finance can mark final settlements as Paid.',
+      });
+    }
+
     const companyId = req.user.companyId;
     const { id } = req.params;
     const settlement = await settlementService.markSettlementPaid(companyId, id, req.user.userId);

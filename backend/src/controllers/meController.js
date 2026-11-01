@@ -1,4 +1,5 @@
 import prisma from '../lib/prisma.js';
+import auditService from '../services/auditService.js';
 import leaveService from '../services/leaveService.js';
 import overtimeService from '../services/overtimeService.js';
 import { PayrollService } from '../services/payrollService.js';
@@ -571,6 +572,17 @@ export async function getMyPayslipPdf(req, res, next) {
     }
 
     const pdfBuffer = await payrollService.getPayslipPdf(req.companyId, id);
+
+    // Audit log payslip PDF download
+    await auditService.log({
+      companyId: req.companyId,
+      userId: req.user?.id || req.user?.userId,
+      action: 'PAYSLIP_PDF_DOWNLOAD',
+      tableName: 'payslips',
+      recordId: payslip.id,
+      newValues: { employeeId: payslip.employee_id, payRunId: payslip.pay_run_id },
+    }).catch(() => {});
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="payslip-${payslip.id.slice(0, 8)}.pdf"`);
     res.send(pdfBuffer);

@@ -1302,8 +1302,10 @@ model separation_tasks {
   task_type     String      @db.VarChar(30)
   assigned_to   String      @db.Uuid
   due_date      DateTime    @db.Date
-  status        String      @default("Open") @db.VarChar(20)
-  completed_at  DateTime?   @db.Timestamptz
+  status           String      @default("Open") @db.VarChar(20)
+  reference_number String?     @db.VarChar(100)
+  note             String?     @db.Text
+  completed_at     DateTime?   @db.Timestamptz
   created_at    DateTime    @default(now()) @db.Timestamptz
   created_by    String?     @db.Uuid
   updated_at    DateTime    @updatedAt @db.Timestamptz

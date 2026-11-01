@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -12,6 +13,17 @@ const STORAGE_ROOT = process.env.STORAGE_PATH || path.resolve(__dirname, '../../
 // Allowed MIME types and extensions
 const ALLOWED_MIME_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png']);
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
+const ENCRYPTION_MAGIC = Buffer.from('NEXTAL_ENC_V1'); // 13 bytes
+
+export function getEncryptionKey() {
+  const keyStr = process.env.DOCUMENT_ENCRYPTION_KEY || 'nextal_doc_encryption_key_32_b!';
+  const keyBuf = Buffer.from(keyStr, keyStr.length === 64 ? 'hex' : 'utf8');
+  if (keyBuf.length !== 32) {
+    return crypto.createHash('sha256').update(keyBuf).digest();
+  }
+  return keyBuf;
+}
 
 /**
  * Validates file buffer by inspecting magic bytes
@@ -87,7 +99,21 @@ export class StorageService {
     const safeFileName = `${Date.now()}_${randomHex}${ext.toLowerCase()}`;
     const destination = path.join(this.storageDir, safeFileName);
 
-    await fs.promises.writeFile(destination, buffer);
+    // Encrypt file at rest with AES-256-GCM (W3 / FR-EM5)
+    const key = getEncryptionKey();
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    const ciphertext = Buffer.concat([cipher.update(buffer), cipher.final()]);
+    const authTag = cipher.getAuthTag();
+
+    const encryptedData = Buffer.concat([
+      ENCRYPTION_MAGIC,
+      iv,
+      authTag,
+      ciphertext,
+    ]);
+
+    await fs.promises.writeFile(destination, encryptedData);
 
     return {
       storagePath: safeFileName,
@@ -98,10 +124,10 @@ export class StorageService {
   }
 
   /**
-   * Retrieves a file for download/streaming
+   * Retrieves a file for download/streaming, decrypting if encrypted (W3 / FR-EM5)
    *
    * @param {string} storagePath - Relative storage filename
-   * @returns {Promise<{ stream: fs.ReadStream, mimeType: string, size: number, exists: boolean }>}
+   * @returns {Promise<{ stream: NodeJS.ReadableStream, mimeType: string, size: number, exists: boolean }>}
    */
   async getFile(storagePath) {
     const safePath = path.basename(storagePath);
@@ -114,15 +140,37 @@ export class StorageService {
       throw err;
     }
 
-    const stats = await fs.promises.stat(fullPath);
+    const rawBuffer = await fs.promises.readFile(fullPath);
     const ext = path.extname(fullPath).toLowerCase();
     const mimeType = ext === '.pdf' ? 'application/pdf' : ext === '.png' ? 'image/png' : 'image/jpeg';
 
-    const stream = fs.createReadStream(fullPath);
+    // Check if file is encrypted with NEXTAL_ENC_V1
+    if (
+      rawBuffer.length >= ENCRYPTION_MAGIC.length + 28 &&
+      rawBuffer.subarray(0, ENCRYPTION_MAGIC.length).equals(ENCRYPTION_MAGIC)
+    ) {
+      const key = getEncryptionKey();
+      const iv = rawBuffer.subarray(13, 25);
+      const authTag = rawBuffer.subarray(25, 41);
+      const ciphertext = rawBuffer.subarray(41);
+
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+      decipher.setAuthTag(authTag);
+      const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+
+      return {
+        stream: Readable.from(decrypted),
+        mimeType,
+        size: decrypted.length,
+        exists: true,
+      };
+    }
+
+    // Unencrypted legacy fallback
     return {
-      stream,
+      stream: fs.createReadStream(fullPath),
       mimeType,
-      size: stats.size,
+      size: rawBuffer.length,
       exists: true,
     };
   }

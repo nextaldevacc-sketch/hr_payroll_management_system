@@ -239,6 +239,15 @@
       "amountDue": "Amount Due / Recovery (AED)",
       "notes": "Notes / Asset Condition"
     },
+    "tasks": {
+      "title": "Cancellation Tasks (FR-OF7)",
+      "subtitle": "Post-settlement government cancellation workflows",
+      "visaTask": "Residency Visa Cancellation",
+      "labourTask": "MOHRE Labour Card Cancellation",
+      "refNo": "Reference / Application #",
+      "markDone": "Complete Task",
+      "markInProgress": "Mark In Progress"
+    },
     "settlement": {
       "title": "Final Settlement Breakdown",
       "salaryDue": "Pro-rated Salary to Last Day",

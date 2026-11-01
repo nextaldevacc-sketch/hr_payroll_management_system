@@ -279,7 +279,7 @@ export class SeparationService {
   /**
    * Get separation by ID with clearance items and settlement
    */
-  async getSeparationById(companyId, separationId) {
+  async getSeparationById(companyId, separationId, user = null) {
     const separation = await this.prisma.$base().separations.findFirst({
       where: { id: separationId, company_id: companyId },
       include: {
@@ -298,6 +298,7 @@ export class SeparationService {
             contracts: {
               where: { status: { in: ['Approved', 'Active'] } },
               select: {
+                department_id: true,
                 department: { select: { id: true, name: true } },
                 job: { select: { id: true, title: true } },
               },
@@ -325,6 +326,40 @@ export class SeparationService {
       throw err;
     }
 
+    if (user) {
+      const roles = user.roles || [];
+      const isHrOrGm = roles.some((r) =>
+        ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'COMPANY_ADMIN', 'PLATFORM_ADMIN'].includes(r)
+      );
+
+      if (!isHrOrGm) {
+        if (roles.includes('DEPT_MANAGER')) {
+          const userDept = await this.prisma.$base().departments.findFirst({
+            where: { company_id: companyId, manager_id: user.userId || user.id },
+          });
+          const empDeptId = separation.employee?.contracts?.[0]?.department_id;
+          if (!userDept || empDeptId !== userDept.id) {
+            const err = new Error('Access denied: Department managers can only view separations for their own team.');
+            err.status = 403;
+            err.code = 'FORBIDDEN_DEPARTMENT';
+            throw err;
+          }
+        } else if (roles.includes('FINANCE')) {
+          const hasFinanceItem = separation.clearance_items.some(
+            (c) =>
+              c.department?.name?.toLowerCase().includes('finance') ||
+              c.item?.toLowerCase().includes('finance')
+          );
+          if (!hasFinanceItem) {
+            const err = new Error('Access denied: Finance can only view separations with Finance clearance items.');
+            err.status = 403;
+            err.code = 'FORBIDDEN_FINANCE';
+            throw err;
+          }
+        }
+      }
+    }
+
     const allClearanceCleared =
       separation.clearance_items.length > 0 &&
       separation.clearance_items.every((c) => c.status === 'Cleared');
@@ -344,11 +379,45 @@ export class SeparationService {
   /**
    * List separations with filtering
    */
-  async listSeparations(companyId, { status, type, employeeId, limit = 50, offset = 0 } = {}) {
+  async listSeparations(companyId, { status, type, employeeId, limit = 50, offset = 0 } = {}, user = null) {
     const where = { company_id: companyId };
     if (status) where.status = status;
     if (type) where.type = type;
     if (employeeId) where.employee_id = employeeId;
+
+    if (user) {
+      const roles = user.roles || [];
+      const isHrOrGm = roles.some((r) =>
+        ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'COMPANY_ADMIN', 'PLATFORM_ADMIN'].includes(r)
+      );
+
+      if (!isHrOrGm) {
+        if (roles.includes('DEPT_MANAGER')) {
+          const userDept = await this.prisma.$base().departments.findFirst({
+            where: { company_id: companyId, manager_id: user.userId || user.id },
+          });
+          if (userDept) {
+            where.employee = {
+              contracts: {
+                some: {
+                  department_id: userDept.id,
+                  status: { in: ['Approved', 'Active'] },
+                },
+              },
+            };
+          }
+        } else if (roles.includes('FINANCE')) {
+          where.clearance_items = {
+            some: {
+              OR: [
+                { department: { name: { contains: 'Finance', mode: 'insensitive' } } },
+                { item: { contains: 'Finance', mode: 'insensitive' } },
+              ],
+            },
+          };
+        }
+      }
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.$base().separations.findMany({
@@ -415,29 +484,62 @@ export class SeparationService {
         where: { id: user },
         include: { user_roles: { include: { role: true } } },
       });
+    } else if (userObj && !userObj.roles && !userObj.user_roles && userObj.id) {
+      userObj = await this.prisma.$base().users.findUnique({
+        where: { id: userObj.id },
+        include: { user_roles: { include: { role: true } } },
+      });
     }
     const userId = userObj?.id || user;
     const userRoleNames = Array.isArray(userObj?.roles)
       ? userObj.roles
-      : (userObj?.user_roles?.map((ur) => ur.role?.code) || ['HR_MANAGER']);
+      : (userObj?.user_roles?.map((ur) => ur.role?.code) || []);
 
-    const isHrOrAdmin = userRoleNames.some((r) =>
-      ['HR_MANAGER', 'HR_OFFICER', 'COMPANY_ADMIN', 'PLATFORM_ADMIN', 'GM'].includes(r)
-    );
+    const isHrManager = userRoleNames.includes('HR_MANAGER');
+    const isHrOfficer = userRoleNames.includes('HR_OFFICER');
     const isFinance = userRoleNames.includes('FINANCE');
     const isDeptManager = userRoleNames.includes('DEPT_MANAGER');
+    const isAdmin = userRoleNames.some((r) => ['COMPANY_ADMIN', 'PLATFORM_ADMIN'].includes(r));
 
-    if (!isHrOrAdmin) {
-      if (isFinance && !item.department.name.toLowerCase().includes('finance')) {
-        const err = new Error('Finance users can only clear Finance department checklist items');
+    // Spec Part 2.2:
+    // "clearance item clear: only the item's owner role (Dept Manager for department items, Finance for finance items, HR Officer/HR Manager for HR items, Admin/IT owner for IT/Admin items) — HR Manager can approve the checklist."
+    const deptName = (item.department?.name || '').toLowerCase();
+    const itemName = (item.item || '').toLowerCase();
+
+    // HR Manager can clear or approve any clearance item
+    if (!isHrManager) {
+      if (isFinance) {
+        if (!deptName.includes('finance') && !itemName.includes('finance')) {
+          const err = new Error('Finance users can only clear Finance department checklist items');
+          err.status = 403;
+          err.code = 'FORBIDDEN_DEPARTMENT';
+          throw err;
+        }
+      } else if (isDeptManager) {
+        if (item.owner_user_id !== userId && item.department_id !== userObj?.department_id) {
+          const err = new Error('Department managers can only clear their own assigned checklist items');
+          err.status = 403;
+          err.code = 'FORBIDDEN_DEPARTMENT';
+          throw err;
+        }
+      } else if (isHrOfficer) {
+        if (!deptName.includes('hr') && !deptName.includes('admin') && !itemName.includes('hr') && !itemName.includes('visa')) {
+          const err = new Error('HR Officers can only clear HR and Visa checklist items');
+          err.status = 403;
+          err.code = 'FORBIDDEN_DEPARTMENT';
+          throw err;
+        }
+      } else if (isAdmin) {
+        if (!deptName.includes('it') && !deptName.includes('admin') && !itemName.includes('it') && !itemName.includes('laptop') && !itemName.includes('card')) {
+          const err = new Error('Admin/IT can only clear IT and Admin checklist items');
+          err.status = 403;
+          err.code = 'FORBIDDEN_DEPARTMENT';
+          throw err;
+        }
+      } else {
+        const err = new Error('Access denied: You do not have permission to clear clearance items.');
         err.status = 403;
-        err.code = 'FORBIDDEN_DEPARTMENT';
-        throw err;
-      }
-      if (isDeptManager && item.owner_user_id !== userId && item.department_id !== userObj?.department_id) {
-        const err = new Error('Department managers can only clear their own assigned checklist items');
-        err.status = 403;
-        err.code = 'FORBIDDEN_DEPARTMENT';
+        err.code = 'FORBIDDEN';
         throw err;
       }
     }
@@ -462,6 +564,94 @@ export class SeparationService {
       recordId: itemId,
       oldValues: { status: item.status, amount_due: item.amount_due },
       newValues: { status: updated.status, amount_due: updated.amount_due, note },
+    }).catch(() => {});
+
+    return updated;
+  }
+
+  /**
+   * Get cancellation tasks for a separation (FR-OF7)
+   */
+  async getSeparationTasks(companyId, separationId) {
+    return await this.prisma.$base().separation_tasks.findMany({
+      where: { company_id: companyId, separation_id: separationId },
+      include: {
+        assignee: { select: { id: true, email: true } },
+      },
+      orderBy: { created_at: 'asc' },
+    });
+  }
+
+  /**
+   * List all cancellation tasks across company (FR-OF7)
+   */
+  async listSeparationTasks(companyId, { status, task_type, limit = 50, offset = 0 } = {}) {
+    const where = { company_id: companyId };
+    if (status) where.status = status;
+    if (task_type) where.task_type = task_type;
+
+    const [items, total] = await Promise.all([
+      this.prisma.$base().separation_tasks.findMany({
+        where,
+        include: {
+          assignee: { select: { id: true, email: true } },
+          separation: {
+            include: {
+              employee: {
+                select: { id: true, employee_code: true, name: true, arabic_name: true },
+              },
+            },
+          },
+        },
+        orderBy: { due_date: 'asc' },
+        take: Number(limit),
+        skip: Number(offset),
+      }),
+      this.prisma.$base().separation_tasks.count({ where }),
+    ]);
+
+    return { items, total };
+  }
+
+  /**
+   * Update a separation cancellation task (status Open -> In Progress -> Done, reference_number, note)
+   */
+  async updateSeparationTask(companyId, taskId, data, userId) {
+    const task = await this.prisma.$base().separation_tasks.findFirst({
+      where: { id: taskId, company_id: companyId },
+    });
+
+    if (!task) {
+      const err = new Error('Separation task not found');
+      err.status = 404;
+      err.code = 'NOT_FOUND';
+      throw err;
+    }
+
+    const { status, reference_number, completion_date, note } = data;
+    const completedAt = status === 'Done'
+      ? (completion_date ? new Date(completion_date) : new Date())
+      : (status === 'Open' ? null : task.completed_at);
+
+    const updated = await this.prisma.$base().separation_tasks.update({
+      where: { id: taskId },
+      data: {
+        status: status || task.status,
+        reference_number: reference_number !== undefined ? reference_number : task.reference_number,
+        note: note !== undefined ? note : task.note,
+        completed_at: completedAt,
+        updated_by: userId,
+      },
+    });
+
+    await auditService.log({
+      companyId,
+      userId,
+      action: 'UPDATE_SEP_TASK',
+      tableName: 'separation_tasks',
+      recordId: taskId,
+      oldValues: { status: task.status, reference_number: task.reference_number },
+      newValues: { status: updated.status, reference_number: updated.reference_number, note: updated.note },
     }).catch(() => {});
 
     return updated;

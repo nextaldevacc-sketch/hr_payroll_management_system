@@ -25,10 +25,12 @@ import meRoutes from './routes/me.js';
 import notificationsRoutes from './routes/notifications.js';
 import dashboardRoutes from './routes/dashboard.js';
 import separationsRoutes from './routes/separations.js';
+import separationTasksRoutes from './routes/separationTasks.js';
 import settlementsRoutes from './routes/settlements.js';
 import complianceRoutes from './routes/compliance.js';
 import reportsRoutes from './routes/reports.js';
 import auditRoutes from './routes/audit.js';
+import jobsRoutes from './routes/jobs.js';
 
 const app = express();
 
@@ -149,11 +151,13 @@ app.use('/api/v1/me', meRoutes);
 app.use('/api/v1/notifications', notificationsRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/separations', separationsRoutes);
+app.use('/api/v1/separation-tasks', separationTasksRoutes);
 app.use('/api/v1/settlements', settlementsRoutes);
 app.use('/api/v1/compliance', complianceRoutes);
 app.use('/api/v1/reports', reportsRoutes);
 app.use('/api/v1/audit-logs', auditRoutes);
 app.use('/api/v1/audit', auditRoutes);
+app.use('/api/v1/jobs', jobsRoutes);
 
 // 11. Centralized Error Handler
 app.use(errorHandler);

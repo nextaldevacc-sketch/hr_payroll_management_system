@@ -56,79 +56,91 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
   }
 
   before(async () => {
-    const testDbUrl =
-      process.env.DATABASE_URL_TEST ||
-      'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
-    prisma = new PrismaClient({ datasources: { db: { url: testDbUrl } } });
-    await prisma.users.updateMany({
-      data: { failed_logins: 0, locked_until: null },
-    });
-
-    // 1. Ensure API server is running on test database
     try {
-      await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 1500);
-    } catch {
-      apiProcess = spawn(process.execPath, [path.resolve(apiDir, 'src/server.js')], {
-        cwd: apiDir,
-        env: {
-          ...process.env,
-          PORT: String(API_PORT),
-          NODE_ENV: 'test',
-          DATABASE_URL: testDbUrl,
-          DATABASE_URL_TEST: testDbUrl,
-          FEATURE_PLATFORM_ADMIN: 'false',
-        },
-        stdio: 'ignore',
-      });
-      await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 25000);
-    }
-
-    // 2. Ensure Web Next.js server is running
-    try {
-      await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 1500);
-    } catch {
-      const distDir = fs.existsSync(path.join(webDir, '.next-build'))
-        ? '.next-build'
-        : fs.existsSync(path.join(webDir, '.next'))
-        ? '.next'
-        : null;
-      const hasBuild = Boolean(distDir);
-      const commandArgs = hasBuild
-        ? [nextBin, 'start', '-p', String(WEB_PORT)]
-        : [nextBin, 'dev', '-p', String(WEB_PORT)];
-
-      webProcess = spawn(process.execPath, commandArgs, {
-        cwd: webDir,
-        env: {
-          ...process.env,
-          PORT: String(WEB_PORT),
-          NODE_ENV: hasBuild ? 'production' : 'development',
-          NEXT_DIST_DIR: distDir || '.next',
-          NEXT_PUBLIC_API_URL: `http://127.0.0.1:${API_PORT}/api/v1`,
-          NEXT_PUBLIC_FEATURE_PLATFORM_ADMIN: 'false',
-        },
-        stdio: 'ignore',
-      });
-      await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 35000);
-    }
-
-    // 3. Launch browser
-    browser = await chromium.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-  });
-
-  after(async () => {
-    if (browser) await browser.close();
-    if (prisma) {
+      const testDbUrl =
+        process.env.DATABASE_URL_TEST ||
+        'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
+      prisma = new PrismaClient({ datasources: { db: { url: testDbUrl } } });
       await prisma.users.updateMany({
         data: { failed_logins: 0, locked_until: null },
       });
-      await prisma.$disconnect().catch(() => {});
+
+      // 1. Ensure API server is running on test database
+      try {
+        await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 1500);
+      } catch {
+        apiProcess = spawn(process.execPath, [path.resolve(apiDir, 'src/server.js')], {
+          cwd: apiDir,
+          env: {
+            ...process.env,
+            PORT: String(API_PORT),
+            NODE_ENV: 'test',
+            DATABASE_URL: testDbUrl,
+            DATABASE_URL_TEST: testDbUrl,
+            FEATURE_PLATFORM_ADMIN: 'false',
+          },
+          stdio: 'ignore',
+        });
+        await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 25000);
+      }
+
+      // 2. Ensure Web Next.js server is running
+      try {
+        await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 1500);
+      } catch {
+        const distDir = fs.existsSync(path.join(webDir, '.next-build'))
+          ? '.next-build'
+          : fs.existsSync(path.join(webDir, '.next'))
+          ? '.next'
+          : null;
+        const hasBuild = Boolean(distDir);
+        const commandArgs = hasBuild
+          ? [nextBin, 'start', '-p', String(WEB_PORT)]
+          : [nextBin, 'dev', '-p', String(WEB_PORT)];
+
+        webProcess = spawn(process.execPath, commandArgs, {
+          cwd: webDir,
+          env: {
+            ...process.env,
+            PORT: String(WEB_PORT),
+            NODE_ENV: hasBuild ? 'production' : 'development',
+            NEXT_DIST_DIR: distDir || '.next',
+            API_ORIGIN: `http://127.0.0.1:${API_PORT}`,
+            NEXT_PUBLIC_API_URL: '/api/v1',
+            NEXT_PUBLIC_FEATURE_PLATFORM_ADMIN: 'false',
+          },
+          stdio: 'ignore',
+        });
+        await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 30000);
+      }
+
+      // 3. Launch browser
+      browser = await chromium.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+    } catch (err) {
+      if (browser) await browser.close().catch(() => {});
+      await Promise.all([killProcWithTree(webProcess), killProcWithTree(apiProcess)]);
+      throw err;
     }
-    if (webProcess) await killProcWithTree(webProcess);
-    if (apiProcess) await killProcWithTree(apiProcess);
+  });
+
+  after(async () => {
+    try {
+      if (browser) await browser.close().catch(() => {});
+    } finally {
+      try {
+        if (prisma) {
+          await prisma.users.updateMany({
+            data: { failed_logins: 0, locked_until: null },
+          }).catch(() => {});
+          await prisma.$disconnect().catch(() => {});
+        }
+      } finally {
+        await Promise.all([killProcWithTree(webProcess), killProcWithTree(apiProcess)]);
+      }
+    }
   });
 
   it('1. Unauthenticated visit to /, /payroll, /me redirects to /login?next= and has NO sidebar', async () => {

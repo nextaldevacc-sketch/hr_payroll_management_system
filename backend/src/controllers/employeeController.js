@@ -189,22 +189,50 @@ export async function getContracts(req, res, next) {
 
 export async function createContractVersion(req, res, next) {
   try {
-    if (!hasSalaryAccess(req.user)) {
+    const roles = req.user?.roles || [];
+    if (!roles.includes('PAYROLL_OFFICER')) {
       return res.status(403).json({
         status: 'error',
         code: 'FORBIDDEN_SALARY_ACCESS',
-        message: 'Access denied: Managing contracts and salary is restricted to authorized salary roles',
+        message: 'Access denied: Only Payroll Officer can create contract versions (Section 5.3).',
       });
     }
 
     const data = await employeeService.createContractVersion({
       companyId: req.companyId,
       employeeId: req.params.id,
-      data: req.body,
+      data: { ...req.body, status: req.body.status || 'Pending' },
       viewer: req.user,
     });
 
     res.status(201).json({
+      status: 'success',
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function approveContractVersion(req, res, next) {
+  try {
+    const roles = req.user?.roles || [];
+    if (!roles.includes('HR_MANAGER')) {
+      return res.status(403).json({
+        status: 'error',
+        code: 'FORBIDDEN',
+        message: 'Access denied: Only HR Manager can approve contract versions (Section 5.3).',
+      });
+    }
+
+    const data = await employeeService.approveContractVersion({
+      companyId: req.companyId,
+      employeeId: req.params.id,
+      contractId: req.params.contractId,
+      viewer: req.user,
+    });
+
+    res.status(200).json({
       status: 'success',
       data,
     });
@@ -366,6 +394,7 @@ export default {
   activateEmployee,
   getContracts,
   createContractVersion,
+  approveContractVersion,
   getBankAccounts,
   saveBankAccount,
   getDocuments,

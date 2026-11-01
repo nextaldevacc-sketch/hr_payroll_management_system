@@ -817,7 +817,7 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
     // 2. Direct edit to locked payslip MUST be rejected (HTTP 400 from API and blocked by DB trigger)
     const patchRes = await request(app)
       .patch(`/api/v1/payroll/payslips/${lockedPayslip.id}/variance`)
-      .set('Authorization', `Bearer ${adminAToken}`)
+      .set('Authorization', `Bearer ${hrMgrAToken}`)
       .send({ reason: 'Direct edit to locked payslip' });
     assert.equal(patchRes.status, 400);
     assert.equal(patchRes.body.code, 'PAY_RUN_LOCKED');
@@ -1174,7 +1174,7 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
     // Enter variance justification reason for the test payslip through the API
     const patchRes = await request(app)
       .patch(`/api/v1/payroll/payslips/${payslip.id}/variance`)
-      .set('Authorization', `Bearer ${adminAToken}`)
+      .set('Authorization', `Bearer ${hrMgrAToken}`)
       .send({ reason: 'Promotion and annual performance bonus approved by GM' });
     assert.equal(patchRes.status, 200);
 
@@ -1186,9 +1186,9 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
     // Uses Company B (Emirates Horizon Trading LLC) to keep Company A's future settings dating clean
     const loginB = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: 'admin@horizon.ae', password: testUserPassword });
+      .send({ email: 'hr@horizon.ae', password: testUserPassword });
     assert.equal(loginB.status, 200);
-    const adminBToken = loginB.body.token;
+    const hrBToken = loginB.body.token;
 
     const visaB = await prisma.$base().company_visas.findFirst({
       where: { company_id: companyB.id },
@@ -1238,7 +1238,7 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
 
     const res = await request(app)
       .get(`/api/v1/payroll/runs/${run.id}/sif`)
-      .set('Authorization', `Bearer ${adminBToken}`);
+      .set('Authorization', `Bearer ${hrBToken}`);
 
     assert.equal(res.status, 400);
     assert.equal(res.body.code, 'SIF_REQUIRES_LOCKED_RUN');
@@ -1247,7 +1247,7 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
 
     const resLocked = await request(app)
       .get(`/api/v1/payroll/runs/${run.id}/sif`)
-      .set('Authorization', `Bearer ${adminBToken}`);
+      .set('Authorization', `Bearer ${hrBToken}`);
 
     assert.equal(resLocked.status, 200);
     assert(resLocked.text.startsWith('SCR,'));

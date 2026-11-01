@@ -24,13 +24,14 @@ router.put('/:id', requirePermission('employees', 'edit'), employeeController.up
 
 // 2. Status & Verification Wizard
 router.post('/:id/status', requirePermission('employees', 'edit'), validate(updateStatusSchema), employeeController.updateEmployeeStatus);
-router.post('/:id/verify', requirePermission('employees', 'edit'), validate(verifyEmployeeSchema), employeeController.verifyEmployee);
+router.post('/:id/verify', requirePermission('employees', 'verify'), validate(verifyEmployeeSchema), employeeController.verifyEmployee);
 router.get('/:id/activation-check', requirePermission('employees', 'view'), employeeController.getActivationCheck);
 router.post('/:id/activate', requirePermission('employees', 'edit'), employeeController.activateEmployee);
 
 // 3. Contracts & Salary Versions (Role-restricted)
 router.get('/:id/contracts', employeeController.getContracts);
 router.post('/:id/contracts', employeeController.createContractVersion);
+router.post('/:id/contracts/:contractId/approve', employeeController.approveContractVersion);
 
 // 4. Bank Accounts (Role-restricted)
 router.get('/:id/bank-accounts', employeeController.getBankAccounts);

@@ -186,11 +186,29 @@ export class ApprovalService {
 
     if (!hasPermission) {
       const err = new Error(
-        `You do not hold the required role (${currentStepConfig.role.name}) to act on step ${request.current_step}`
+        `Permission denied: Step ${request.current_step} requires role '${requiredRoleCode}'. You have [${actorRoleCodes.join(', ')}].`
       );
       err.status = 403;
-      err.code = 'FORBIDDEN';
+      err.code = 'STEP_ROLE_REQUIRED';
       throw err;
+    }
+
+    // If required role is DEPT_MANAGER, verify requester belongs to manager's team
+    if (requiredRoleCode === 'DEPT_MANAGER') {
+      const userDept = await this.prisma.$base().departments.findFirst({
+        where: { company_id: companyId, manager_id: actorId },
+      });
+      if (userDept && request.requester?.employee_id) {
+        const empContract = await this.prisma.$base().contracts.findFirst({
+          where: { employee_id: request.requester.employee_id, status: { in: ['Approved', 'Active'] } },
+        });
+        if (empContract && empContract.department_id !== userDept.id) {
+          const err = new Error('Permission denied: Department managers can only approve requests for their own team.');
+          err.status = 403;
+          err.code = 'FORBIDDEN_TEAM_SCOPE';
+          throw err;
+        }
+      }
     }
 
     const now = new Date();
@@ -311,12 +329,21 @@ export class ApprovalService {
     });
 
     // Filter requests where the current step's role matches one of user's roles
-    const isCompanyAdmin = userRoleCodes.includes('COMPANY_ADMIN');
+    let managerDeptId = null;
+    if (userRoleCodes.includes('DEPT_MANAGER')) {
+      const userDept = await this.prisma.$base().departments.findFirst({
+        where: { company_id: companyId, manager_id: userId },
+      });
+      if (userDept) managerDeptId = userDept.id;
+    }
 
     return requests.filter((req) => {
       const step = req.flow.steps.find((s) => s.step_no === req.current_step);
       if (!step) return false;
-      return isCompanyAdmin || userRoleCodes.includes(step.role.code);
+      if (!userRoleCodes.includes(step.role.code)) {
+        return false;
+      }
+      return true;
     });
   }
 }

@@ -120,16 +120,16 @@ export const PERMISSIONS_MATRIX = {
   COMPANY_ADMIN: {
     dashboard: ['view'],
     profile_self: ['view'],
-    employees: ['edit', 'verify', 'view'],
-    documents: ['edit', 'verify', 'view'],
+    employees: ['view'],
+    documents: [],
     salary: [], // Section 5: Company Admin does NOT see salary unless holding Payroll Officer, HR Manager, GM, or Finance
-    attendance: ['edit', 'confirm', 'view'],
-    overtime: ['approve', 'view'],
-    leave: ['approve', 'view'],
-    salary_adjustments: ['prepare', 'approve', 'view'],
-    pay_runs: ['prepare', 'validate', 'approve', 'pay', 'view'],
-    clearance: ['prepare', 'clear', 'approve', 'view'],
-    final_settlement: ['prepare', 'calculate', 'validate', 'approve', 'pay', 'view'],
+    attendance: [],
+    overtime: [],
+    leave: [],
+    salary_adjustments: [],
+    pay_runs: [], // Spec 5.1 & P8: pay runs restricted to salary lifecycle roles
+    clearance: [],
+    final_settlement: [], // Spec 5.1 & P8: settlements restricted to salary lifecycle roles
     settings: ['all', 'edit_all', 'edit_rules', 'accounts_only', 'view'],
     audit: ['view'],
   },
@@ -144,10 +144,6 @@ export function checkPermission(userRoles = [], area, action) {
   // Area: salary is strictly restricted to the 4 statutory salary roles
   if (area === 'salary') {
     return userRoles.some((r) => SALARY_ROLES.includes(r));
-  }
-
-  if (userRoles.includes('COMPANY_ADMIN')) {
-    return true; // Company Admin has administrative capabilities for non-salary areas
   }
 
   for (const roleCode of userRoles) {

@@ -36,11 +36,33 @@ export async function updateClearanceItem(itemId, data) {
   });
 }
 
+export async function getSeparationTasks(separationId) {
+  return request(`/separations/${separationId}/tasks`);
+}
+
+export async function listSeparationTasks(params = {}) {
+  const query = new URLSearchParams();
+  if (params.status) query.append('status', params.status);
+  if (params.task_type) query.append('task_type', params.task_type);
+  const qStr = query.toString() ? `?${query.toString()}` : '';
+  return request(`/separation-tasks${qStr}`);
+}
+
+export async function updateSeparationTask(taskId, data) {
+  return request(`/separation-tasks/${taskId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
 export default {
   listSeparations,
   getSeparation,
   createSeparation,
   actOnSeparation,
   updateClearanceItem,
+  getSeparationTasks,
+  listSeparationTasks,
+  updateSeparationTask,
 };
 

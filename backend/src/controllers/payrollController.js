@@ -1,4 +1,6 @@
 import payrollService from '../services/payrollService.js';
+import auditService from '../services/auditService.js';
+import { SALARY_ROLES } from '../middleware/permissions.js';
 
 export async function listPayRuns(req, res, next) {
   try {
@@ -101,6 +103,21 @@ export async function markPayRunPaid(req, res, next) {
 export async function getPayslip(req, res, next) {
   try {
     const payslip = await payrollService.getPayslip(req.companyId, req.params.id);
+
+    // Authorization check (P1)
+    const roles = req.user?.roles || [];
+    const isSalaryRole = roles.some((r) => SALARY_ROLES.includes(r));
+    const isOwner = Boolean(req.user?.employeeId && req.user.employeeId === payslip.employee_id);
+    const isPaid = payslip.pay_run?.status === 'Paid';
+
+    if (!isSalaryRole && !(isOwner && isPaid)) {
+      return res.status(403).json({
+        status: 'error',
+        code: 'FORBIDDEN_PAYSLIP_ACCESS',
+        message: 'Access denied: Payslips can only be viewed by authorized salary roles or by the employee once the pay run is Paid.',
+      });
+    }
+
     res.json({ status: 'success', data: payslip });
   } catch (err) {
     next(err);
@@ -134,7 +151,34 @@ export async function exportSif(req, res, next) {
 
 export async function downloadPayslipPdf(req, res, next) {
   try {
+    const payslip = await payrollService.getPayslip(req.companyId, req.params.id);
+
+    // Authorization check (P1)
+    const roles = req.user?.roles || [];
+    const isSalaryRole = roles.some((r) => SALARY_ROLES.includes(r));
+    const isOwner = Boolean(req.user?.employeeId && req.user.employeeId === payslip.employee_id);
+    const isPaid = payslip.pay_run?.status === 'Paid';
+
+    if (!isSalaryRole && !(isOwner && isPaid)) {
+      return res.status(403).json({
+        status: 'error',
+        code: 'FORBIDDEN_PAYSLIP_ACCESS',
+        message: 'Access denied: Payslips can only be downloaded by authorized salary roles or by the employee once the pay run is Paid.',
+      });
+    }
+
     const pdfBuffer = await payrollService.getPayslipPdf(req.companyId, req.params.id);
+
+    // Audit log payslip PDF download (P1)
+    await auditService.log({
+      companyId: req.companyId,
+      userId: req.user?.id || req.user?.userId,
+      action: 'PAYSLIP_PDF_DOWNLOAD',
+      tableName: 'payslips',
+      recordId: payslip.id,
+      newValues: { employeeId: payslip.employee_id, payRunId: payslip.pay_run_id },
+    }).catch(() => {});
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="payslip-${req.params.id}.pdf"`);
     res.send(pdfBuffer);

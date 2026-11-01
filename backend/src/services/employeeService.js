@@ -999,6 +999,64 @@ export class EmployeeService {
   }
 
   /**
+   * Approve a pending contract version (HR Manager only).
+   */
+  async approveContractVersion({ companyId, employeeId, contractId, viewer }) {
+    const contract = await this.prisma.contracts.findFirst({
+      where: { id: contractId, employee_id: employeeId, company_id: companyId },
+      include: {
+        department: true,
+        job: true,
+        shift: true,
+        attendance_policy: true,
+        salary_structure: true,
+      },
+    });
+
+    if (!contract) {
+      const err = new Error('Contract version not found');
+      err.status = 404;
+      err.code = 'NOT_FOUND';
+      throw err;
+    }
+
+    const viewerId = getViewerUserId(viewer);
+    if (contract.created_by && contract.created_by === viewerId) {
+      const err = new Error('Segregation of duties violation: You cannot approve a contract version you created.');
+      err.status = 403;
+      err.code = 'SELF_APPROVAL_BLOCKED';
+      throw err;
+    }
+
+    const approved = await this.prisma.contracts.update({
+      where: { id: contractId },
+      data: {
+        status: 'Approved',
+        updated_by: viewerId,
+      },
+      include: {
+        department: true,
+        job: true,
+        shift: true,
+        attendance_policy: true,
+        salary_structure: true,
+      },
+    });
+
+    await auditService.log({
+      companyId,
+      userId: viewerId,
+      action: 'ApproveContract',
+      tableName: 'contracts',
+      recordId: contractId,
+      oldValues: { status: contract.status },
+      newValues: { status: 'Approved' },
+    });
+
+    return serializeContract(approved, viewer);
+  }
+
+  /**
    * Get all contract versions for salary history tab.
    * 403 for non-salary roles.
    */
@@ -1162,6 +1220,15 @@ export class EmployeeService {
       },
       orderBy: { expiry_date: 'asc' },
     });
+
+    await auditService.log({
+      companyId,
+      userId: getViewerUserId(viewer),
+      action: 'DOCUMENT_VIEW',
+      tableName: 'employee_documents',
+      recordId: employeeId,
+      newValues: { count: docs.length },
+    }).catch(() => {});
 
     return docs.map((d) => serializeDocument(d, viewer, employeeId));
   }

@@ -169,11 +169,12 @@ Expected response:
 
 ## 6. Disaster Recovery & Runbooks
 
-### 6.1 Daily Automated Backup
-Scheduled via Linux cron on the backup bastion at 02:00 UAE Time (UTC+4):
+### 6.1 Daily Automated Backup (J2)
+Scheduled via Linux cron on the backup bastion at 02:00 UAE Time (`Asia/Dubai` UTC+4):
 ```bash
 0 2 * * * /opt/nextal/scripts/backup-db.sh >> /var/log/nextal-backup.log 2>&1
 ```
+The backup script performs an atomic PostgreSQL dump (`pg_dump`) with gzip compression, validates archive integrity, and rotates historical snapshots beyond 30 days.
 
 ### 6.2 Full Disaster Recovery Restoration Procedure
 In the event of database failure or corrupted state:
@@ -188,4 +189,13 @@ npm test --workspace=backend
 
 **RTO (Recovery Time Objective)**: < 15 minutes  
 **RPO (Recovery Point Objective)**: < 1 hour (with WAL archiving) / < 24 hours (with daily snapshot)
+
+---
+
+## 7. Background Scheduled Jobs (J1)
+Scheduled via `node-cron` with timezone `Asia/Dubai` in `backend/src/jobs/scheduler.js`, started when `ENABLE_JOBS=true`:
+- `01:00 daily`: Document expiry status evaluation & 90/60/30-day milestone reminders (FR-CO2–CO4).
+- `01:30 daily`: Archive leavers whose settlement is approved and final working date passed, deactivate logins, and open cancellation tasks (FR-OF6–OF7).
+- `02:00 on 1st of each month`: Monthly leave accrual engine (FR-TO5).
+- Manual trigger API: `POST /api/v1/jobs/:name/run` (restricted to Company Admin, audit-logged).
 

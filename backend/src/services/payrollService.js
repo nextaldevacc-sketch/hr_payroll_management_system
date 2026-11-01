@@ -6,6 +6,7 @@ import { generateWpsSif } from '../lib/wps/sifGenerator.js';
 import { generatePayslipPdf } from '../lib/pdf.js';
 import { generatePayrollRegisterExcel, generateVarianceReportExcel } from '../lib/reports/payrollReportGenerator.js';
 import notificationService from './notificationService.js';
+import mailer from '../lib/mailer.js';
 
 Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_UP });
 
@@ -99,6 +100,7 @@ export class PayrollService {
     const payRun = await this.prisma.$base().pay_runs.findFirst({
       where: { id: payRunId, company_id: companyId },
       include: {
+        company: { select: { id: true, name: true, variance_threshold_pct: true, variance_threshold_aed: true } },
         company_visa: true,
         validator: { select: { id: true, email: true, employee: { select: { name: true } } } },
         locker: { select: { id: true, email: true, employee: { select: { name: true } } } },
@@ -138,13 +140,14 @@ export class PayrollService {
     let varianceCount = 0;
     let pendingVarianceCount = 0;
 
+    const thresholdPct = Number(payRun.company?.variance_threshold_pct || 10.0);
     for (const ps of payslips) {
       totalGross = totalGross.plus(new Decimal(ps.gross || 0));
       totalDeductions = totalDeductions.plus(new Decimal(ps.total_deductions || 0));
       totalNet = totalNet.plus(new Decimal(ps.net || 0));
 
       const vPct = Math.abs(Number(ps.variance_pct || 0));
-      if (vPct >= 10.0) {
+      if (vPct >= thresholdPct) {
         varianceCount++;
         if (!ps.variance_reason) pendingVarianceCount++;
       }
@@ -167,6 +170,7 @@ export class PayrollService {
       blocking_issues_count: blockingIssuesCount,
       variance_count: varianceCount,
       pending_variance_count: pendingVarianceCount,
+      variance_threshold_pct: thresholdPct,
     };
   }
 
@@ -388,6 +392,7 @@ export class PayrollService {
     const payRun = await this.prisma.$base().pay_runs.findFirst({
       where: { id: payRunId, company_id: companyId },
       include: {
+        company: { select: { id: true, name: true, variance_threshold_pct: true, variance_threshold_aed: true } },
         company_visa: true,
         company: true,
       },
@@ -883,6 +888,14 @@ export class PayrollService {
       throw err;
     }
 
+    // Segregation of duties (P9): The user who calculated/prepared cannot validate
+    if (userId && ((payRun.created_by && payRun.created_by === userId) || (payRun.updated_by && payRun.updated_by === userId))) {
+      const err = new Error('Segregation of duties violation: You cannot validate a pay run you calculated or prepared.');
+      err.status = 403;
+      err.code = 'SELF_VALIDATION_BLOCKED';
+      throw err;
+    }
+
     // 1. Check blocking issues
     if (payRun.issues && payRun.issues.length > 0) {
       const err = new Error(
@@ -960,6 +973,14 @@ export class PayrollService {
       const err = new Error(`Cannot lock pay run in '${payRun.status}' status. Pay run must be Validated before locking.`);
       err.status = 400;
       err.code = 'INVALID_STATUS';
+      throw err;
+    }
+
+    // Segregation of duties (P9): The validator cannot approve/lock
+    if (userId && payRun.validated_by && payRun.validated_by === userId) {
+      const err = new Error('Segregation of duties violation: You cannot approve or lock a pay run you validated.');
+      err.status = 403;
+      err.code = 'SELF_APPROVAL_BLOCKED';
       throw err;
     }
 
@@ -1047,6 +1068,14 @@ export class PayrollService {
       throw err;
     }
 
+    // Segregation of duties (P9): The approver cannot mark Paid
+    if (userId && payRun.locked_by && payRun.locked_by === userId) {
+      const err = new Error('Segregation of duties violation: You cannot mark paid a pay run you approved.');
+      err.status = 403;
+      err.code = 'SELF_PAYMENT_BLOCKED';
+      throw err;
+    }
+
     const paidAt = new Date();
     await this.prisma.$base().$transaction(async (tx) => {
       await tx.payslips.updateMany({
@@ -1090,6 +1119,14 @@ export class PayrollService {
             periodMonth,
             Number(ps.net || 0).toFixed(2)
           );
+        }
+        const recipientEmail = ps.employee?.user?.email || (ps.employee?.employee_code ? `${ps.employee.employee_code.toLowerCase()}@gulftech.ae` : null);
+        if (recipientEmail) {
+          await mailer.sendMail({
+            to: recipientEmail,
+            subject: `Your payslip for ${periodMonth} is available`,
+            html: `<p>Dear ${ps.employee?.name || 'Employee'},</p><p>Your payslip for <strong>${periodMonth}</strong> is now available in your employee self-service portal.</p><p><a href="http://localhost:3100/me/payslips">View My Payslips</a></p><p>Best regards,<br/>Nextal HR & Payroll</p>`,
+          }).catch(() => {});
         }
       }
     } catch (e) {

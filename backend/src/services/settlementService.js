@@ -496,6 +496,14 @@ export class SettlementService {
       throw err;
     }
 
+    // Segregation of duties: Approver cannot mark Paid
+    if (settlement.updated_by === userId) {
+      const err = new Error('Segregation of duties violation: You cannot mark paid a final settlement you approved.');
+      err.status = 403;
+      err.code = 'SELF_PAYMENT_BLOCKED';
+      throw err;
+    }
+
     const paid = await this.prisma.$base().final_settlements.update({
       where: { id: settlementId },
       data: {
