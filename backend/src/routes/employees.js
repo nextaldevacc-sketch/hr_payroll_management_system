@@ -32,6 +32,7 @@ router.post('/:id/activate', requirePermission('employees', 'edit'), employeeCon
 router.get('/:id/contracts', employeeController.getContracts);
 router.post('/:id/contracts', employeeController.createContractVersion);
 router.post('/:id/contracts/:contractId/approve', employeeController.approveContractVersion);
+router.post('/:id/contracts/:contractId/reject', employeeController.rejectContractVersion);
 
 // 4. Bank Accounts (Role-restricted)
 router.get('/:id/bank-accounts', employeeController.getBankAccounts);

@@ -48,12 +48,12 @@ export async function actOnSeparation(req, res, next) {
 export async function listSeparations(req, res, next) {
   try {
     const roles = req.user?.roles || [];
-    const allowedRoles = ['HR_OFFICER', 'HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER', 'FINANCE', 'COMPANY_ADMIN'];
+    const allowedRoles = ['HR_OFFICER', 'HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER', 'FINANCE'];
     if (!roles.some((r) => allowedRoles.includes(r))) {
       return res.status(403).json({
         status: 'error',
         code: 'FORBIDDEN',
-        message: 'Access denied: Employees cannot view separations.',
+        message: 'Access denied: You do not have permission to view separations.',
       });
     }
 
@@ -79,12 +79,12 @@ export async function listSeparations(req, res, next) {
 export async function getSeparation(req, res, next) {
   try {
     const roles = req.user?.roles || [];
-    const allowedRoles = ['HR_OFFICER', 'HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER', 'FINANCE', 'COMPANY_ADMIN'];
+    const allowedRoles = ['HR_OFFICER', 'HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER', 'FINANCE'];
     if (!roles.some((r) => allowedRoles.includes(r))) {
       return res.status(403).json({
         status: 'error',
         code: 'FORBIDDEN',
-        message: 'Access denied: Employees cannot view separations.',
+        message: 'Access denied: You do not have permission to view separations.',
       });
     }
 
@@ -116,7 +116,7 @@ export async function updateClearanceItem(req, res, next) {
 export async function getSeparationTasks(req, res, next) {
   try {
     const roles = req.user?.roles || [];
-    if (!roles.some((r) => ['HR_OFFICER', 'HR_MANAGER', 'COMPANY_ADMIN'].includes(r))) {
+    if (!roles.some((r) => ['HR_OFFICER', 'HR_MANAGER'].includes(r))) {
       return res.status(403).json({
         status: 'error',
         code: 'FORBIDDEN',
@@ -136,7 +136,7 @@ export async function getSeparationTasks(req, res, next) {
 export async function listSeparationTasks(req, res, next) {
   try {
     const roles = req.user?.roles || [];
-    if (!roles.some((r) => ['HR_OFFICER', 'HR_MANAGER', 'COMPANY_ADMIN'].includes(r))) {
+    if (!roles.some((r) => ['HR_OFFICER', 'HR_MANAGER'].includes(r))) {
       return res.status(403).json({
         status: 'error',
         code: 'FORBIDDEN',

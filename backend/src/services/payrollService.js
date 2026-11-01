@@ -435,6 +435,7 @@ export class PayrollService {
       },
       include: {
         contracts: {
+          where: { status: { notIn: ['Pending', 'Rejected'] } },
           orderBy: { effective_date: 'desc' },
           include: { salary_structure: { include: { rules: { where: { is_active: true } } } } },
         },
@@ -503,8 +504,9 @@ export class PayrollService {
     const varianceThresholdPct = Number(payRun.company?.variance_threshold_pct || 10.0);
 
     for (const emp of employees) {
-      // Find active contract versions during this month
+      // Find active contract versions during this month (excluding Pending and Rejected)
       const activeContracts = emp.contracts.filter((c) => {
+        if (c.status === 'Pending' || c.status === 'Rejected') return false;
         const eff = new Date(c.effective_date);
         return eff <= periodTo;
       });
@@ -838,7 +840,7 @@ export class PayrollService {
           updated_by: toUuidOrNull(userId),
         },
       });
-    });
+    }, { timeout: 60000, maxWait: 10000 });
 
     await auditService.log({
       companyId,

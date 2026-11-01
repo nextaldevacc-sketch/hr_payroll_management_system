@@ -1057,6 +1057,57 @@ export class EmployeeService {
   }
 
   /**
+   * Reject a pending contract version (HR Manager only).
+   */
+  async rejectContractVersion({ companyId, employeeId, contractId, viewer, reason }) {
+    const contract = await this.prisma.contracts.findFirst({
+      where: { id: contractId, employee_id: employeeId, company_id: companyId },
+      include: {
+        department: true,
+        job: true,
+        shift: true,
+        attendance_policy: true,
+        salary_structure: true,
+      },
+    });
+
+    if (!contract) {
+      const err = new Error('Contract version not found');
+      err.status = 404;
+      err.code = 'NOT_FOUND';
+      throw err;
+    }
+
+    const viewerId = getViewerUserId(viewer);
+    const rejected = await this.prisma.contracts.update({
+      where: { id: contractId },
+      data: {
+        status: 'Rejected',
+        updated_by: viewerId,
+      },
+      include: {
+        department: true,
+        job: true,
+        shift: true,
+        attendance_policy: true,
+        salary_structure: true,
+      },
+    });
+
+    await auditService.log({
+      companyId,
+      userId: viewerId,
+      action: 'RejectContract',
+      tableName: 'contracts',
+      recordId: contractId,
+      oldValues: { status: contract.status },
+      newValues: { status: 'Rejected', reason },
+    });
+
+    return serializeContract(rejected, viewer);
+  }
+
+  /**
    * Get all contract versions for salary history tab.
    * 403 for non-salary roles.
    */
@@ -1088,7 +1139,11 @@ export class EmployeeService {
    */
   async getContractOnDate({ companyId, employeeId, date }) {
     const contracts = await this.prisma.contracts.findMany({
-      where: { company_id: companyId, employee_id: employeeId },
+      where: {
+        company_id: companyId,
+        employee_id: employeeId,
+        status: { notIn: ['Pending', 'Rejected'] },
+      },
       include: {
         department: true,
         job: true,

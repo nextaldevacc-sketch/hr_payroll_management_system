@@ -34,6 +34,7 @@ export function validateEnvironment() {
     if (process.env.NODE_ENV === 'production') {
       errors.push('DOCUMENT_ENCRYPTION_KEY is required in production (32 bytes / 64 hex chars)');
     } else {
+      warnings.push('DOCUMENT_ENCRYPTION_KEY is not set. Using dev-only fallback key. Do NOT use this in production!');
       process.env.DOCUMENT_ENCRYPTION_KEY = 'nextal_doc_encryption_key_32_b!';
     }
   } else {

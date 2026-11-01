@@ -149,16 +149,30 @@ describe('Section 5.3 Permissions Matrix & Part 2 Features', { timeout: 120000 }
   // 2. Separations (P2, P3)
   // =========================================================================
   describe('2. Separation Permissions & Scoping (P2, P3)', () => {
-    it('blocks Employee from listing or viewing separations (HTTP 403)', async () => {
-      const resList = await request(app)
-        .get('/api/v1/separations')
-        .set('Authorization', `Bearer ${tokens.employee}`);
-      assert.equal(resList.status, 403, 'Employee cannot list separations');
+    it('blocks Employee and Company Admin from listing or viewing separations (HTTP 403)', async () => {
+      for (const roleKey of ['employee', 'admin']) {
+        const resList = await request(app)
+          .get('/api/v1/separations')
+          .set('Authorization', `Bearer ${tokens[roleKey]}`);
+        assert.equal(resList.status, 403, `${roleKey} cannot list separations`);
 
-      const resGet = await request(app)
-        .get(`/api/v1/separations/${sepInProgressId}`)
-        .set('Authorization', `Bearer ${tokens.employee}`);
-      assert.equal(resGet.status, 403, 'Employee cannot get separation detail');
+        const resGet = await request(app)
+          .get(`/api/v1/separations/${sepInProgressId}`)
+          .set('Authorization', `Bearer ${tokens[roleKey]}`);
+        assert.equal(resGet.status, 403, `${roleKey} cannot get separation detail`);
+      }
+    });
+
+    it('blocks Company Admin from viewing and listing separation tasks (HTTP 403)', async () => {
+      const resTasks = await request(app)
+        .get(`/api/v1/separations/${sepInProgressId}/tasks`)
+        .set('Authorization', `Bearer ${tokens.admin}`);
+      assert.equal(resTasks.status, 403, 'Company Admin cannot view separation tasks');
+
+      const resListTasks = await request(app)
+        .get('/api/v1/separation-tasks')
+        .set('Authorization', `Bearer ${tokens.admin}`);
+      assert.equal(resListTasks.status, 403, 'Company Admin cannot list separation tasks');
     });
 
     it('allows HR Officer and HR Manager to create separations; blocks others (403)', async () => {
@@ -316,6 +330,182 @@ describe('Section 5.3 Permissions Matrix & Part 2 Features', { timeout: 120000 }
         .set('Authorization', `Bearer ${tokens.finance}`);
       assert.equal(resFinView.status, 200, 'Finance can view contracts');
     });
+
+    it('Payroll Officer creates a raise effective this month -> unapproved contract leaves pay run using old salary; HR Manager approves -> recalculation uses new salary; rejected version never used', async () => {
+      const testBranch = await db.branches.findFirst({ where: { company_id: companyId } });
+      const testDept = await db.departments.findFirst({ where: { company_id: companyId } });
+      const testJob = await db.jobs.findFirst({ where: { company_id: companyId } });
+      const testShift = await db.shifts.findFirst({ where: { company_id: companyId } });
+      const testPolicy = await db.attendance_policies.findFirst({ where: { company_id: companyId } });
+      const testVisa = await db.company_visas.findFirst({ where: { company_id: companyId } });
+      const testStructure = await db.salary_structures.findFirst({ where: { company_id: companyId } });
+
+      const testEmp = await db.employees.create({
+        data: {
+          company_id: companyId,
+          branch_id: testBranch.id,
+          company_visa_id: testVisa.id,
+          employee_code: `EMP-R-${Date.now().toString().slice(-6)}`,
+          name: 'Raise Lifecycle Test Employee',
+          gender: 'Male',
+          nationality: 'ARE',
+          joining_date: new Date('2025-01-01'),
+          status: 'Active',
+        },
+      });
+
+      // Contract 1: Approved basic 5,000, gross 8,000
+      await db.contracts.create({
+        data: {
+          company_id: companyId,
+          employee_id: testEmp.id,
+          version_no: 1,
+          contract_type: 'Unlimited',
+          start_date: new Date('2025-01-01'),
+          effective_date: new Date('2025-01-01'),
+          job_id: testJob.id,
+          department_id: testDept.id,
+          shift_id: testShift.id,
+          attendance_policy_id: testPolicy.id,
+          structure_id: testStructure.id,
+          basic: 5000.0,
+          housing: 2000.0,
+          transport: 500.0,
+          other_allowances: 500.0,
+          gross: 8000.0,
+          status: 'Approved',
+        },
+      });
+
+      // Bank account
+      await db.bank_accounts.create({
+        data: {
+          company_id: companyId,
+          employee_id: testEmp.id,
+          bank_name: 'FAB',
+          iban: `AE45033${Date.now().toString().slice(-16)}`,
+          routing_code: 'FAB001',
+          is_primary: true,
+          is_active: true,
+        },
+      });
+
+      // Create a draft pay run for month 2028-07-01 under this visa
+      const periodMonth = new Date('2028-07-01');
+      const testRun = await db.pay_runs.create({
+        data: {
+          company_id: companyId,
+          company_visa_id: testVisa.id,
+          period_month: periodMonth,
+          cutoff_date: new Date('2028-07-25'),
+          status: 'Draft',
+        },
+      });
+
+      try {
+        // Calculate the pay run
+        const calcRes1 = await request(app)
+          .post(`/api/v1/payroll/runs/${testRun.id}/calculate`)
+          .set('Authorization', `Bearer ${tokens.payroll}`);
+        assert.equal(calcRes1.status, 200);
+
+        // Check Ahmed's payslip in this run: basic must be 5000
+        let payslip = await db.payslips.findFirst({
+          where: { pay_run_id: testRun.id, employee_id: testEmp.id },
+        });
+        assert.ok(payslip, 'Payslip must be generated');
+        assert.equal(Number(payslip.basic), 5000);
+
+        // Payroll Officer creates a contract raise to 7,000 basic effective 2028-07-01 (defaults to Pending)
+        const raiseRes = await request(app)
+          .post(`/api/v1/employees/${testEmp.id}/contracts`)
+          .set('Authorization', `Bearer ${tokens.payroll}`)
+          .send({
+            effective_date: '2028-07-01',
+            basic: 7000.0,
+            housing: 2000.0,
+            transport: 500.0,
+            other_allowances: 500.0,
+            gross: 10000.0,
+            status: 'Pending',
+          });
+        assert.equal(raiseRes.status, 201);
+        const pendingContractId = raiseRes.body.data.id;
+        assert.equal(raiseRes.body.data.status, 'Pending');
+
+        // Recalculate pay run while contract is Pending
+        const calcRes2 = await request(app)
+          .post(`/api/v1/payroll/runs/${testRun.id}/calculate`)
+          .set('Authorization', `Bearer ${tokens.payroll}`);
+        assert.equal(calcRes2.status, 200);
+
+        payslip = await db.payslips.findFirst({
+          where: { pay_run_id: testRun.id, employee_id: testEmp.id },
+        });
+        assert.equal(Number(payslip.basic), 5000, 'Unapproved pending raise must NOT be used');
+
+        // HR Manager approves the contract
+        const approveRes = await request(app)
+          .post(`/api/v1/employees/${testEmp.id}/contracts/${pendingContractId}/approve`)
+          .set('Authorization', `Bearer ${tokens.hrMgr}`);
+        assert.equal(approveRes.status, 200);
+        assert.equal(approveRes.body.data.status, 'Approved');
+
+        // Recalculate pay run after HR Manager approval
+        const calcRes3 = await request(app)
+          .post(`/api/v1/payroll/runs/${testRun.id}/calculate`)
+          .set('Authorization', `Bearer ${tokens.payroll}`);
+        assert.equal(calcRes3.status, 200);
+
+        payslip = await db.payslips.findFirst({
+          where: { pay_run_id: testRun.id, employee_id: testEmp.id },
+        });
+        assert.equal(Number(payslip.basic), 7000, 'Approved contract must now be used by pay run');
+
+        // Payroll Officer creates another raise to 9,000 basic effective 2028-07-15
+        const raiseRes2 = await request(app)
+          .post(`/api/v1/employees/${testEmp.id}/contracts`)
+          .set('Authorization', `Bearer ${tokens.payroll}`)
+          .send({
+            effective_date: '2028-07-15',
+            basic: 9000.0,
+            housing: 2000.0,
+            transport: 500.0,
+            other_allowances: 500.0,
+            gross: 12000.0,
+            status: 'Pending',
+          });
+        assert.equal(raiseRes2.status, 201);
+        const secondContractId = raiseRes2.body.data.id;
+
+        // HR Manager rejects this version
+        const rejectRes = await request(app)
+          .post(`/api/v1/employees/${testEmp.id}/contracts/${secondContractId}/reject`)
+          .set('Authorization', `Bearer ${tokens.hrMgr}`)
+          .send({ reason: 'Budget exceeded' });
+        assert.equal(rejectRes.status, 200);
+        assert.equal(rejectRes.body.data.status, 'Rejected');
+
+        // Recalculate pay run: must STILL use 7,000 (rejected contract is never used)
+        const calcRes4 = await request(app)
+          .post(`/api/v1/payroll/runs/${testRun.id}/calculate`)
+          .set('Authorization', `Bearer ${tokens.payroll}`);
+        assert.equal(calcRes4.status, 200);
+
+        payslip = await db.payslips.findFirst({
+          where: { pay_run_id: testRun.id, employee_id: testEmp.id },
+        });
+        assert.equal(Number(payslip.basic), 7000, 'Rejected contract version must NEVER be used');
+      } finally {
+        await db.payslip_lines.deleteMany({ where: { payslip: { pay_run_id: testRun.id } } });
+        await db.pay_run_issues.deleteMany({ where: { pay_run_id: testRun.id } });
+        await db.payslips.deleteMany({ where: { pay_run_id: testRun.id } });
+        await db.pay_runs.delete({ where: { id: testRun.id } });
+        await db.contracts.deleteMany({ where: { employee_id: testEmp.id } });
+        await db.bank_accounts.deleteMany({ where: { employee_id: testEmp.id } });
+        await db.employees.delete({ where: { id: testEmp.id } });
+      }
+    });
   });
 
   // =========================================================================
@@ -400,17 +590,27 @@ describe('Section 5.3 Permissions Matrix & Part 2 Features', { timeout: 120000 }
     });
 
     it('blocks the approver from marking pay run as Paid (SELF_PAYMENT_BLOCKED)', async () => {
-      const testRun = await db.pay_runs.create({
-        data: {
+      let testRun = await db.pay_runs.findFirst({
+        where: {
           company_id: companyId,
-          company_visa_id: (await db.company_visas.findFirst({ where: { company_id: companyId } })).id,
-          period_month: new Date('2024-01-01'),
-          cutoff_date: new Date('2024-01-25'),
-          run_type: 'Off-Cycle',
           status: 'Locked',
           locked_by: users.finance.id,
         },
       });
+
+      if (!testRun) {
+        testRun = await db.pay_runs.create({
+          data: {
+            company_id: companyId,
+            company_visa_id: (await db.company_visas.findFirst({ where: { company_id: companyId } })).id,
+            period_month: new Date(2010 + Math.floor(Math.random() * 10), Math.floor(Math.random() * 12), 1),
+            cutoff_date: new Date('2024-01-25'),
+            run_type: 'Off-Cycle',
+            status: 'Locked',
+            locked_by: users.finance.id,
+          },
+        });
+      }
 
       const res = await request(app)
         .post(`/api/v1/payroll/runs/${testRun.id}/pay`)

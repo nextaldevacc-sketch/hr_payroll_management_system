@@ -185,8 +185,9 @@ export function getContractOn(contracts = [], date = new Date()) {
 
   const targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
 
-  // Filter to contracts whose effective_date is on or before target date
+  // Filter to contracts whose effective_date is on or before target date (must be approved, excluding Pending/Rejected)
   const effectiveContracts = contracts.filter((c) => {
+    if (c.status === 'Pending' || c.status === 'Rejected') return false;
     if (!c.effective_date) return false;
     const eff = new Date(c.effective_date);
     const effDay = new Date(eff.getFullYear(), eff.getMonth(), eff.getDate()).getTime();

@@ -277,15 +277,15 @@ describe('Phase 8 Integration: Offboarding & Final Settlement', () => {
   });
 
   it('10. Cross-company tenant isolation on separations and settlements', async () => {
-    // Company A user attempts to get Company B separation
-    const res = await request(app)
-      .get(`/api/v1/separations/${testSep.id}`)
-      .set('Authorization', `Bearer ${adminAToken}`); // valid in A
-
-    // Switch to another token from company B
-    const compBUser = await prisma.$base().users.findFirst({
-      where: { company_id: companyB.id, email: { contains: 'admin' } },
+    // Switch to HR Manager token from company B (has separation viewing permissions in B)
+    let compBUser = await prisma.$base().users.findFirst({
+      where: { company_id: companyB.id, email: { contains: 'hr.mgr' } },
     });
+    if (!compBUser) {
+      compBUser = await prisma.$base().users.findFirst({
+        where: { company_id: companyB.id },
+      });
+    }
     if (compBUser) {
       const bTokenRes = await request(app)
         .post('/api/v1/auth/login')
@@ -297,7 +297,7 @@ describe('Phase 8 Integration: Offboarding & Final Settlement', () => {
           .get(`/api/v1/separations/${testSep.id}`)
           .set('Authorization', `Bearer ${bToken}`);
 
-        assert.equal(crossRes.status, 404);
+        assert.ok([403, 404].includes(crossRes.status), 'Cross-company separation access must be refused (403 or 404)');
       }
     }
   });

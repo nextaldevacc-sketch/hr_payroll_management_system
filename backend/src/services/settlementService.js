@@ -537,6 +537,7 @@ export class SettlementService {
             employee: {
               include: {
                 contracts: {
+                  where: { status: { in: ['Approved', 'Active'] } },
                   include: { department: true, job: true },
                   orderBy: { effective_date: 'desc' },
                 },
@@ -573,6 +574,7 @@ export class SettlementService {
             employee: {
               include: {
                 contracts: {
+                  where: { status: { in: ['Approved', 'Active'] } },
                   include: { department: true, job: true },
                   orderBy: { effective_date: 'desc' },
                 },

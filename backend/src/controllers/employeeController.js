@@ -241,6 +241,34 @@ export async function approveContractVersion(req, res, next) {
   }
 }
 
+export async function rejectContractVersion(req, res, next) {
+  try {
+    const roles = req.user?.roles || [];
+    if (!roles.includes('HR_MANAGER')) {
+      return res.status(403).json({
+        status: 'error',
+        code: 'FORBIDDEN',
+        message: 'Access denied: Only HR Manager can reject contract versions (Section 5.3).',
+      });
+    }
+
+    const data = await employeeService.rejectContractVersion({
+      companyId: req.companyId,
+      employeeId: req.params.id,
+      contractId: req.params.contractId,
+      viewer: req.user,
+      reason: req.body?.reason,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getBankAccounts(req, res, next) {
   try {
     if (!hasSalaryAccess(req.user)) {
@@ -395,6 +423,7 @@ export default {
   getContracts,
   createContractVersion,
   approveContractVersion,
+  rejectContractVersion,
   getBankAccounts,
   saveBankAccount,
   getDocuments,

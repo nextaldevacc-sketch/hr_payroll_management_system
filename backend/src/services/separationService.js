@@ -329,7 +329,7 @@ export class SeparationService {
     if (user) {
       const roles = user.roles || [];
       const isHrOrGm = roles.some((r) =>
-        ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'COMPANY_ADMIN', 'PLATFORM_ADMIN'].includes(r)
+        ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM'].includes(r)
       );
 
       if (!isHrOrGm) {
@@ -356,6 +356,11 @@ export class SeparationService {
             err.code = 'FORBIDDEN_FINANCE';
             throw err;
           }
+        } else {
+          const err = new Error('Access denied: You do not have permission to view this separation.');
+          err.status = 403;
+          err.code = 'FORBIDDEN';
+          throw err;
         }
       }
     }
@@ -388,7 +393,7 @@ export class SeparationService {
     if (user) {
       const roles = user.roles || [];
       const isHrOrGm = roles.some((r) =>
-        ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'COMPANY_ADMIN', 'PLATFORM_ADMIN'].includes(r)
+        ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM'].includes(r)
       );
 
       if (!isHrOrGm) {
@@ -405,6 +410,8 @@ export class SeparationService {
                 },
               },
             };
+          } else {
+            return { items: [], total: 0 };
           }
         } else if (roles.includes('FINANCE')) {
           where.clearance_items = {
@@ -415,6 +422,11 @@ export class SeparationService {
               ],
             },
           };
+        } else {
+          const err = new Error('Access denied: You do not have permission to list separations.');
+          err.status = 403;
+          err.code = 'FORBIDDEN';
+          throw err;
         }
       }
     }

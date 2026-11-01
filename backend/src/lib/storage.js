@@ -16,7 +16,13 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const ENCRYPTION_MAGIC = Buffer.from('NEXTAL_ENC_V1'); // 13 bytes
 
+let devWarningLogged = false;
+
 export function getEncryptionKey() {
+  if (!process.env.DOCUMENT_ENCRYPTION_KEY && !devWarningLogged) {
+    console.warn('[SECURITY WARNING] DOCUMENT_ENCRYPTION_KEY is not set; using dev-only fallback key.');
+    devWarningLogged = true;
+  }
   const keyStr = process.env.DOCUMENT_ENCRYPTION_KEY || 'nextal_doc_encryption_key_32_b!';
   const keyBuf = Buffer.from(keyStr, keyStr.length === 64 ? 'hex' : 'utf8');
   if (keyBuf.length !== 32) {
