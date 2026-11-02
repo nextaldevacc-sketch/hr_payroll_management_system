@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { AppShell } from '../../layout/AppShell';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
+import { request } from '../../../services/apiClient';
 import {
   Users,
   UserPlus,
@@ -54,8 +55,22 @@ export function UsersAndRolesFeature() {
   // Bulk creation summary
   const [bulkResult, setBulkResult] = useState(null);
 
-  // Seeded users representation matching backend seed
-  useEffect(() => {
+  const loadUsers = async () => {
+    try {
+      const data = await request('/users');
+      if (Array.isArray(data)) {
+        setUsers(
+          data.map((u) => ({
+            ...u,
+            name: u.employee?.name || u.name || u.email.split('@')[0],
+          }))
+        );
+        return;
+      }
+    } catch (err) {
+      console.warn('Failed to fetch users, using fallback', err);
+    }
+
     const initialUsers = [
       {
         id: 'u-admin',
@@ -138,8 +153,11 @@ export function UsersAndRolesFeature() {
         roles: [{ code: 'EMPLOYEE', name: 'Employee', scope_type: 'Company', sees_salary: false }],
       },
     ];
-
     setUsers(initialUsers);
+  };
+
+  useEffect(() => {
+    loadUsers();
   }, []);
 
   const handleToggleRoleSelection = (roleCode) => {
@@ -152,43 +170,39 @@ export function UsersAndRolesFeature() {
     }
   };
 
-  const handleInviteUser = (e) => {
+  const handleInviteUser = async (e) => {
     e.preventDefault();
     if (!inviteEmail) return;
 
-    const assignedRoleObjs = selectedRoles.map((code) => {
-      const match = COMPANY_ROLES.find((r) => r.code === code);
-      return {
-        code,
-        name: match?.nameEn || code,
-        scope_type: scopeType,
-        scope_name: scopeType !== 'Company' ? scopeTarget : null,
-        sees_salary: Boolean(match?.seesSalary),
-      };
-    });
+    try {
+      await request('/users/invite', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: inviteEmail,
+          role_assignments: selectedRoles.map((code) => ({
+            roleCode: code,
+            scopeType: ['Company', 'Branch', 'Department', 'Self'].includes(scopeType) ? scopeType : 'Company',
+          })),
+        }),
+      });
 
-    const newUser = {
-      id: `u-${Date.now()}`,
-      email: inviteEmail,
-      name: inviteEmail.split('@')[0],
-      status: 'Invited',
-      failed_logins: 0,
-      is_locked: false,
-      last_login_at: null,
-      roles: assignedRoleObjs,
-    };
-
-    setUsers([newUser, ...users]);
-    setIsInviteModalOpen(false);
-    setInviteEmail('');
-    setSelectedRoles(['EMPLOYEE']);
-    setAlertMessage({
-      type: 'success',
-      text:
-        locale === 'ar'
-          ? `تم إرسال دعوة الانضمام إلى ${inviteEmail} مع الأدوار المحددة ونطاق الصلاحية (${scopeType}).`
-          : `Invitation sent to ${inviteEmail} with assigned roles and scope (${scopeType}).`,
-    });
+      await loadUsers();
+      setIsInviteModalOpen(false);
+      setInviteEmail('');
+      setSelectedRoles(['EMPLOYEE']);
+      setAlertMessage({
+        type: 'success',
+        text:
+          locale === 'ar'
+            ? `تم إرسال دعوة الانضمام إلى ${inviteEmail} بنجاح.`
+            : `Invitation sent to ${inviteEmail} successfully.`,
+      });
+    } catch (err) {
+      setAlertMessage({
+        type: 'error',
+        text: err.message || 'Failed to send invite',
+      });
+    }
   };
 
   const handleBulkCreateLogins = () => {

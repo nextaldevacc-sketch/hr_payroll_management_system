@@ -55,7 +55,8 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
   const [refusalReason, setRefusalReason] = useState('');
   const [refusing, setRefusing] = useState(false);
 
-  const canApprove = user?.role === 'SUPER_ADMIN' || user?.role === 'COMPANY_ADMIN' || user?.role === 'HR_MANAGER' || user?.role === 'DEPT_MANAGER';
+  const userRoles = user?.roles || (user?.role ? [user.role] : []);
+  const canApprove = userRoles.some((r) => ['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPT_MANAGER'].includes(r));
 
   const loadData = async () => {
     setLoading(true);

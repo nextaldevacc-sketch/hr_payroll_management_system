@@ -255,6 +255,7 @@ export class AuthService {
         employee_id: user.employee_id,
         employee: user.employee,
         roles,
+        role: roles[0] || null,
         scopes,
         sees_salary: seesSalary,
         last_login_at: updatedUser.last_login_at,

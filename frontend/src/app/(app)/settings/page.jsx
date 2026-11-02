@@ -96,10 +96,11 @@ export default function SettingsPage() {
   const { isRTL, language } = useLanguage();
   const queryClient = useQueryClient();
 
-  const currentRole = user?.role || 'COMPANY_ADMIN';
-  const isHrOrAdmin = currentRole === 'HR_MANAGER' || currentRole === 'COMPANY_ADMIN';
-  const isPayrollOfficer = currentRole === 'PAYROLL_OFFICER';
-  const isFinance = currentRole === 'FINANCE';
+  const userRoles = user?.roles || (user?.role ? [user.role] : []);
+  const currentRole = userRoles[0] || 'COMPANY_ADMIN';
+  const isHrOrAdmin = userRoles.some((r) => ['HR_MANAGER', 'COMPANY_ADMIN'].includes(r));
+  const isPayrollOfficer = userRoles.includes('PAYROLL_OFFICER');
+  const isFinance = userRoles.includes('FINANCE');
 
   // 1. TanStack Queries for All 9 Screens
   const { data: overviewData, isLoading: isLoadingOverview } = useQuery({

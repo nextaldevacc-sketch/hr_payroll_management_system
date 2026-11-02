@@ -9,33 +9,35 @@ export function CompanyProfileDrawer({
   isOpen,
   onClose,
   company,
+  companyProfile,
   canEdit = true,
   onSave,
 }) {
+  const comp = company || companyProfile;
   const { isRTL, language } = useLanguage();
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'visas' | 'pension'
 
   const [formData, setFormData] = useState({
-    name: company?.name || 'Gulf Tech Logistics LLC',
-    name_ar: company?.name_ar || 'شركة جلف تك للخدمات اللوجستية ش.ذ.م.م',
-    trade_license_no: company?.trade_license_no || 'TL-DXB-2024-001',
-    default_language: company?.default_language || 'en',
-    logo_url: company?.logo_url || '/logo.png',
-    pension_scheme_default: company?.pension_scheme_default || 'GPSSA',
-    gpssa_employee_rate_new: company?.gpssa_employee_rate_new || 11.0,
-    gpssa_employee_rate_legacy: company?.gpssa_employee_rate_legacy || 5.0,
-    gpssa_employer_rate: company?.gpssa_employer_rate || 15.0,
-    gpssa_gov_share_rate: company?.gpssa_gov_share_rate || 2.5,
-    gpssa_min_salary: company?.gpssa_min_salary || 3000.0,
-    gpssa_max_salary: company?.gpssa_max_salary || 70000.0,
-    adpf_employee_rate: company?.adpf_employee_rate || 11.0,
-    adpf_employer_rate: company?.adpf_employer_rate || 15.0,
-    adpf_gov_share_rate: company?.adpf_gov_share_rate || 2.5,
-    adpf_min_salary: company?.adpf_min_salary || 3000.0,
-    adpf_max_salary: company?.adpf_max_salary || 70000.0,
+    name: comp?.name || 'Gulf Tech Logistics LLC',
+    name_ar: comp?.name_ar || 'شركة جلف تك للخدمات اللوجستية ش.ذ.م.م',
+    trade_license_no: comp?.trade_license_no || 'TL-DXB-2024-001',
+    default_language: comp?.default_language || 'en',
+    logo_url: comp?.logo_url || '/logo.png',
+    pension_scheme_default: comp?.pension_scheme_default || 'GPSSA',
+    gpssa_employee_rate_new: comp?.gpssa_employee_rate_new || 11.0,
+    gpssa_employee_rate_legacy: comp?.gpssa_employee_rate_legacy || 5.0,
+    gpssa_employer_rate: comp?.gpssa_employer_rate || 15.0,
+    gpssa_gov_share_rate: comp?.gpssa_gov_share_rate || 2.5,
+    gpssa_min_salary: comp?.gpssa_min_salary || 3000.0,
+    gpssa_max_salary: comp?.gpssa_max_salary || 70000.0,
+    adpf_employee_rate: comp?.adpf_employee_rate || 11.0,
+    adpf_employer_rate: comp?.adpf_employer_rate || 15.0,
+    adpf_gov_share_rate: comp?.adpf_gov_share_rate || 2.5,
+    adpf_min_salary: comp?.adpf_min_salary || 3000.0,
+    adpf_max_salary: comp?.adpf_max_salary || 70000.0,
   });
 
-  const [visas, setVisas] = useState(company?.visas || company?.company_visas || []);
+  const [visas, setVisas] = useState(comp?.visas || comp?.company_visas || []);
   const [isAddingVisa, setIsAddingVisa] = useState(false);
   const [newVisa, setNewVisa] = useState({
     name: '',
@@ -46,29 +48,29 @@ export function CompanyProfileDrawer({
   });
 
   useEffect(() => {
-    if (company) {
+    if (comp) {
       setFormData({
-        name: company.name || 'Gulf Tech Logistics LLC',
-        name_ar: company.name_ar || 'شركة جلف تك للخدمات اللوجستية ش.ذ.م.م',
-        trade_license_no: company.trade_license_no || 'TL-DXB-2024-001',
-        default_language: company.default_language || 'en',
-        logo_url: company.logo_url || '/logo.png',
-        pension_scheme_default: company.pension_scheme_default || 'GPSSA',
-        gpssa_employee_rate_new: company.gpssa_employee_rate_new ?? 11.0,
-        gpssa_employee_rate_legacy: company.gpssa_employee_rate_legacy ?? 5.0,
-        gpssa_employer_rate: company.gpssa_employer_rate ?? 15.0,
-        gpssa_gov_share_rate: company.gpssa_gov_share_rate ?? 2.5,
-        gpssa_min_salary: company.gpssa_min_salary ?? 3000.0,
-        gpssa_max_salary: company.gpssa_max_salary ?? 70000.0,
-        adpf_employee_rate: company.adpf_employee_rate ?? 11.0,
-        adpf_employer_rate: company.adpf_employer_rate ?? 15.0,
-        adpf_gov_share_rate: company.adpf_gov_share_rate ?? 2.5,
-        adpf_min_salary: company.adpf_min_salary ?? 3000.0,
-        adpf_max_salary: company.adpf_max_salary ?? 70000.0,
+        name: comp.name || 'Gulf Tech Logistics LLC',
+        name_ar: comp.name_ar || 'شركة جلف تك للخدمات اللوجستية ش.ذ.م.م',
+        trade_license_no: comp.trade_license_no || 'TL-DXB-2024-001',
+        default_language: comp.default_language || 'en',
+        logo_url: comp.logo_url || '/logo.png',
+        pension_scheme_default: comp.pension_scheme_default || 'GPSSA',
+        gpssa_employee_rate_new: comp.gpssa_employee_rate_new ?? 11.0,
+        gpssa_employee_rate_legacy: comp.gpssa_employee_rate_legacy ?? 5.0,
+        gpssa_employer_rate: comp.gpssa_employer_rate ?? 15.0,
+        gpssa_gov_share_rate: comp.gpssa_gov_share_rate ?? 2.5,
+        gpssa_min_salary: comp.gpssa_min_salary ?? 3000.0,
+        gpssa_max_salary: comp.gpssa_max_salary ?? 70000.0,
+        adpf_employee_rate: comp.adpf_employee_rate ?? 11.0,
+        adpf_employer_rate: comp.adpf_employer_rate ?? 15.0,
+        adpf_gov_share_rate: comp.adpf_gov_share_rate ?? 2.5,
+        adpf_min_salary: comp.adpf_min_salary ?? 3000.0,
+        adpf_max_salary: comp.adpf_max_salary ?? 70000.0,
       });
-      setVisas(company.visas || company.company_visas || []);
+      setVisas(comp.visas || comp.company_visas || []);
     }
-  }, [company]);
+  }, [comp]);
 
   const handleAddVisa = (e) => {
     e.preventDefault();

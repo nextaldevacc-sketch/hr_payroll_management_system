@@ -123,6 +123,7 @@ export default function AcceptInvitePage() {
                 <Lock className="w-4 h-4" />
               </div>
               <input
+                id="invite-password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -151,6 +152,7 @@ export default function AcceptInvitePage() {
                 <Lock className="w-4 h-4" />
               </div>
               <input
+                id="invite-confirm-password"
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -179,6 +181,7 @@ export default function AcceptInvitePage() {
           </div>
 
           <button
+            id="btn-submit-invite"
             type="submit"
             disabled={isLoading || !hasLength || !hasLetter || !hasNumber || !isMatch}
             className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/20 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all"

@@ -265,33 +265,34 @@ export class EmployeeService {
    * Get metadata options for filter dropdowns and onboarding wizards.
    */
   async getEmployeeMetaOptions({ companyId }) {
+    const db = companyId && this.prisma.$scoped ? this.prisma.$scoped(companyId) : this.prisma;
     const [departments, branches, visas, jobs, shifts, policies] = await Promise.all([
-      this.prisma.departments.findMany({
+      db.departments.findMany({
         where: { company_id: companyId },
         select: { id: true, name: true, name_ar: true, cost_centre: true },
         orderBy: { name: 'asc' },
       }),
-      this.prisma.branches.findMany({
+      db.branches.findMany({
         where: { company_id: companyId },
         select: { id: true, name: true, name_ar: true, emirate: true },
         orderBy: { name: 'asc' },
       }),
-      this.prisma.company_visas.findMany({
+      db.company_visas.findMany({
         where: { company_id: companyId },
         select: { id: true, name: true, mol_establishment_id: true, emirate: true },
         orderBy: { name: 'asc' },
       }),
-      this.prisma.jobs.findMany({
+      db.jobs.findMany({
         where: { company_id: companyId },
         select: { id: true, title: true, title_ar: true, job_code: true },
         orderBy: { title: 'asc' },
       }),
-      this.prisma.shifts.findMany({
+      db.shifts.findMany({
         where: { company_id: companyId },
         select: { id: true, name: true, start_time: true, end_time: true },
         orderBy: { name: 'asc' },
       }),
-      this.prisma.attendance_policies.findMany({
+      db.attendance_policies.findMany({
         where: { company_id: companyId },
         select: { id: true, name: true },
         orderBy: { name: 'asc' },
@@ -837,7 +838,7 @@ export class EmployeeService {
           data: {
             user_id: user.id,
             token_hash: randomHash,
-            purpose: 'SELF_SERVICE_INVITE',
+            purpose: 'invite',
             expires_at: expiresAt,
           },
         });
@@ -948,12 +949,21 @@ export class EmployeeService {
     const otherAllowances = parseFloat(data.other_allowances) || 0;
     const gross = parseFloat(data.gross) || (basic + housing + transport + otherAllowances);
 
-    // If shift or attendance policy or structure not provided, fallback to latest contract's values
-    const shiftId = data.shift_id || latest?.shift_id;
-    const attendancePolicyId = data.attendance_policy_id || latest?.attendance_policy_id;
-    const structureId = data.structure_id || latest?.structure_id;
-    const jobId = data.job_id || latest?.job_id;
-    const departmentId = data.department_id || latest?.department_id;
+    // If shift or attendance policy or structure not provided, fallback to latest contract's values or company defaults
+    const [empRecord, defaultShift, defaultPolicy, defaultStructure, defaultJob, defaultDept] = await Promise.all([
+      this.prisma.employees.findUnique({ where: { id: employeeId } }),
+      this.prisma.shifts.findFirst({ where: { company_id: companyId } }),
+      this.prisma.attendance_policies.findFirst({ where: { company_id: companyId } }),
+      this.prisma.salary_structures.findFirst({ where: { company_id: companyId } }),
+      this.prisma.jobs.findFirst({ where: { company_id: companyId } }),
+      this.prisma.departments.findFirst({ where: { company_id: companyId } }),
+    ]);
+
+    const shiftId = data.shift_id || latest?.shift_id || defaultShift?.id;
+    const attendancePolicyId = data.attendance_policy_id || latest?.attendance_policy_id || defaultPolicy?.id;
+    const structureId = data.structure_id || latest?.structure_id || defaultStructure?.id;
+    const jobId = data.job_id || latest?.job_id || empRecord?.job_id || defaultJob?.id;
+    const departmentId = data.department_id || latest?.department_id || empRecord?.department_id || defaultDept?.id;
 
     if (!shiftId || !attendancePolicyId || !structureId || !jobId || !departmentId) {
       const err = new Error('Missing required contract references: shift, policy, structure, job, or department');
@@ -1417,17 +1427,29 @@ export class EmployeeService {
    */
   async getEmployeeHistory({ companyId, employeeId, viewer }) {
     const canSeeSalary = hasSalaryAccess(viewer);
+    const db = companyId && this.prisma.$scoped ? this.prisma.$scoped(companyId) : this.prisma;
+
+    const contractIds = await this._getContractIds(employeeId, db);
+    const bankAccountIds = await this._getBankAccountIds(employeeId, db);
+    const documentIds = await this._getDocumentIds(employeeId, db);
 
     // Find audit logs directly on employee or related records
-    const logs = await this.prisma.audit_logs.findMany({
+    const orClauses = [
+      { table_name: 'employees', record_id: employeeId },
+    ];
+    if (contractIds.length > 0) {
+      orClauses.push({ table_name: 'contracts', record_id: { in: contractIds } });
+    }
+    if (bankAccountIds.length > 0) {
+      orClauses.push({ table_name: 'bank_accounts', record_id: { in: bankAccountIds } });
+    }
+    if (documentIds.length > 0) {
+      orClauses.push({ table_name: 'employee_documents', record_id: { in: documentIds } });
+    }
+
+    const logs = await db.audit_logs.findMany({
       where: {
-        company_id: companyId,
-        OR: [
-          { table_name: 'employees', record_id: employeeId },
-          { table_name: 'contracts', record_id: { in: await this._getContractIds(employeeId) } },
-          { table_name: 'bank_accounts', record_id: { in: await this._getBankAccountIds(employeeId) } },
-          { table_name: 'employee_documents', record_id: { in: await this._getDocumentIds(employeeId) } },
-        ],
+        OR: orClauses,
       },
       include: {
         user: { select: { id: true, email: true } },
@@ -1450,6 +1472,7 @@ export class EmployeeService {
         action: log.action,
         table_name: log.table_name,
         actor: log.user ? log.user.email : 'System',
+        user: log.user,
         created_at: log.created_at,
         old_values: oldVals,
         new_values: newVals,
@@ -1459,31 +1482,46 @@ export class EmployeeService {
     return history;
   }
 
-  async _getContractIds(employeeId) {
+  async _getContractIds(employeeId, db) {
     if (!employeeId) return [];
-    const rows = await this.prisma.contracts.findMany({
-      where: { employee_id: employeeId },
-      select: { id: true },
-    });
-    return rows.map((r) => r.id);
+    try {
+      const client = db || (this.prisma.$base ? this.prisma.$base() : this.prisma);
+      const rows = await client.contracts.findMany({
+        where: { employee_id: employeeId },
+        select: { id: true },
+      });
+      return rows.map((r) => r.id);
+    } catch {
+      return [];
+    }
   }
 
-  async _getBankAccountIds(employeeId) {
+  async _getBankAccountIds(employeeId, db) {
     if (!employeeId) return [];
-    const rows = await this.prisma.bank_accounts.findMany({
-      where: { employee_id: employeeId },
-      select: { id: true },
-    });
-    return rows.map((r) => r.id);
+    try {
+      const client = db || (this.prisma.$base ? this.prisma.$base() : this.prisma);
+      const rows = await client.bank_accounts.findMany({
+        where: { employee_id: employeeId },
+        select: { id: true },
+      });
+      return rows.map((r) => r.id);
+    } catch {
+      return [];
+    }
   }
 
-  async _getDocumentIds(employeeId) {
+  async _getDocumentIds(employeeId, db) {
     if (!employeeId) return [];
-    const rows = await this.prisma.employee_documents.findMany({
-      where: { employee_id: employeeId },
-      select: { id: true },
-    });
-    return rows.map((r) => r.id);
+    try {
+      const client = db || (this.prisma.$base ? this.prisma.$base() : this.prisma);
+      const rows = await client.employee_documents.findMany({
+        where: { employee_id: employeeId },
+        select: { id: true },
+      });
+      return rows.map((r) => r.id);
+    } catch {
+      return [];
+    }
   }
 }
 

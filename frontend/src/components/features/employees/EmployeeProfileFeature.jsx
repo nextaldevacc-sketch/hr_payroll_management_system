@@ -43,6 +43,9 @@ import {
   downloadEmployeeDocument,
   fetchEmployeeAuditHistory,
   updateEmployeeStatus,
+  activateEmployee,
+  verifyEmployee,
+  approveContractVersion,
 } from '../../../services/employeesApi';
 import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
@@ -172,6 +175,20 @@ export function EmployeeProfileFeature({ id } = {}) {
     },
   });
 
+  // Contract approval mutation
+  const approveContractMutation = useMutation({
+    mutationFn: (contractId) => approveContractVersion(employeeId, contractId),
+    onSuccess: () => {
+      setActionSuccess('Contract version approved successfully!');
+      setActionError(null);
+      refetchContracts();
+      refetchProfile();
+    },
+    onError: (err) => {
+      setActionError(err.message || 'Failed to approve contract version');
+    },
+  });
+
   // Upload document mutation
   const uploadDocMutation = useMutation({
     mutationFn: (formData) => uploadEmployeeDocument(employeeId, formData),
@@ -185,6 +202,32 @@ export function EmployeeProfileFeature({ id } = {}) {
     },
     onError: (err) => {
       setActionError(err.message || 'Failed to upload document');
+    },
+  });
+
+  const [verifyComment, setVerifyComment] = useState('Reviewed identity documents.');
+
+  const verifyMutation = useMutation({
+    mutationFn: (action) => verifyEmployee(employeeId, { action, comment: verifyComment }),
+    onSuccess: (data) => {
+      setActionSuccess(data?.message || 'Verification processed successfully.');
+      setActionError(null);
+      refetchProfile();
+    },
+    onError: (err) => {
+      setActionError(err.message || 'Verification rejected');
+    },
+  });
+
+  const activateMutation = useMutation({
+    mutationFn: () => activateEmployee(employeeId),
+    onSuccess: () => {
+      setActionSuccess('Employee successfully Activated! Status moved to Active.');
+      setActionError(null);
+      refetchProfile();
+    },
+    onError: (err) => {
+      setActionError(err.message || 'Activation requirements not met');
     },
   });
 
@@ -299,6 +342,50 @@ export function EmployeeProfileFeature({ id } = {}) {
         </div>
       )}
 
+      {/* Pre-Joined Verification Card (Dual-Control) */}
+      {(employee.status === 'Pre-Joined' || employee.status === 'SentBack') && isHrOrAdmin && (
+        <GlassCard className="p-4 border border-amber-500/30 bg-amber-500/5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-xs">
+              <Shield className="w-4 h-4 text-amber-500" />
+              <span>HR Verification (Spec 7.2 Dual-Control Guard)</span>
+            </div>
+            <span className="text-[11px] text-text-muted">Status: {employee.status}</span>
+          </div>
+          <div className="space-y-2">
+            <input
+              id="input-verify-comment"
+              type="text"
+              placeholder="Verification remarks or reason if sending back..."
+              value={verifyComment}
+              onChange={(e) => setVerifyComment(e.target.value)}
+              className="w-full p-2 rounded-xl bg-surface border border-border text-xs text-text"
+            />
+            <div className="flex items-center justify-end gap-2">
+              <button
+                id="btn-verify-sendback"
+                type="button"
+                onClick={() => verifyMutation.mutate('SEND_BACK')}
+                disabled={verifyMutation.isPending}
+                className="px-3.5 py-1.5 rounded-xl border border-rose-500/30 text-rose-600 hover:bg-rose-500/10 font-semibold text-xs"
+              >
+                Send Back with Comment
+              </button>
+              <button
+                id="btn-verify-approve"
+                type="button"
+                onClick={() => verifyMutation.mutate('APPROVE')}
+                disabled={verifyMutation.isPending}
+                className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Verify & Approve</span>
+              </button>
+            </div>
+          </div>
+        </GlassCard>
+      )}
+
       {/* 1. Bento Header per Specification */}
       <GlassCard className="p-6 border border-border shadow-md">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -357,6 +444,18 @@ export function EmployeeProfileFeature({ id } = {}) {
 
           {/* Alert Badge & Quick Actions */}
           <div className="flex items-center gap-3 self-end md:self-auto">
+            {isHrOrAdmin && employee.status !== 'Active' && employee.status !== 'Archived' && (
+              <button
+                id="btn-activate-employee-profile"
+                type="button"
+                onClick={() => activateMutation.mutate()}
+                disabled={activateMutation.isPending}
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{activateMutation.isPending ? 'Activating...' : 'Activate Employee'}</span>
+              </button>
+            )}
             {docAlertCount > 0 ? (
               <div className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-semibold flex items-center gap-1.5">
                 <AlertTriangle className="w-4 h-4" />
@@ -508,7 +607,7 @@ export function EmployeeProfileFeature({ id } = {}) {
                   Every raise or structural change creates a NEW contract row with an effective date. Old rows are never updated.
                 </p>
               </div>
-              {isHrOrAdmin && (
+              {(isHrOrAdmin || user?.role === 'PAYROLL_OFFICER') && (
                 <button
                   onClick={() => setShowContractModal(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-[var(--on-primary)] font-semibold text-xs shadow-sm"
@@ -532,6 +631,7 @@ export function EmployeeProfileFeature({ id } = {}) {
                     <th className="py-3 px-4 text-end">Transport (AED)</th>
                     <th className="py-3 px-4 text-end">Other (AED)</th>
                     <th className="py-3 px-4 text-end">Gross (AED)</th>
+                    <th className="py-3 px-4 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
@@ -563,6 +663,20 @@ export function EmployeeProfileFeature({ id } = {}) {
                       </td>
                       <td className="py-3 px-4 text-end font-mono font-black text-text">
                         {Number(ver.gross).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {ver.status === 'Pending' && (user?.role === 'HR_MANAGER' || user?.role === 'COMPANY_ADMIN') && (
+                          <button
+                            id={`btn-approve-contract-${ver.version_no}`}
+                            type="button"
+                            onClick={() => approveContractMutation.mutate(ver.id)}
+                            disabled={approveContractMutation.isPending}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-sm flex items-center gap-1 mx-auto"
+                          >
+                            <CheckCircle2 className="w-3 h-3" />
+                            <span>Approve</span>
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -683,7 +797,7 @@ export function EmployeeProfileFeature({ id } = {}) {
                   Full IBAN is displayed only to authorized salary roles. Verified via ISO 7064 mod-97 checksum.
                 </p>
               </div>
-              {isHrOrAdmin && (
+              {(isHrOrAdmin || user?.role === 'PAYROLL_OFFICER') && (
                 <button
                   onClick={() => setShowBankModal(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-[var(--on-primary)] font-semibold text-xs shadow-sm"
@@ -759,7 +873,7 @@ export function EmployeeProfileFeature({ id } = {}) {
                         {log.action}
                       </td>
                       <td className="py-3 px-4 text-text">
-                        {log.user?.email || 'System'}
+                        {log.user?.email || log.actor || 'System'}
                       </td>
                       <td className="py-3 px-4 font-mono text-[11px] text-text-muted max-w-xs truncate">
                         {log.old_values ? JSON.stringify(log.old_values) : '—'}

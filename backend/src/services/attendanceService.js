@@ -209,10 +209,18 @@ class AttendanceService {
     }
 
     // 7. Auto-build attendance days for the affected period
+    let rebuildStart = fromDate;
+    let rebuildEnd = toDate;
+    if (!periodFrom && validPunches.length > 0) {
+      const timestamps = validPunches.map((p) => p.punched_at.getTime());
+      rebuildStart = new Date(Math.min(...timestamps));
+      rebuildEnd = new Date(Math.max(...timestamps));
+    }
+
     await this.buildAttendanceDays({
       companyId,
-      startDate: fromDate,
-      endDate: toDate,
+      startDate: rebuildStart,
+      endDate: rebuildEnd,
     }).catch((err) => console.error('Background attendance rebuild error:', err));
 
     return {

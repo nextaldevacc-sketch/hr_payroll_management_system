@@ -272,8 +272,9 @@ class SettingsService {
       data: {
         company_id: companyId,
         name: data.name,
-        mohre_employer_id: data.mohre_employer_id,
-        routing_code: data.routing_code,
+        mol_establishment_id: data.mohre_employer_id || data.mol_establishment_id || `MOL-${Date.now()}`,
+        bank_routing_code: data.bank_routing_code || data.routing_code || 'ENBD001',
+        emirate: data.emirate || 'Dubai',
         pension_fund: data.pension_fund || (data.emirate === 'Abu Dhabi' ? 'ADPF' : 'GPSSA'),
         created_by: userId,
         updated_by: userId,
@@ -304,8 +305,18 @@ class SettingsService {
       where: { id },
       data: {
         name: data.name !== undefined ? data.name : old.name,
-        mohre_employer_id: data.mohre_employer_id !== undefined ? data.mohre_employer_id : old.mohre_employer_id,
-        routing_code: data.routing_code !== undefined ? data.routing_code : old.routing_code,
+        mol_establishment_id:
+          data.mohre_employer_id !== undefined
+            ? data.mohre_employer_id
+            : data.mol_establishment_id !== undefined
+            ? data.mol_establishment_id
+            : old.mol_establishment_id,
+        bank_routing_code:
+          data.bank_routing_code !== undefined
+            ? data.bank_routing_code
+            : data.routing_code !== undefined
+            ? data.routing_code
+            : old.bank_routing_code,
         pension_fund: data.pension_fund !== undefined ? data.pension_fund : old.pension_fund,
         updated_by: userId,
       },
@@ -369,7 +380,7 @@ class SettingsService {
     return prisma.$base().branches.findMany({
       where: { company_id: companyId },
       include: {
-        company_visa: { select: { id: true, name: true, mohre_employer_id: true } },
+        company_visa: { select: { id: true, name: true, mol_establishment_id: true } },
         _count: { select: { employees: true } },
       },
       orderBy: { name: 'asc' },

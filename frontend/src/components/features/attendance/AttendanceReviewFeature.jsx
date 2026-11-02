@@ -32,8 +32,14 @@ export default function AttendanceReviewFeature({ onConfirmed }) {
   const [successMessage, setSuccessMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
-  const isHRRole = user?.role === 'SUPER_ADMIN' || user?.role === 'COMPANY_ADMIN' || user?.role === 'HR_MANAGER';
-  const isManagerRole = isHRRole || user?.role === 'DEPT_MANAGER';
+  const isHRRole =
+    user?.role === 'SUPER_ADMIN' ||
+    user?.role === 'COMPANY_ADMIN' ||
+    user?.role === 'HR_MANAGER' ||
+    user?.role === 'HR_OFFICER' ||
+    user?.roles?.includes('HR_OFFICER') ||
+    user?.roles?.includes('HR_MANAGER');
+  const isManagerRole = isHRRole || user?.role === 'DEPT_MANAGER' || user?.roles?.includes('DEPT_MANAGER');
 
   const loadReviewStatus = async () => {
     setLoading(true);

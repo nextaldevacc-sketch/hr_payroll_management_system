@@ -133,7 +133,7 @@ export function SettingsOverviewBento({
       icon: Layers,
       titleEn: 'Salary Rules & Simulator',
       titleAr: 'قواعد وهياكل الرواتب والمحاكي',
-      descEn: 'Safe formulas without eval, GL accounts, absence divisor, Ahmed demo (AED 7,044.80).',
+      descEn: 'Safe formulas without eval, GL accounts, absence divisor and statutory pay simulation.',
       descAr: 'صيغ آمنة برمجياً، حسابات الأستاذ، مقسوم الغياب، ومحاكي احتساب الرواتب الدقيق.',
       countBadge: overviewData?.tiles?.find((t) => t.id === 'salary_rules')?.countLabelEn || '17 Statutory Rules · Simulator',
       countBadgeAr: overviewData?.tiles?.find((t) => t.id === 'salary_rules')?.countLabelAr || '17 قاعدة قانونية · محاكي فوري',
@@ -242,7 +242,7 @@ export function SettingsOverviewBento({
 
         if (tile.isLink) {
           return (
-            <Link key={tile.id} href={tile.linkHref} className="block h-full group">
+            <Link key={tile.id} id={`tile-${tile.id}`} href={tile.linkHref} className="block h-full group">
               <BentoTile
                 id={`settings-tile-${tile.id}`}
                 title={language === 'ar' ? tile.titleAr : tile.titleEn}
@@ -272,6 +272,7 @@ export function SettingsOverviewBento({
         return (
           <div
             key={tile.id}
+            id={`tile-${tile.id}`}
             onClick={() => onOpenDrawer(tile.id)}
             className="cursor-pointer h-full group"
           >

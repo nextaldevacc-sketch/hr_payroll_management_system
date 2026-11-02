@@ -66,7 +66,7 @@ router.post(
 
 router.post(
   '/review/hr-confirm',
-  authorizeAttendance(['HR_MANAGER', 'COMPANY_ADMIN']),
+  authorizeAttendance(['HR_MANAGER', 'HR_OFFICER', 'COMPANY_ADMIN']),
   attendanceController.confirmHR
 );
 

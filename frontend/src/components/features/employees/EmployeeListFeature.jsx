@@ -87,7 +87,7 @@ export function EmployeeListFeature() {
       visaFilter,
       nationalityFilter,
       docStatusFilter,
-      user?.role,
+      (user?.roles || []).join(','),
     ],
     queryFn: () =>
       fetchEmployees({
@@ -190,7 +190,7 @@ export function EmployeeListFeature() {
           </div>
           <div className="mt-2 text-2xl font-black text-text">{meta.total}</div>
           <div className="text-[11px] text-text-muted mt-1">
-            {user?.role === 'DEPT_MANAGER' ? 'Your Managed Team' : 'Gulf Tech Workforce'}
+            {user?.roles?.includes('DEPT_MANAGER') ? 'Your Managed Team' : 'Gulf Tech Workforce'}
           </div>
         </GlassCard>
 

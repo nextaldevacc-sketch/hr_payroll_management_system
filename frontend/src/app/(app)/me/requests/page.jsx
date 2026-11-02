@@ -10,10 +10,12 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  Plus,
 } from 'lucide-react';
 import { Button } from '@/components/primitives/form/Button';
+import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
-import { getMyRequests, cancelMyRequest } from '@/services/meApi';
+import { getMyRequests, cancelMyRequest, submitMyRequest } from '@/services/meApi';
 
 export default function MyRequestsPage() {
   const { language } = useLanguage();
@@ -21,6 +23,17 @@ export default function MyRequestsPage() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
+
+  // New Request Modal State
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [newReqType, setNewReqType] = useState('MissingPunch');
+  const [workDate, setWorkDate] = useState('2026-10-15');
+  const [punchTime, setPunchTime] = useState('09:00');
+  const [otHours, setOtHours] = useState('2.0');
+  const [otType, setOtType] = useState('OT_NORMAL');
+  const [reqReason, setReqReason] = useState('');
+  const [submittingNew, setSubmittingNew] = useState(false);
+  const [modalError, setModalError] = useState('');
 
   const loadRequests = async () => {
     try {
@@ -53,6 +66,42 @@ export default function MyRequestsPage() {
     }
   };
 
+  const handleCreateRequest = async (e) => {
+    e.preventDefault();
+    if (!reqReason.trim()) {
+      setModalError(language === 'ar' ? 'يرجى إدخال سبب الطلب' : 'Please provide a reason');
+      return;
+    }
+    setSubmittingNew(true);
+    setModalError('');
+    try {
+      if (newReqType === 'MissingPunch') {
+        await submitMyRequest({
+          type: 'MissingPunch',
+          work_date: workDate,
+          requested_time: `${workDate}T${punchTime}:00Z`,
+          reason: reqReason.trim(),
+        });
+      } else {
+        await submitMyRequest({
+          type: 'Overtime',
+          work_date: workDate,
+          hours: Number(otHours),
+          ot_type: otType,
+          reason: reqReason.trim(),
+          compensation: 'Pay',
+        });
+      }
+      setIsNewModalOpen(false);
+      setReqReason('');
+      await loadRequests();
+    } catch (err) {
+      setModalError(err.message || 'Failed to submit request');
+    } finally {
+      setSubmittingNew(false);
+    }
+  };
+
   return (
     <div id="my-requests-container" className="space-y-6 animate-fadeIn pb-12 max-w-full overflow-x-hidden">
       {/* Header */}
@@ -67,6 +116,14 @@ export default function MyRequestsPage() {
               : 'Track status and audit trails of your submitted requests, with one-click cancellation for pending items'}
           </p>
         </div>
+        <Button
+          id="btn-new-request"
+          variant="primary"
+          icon={<Plus className="w-4 h-4" />}
+          onClick={() => setIsNewModalOpen(true)}
+        >
+          {language === 'ar' ? 'طلب جديد' : 'New Request'}
+        </Button>
       </div>
 
       {/* Requests List */}
@@ -163,6 +220,123 @@ export default function MyRequestsPage() {
           </div>
         )}
       </div>
+
+      {/* New Request Modal */}
+      <Modal
+        isOpen={isNewModalOpen}
+        onClose={() => setIsNewModalOpen(false)}
+        title={language === 'ar' ? 'تقديم طلب جديد' : 'Submit New Request'}
+        subtitle={language === 'ar' ? 'طلب تصحيح بصمة أو ساعات عمل إضافي' : 'Submit a missing punch or overtime request'}
+      >
+        <form onSubmit={handleCreateRequest} className="space-y-4 text-xs">
+          {modalError && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400">
+              {modalError}
+            </div>
+          )}
+
+          <div>
+            <label className="block font-semibold text-text mb-1">Request Type</label>
+            <select
+              id="select-request-type"
+              value={newReqType}
+              onChange={(e) => setNewReqType(e.target.value)}
+              className="w-full p-2.5 rounded-xl bg-surface border border-border text-text"
+            >
+              <option value="MissingPunch">Missing Punch Correction</option>
+              <option value="Overtime">Overtime Request</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block font-semibold text-text mb-1">Work Date</label>
+            <input
+              id="input-work-date"
+              type="date"
+              value={workDate}
+              onChange={(e) => setWorkDate(e.target.value)}
+              className="w-full p-2.5 rounded-xl bg-surface border border-border text-text"
+              required
+            />
+          </div>
+
+          {newReqType === 'MissingPunch' ? (
+            <div>
+              <label className="block font-semibold text-text mb-1">Punch Time (Asia/Dubai)</label>
+              <input
+                id="input-punch-time"
+                type="time"
+                value={punchTime}
+                onChange={(e) => setPunchTime(e.target.value)}
+                className="w-full p-2.5 rounded-xl bg-surface border border-border text-text"
+                required
+              />
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block font-semibold text-text mb-1">Overtime Type</label>
+                <select
+                  id="select-ot-type"
+                  value={otType}
+                  onChange={(e) => setOtType(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-surface border border-border text-text"
+                >
+                  <option value="OT_NORMAL">Normal Overtime (1.25x)</option>
+                  <option value="OT_NIGHT">Night Overtime (1.50x)</option>
+                  <option value="OT_REST">Rest Day Overtime (1.50x)</option>
+                  <option value="OT_HOLIDAY">Public Holiday Overtime (1.50x)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block font-semibold text-text mb-1">Hours</label>
+                <input
+                  id="input-ot-hours"
+                  type="number"
+                  step="0.5"
+                  min="0.5"
+                  max="12"
+                  value={otHours}
+                  onChange={(e) => setOtHours(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-surface border border-border text-text"
+                  required
+                />
+              </div>
+            </>
+          )}
+
+          <div>
+            <label className="block font-semibold text-text mb-1">Reason (Mandatory)</label>
+            <textarea
+              id="input-req-reason"
+              rows={3}
+              placeholder="State the reason for this request..."
+              value={reqReason}
+              onChange={(e) => setReqReason(e.target.value)}
+              className="w-full p-2.5 rounded-xl bg-surface border border-border text-text"
+              required
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-3">
+            <button
+              type="button"
+              onClick={() => setIsNewModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-text-muted hover:text-text font-medium"
+            >
+              Cancel
+            </button>
+            <Button
+              id="btn-submit-request-confirm"
+              type="submit"
+              variant="primary"
+              loading={submittingNew}
+            >
+              Submit Request
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

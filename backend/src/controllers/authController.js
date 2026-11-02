@@ -112,6 +112,7 @@ export async function getCurrentUser(req, res, next) {
         employee_id: user.employee_id,
         employee: user.employee,
         roles,
+        role: roles[0] || null,
         scopes: user.user_roles.map((ur) => ({
           role: ur.role.code,
           scope_type: ur.scope_type,

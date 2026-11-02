@@ -140,6 +140,7 @@ if (process.env.FEATURE_PLATFORM_ADMIN === 'true') {
   });
 }
 app.use('/api/v1/company', usersRoutes);
+app.use('/api/v1', usersRoutes);
 app.use('/api/v1/approvals', approvalsRoutes);
 app.use('/api/v1/employees', employeesRoutes);
 app.use('/api/v1/payroll', payrollRoutes);

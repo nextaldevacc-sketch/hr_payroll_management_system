@@ -75,6 +75,7 @@ export function SalaryRulesDrawer({
   const isFinance = userRole === 'FINANCE';
   const isPayrollOfficer = userRole === 'PAYROLL_OFFICER';
   const isHrOrAdmin = userRole === 'HR_MANAGER' || userRole === 'COMPANY_ADMIN';
+  const canSeeSalary = ['HR_MANAGER', 'PAYROLL_OFFICER', 'FINANCE', 'GENERAL_MANAGER'].includes(userRole);
 
   // Live Rule B Simulator Evaluation
   const simulationResult = useMemo(() => {
@@ -219,21 +220,23 @@ export function SalaryRulesDrawer({
                 {ruleList.length}
               </span>
             </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('simulator')}
-              className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 ${
-                activeTab === 'simulator'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-text-muted hover:text-text'
-              }`}
-            >
-              <Play className="w-3.5 h-3.5 text-primary" />
-              <span>{language === 'ar' ? 'محاكي احتساب الراتب (Rule B)' : 'Test This Rule Simulator'}</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400">
-                AED 7,044.80
-              </span>
-            </button>
+            {canSeeSalary && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('simulator')}
+                className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 ${
+                  activeTab === 'simulator'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-text-muted hover:text-text'
+                }`}
+              >
+                <Play className="w-3.5 h-3.5 text-primary" />
+                <span>{language === 'ar' ? 'محاكي احتساب الراتب (Rule B)' : 'Test This Rule Simulator'}</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400">
+                  AED 7,044.80
+                </span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setActiveTab('statutory')}
@@ -480,7 +483,7 @@ export function SalaryRulesDrawer({
         {/* =========================================================================
             Tab 2: Rule B "Test This Rule" Simulator Panel
            ========================================================================= */}
-        {activeTab === 'simulator' && (
+        {activeTab === 'simulator' && canSeeSalary && (
           <div className="space-y-4">
             {/* Benchmark Example Preset Buttons */}
             <div className="flex flex-wrap items-center gap-2">

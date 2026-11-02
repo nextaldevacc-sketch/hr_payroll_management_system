@@ -47,7 +47,7 @@ export async function inviteUser(req, res, next) {
       email,
       employeeId: employee_id,
       roleAssignments: role_assignments || [{ roleCode: 'EMPLOYEE', scopeType: 'Company' }],
-      invitedBy: req.user.userId,
+      invitedBy: req.user.userId || req.user.id || null,
     });
 
     res.status(201).json({

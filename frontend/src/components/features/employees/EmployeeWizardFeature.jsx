@@ -89,11 +89,11 @@ export function EmployeeWizardFeature() {
     routing_code: 'ENBD001',
   });
 
-  // Fetch Meta Options for dropdowns
+  // Fetch Meta Options for dropdowns (scoped by company_id, fresh on switch)
   const { data: metaOptions } = useQuery({
-    queryKey: ['employee-meta-options'],
+    queryKey: ['employee-meta-options', user?.company_id],
     queryFn: fetchEmployeeMetaOptions,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 
   // Pre-fill default branch & visa when meta loaded
@@ -275,7 +275,13 @@ export function EmployeeWizardFeature() {
             onSubmit={(e) => {
               e.preventDefault();
               setActionError(null);
-              createMutation.mutate(personalForm);
+              const branchId = personalForm.branch_id || (metaOptions?.branches?.length > 0 ? metaOptions.branches[0].id : '');
+              const visaId = personalForm.company_visa_id || (metaOptions?.visas?.length > 0 ? metaOptions.visas[0].id : '');
+              createMutation.mutate({
+                ...personalForm,
+                branch_id: branchId,
+                company_visa_id: visaId,
+              });
             }}
             className="space-y-4 text-xs"
           >
@@ -283,6 +289,7 @@ export function EmployeeWizardFeature() {
               <div>
                 <label className="block font-semibold text-text mb-1">Employee Code</label>
                 <input
+                  id="wizard-input-emp-code"
                   type="text"
                   value={personalForm.employee_code}
                   onChange={(e) => setPersonalForm({ ...personalForm, employee_code: e.target.value })}
@@ -294,6 +301,7 @@ export function EmployeeWizardFeature() {
               <div>
                 <label className="block font-semibold text-text mb-1">Full Legal Name (English)</label>
                 <input
+                  id="wizard-input-name"
                   type="text"
                   placeholder="e.g. Salem Al-Suwaidi"
                   value={personalForm.name}
@@ -306,6 +314,7 @@ export function EmployeeWizardFeature() {
               <div>
                 <label className="block font-semibold text-text mb-1">Full Legal Name (Arabic)</label>
                 <input
+                  id="wizard-input-arabic-name"
                   type="text"
                   placeholder="سالم السويدي"
                   value={personalForm.arabic_name}
@@ -317,6 +326,7 @@ export function EmployeeWizardFeature() {
               <div>
                 <label className="block font-semibold text-text mb-1">Official Work Email</label>
                 <input
+                  id="wizard-input-work-email"
                   type="email"
                   placeholder="salem@gulftech.ae"
                   value={personalForm.work_email}
@@ -329,6 +339,7 @@ export function EmployeeWizardFeature() {
               <div>
                 <label className="block font-semibold text-text mb-1">Nationality</label>
                 <select
+                  id="wizard-select-nationality"
                   value={personalForm.nationality}
                   onChange={(e) => {
                     const nat = e.target.value;
@@ -352,6 +363,7 @@ export function EmployeeWizardFeature() {
               <div>
                 <label className="block font-semibold text-text mb-1">MOHRE Person ID / Labour Card</label>
                 <input
+                  id="wizard-input-mohre-id"
                   type="text"
                   placeholder="12345678901234"
                   value={personalForm.mohre_person_id}
@@ -364,13 +376,14 @@ export function EmployeeWizardFeature() {
               <div>
                 <label className="block font-semibold text-text mb-1">Branch / Location</label>
                 <select
-                  value={personalForm.branch_id}
+                  id="wizard-select-branch"
+                  value={personalForm.branch_id || (metaOptions?.branches?.[0]?.id ?? '')}
                   onChange={(e) => setPersonalForm({ ...personalForm, branch_id: e.target.value })}
                   className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text"
                   required
                 >
                   {metaOptions?.branches?.map((b) => (
-                    <option key={b.id} value={b.id}>{b.name} ({b.city})</option>
+                    <option key={b.id} value={b.id}>{b.name} ({b.emirate || b.city || 'UAE'})</option>
                   ))}
                 </select>
               </div>
@@ -378,13 +391,14 @@ export function EmployeeWizardFeature() {
               <div>
                 <label className="block font-semibold text-text mb-1">Company Visa Entity</label>
                 <select
-                  value={personalForm.company_visa_id}
+                  id="wizard-select-visa"
+                  value={personalForm.company_visa_id || (metaOptions?.visas?.[0]?.id ?? '')}
                   onChange={(e) => setPersonalForm({ ...personalForm, company_visa_id: e.target.value })}
                   className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text"
                   required
                 >
                   {metaOptions?.visas?.map((v) => (
-                    <option key={v.id} value={v.id}>{v.visa_entity_name}</option>
+                    <option key={v.id} value={v.id}>{v.name || v.visa_entity_name || 'Visa'}</option>
                   ))}
                 </select>
               </div>

@@ -121,7 +121,7 @@ export default function AttendancePage() {
 
       {/* Tab Panels */}
       {activeTab === 'grid' && <AttendanceGridFeature />}
-      {activeTab === 'import' && <BiometricImportFeature onImportSuccess={() => setActiveTab('grid')} />}
+      {activeTab === 'import' && <BiometricImportFeature />}
       {activeTab === 'queue' && <MissingPunchQueueFeature />}
       {activeTab === 'overtime' && <OvertimeRequestsFeature />}
       {activeTab === 'review' && <AttendanceReviewFeature />}

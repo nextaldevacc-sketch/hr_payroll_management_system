@@ -547,3 +547,4 @@ const rows = reqs.map((req) => {
 const content = header + rows.join('\n') + '\n';
 fs.writeFileSync('docs/reports/FR-TRACEABILITY.md', content, 'utf8');
 console.log(`Generated docs/reports/FR-TRACEABILITY.md with ${reqs.length} requirements.`);
+

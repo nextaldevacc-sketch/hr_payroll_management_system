@@ -45,5 +45,6 @@ router.get('/:id/documents/:docId/download', requirePermission('employees', 'vie
 
 // 6. Audit History
 router.get('/:id/history', requirePermission('employees', 'view'), employeeController.getEmployeeHistory);
+router.get('/:id/audit-history', requirePermission('employees', 'view'), employeeController.getEmployeeHistory);
 
 export default router;

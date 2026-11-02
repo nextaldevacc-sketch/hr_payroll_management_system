@@ -9,8 +9,8 @@ export async function importBiometric(req, res, next) {
       companyId: req.companyId,
       fileBuffer: req.file.buffer,
       mimeType: req.file.mimetype,
-      periodFrom: req.body.period_from,
-      periodTo: req.body.period_to,
+      periodFrom: req.body.period_from || req.body.periodFrom,
+      periodTo: req.body.period_to || req.body.periodTo,
       userId: req.user.id,
     });
     res.status(200).json({ status: 'success', data: result });

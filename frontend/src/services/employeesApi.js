@@ -109,6 +109,16 @@ export async function verifyEmployee(id, { action, comment }) {
   return json.data;
 }
 
+export async function approveContractVersion(id, contractId) {
+  const res = await fetch(`${API_BASE}/${id}/contracts/${contractId}/approve`, {
+    method: 'POST',
+    headers: getHeaders(),
+    credentials: 'include',
+  });
+  const json = await handleResponse(res);
+  return json.data;
+}
+
 export async function fetchActivationCheck(id) {
   const res = await fetch(`${API_BASE}/${id}/activation-check`, {
     method: 'GET',
@@ -216,7 +226,7 @@ export async function downloadEmployeeDocument(id, docId, filename = 'document')
 }
 
 export async function fetchEmployeeAuditHistory(id) {
-  const res = await fetch(`${API_BASE}/${id}/audit-history`, {
+  const res = await fetch(`${API_BASE}/${id}/history`, {
     method: 'GET',
     headers: getHeaders(),
     credentials: 'include',
