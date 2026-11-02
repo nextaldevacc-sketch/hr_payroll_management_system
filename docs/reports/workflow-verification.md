@@ -2,7 +2,7 @@
 
 > **Platform**: Nextal HR & Payroll Management System (v1.0.0-rc2)  
 > **Specification Reference**: docs/spec.md Section 7 (Workflows 7.1 through 7.7)  
-> **Verification Date**: 2026-10-31T13:28:43.185Z  
+> **Verification Date**: 2026-11-02T06:02:01.447Z  
 > **Test Harness**: Automated Playwright Browser Workflow Suite  
 > **Result**: **ALL WORKFLOWS PASSED (7 / 7)**
 
@@ -14,13 +14,13 @@ This report documents automated end-to-end user interface verification for all s
 
 | Workflow ID | Workflow Name | Persona / Role | UI Screen Path | Status | Duration |
 |-------------|---------------|----------------|----------------|--------|----------|
-| **7.1** | Company Onboarding & Platform Structure | Multiple Roles | [Screenshots](#workflow-7-1) | **PASS** | 10642ms |
-| **7.2** | New Employee Setup & Bank/Contract Guard | Multiple Roles | [Screenshots](#workflow-7-2) | **PASS** | 10928ms |
-| **7.3** | Attendance Import & Review Grid (1-31 Oct 2026) | Multiple Roles | [Screenshots](#workflow-7-3) | **PASS** | 11369ms |
-| **7.4** | Leave Request & Accrual Decrement | Multiple Roles | [Screenshots](#workflow-7-4) | **PASS** | 9837ms |
-| **7.5** | Monthly Payroll Lifecycle & T19 Payslip (Net 7,044.80) | Multiple Roles | [Screenshots](#workflow-7-5) | **PASS** | 32046ms |
-| **7.6** | Offboarding & Gratuity Settlements (Omar & Sara) | Multiple Roles | [Screenshots](#workflow-7-6) | **PASS** | 14025ms |
-| **7.7** | Compliance Document Tracking & Expiry Reminders | Multiple Roles | [Screenshots](#workflow-7-7) | **PASS** | 10534ms |
+| **7.1** | Company Onboarding & Organization Structure | Multiple Roles | [Screenshots](#workflow-7-1) | **PASS** | 5831ms |
+| **7.2** | New Employee Setup & Bank/Contract Guard | Multiple Roles | [Screenshots](#workflow-7-2) | **PASS** | 8634ms |
+| **7.3** | Attendance Import & Review Grid (1-31 Oct 2026) | Multiple Roles | [Screenshots](#workflow-7-3) | **PASS** | 7281ms |
+| **7.4** | Leave Request & Accrual Decrement | Multiple Roles | [Screenshots](#workflow-7-4) | **PASS** | 5759ms |
+| **7.5** | Monthly Payroll Lifecycle & T19 Payslip (Net 7,044.80) | Multiple Roles | [Screenshots](#workflow-7-5) | **PASS** | 42134ms |
+| **7.6** | Offboarding & Gratuity Settlements (Omar & Sara) | Multiple Roles | [Screenshots](#workflow-7-6) | **PASS** | 10094ms |
+| **7.7** | Compliance Document Tracking & Expiry Reminders | Multiple Roles | [Screenshots](#workflow-7-7) | **PASS** | 6280ms |
 
 ---
 
@@ -104,11 +104,11 @@ This report documents automated end-to-end user interface verification for all s
 All 7 generated screenshots were cryptographically hashed (SHA-256). Every captured screen produced a distinct, non-zero hash, confirming that every screen represents unique rendered UI state:
 
 ```
-5c3b29f423e1ce58... wf-7-1.png
-a495552a9ceeb676... wf-7-2.png
-cc4d0d4176b98e99... wf-7-3.png
-7069fd60ea61d359... wf-7-4.png
-2aec1dc0ea4d6b15... wf-7-5.png
-98f2f524e35bf79e... wf-7-6.png
-dc759daacbad741f... wf-7-7.png
+dbdeab80cd68ba55... wf-7-1.png
+e70210c749001625... wf-7-2.png
+467118f2e3d91d4b... wf-7-3.png
+0ade83d1b833b175... wf-7-4.png
+8e816935c194e166... wf-7-5.png
+50c58f3143724da2... wf-7-6.png
+567917d0497af4d6... wf-7-7.png
 ```

@@ -94,8 +94,8 @@ export function PayRunDetailFeature() {
     : payslipsData?.items || [];
   const issues = Array.isArray(issuesData) ? issuesData : [];
 
-  const blockingIssues = issues.filter((i) => i.severity === 'Blocking');
-  const warningIssues = issues.filter((i) => i.severity === 'Warning');
+  const blockingIssues = issues.filter((i) => i.severity === 'Blocking' && !i.resolved_at);
+  const warningIssues = issues.filter((i) => i.severity === 'Warning' && !i.resolved_at);
   const variancePayslips = payslips.filter(
     (p) => p.variance_pct && Math.abs(Number(p.variance_pct)) >= 10.0
   );

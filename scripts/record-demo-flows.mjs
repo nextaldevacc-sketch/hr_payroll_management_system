@@ -104,16 +104,15 @@ async function runFlowA(browser) {
   const page = await context.newPage();
   const video = page.video();
 
-  // 1. Platform Admin view
-  console.log('Flow A.1: Platform Admin logs in & reviews tenant companies');
-  await login(page, 'platform@nextal.ae');
-  await safeGoto(page, `http://localhost:${WEB_PORT}/platform/companies`);
+  // 1. Company Admin logs in & reviews company profile and organization structure
+  console.log('Flow A.1: Company Admin logs in & reviews company profile');
+  await login(page, 'admin@gulftech.ae');
+  await safeGoto(page, `http://localhost:${WEB_PORT}/settings`);
   await page.waitForTimeout(2000);
   await page.screenshot({ path: path.join(shotsDir, 'flow-a-1-platform-companies.png') });
 
   // 2. Company Admin setup: Organization, Departments, Visas, Shifts
-  console.log('Flow A.2: Company Admin logs in & sets up departments, visas, shifts');
-  await login(page, 'admin@gulftech.ae');
+  console.log('Flow A.2: Company Admin sets up departments, visas, shifts');
   await safeGoto(page, `http://localhost:${WEB_PORT}/settings`);
   await page.waitForTimeout(2000);
   await page.screenshot({ path: path.join(shotsDir, 'flow-a-2-company-org-structure.png') });
@@ -425,9 +424,9 @@ async function main() {
     console.log('Backend server is healthy.');
 
     console.log('3. Starting Next.js server on port 3100...');
-    webProc = spawn(process.execPath, [nextBin, 'dev', '-p', String(WEB_PORT)], {
+    webProc = spawn(process.execPath, [nextBin, 'start', '-p', String(WEB_PORT)], {
       cwd: webDir,
-      env: { ...process.env, PORT: String(WEB_PORT), NODE_ENV: 'development' },
+      env: { ...process.env, PORT: String(WEB_PORT), NODE_ENV: 'production' },
       stdio: 'inherit',
     });
     await waitForHttp(`http://localhost:${WEB_PORT}/login`, 60000);
