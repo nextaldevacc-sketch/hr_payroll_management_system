@@ -1034,7 +1034,7 @@ export class PayrollService {
           locked_at: new Date(),
         },
       });
-    });
+    }, { timeout: 60000, maxWait: 10000 });
 
     await auditService.log({
       companyId,
@@ -1093,7 +1093,7 @@ export class PayrollService {
           payment_date: paidAt,
         },
       });
-    });
+    }, { timeout: 60000, maxWait: 10000 });
 
     await auditService.log({
       companyId,

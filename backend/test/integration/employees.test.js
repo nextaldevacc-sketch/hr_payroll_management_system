@@ -1,6 +1,7 @@
 import { describe, it, before, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
+import bcrypt from 'bcrypt';
 import app from '../../src/app.js';
 import prisma from '../../src/lib/prisma.js';
 import { clearSessionCache } from '../../src/middleware/authCache.js';
@@ -56,6 +57,28 @@ describe('Phase 4: Employee Management, Verification & Security Tests', () => {
     deptMgrToken = await login('dept.mgr@gulftech.ae');
     employeeToken = await login('employee@gulftech.ae');
     payrollToken = await login('payroll@gulftech.ae');
+
+    // Ensure a second HR Manager exists for self-verification testing (Rule G)
+    let hr2User = await prisma.$base().users.findUnique({ where: { email: 'hr2.mgr@gulftech.ae' } });
+    if (!hr2User) {
+      const hrRole = await prisma.$base().roles.findFirst({ where: { code: 'HR_MANAGER' } });
+      const pwHash = await bcrypt.hash(password, 10);
+      hr2User = await prisma.$base().users.create({
+        data: {
+          company: { connect: { id: company1.id } },
+          email: 'hr2.mgr@gulftech.ae',
+          password_hash: pwHash,
+          status: 'Active',
+          user_roles: {
+            create: {
+              company_id: company1.id,
+              role_id: hrRole.id,
+              scope_type: 'Company',
+            },
+          },
+        },
+      });
+    }
   });
 
   beforeEach(() => {
@@ -614,8 +637,8 @@ describe('Phase 4: Employee Management, Verification & Security Tests', () => {
       assert.equal(verifyRes.body.code, 'SELF_VERIFICATION_BLOCKED');
       assert.ok(verifyRes.body.message.includes('Self-verification is not permitted'));
 
-      // Second HR Manager (hr@gulftech.ae) verifies successfully per Spec 5.3 P5
-      const hr2Token = await login('hr@gulftech.ae');
+      // Second HR Manager verifies successfully per Spec 5.3 P5
+      const hr2Token = await login('hr2.mgr@gulftech.ae');
       const hr2VerifyRes = await request(app)
         .post(`/api/v1/employees/${createdEmpId}/verify`)
         .set('Authorization', `Bearer ${hr2Token}`)

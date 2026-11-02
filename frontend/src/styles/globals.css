@@ -522,6 +522,53 @@ span.tabular-nums {
   }
 }
 
+/* ==========================================================================
+   Bento Grid Reflow for Non-Salary Roles (No live, trend, liab, var holes)
+   ========================================================================== */
+
+.bento-dashboard-grid.bento-no-salary {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "head"
+    "appr"
+    "wps"
+    "docs"
+    "exc"
+    "att"
+    "ot"
+    "dept"
+    "quick"
+    "week"
+    "audit";
+  gap: 24px;
+}
+
+@media (min-width: 900px) and (max-width: 1439px) {
+  .bento-dashboard-grid.bento-no-salary {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-areas:
+      "head  head  head  appr  appr  appr"
+      "wps   wps   wps   docs  docs  docs"
+      "exc   exc   exc   att   att   att"
+      "ot    ot    ot    quick quick quick"
+      "dept  dept  dept  dept  dept  dept"
+      "week  week  week  week  week  week"
+      "audit audit audit audit audit audit";
+  }
+}
+
+@media (min-width: 1440px) {
+  .bento-dashboard-grid.bento-no-salary {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-areas:
+      "head  head  head  appr  appr  appr  wps   wps   wps   docs  docs  docs"
+      "exc   exc   exc   exc   att   att   att   att   ot    ot    ot    ot"
+      "dept  dept  dept  dept  dept  dept  quick quick quick quick quick quick"
+      "week  week  week  week  week  week  audit audit audit audit audit audit";
+  }
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

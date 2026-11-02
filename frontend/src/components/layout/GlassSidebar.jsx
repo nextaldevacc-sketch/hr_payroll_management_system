@@ -31,6 +31,7 @@ import {
 import { IconWell } from '../primitives/IconWell';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { canAccessNavArea } from '@nextal/shared';
 
 export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
   const pathname = usePathname();
@@ -43,6 +44,20 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
   const isEmployee = Boolean(user?.employee_id) || user?.roles?.includes('EMPLOYEE');
   const isPlatformAdmin = Boolean(user?.is_platform_admin);
   const isAr = locale === 'ar';
+
+  const displayName = isAr
+    ? (user?.arabic_name || user?.employee?.arabic_name || user?.name || user?.employee?.name || user?.email?.split('@')[0] || 'User')
+    : (user?.name || user?.employee?.name || user?.email?.split('@')[0] || 'User');
+
+  const initials = (() => {
+    const rawName = (user?.name || user?.employee?.name || '').trim();
+    if (rawName) {
+      const parts = rawName.split(/\s+/);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return rawName.slice(0, 2).toUpperCase();
+    }
+    return (user?.email || 'U').slice(0, 2).toUpperCase();
+  })();
 
   // Base navigation items
   const allNavItems = [
@@ -58,7 +73,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
     { href: '/audit', icon: History, label: t('menu.audit'), area: 'audit' },
   ];
 
-  // Filter items according to user roles & Section 5.3
+  // Filter items according to user roles & Section 5.3 (shared single source of truth)
   const navItems = allNavItems.filter((item) => {
     // Platform admin has dedicated platform navigation
     if (isPlatformAdmin) return false;
@@ -66,71 +81,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
     // Pure employee role only sees Self-Service
     if (isEmployeeOnly) return false;
 
-    // Dashboard: all enterprise roles in Section 5.3
-    if (item.area === 'dashboard') return true;
-
-    // Employees: Finance has '—' in Section 5.3
-    if (item.area === 'employees') {
-      return user?.roles?.some((r) =>
-        ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER'].includes(r)
-      );
-    }
-
-    // Attendance: Finance has '—' in Section 5.3
-    if (item.area === 'attendance') {
-      return user?.roles?.some((r) =>
-        ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER'].includes(r)
-      );
-    }
-
-    // Leave & holidays: Finance has '—' in Section 5.3
-    if (item.area === 'leave') {
-      return user?.roles?.some((r) =>
-        ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER'].includes(r)
-      );
-    }
-
-    // Payroll: strictly salary roles (HR Manager, Payroll Officer, GM, Finance) per Section 5.3
-    if (item.area === 'payroll') {
-      return Boolean(seesSalary);
-    }
-
-    // Offboarding: Company Admin has no offboarding rights in Section 5.3
-    if (item.area === 'offboarding') {
-      return user?.roles?.some((r) =>
-        ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'DEPT_MANAGER'].includes(r)
-      );
-    }
-
-    // Compliance: Only Company Admin, HR Manager, HR Officer, GM in Section 5.3
-    if (item.area === 'compliance') {
-      return user?.roles?.some((r) =>
-        ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'GM'].includes(r)
-      );
-    }
-
-    // Reports: Section 5.3 reports roles (Company Admin, HR Manager, Payroll Officer, GM, Finance)
-    if (item.area === 'reports') {
-      return user?.roles?.some((r) =>
-        ['COMPANY_ADMIN', 'HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'FINANCE'].includes(r)
-      );
-    }
-
-    // Settings: Company Admin, HR Manager, Payroll Officer, Finance in Section 5.3
-    if (item.area === 'settings') {
-      return user?.roles?.some((r) =>
-        ['COMPANY_ADMIN', 'HR_MANAGER', 'PAYROLL_OFFICER', 'FINANCE'].includes(r)
-      );
-    }
-
-    // Audit: Company Admin, HR Manager, GM in Section 5.3
-    if (item.area === 'audit') {
-      return user?.roles?.some((r) =>
-        ['COMPANY_ADMIN', 'HR_MANAGER', 'GM'].includes(r)
-      );
-    }
-
-    return true;
+    return canAccessNavArea(user?.roles || [], item.area, seesSalary);
   });
 
   const selfServiceItems = [
@@ -194,7 +145,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
       {/* Brand Header */}
       <div>
         <div className="flex items-center justify-between px-5 py-5 border-b border-border/50">
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link href={isEmployeeOnly ? '/me' : '/'} className="flex items-center gap-3 group">
             <IconWell
               size="md"
               shape="square"
@@ -316,11 +267,11 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
                 color: 'var(--on-primary)',
               }}
             >
-              {user?.name?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+              {initials}
             </div>
             <div className="truncate hidden xl:block">
               <span className="text-xs font-bold block truncate leading-tight text-text">
-                {user?.name || user?.email}
+                {displayName}
               </span>
               <span className="text-[10px] block truncate font-medium text-amber-500">
                 {user?.roles?.[0] || 'USER'}

@@ -44,10 +44,9 @@ export async function seedDemoUsers(prisma, { company1, company2, depts1 }) {
   const demoAccounts = [
     { email: 'admin@gulftech.ae', roleCode: 'COMPANY_ADMIN', scopeType: 'Company' },
     { email: 'hr.mgr@gulftech.ae', roleCode: 'HR_MANAGER', scopeType: 'Company' },
-    { email: 'hr@gulftech.ae', roleCode: 'HR_MANAGER', scopeType: 'Company' },
     { email: 'hr.officer@gulftech.ae', roleCode: 'HR_OFFICER', scopeType: 'Company' },
     { email: 'payroll@gulftech.ae', roleCode: 'PAYROLL_OFFICER', scopeType: 'Company' },
-    { email: 'dept.mgr@gulftech.ae', roleCode: 'DEPT_MANAGER', scopeType: 'Department' },
+    { email: 'dept.mgr@gulftech.ae', roleCode: 'DEPT_MANAGER', scopeType: 'Department', deptName: 'Operations' },
     { email: 'gm@gulftech.ae', roleCode: 'GM', scopeType: 'Company' },
     { email: 'finance@gulftech.ae', roleCode: 'FINANCE', scopeType: 'Company' },
     { email: 'employee@gulftech.ae', roleCode: 'EMPLOYEE', scopeType: 'Company' },
@@ -64,13 +63,15 @@ export async function seedDemoUsers(prisma, { company1, company2, depts1 }) {
     });
     demoUsersMap[acc.email] = user;
 
+    const targetDept = acc.deptName ? depts1[acc.deptName] : depts1['Operations'];
+
     await prisma.user_roles.create({
       data: {
         company_id: company1.id,
         user_id: user.id,
         role_id: rolesMap[acc.roleCode].id,
         scope_type: acc.scopeType,
-        scope_id: acc.scopeType === 'Department' ? depts1['Engineering'].id : null,
+        scope_id: acc.scopeType === 'Department' ? targetDept.id : null,
       },
     });
   }

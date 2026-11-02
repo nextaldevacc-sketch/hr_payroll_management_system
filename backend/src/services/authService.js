@@ -245,6 +245,8 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        name: user.employee?.name || user.email.split('@')[0],
+        arabic_name: user.employee?.arabic_name || null,
         company_id: user.company_id,
         company_name: user.company?.name || 'Nextal Platform',
         company_status: user.company?.status || 'Active',

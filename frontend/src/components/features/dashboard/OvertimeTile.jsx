@@ -6,15 +6,25 @@ import { BentoTile } from '../../primitives/BentoTile';
 import { IconWell } from '../../primitives/IconWell';
 import { formatCurrency } from '@nextal/shared';
 import { useLanguage } from '../../../context/LanguageContext';
+import { useAuth } from '../../../context/AuthContext';
 
 export function OvertimeTile({ data, onClick }) {
   const { language } = useLanguage();
+  const { seesSalary } = useAuth();
+
   const types = data?.types || [
-    { name: 'Normal ×1.25', hours: 110, amount: 4200.00, percent: 50 },
-    { name: 'Night ×1.5', hours: 42, amount: 2016.00, percent: 24 },
-    { name: 'Rest day ×1.5', hours: 20, amount: 1008.00, percent: 12 },
-    { name: 'Holiday ×1.5', hours: 24, amount: 1196.50, percent: 14 },
+    { name: 'Normal ×1.25', hours: 110, percent: 56 },
+    { name: 'Night ×1.5', hours: 42, percent: 21 },
+    { name: 'Rest day ×1.5', hours: 20, percent: 10 },
+    { name: 'Holiday ×1.5', hours: 24, percent: 13 },
   ];
+
+  const totalHours = data?.totalHours ?? 196;
+  const showAmount = Boolean(seesSalary && data?.totalAmount != null);
+
+  const subtitle = showAmount
+    ? `${totalHours}h approved · ${formatCurrency(data.totalAmount, 'AED', language)}`
+    : `${totalHours}h approved`;
 
   return (
     <BentoTile
@@ -27,20 +37,22 @@ export function OvertimeTile({ data, onClick }) {
         </IconWell>
       }
       title="Overtime This Month"
-      subtitle={`${data?.totalHours || 196}h approved · ${formatCurrency(data?.totalAmount || 8420.50, 'AED', language)}`}
+      subtitle={subtitle}
     >
       <div className="space-y-2">
-        {/* 4 Overtime Categories Split with Hours, AED and Thin Bar */}
+        {/* Overtime Categories Split with Hours and optional AED */}
         <div className="space-y-1.5">
           {types.map((ot) => (
             <div key={ot.name} className="space-y-0.5 text-xs">
               <div className="flex justify-between items-center text-text-muted">
                 <span className="font-semibold text-text text-[11px]">{ot.name}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] tabular-nums">{ot.hours}h</span>
-                  <bdi className="font-bold tabular-nums text-text text-[11px]">
-                    {formatCurrency(ot.amount, 'AED', language)}
-                  </bdi>
+                  <span className="text-[11px] tabular-nums font-semibold">{ot.hours}h</span>
+                  {seesSalary && ot.amount != null && (
+                    <bdi className="font-bold tabular-nums text-text text-[11px]">
+                      {formatCurrency(ot.amount, 'AED', language)}
+                    </bdi>
+                  )}
                 </div>
               </div>
               <div className="w-full h-1 bg-black/[0.04] dark:bg-white/[0.06] rounded-full overflow-hidden">
@@ -58,12 +70,10 @@ export function OvertimeTile({ data, onClick }) {
           <div className="flex items-center gap-1.5 min-w-0">
             <AlertCircle className="w-3.5 h-3.5 text-warning-text flex-shrink-0" />
             <span className="truncate">
-              Pending: <strong>{data?.pendingRequests || 5} requests · {data?.pendingHours || 14}h</strong>
+              {language === 'ar' ? 'ساعات معلقة في انتظار اعتماد المشرف' : 'Hours pending approval'}
             </span>
           </div>
-          <span className="text-[10px] text-warning-text flex-shrink-0 ms-1">
-            Rolls to next month at cut-off
-          </span>
+          <span className="font-bold text-text tabular-nums shrink-0">12h</span>
         </div>
       </div>
     </BentoTile>

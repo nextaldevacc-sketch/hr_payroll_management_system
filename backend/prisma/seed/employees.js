@@ -404,12 +404,34 @@ export async function seedEmployees(prisma, {
     });
   }
 
-  // Link demo employee account to Ahmed Al-Mansoori (EMP-DXB-043)
-  const ahmedEmp = seededEmployees.find((e) => e.employee_code === 'EMP-DXB-043');
-  if (ahmedEmp && demoUsersMap['employee@gulftech.ae']) {
-    await prisma.users.update({
-      where: { id: demoUsersMap['employee@gulftech.ae'].id },
-      data: { employee_id: ahmedEmp.id },
+  // Link staff logins to real seeded employee records (Spec 5.3 & RC3 Part 3 follow-up)
+  const staffLinks = [
+    { email: 'hr.mgr@gulftech.ae', code: 'EMP-DXB-001' },
+    { email: 'hr.officer@gulftech.ae', code: 'EMP-DXB-002' },
+    { email: 'dept.mgr@gulftech.ae', code: 'EMP-DXB-003' },
+    { email: 'gm@gulftech.ae', code: 'EMP-DXB-005' },
+    { email: 'payroll@gulftech.ae', code: 'EMP-DXB-006' },
+    { email: 'finance@gulftech.ae', code: 'EMP-DXB-007' },
+    { email: 'employee@gulftech.ae', code: 'EMP-DXB-043' }, // Ahmed Al-Mansoori
+  ];
+
+  for (const link of staffLinks) {
+    const targetEmp = seededEmployees.find((e) => e.employee_code === link.code);
+    const targetUser = demoUsersMap[link.email];
+    if (targetEmp && targetUser) {
+      await prisma.users.update({
+        where: { id: targetUser.id },
+        data: { employee_id: targetEmp.id },
+      });
+    }
+  }
+
+  // Set Operations department manager to EMP-DXB-003 (Mansour Al-Ketbi)
+  const deptMgrEmp = seededEmployees.find((e) => e.employee_code === 'EMP-DXB-003');
+  if (deptMgrEmp && depts1['Operations']) {
+    await prisma.departments.update({
+      where: { id: depts1['Operations'].id },
+      data: { manager_id: deptMgrEmp.id },
     });
   }
 

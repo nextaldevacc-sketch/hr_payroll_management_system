@@ -30,11 +30,10 @@ export async function getMyHome(req, res, next) {
       employeeId,
       year: y,
     });
-    const annualBalance = leaveBalances.balances?.find((b) => b.code === 'ANNUAL') || {
-      balance: 30,
-      allocated: 30,
-      taken: 0,
-    };
+    const annualBalance = leaveBalances.balances?.find((b) => b.code === 'ANNUAL' || b.name === 'Annual Leave');
+    const annualAllocated = annualBalance ? Number(annualBalance.days_allocated ?? annualBalance.allocated ?? 30) : 30;
+    const annualRemaining = annualBalance ? Number(annualBalance.remaining_balance ?? annualBalance.balance ?? 30) : 30;
+    const annualTaken = annualBalance ? Number(annualBalance.days_taken ?? annualBalance.taken ?? 0) : 0;
 
     // Last net pay from last PAID pay run
     const lastPaidPayslip = await prisma.$base().payslips.findFirst({
@@ -44,7 +43,7 @@ export async function getMyHome(req, res, next) {
         pay_run: { status: 'Paid' },
       },
       include: { pay_run: true },
-      orderBy: { pay_run: { period_month: 'desc' } },
+      orderBy: { period_to: 'desc' },
     });
 
     const nextPayday = new Date(Date.UTC(y, m - 1, 28));
@@ -91,13 +90,15 @@ export async function getMyHome(req, res, next) {
       status: 'success',
       data: {
         leaveBalance: {
-          annualRemaining: annualBalance.balance,
-          annualAllocated: annualBalance.allocated,
-          annualTaken: annualBalance.taken,
+          annualRemaining,
+          annualAllocated,
+          annualTaken,
         },
         payday: {
           lastNetPay: lastPaidPayslip ? Number(lastPaidPayslip.net || 0).toFixed(2) : null,
-          lastPayMonth: lastPaidPayslip ? lastPaidPayslip.pay_run.period_month.toISOString().slice(0, 7) : null,
+          lastPayMonth: lastPaidPayslip
+            ? new Date(lastPaidPayslip.pay_run.period_month).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+            : null,
           nextPayday: nextPayday.toISOString().slice(0, 10),
         },
         pendingRequestsCount: pendingLeaves + pendingOvertimes + pendingPunches,
@@ -139,7 +140,7 @@ export async function getMyProfile(req, res, next) {
         branch: true,
         manager: true,
         contracts: {
-          where: { status: 'Active' },
+          where: { status: { in: ['Active', 'Approved'] } },
           include: { job: true, department: true },
           orderBy: { version_no: 'desc' },
           take: 1,

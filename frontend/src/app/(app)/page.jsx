@@ -66,6 +66,14 @@ export default function DashboardPage() {
     }
   };
 
+  const isEmployeeOnly = user?.roles?.length === 1 && user?.roles?.[0] === 'EMPLOYEE';
+
+  useEffect(() => {
+    if (isEmployeeOnly) {
+      router.replace('/me');
+    }
+  }, [isEmployeeOnly, router]);
+
   useEffect(() => {
     async function init() {
       setLoading(true);
@@ -186,10 +194,33 @@ export default function DashboardPage() {
   } : mockDashboardData.exceptions;
 
   const overtimeData = overviewData?.overtimeMonth ? {
-    monthNormalHours: overviewData.overtimeMonth.normalHours,
-    monthNightHours: overviewData.overtimeMonth.nightHours,
-    monthHolidayHours: overviewData.overtimeMonth.holidayHours,
-    totalHours: overviewData.overtimeMonth.totalHours,
+    totalHours: overviewData.overtimeMonth.totalHours ?? 0,
+    monthNormalHours: overviewData.overtimeMonth.normalHours ?? 0,
+    monthNightHours: overviewData.overtimeMonth.nightHours ?? 0,
+    monthHolidayHours: overviewData.overtimeMonth.holidayHours ?? 0,
+    types: [
+      {
+        name: 'Normal ×1.25',
+        hours: overviewData.overtimeMonth.normalHours ?? 0,
+        percent: overviewData.overtimeMonth.totalHours > 0
+          ? Math.round(((overviewData.overtimeMonth.normalHours || 0) / overviewData.overtimeMonth.totalHours) * 100)
+          : 0,
+      },
+      {
+        name: 'Night ×1.5',
+        hours: overviewData.overtimeMonth.nightHours ?? 0,
+        percent: overviewData.overtimeMonth.totalHours > 0
+          ? Math.round(((overviewData.overtimeMonth.nightHours || 0) / overviewData.overtimeMonth.totalHours) * 100)
+          : 0,
+      },
+      {
+        name: 'Holiday/Rest ×1.5',
+        hours: overviewData.overtimeMonth.holidayHours ?? 0,
+        percent: overviewData.overtimeMonth.totalHours > 0
+          ? Math.round(((overviewData.overtimeMonth.holidayHours || 0) / overviewData.overtimeMonth.totalHours) * 100)
+          : 0,
+      },
+    ],
   } : mockDashboardData.overtimeMonth;
 
   const weekAheadData = Array.isArray(overviewData?.weekAhead)
@@ -273,7 +304,7 @@ export default function DashboardPage() {
       </div>
 
       {/* 12-Column Explicit Bento Grid Layout */}
-      <BentoGrid id="hr-dashboard-bento-grid">
+      <BentoGrid id="hr-dashboard-bento-grid" className={!seesSalary ? 'bento-no-salary' : ''}>
         {/* Row 1 & 2: live (6x2) if salary role, head (3x1), appr (3x1), wps (3x1), docs (3x1) */}
         {seesSalary && (
           <LivePayrollHeroTile
@@ -323,8 +354,8 @@ export default function DashboardPage() {
           onClick={() => router.push('/attendance')}
         />
 
-        {/* Row 4: trend (6x1), dept (3x1), liab (3x1) ONLY for salary roles */}
-        {seesSalary && (
+        {/* Row 4: trend (6x1), dept (3x1), liab (3x1) for salary roles; dept (6x1) for non-salary */}
+        {seesSalary ? (
           <>
             <PayrollTrendTile
               data={mockDashboardData.payrollTrend}
@@ -341,6 +372,11 @@ export default function DashboardPage() {
               onClick={() => router.push('/payroll')}
             />
           </>
+        ) : (
+          <DepartmentChartTile
+            data={mockDashboardData.departmentHeadcount}
+            onClick={() => router.push('/employees')}
+          />
         )}
 
         {/* Row 5: week (8x1), quick (4x1) */}

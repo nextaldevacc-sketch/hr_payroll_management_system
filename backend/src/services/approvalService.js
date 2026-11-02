@@ -40,13 +40,32 @@ export class ApprovalService {
       throw err;
     }
 
+    // Self-approval check: If the requester holds the role of the initial step,
+    // advance the step to the next approver tier (e.g. HR Manager's own request advances to GM / Step 2)
+    const requesterUserRoles = await this.prisma.$base().user_roles.findMany({
+      where: { company_id: companyId, user_id: requestedBy },
+      include: { role: true },
+    });
+    const requesterRoleCodes = requesterUserRoles.map((ur) => ur.role.code);
+
+    let initialStep = 1;
+    const sortedSteps = [...flow.steps].sort((a, b) => a.step_no - b.step_no);
+    while (initialStep < sortedSteps.length) {
+      const stepDef = sortedSteps.find((s) => s.step_no === initialStep);
+      if (stepDef && requesterRoleCodes.includes(stepDef.role.code)) {
+        initialStep++;
+      } else {
+        break;
+      }
+    }
+
     const request = await this.prisma.$base().approval_requests.create({
       data: {
         company_id: companyId,
         flow_id: flow.id,
         request_type: requestType,
         record_id: recordId,
-        current_step: 1,
+        current_step: initialStep,
         status: 'Pending',
         requested_by: requestedBy,
       },

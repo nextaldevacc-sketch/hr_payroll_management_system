@@ -71,8 +71,20 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
     }
 
     // 3. Fetch Test Employees
+    const opsDept = await prisma.$base().departments.findFirst({
+      where: { company_id: companyA.id, name: 'Operations' },
+    });
     testEmpA = await prisma.$base().employees.findFirst({
-      where: { company_id: companyA.id, status: 'Active' },
+      where: {
+        company_id: companyA.id,
+        status: 'Active',
+        employee_code: { not: 'EMP-DXB-003' },
+        contracts: {
+          some: {
+            department_id: opsDept?.id,
+          },
+        },
+      },
       include: {
         contracts: {
           include: { shift: true, attendance_policy: true },

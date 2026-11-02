@@ -23,10 +23,10 @@ describe('Phase 7: Self-service, Live Dashboard & Notifications Integration Test
     emp1Token = res1.body.token;
     companyId = res1.body.user.company_id || res1.body.user.companyId;
 
-    // 2. Authenticate Employee 2 for cross-boundary testing (seeded emp-dxb-002)
+    // 2. Authenticate Employee 2 for cross-boundary testing (seeded emp-dxb-008)
     const res2 = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: 'emp-dxb-002@gulftech.ae', password: 'Nextal@2026!' });
+      .send({ email: 'emp-dxb-008@gulftech.ae', password: 'Nextal@2026!' });
     assert.strictEqual(res2.status, 200, `Login emp2 failed: ${res2.body.message}`);
     emp2Token = res2.body.token;
     emp2User = res2.body.user;

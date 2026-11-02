@@ -36,6 +36,21 @@ export function GlassTopBar({ onToggleMobileNav }) {
   const { language, toggleLanguage, t, isRTL } = useLanguage();
   const { user, logout } = useAuth();
   const isPlatformAdmin = Boolean(user?.is_platform_admin);
+  const isEmployeeOnly = user?.roles?.length === 1 && user?.roles?.[0] === 'EMPLOYEE';
+
+  const displayName = language === 'ar'
+    ? (user?.arabic_name || user?.employee?.arabic_name || user?.name || user?.employee?.name || user?.email?.split('@')[0] || 'User')
+    : (user?.name || user?.employee?.name || user?.email?.split('@')[0] || 'User');
+
+  const initials = (() => {
+    const rawName = (user?.name || user?.employee?.name || '').trim();
+    if (rawName) {
+      const parts = rawName.split(/\s+/);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return rawName.slice(0, 2).toUpperCase();
+    }
+    return (user?.email || 'U').slice(0, 2).toUpperCase();
+  })();
   const [mounted, setMounted] = useState(false);
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -119,6 +134,20 @@ export function GlassTopBar({ onToggleMobileNav }) {
               </span>
               <span className="text-[10px] text-text-muted block leading-tight">
                 {language === 'ar' ? 'المشغل العام للمنظومة' : 'Multi-Tenant Operator'}
+              </span>
+            </div>
+          </div>
+        ) : isEmployeeOnly ? (
+          <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-control text-start">
+            <IconWell size="sm" shape="square" color="primary">
+              <Building2 className="w-3.5 h-3.5" />
+            </IconWell>
+            <div className="hidden sm:block">
+              <span className="text-xs font-bold text-text dark:gold-heading block leading-tight">
+                {selectedCompany.name}
+              </span>
+              <span className="text-[10px] text-text-muted block leading-tight">
+                {selectedCompany.visa}
               </span>
             </div>
           </div>
@@ -336,11 +365,11 @@ export function GlassTopBar({ onToggleMobileNav }) {
                 color: 'var(--on-primary)',
               }}
             >
-              {user?.name ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'U'}
+              {initials}
             </div>
             <div className="hidden sm:block text-start">
               <span className="text-xs font-bold text-text block leading-tight">
-                {user?.name || user?.email || 'User'}
+                {displayName}
               </span>
               <span className="text-[10px] text-amber-500 font-semibold block leading-tight">
                 {user?.roles?.[0] || 'EMPLOYEE'}
@@ -358,7 +387,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
               <div className="absolute end-0 mt-2 w-56 p-2 rounded-2xl border shadow-xl z-50 bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800 space-y-2">
                 <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                   <p className="text-xs font-bold text-text truncate leading-tight">
-                    {user?.name || user?.email}
+                    {displayName}
                   </p>
                   <p className="text-[10px] text-text-muted font-mono truncate mt-0.5">
                     {user?.email}

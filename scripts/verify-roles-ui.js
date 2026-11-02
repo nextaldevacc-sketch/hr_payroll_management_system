@@ -58,29 +58,29 @@ const ROLES_SPEC = [
     key: 'company-admin',
     roleName: 'Company Admin',
     email: 'admin@gulftech.ae',
+    expectedName: 'Admin',
     isEmployee: false,
+    hasSelfService: false,
     seesSalary: false,
     landingUrl: '/',
     allowedCompanyHrefs: [
       '/',
       '/employees',
-      '/attendance',
-      '/leave',
-      '/compliance',
-      '/reports',
       '/settings',
       '/audit',
       '/settings/users',
     ],
-    forbiddenCompanyHrefs: ['/payroll', '/offboarding'],
-    prohibitedUrls: ['/payroll', '/offboarding', '/me'],
+    forbiddenCompanyHrefs: ['/payroll', '/offboarding', '/attendance', '/leave', '/compliance', '/reports'],
+    prohibitedUrls: ['/payroll', '/offboarding', '/attendance'],
     permittedUrls: ['/settings', '/settings/users', '/audit'],
   },
   {
     key: 'hr-manager',
     roleName: 'HR Manager',
     email: 'hr.mgr@gulftech.ae',
+    expectedName: 'Rashid',
     isEmployee: false,
+    hasSelfService: true,
     seesSalary: true,
     landingUrl: '/',
     allowedCompanyHrefs: [
@@ -96,14 +96,16 @@ const ROLES_SPEC = [
       '/audit',
     ],
     forbiddenCompanyHrefs: [],
-    prohibitedUrls: ['/settings/users', '/me', '/platform/companies'],
+    prohibitedUrls: ['/settings/users', '/platform/companies', '/platform'],
     permittedUrls: ['/employees', '/payroll', '/audit'],
   },
   {
     key: 'hr-officer',
     roleName: 'HR Officer',
     email: 'hr.officer@gulftech.ae',
+    expectedName: 'Fatima',
     isEmployee: false,
+    hasSelfService: true,
     seesSalary: false,
     landingUrl: '/',
     allowedCompanyHrefs: [
@@ -122,7 +124,9 @@ const ROLES_SPEC = [
     key: 'payroll-officer',
     roleName: 'Payroll Officer',
     email: 'payroll@gulftech.ae',
+    expectedName: 'Rajesh',
     isEmployee: false,
+    hasSelfService: true,
     seesSalary: true,
     landingUrl: '/',
     allowedCompanyHrefs: [
@@ -143,7 +147,9 @@ const ROLES_SPEC = [
     key: 'dept-manager',
     roleName: 'Department Manager',
     email: 'dept.mgr@gulftech.ae',
+    expectedName: 'Mansour',
     isEmployee: false,
+    hasSelfService: true,
     seesSalary: false,
     landingUrl: '/',
     allowedCompanyHrefs: [
@@ -161,7 +167,9 @@ const ROLES_SPEC = [
     key: 'gm',
     roleName: 'General Manager',
     email: 'gm@gulftech.ae',
+    expectedName: 'Alexander',
     isEmployee: false,
+    hasSelfService: true,
     seesSalary: true,
     landingUrl: '/',
     allowedCompanyHrefs: [
@@ -183,7 +191,9 @@ const ROLES_SPEC = [
     key: 'finance',
     roleName: 'Finance',
     email: 'finance@gulftech.ae',
+    expectedName: 'Sarah',
     isEmployee: false,
+    hasSelfService: true,
     seesSalary: true,
     landingUrl: '/',
     allowedCompanyHrefs: ['/', '/payroll', '/offboarding', '/reports', '/settings'],
@@ -195,7 +205,9 @@ const ROLES_SPEC = [
     key: 'employee-ahmed',
     roleName: 'Employee (Ahmed)',
     email: 'employee@gulftech.ae',
+    expectedName: 'Ahmed',
     isEmployee: true,
+    hasSelfService: true,
     seesSalary: false,
     landingUrl: '/me',
     allowedCompanyHrefs: [],
@@ -220,14 +232,16 @@ const ROLES_SPEC = [
       '/settings',
       '/audit',
     ],
-    prohibitedUrls: ['/', '/payroll', '/employees'],
+    prohibitedUrls: ['/payroll', '/employees', '/settings'],
     permittedUrls: ['/me', '/me/payslips', '/me/leave'],
   },
   {
     key: 'employee-second',
-    roleName: 'Employee (Second - EMP-001)',
-    email: 'emp-dxb-001@gulftech.ae',
+    roleName: 'Employee (Second - Omar EMP-DXB-042)',
+    email: 'emp-dxb-042@gulftech.ae',
+    expectedName: 'Omar',
     isEmployee: true,
+    hasSelfService: true,
     seesSalary: false,
     landingUrl: '/me',
     allowedCompanyHrefs: [],
@@ -252,7 +266,7 @@ const ROLES_SPEC = [
       '/settings',
       '/audit',
     ],
-    prohibitedUrls: ['/', '/payroll', '/employees'],
+    prohibitedUrls: ['/payroll', '/employees', '/settings'],
     permittedUrls: ['/me', '/me/payslips', '/me/attendance'],
   },
 ];
@@ -383,15 +397,39 @@ async function main() {
         await page.waitForURL((url) => url.pathname === '/' || !url.pathname.includes('/login'), { timeout: 15000 });
       }
       await page.waitForSelector('aside nav a', { timeout: 15000 });
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(600);
       const actualLanding = new URL(page.url()).pathname;
+      const bodyText = await page.innerText('body');
+
+      // Assertions on landing page:
+      const hasUndefined = /\bundefined\b/.test(bodyText);
+      const hasNull = /\bnull\b/.test(bodyText);
+      const hasNaN = /\bNaN\b/.test(bodyText);
+      if (hasUndefined) console.error(`     FAIL: Page contains 'undefined' text for ${roleDef.roleName}!`);
+      if (hasNull) console.error(`     FAIL: Page contains 'null' text for ${roleDef.roleName}!`);
+      if (hasNaN) console.error(`     FAIL: Page contains 'NaN' text for ${roleDef.roleName}!`);
+
+      let aedLeakPassed = true;
+      if (!roleDef.seesSalary && !roleDef.isEmployee) {
+        const hasAed = /\bAED\b/.test(bodyText);
+        if (hasAed) {
+          console.error(`     FAIL: Non-salary role ${roleDef.roleName} saw 'AED' text on dashboard landing page!`);
+          aedLeakPassed = false;
+        }
+      }
+
+      const hasName = bodyText.toLowerCase().includes(roleDef.expectedName.toLowerCase());
+      if (!hasName) {
+        console.error(`     FAIL: User's own name '${roleDef.expectedName}' was not found on landing for ${roleDef.roleName}!`);
+      }
+
       const ss2Path = `docs/reports/screenshots/roles/${roleDef.key}-02-landing.png`;
       await page.screenshot({ path: path.resolve(rootDir, ss2Path) });
-      const landingPassed = actualLanding === roleDef.landingUrl;
+      const landingPassed = actualLanding === roleDef.landingUrl && !hasUndefined && !hasNull && !hasNaN && aedLeakPassed && hasName;
       roleResults.steps.push({
         step: '2. Sign in with email + password',
-        expected: `Lands on ${roleDef.landingUrl}`,
-        actual: `Landed on ${actualLanding}`,
+        expected: `Lands on ${roleDef.landingUrl}, name visible, no undefined/null/NaN, no AED for non-salary`,
+        actual: `Landed on ${actualLanding}, name visible: ${hasName}, no leaks: ${aedLeakPassed}`,
         status: landingPassed ? 'PASS' : 'FAIL',
         screenshot: ss2Path,
         description: `Landing view showing ${roleDef.landingUrl === '/me' ? 'Employee Self-Service My Home dashboard' : 'HR Enterprise Operations Dashboard'} with top bar and user session.`,
@@ -414,15 +452,33 @@ async function main() {
       // Check allowed items
       for (const href of roleDef.allowedCompanyHrefs) {
         if (!actualHrefs.includes(href)) {
-          console.error(`     FAIL: Expected allowed href ${href} was missing from sidebar!`);
+          console.error(`     FAIL: Expected allowed href ${href} was missing from sidebar for ${roleDef.roleName}!`);
           sidebarPassed = false;
         }
       }
       // Check forbidden company items
       for (const href of roleDef.forbiddenCompanyHrefs) {
         if (actualHrefs.includes(href)) {
-          console.error(`     FAIL: Forbidden href ${href} was present in sidebar!`);
+          console.error(`     FAIL: Forbidden href ${href} was present in sidebar for ${roleDef.roleName}!`);
           sidebarPassed = false;
+        }
+      }
+
+      // Check self-service items
+      const SELF_SERVICE_HREFS = ['/me', '/me/profile', '/me/payslips', '/me/attendance', '/me/leave', '/me/requests', '/me/documents'];
+      if (roleDef.hasSelfService) {
+        for (const href of SELF_SERVICE_HREFS) {
+          if (!actualHrefs.includes(href)) {
+            console.error(`     FAIL: Expected self-service href ${href} was missing for ${roleDef.roleName}!`);
+            sidebarPassed = false;
+          }
+        }
+      } else {
+        for (const href of SELF_SERVICE_HREFS) {
+          if (actualHrefs.includes(href)) {
+            console.error(`     FAIL: Forbidden self-service href ${href} was present for ${roleDef.roleName}!`);
+            sidebarPassed = false;
+          }
         }
       }
 

@@ -339,6 +339,7 @@ export class EmployeeService {
             notice_days_employee: true,
             notice_days_employer: true,
             status: true,
+            department_id: true,
             department: { select: { id: true, name: true, name_ar: true } },
             job: { select: { id: true, title: true, title_ar: true } },
             shift: { select: { id: true, name: true } },
@@ -377,14 +378,26 @@ export class EmployeeService {
       !viewer.roles?.includes('HR_MANAGER') &&
       !viewer.roles?.includes('GM');
 
-    if (isDeptManager && viewer.employeeId) {
-      const isDirectReport = employee.manager_id === viewer.employeeId;
-      const managedDepts = await this.prisma.departments.findMany({
-        where: { company_id: companyId, manager_id: viewer.employeeId },
-        select: { id: true },
-      });
-      const deptIds = managedDepts.map((d) => d.id);
-      const inManagedDept = employee.contracts?.some((c) => deptIds.includes(c.department_id));
+    if (isDeptManager) {
+      const scopedDeptIds = (viewer.scopes || [])
+        .filter((s) => s.role === 'DEPT_MANAGER' && s.scope_type === 'Department' && s.scope_id)
+        .map((s) => s.scope_id);
+
+      const managedDepts = viewer.employeeId
+        ? await this.prisma.departments.findMany({
+            where: { company_id: companyId, manager_id: viewer.employeeId },
+            select: { id: true },
+          })
+        : [];
+
+      const allManagedDeptIds = [
+        ...new Set([...scopedDeptIds, ...managedDepts.map((d) => d.id)]),
+      ];
+
+      const isDirectReport = viewer.employeeId && employee.manager_id === viewer.employeeId;
+      const inManagedDept = employee.contracts?.some((c) =>
+        allManagedDeptIds.includes(c.department_id || c.department?.id)
+      );
 
       if (!isDirectReport && !inManagedDept) {
         const err = new Error('Access denied: You can only view employees in your team');

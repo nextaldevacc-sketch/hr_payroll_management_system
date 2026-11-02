@@ -45,8 +45,16 @@ export default function MyHomePage() {
     load();
   }, []);
 
-  const leave = data?.leaveBalance || { annualRemaining: 24, annualAllocated: 30, annualTaken: 6 };
-  const payday = data?.payday || { lastNetPay: '8500.00', lastPayMonth: '2026-09', nextPayday: '2026-10-28' };
+  const displayName = language === 'ar'
+    ? (user?.arabic_name || user?.employee?.arabic_name || user?.name || user?.employee?.name || 'الموظف')
+    : (user?.name || user?.employee?.name || 'Employee');
+
+  const leave = {
+    annualRemaining: data?.leaveBalance?.annualRemaining ?? 24,
+    annualAllocated: data?.leaveBalance?.annualAllocated ?? 30,
+    annualTaken: data?.leaveBalance?.annualTaken ?? 6,
+  };
+  const payday = data?.payday || { lastNetPay: null, lastPayMonth: null, nextPayday: '2026-10-28' };
   const attendance = data?.attendanceSummary || { presentDays: 20, lateDays: 1, absentDays: 0, totalHoursWorked: 160 };
 
   return (
@@ -58,7 +66,7 @@ export default function MyHomePage() {
             {language === 'ar' ? 'بوابة الخدمة الذاتية للموظف' : 'Employee Self-Service Portal'}
           </span>
           <h1 className="text-xl sm:text-2xl font-black text-text mt-1">
-            {language === 'ar' ? `مرحباً، ${user?.name || 'الموظف'}` : `Welcome back, ${user?.name || 'Employee'}`}
+            {language === 'ar' ? `مرحباً، ${displayName}` : `Welcome back, ${displayName}`}
           </h1>
           <p className="text-xs text-text-muted mt-0.5">
             {language === 'ar'

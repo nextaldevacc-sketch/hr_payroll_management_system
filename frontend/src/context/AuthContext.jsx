@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { API_BASE } from '../services/apiClient';
+import { canAccessNavArea, checkPermission } from '@nextal/shared';
 
 const AuthContext = createContext(null);
 
@@ -141,74 +142,23 @@ export function AuthProvider({ children }) {
         return true;
       }
 
-      // Payroll and salary figures: strictly salary roles (HR Manager, Payroll Officer, GM, Finance)
-      if (area === 'payroll' || area === 'salary') {
-        return Boolean(user.sees_salary);
-      }
-
-      // Employees Directory
-      if (area === 'employees') {
-        if (action === 'verify') {
-          return roles.includes('HR_MANAGER');
-        }
-        if (action === 'edit' || action === 'create') {
-          return roles.some((r) => ['HR_MANAGER', 'HR_OFFICER'].includes(r));
-        }
-        return roles.some((r) =>
-          ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER'].includes(r)
-        );
-      }
-
-      // Attendance
-      if (area === 'attendance') {
-        return roles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'DEPT_MANAGER', 'PAYROLL_OFFICER', 'GM'].includes(r));
-      }
-
-      // Leave
-      if (area === 'leave') {
-        return roles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'DEPT_MANAGER', 'PAYROLL_OFFICER', 'GM'].includes(r));
-      }
-
-      // Offboarding (Company Admin has no offboarding rights per Section 5.3)
-      if (area === 'offboarding') {
-        if (action === 'approve') {
-          return roles.includes('HR_MANAGER');
-        }
-        return roles.some((r) =>
-          ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'DEPT_MANAGER'].includes(r)
-        );
-      }
-
-      // Compliance
-      if (area === 'compliance') {
-        return roles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'GM'].includes(r));
-      }
-
-      // Reports
-      if (area === 'reports') {
-        return roles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'FINANCE'].includes(r));
-      }
-
-      // Settings
-      if (area === 'settings') {
-        if (action === 'users') {
-          return roles.includes('COMPANY_ADMIN');
-        }
-        return roles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'PAYROLL_OFFICER', 'FINANCE'].includes(r));
-      }
-
-      // Audit Logs
-      if (area === 'audit') {
-        return roles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'GM'].includes(r));
-      }
-
       // Platform Admin: strictly platform admin
       if (area === 'platform') {
         return Boolean(user.is_platform_admin);
       }
 
-      // Default: DENY
-      return false;
+      // Specific sub-action for Users & Roles under settings
+      if (area === 'settings' && action === 'users') {
+        return roles.includes('COMPANY_ADMIN');
+      }
+
+      // Top-level navigation views
+      if (action === 'view') {
+        return canAccessNavArea(roles, area, user.sees_salary);
+      }
+
+      // Granular permissions per Section 5.3 matrix
+      return checkPermission(roles, area, action);
     },
     [user]
   );

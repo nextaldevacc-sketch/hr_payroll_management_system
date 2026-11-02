@@ -183,14 +183,13 @@ export const mockDashboardData = {
 
   overtimeMonth: {
     totalHours: 196,
-    totalAmount: 8420.50,
     pendingRequests: 5,
     pendingHours: 14,
     types: [
-      { name: 'Normal ×1.25', hours: 110, amount: 4200.00, percent: 50 },
-      { name: 'Night ×1.5', hours: 42, amount: 2016.00, percent: 24 },
-      { name: 'Rest day ×1.5', hours: 20, amount: 1008.00, percent: 12 },
-      { name: 'Holiday ×1.5', hours: 24, amount: 1196.50, percent: 14 },
+      { name: 'Normal ×1.25', hours: 110, percent: 56 },
+      { name: 'Night ×1.5', hours: 42, percent: 21 },
+      { name: 'Rest day ×1.5', hours: 20, percent: 10 },
+      { name: 'Holiday ×1.5', hours: 24, percent: 13 },
     ]
   },
 

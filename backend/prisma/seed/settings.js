@@ -17,7 +17,7 @@ export async function seedSettings(prisma, { company1, company2, rolesMap }) {
   await prisma.approval_flow_steps.createMany({
     data: [
       { company_id: company1.id, flow_id: leaveFlow1.id, step_no: 1, role_id: rolesMap['HR_MANAGER'].id, approver_rule: 'SpecificRole' },
-      { company_id: company1.id, flow_id: leaveFlow1.id, step_no: 2, role_id: rolesMap['COMPANY_ADMIN'].id, approver_rule: 'SpecificRole' },
+      { company_id: company1.id, flow_id: leaveFlow1.id, step_no: 2, role_id: rolesMap['GM'].id, approver_rule: 'SpecificRole' },
     ],
   });
 
