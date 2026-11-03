@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Drawer } from '../../../primitives/Drawer';
+import { Select } from '../../../primitives/form/Select';
 import { Network, Briefcase, UserCheck, ChevronRight, Plus, Check } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 
@@ -210,17 +211,17 @@ export function DepartmentsJobsDrawer({
                     onChange={(e) => setNewJob({ ...newJob, code: e.target.value })}
                     className="w-full px-3 py-1.5 rounded-lg text-xs font-mono bg-surface border border-border text-text focus:ring-1 focus:ring-primary uppercase"
                   />
-                  <select
+                  <Select
                     value={newJob.grade}
                     onChange={(e) => setNewJob({ ...newJob, grade: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-lg text-xs bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="Executive">Executive</option>
-                    <option value="Senior">Senior</option>
-                    <option value="Mid">Mid</option>
-                    <option value="Junior">Junior</option>
-                    <option value="Blue-collar">Blue-collar</option>
-                  </select>
+                    options={[
+                      { value: 'Executive', label: 'Executive' },
+                      { value: 'Senior', label: 'Senior' },
+                      { value: 'Mid', label: 'Mid' },
+                      { value: 'Junior', label: 'Junior' },
+                      { value: 'Blue-collar', label: 'Blue-collar' },
+                    ]}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">

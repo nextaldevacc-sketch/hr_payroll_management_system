@@ -29,7 +29,9 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
   function killProcWithTree(proc) {
     return new Promise((resolve) => {
       if (!proc || !proc.pid) return resolve();
-      treeKill(proc.pid, 'SIGKILL', () => resolve());
+      treeKill(proc.pid, 'SIGKILL', () => {
+        setTimeout(resolve, 600);
+      });
     });
   }
 
@@ -261,6 +263,7 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
     const logoutBtn = page.locator('button[title*="Sign out"], button:has-text("Sign out"), button:has-text("تسجيل الخروج")').first();
     await logoutBtn.click({ force: true });
     await page.waitForURL((url) => url.pathname.includes('/login'), { timeout: 15000, waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(500);
     assert.ok(page.url().includes('/login'), 'Must redirect to /login upon sign out');
 
     // Navigating back to protected page after logout redirects to /login

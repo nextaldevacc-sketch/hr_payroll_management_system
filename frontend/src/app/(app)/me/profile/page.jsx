@@ -93,7 +93,7 @@ export default function MyProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border/60">
               <span className="text-text-muted block">{language === 'ar' ? 'الشركة القانونية' : 'Company Entity'}</span>
-              <span className="font-bold text-text mt-0.5 block">{profile?.company || 'Gulf Tech Logistics LLC'}</span>
+              <span className="font-bold text-text mt-0.5 block">{profile?.company || 'Company'}</span>
             </div>
             <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border/60">
               <span className="text-text-muted block">{language === 'ar' ? 'الفيزا والتأشيرة' : 'Visa Establishment'}</span>

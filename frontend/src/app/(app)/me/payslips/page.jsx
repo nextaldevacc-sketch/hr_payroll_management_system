@@ -16,11 +16,13 @@ import { IconWell } from '@/components/primitives/IconWell';
 import { Button } from '@/components/primitives/form/Button';
 import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
+import { useVisa } from '@/context/VisaContext';
 import { getMyPayslips, getMyPayslip, getMyPayslipPdfUrl } from '@/services/meApi';
 import { formatCurrency } from '@nextal/shared';
 
 export default function MyPayslipsPage() {
   const { language } = useLanguage();
+  const { companyName } = useVisa();
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPayslip, setSelectedPayslip] = useState(null);
@@ -202,7 +204,7 @@ export default function MyPayslipsPage() {
           isOpen={detailModalOpen}
           onClose={() => setDetailModalOpen(false)}
           title={`Payslip — ${selectedPayslip.pay_run?.period_month?.slice(0, 7) || 'October 2026'}`}
-          subtitle="Official Salary Slip Breakdown · Gulf Tech Logistics LLC"
+          subtitle={`Official Salary Slip Breakdown · ${companyName || 'Company'}`}
           maxWidth="max-w-xl"
         >
           <div className="space-y-4 text-xs">

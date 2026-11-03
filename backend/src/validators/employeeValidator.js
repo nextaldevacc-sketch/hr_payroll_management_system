@@ -19,7 +19,7 @@ export const updateStatusSchema = z.object({
 });
 
 export const verifyEmployeeSchema = z.object({
-  action: z.enum(['APPROVE', 'REJECT']).default('APPROVE'),
+  action: z.enum(['APPROVE', 'REJECT', 'SEND_BACK']).default('APPROVE'),
   comment: z.string().optional(),
 });
 

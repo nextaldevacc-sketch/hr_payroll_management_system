@@ -164,8 +164,8 @@ export async function deleteJob(id) {
 
 // 5. Shifts & Attendance Policies
 export async function fetchShifts() {
-  const data = await request('/shifts', { method: 'GET' }, INITIAL_SHIFTS);
-  return Array.isArray(data) ? data : INITIAL_SHIFTS;
+  const data = await request('/shifts', { method: 'GET' }, []);
+  return Array.isArray(data) ? data : [];
 }
 
 export async function createShift(payload) {

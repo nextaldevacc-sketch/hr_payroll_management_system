@@ -13,6 +13,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { Button } from '@/components/primitives/form/Button';
+import { Select } from '@/components/primitives/form/Select';
 import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
 import { getMyRequests, cancelMyRequest, submitMyRequest } from '@/services/meApi';
@@ -236,16 +237,16 @@ export default function MyRequestsPage() {
           )}
 
           <div>
-            <label className="block font-semibold text-text mb-1">Request Type</label>
-            <select
+            <Select
               id="select-request-type"
+              label="Request Type"
               value={newReqType}
               onChange={(e) => setNewReqType(e.target.value)}
-              className="w-full p-2.5 rounded-xl bg-surface border border-border text-text"
-            >
-              <option value="MissingPunch">Missing Punch Correction</option>
-              <option value="Overtime">Overtime Request</option>
-            </select>
+              options={[
+                { value: 'MissingPunch', label: 'Missing Punch Correction' },
+                { value: 'Overtime', label: 'Overtime Request' },
+              ]}
+            />
           </div>
 
           <div>
@@ -275,18 +276,18 @@ export default function MyRequestsPage() {
           ) : (
             <>
               <div>
-                <label className="block font-semibold text-text mb-1">Overtime Type</label>
-                <select
+                <Select
                   id="select-ot-type"
+                  label="Overtime Type"
                   value={otType}
                   onChange={(e) => setOtType(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-surface border border-border text-text"
-                >
-                  <option value="OT_NORMAL">Normal Overtime (1.25x)</option>
-                  <option value="OT_NIGHT">Night Overtime (1.50x)</option>
-                  <option value="OT_REST">Rest Day Overtime (1.50x)</option>
-                  <option value="OT_HOLIDAY">Public Holiday Overtime (1.50x)</option>
-                </select>
+                  options={[
+                    { value: 'OT_NORMAL', label: 'Normal Overtime (1.25x)' },
+                    { value: 'OT_NIGHT', label: 'Night Overtime (1.50x)' },
+                    { value: 'OT_REST', label: 'Rest Day Overtime (1.50x)' },
+                    { value: 'OT_HOLIDAY', label: 'Public Holiday Overtime (1.50x)' },
+                  ]}
+                />
               </div>
               <div>
                 <label className="block font-semibold text-text mb-1">Hours</label>

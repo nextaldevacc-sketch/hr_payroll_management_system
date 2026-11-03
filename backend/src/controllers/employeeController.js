@@ -47,6 +47,17 @@ export async function getEmployeeMetaOptions(req, res, next) {
   }
 }
 
+export async function getNextEmployeeCode(req, res, next) {
+  try {
+    const code = await employeeService.getNextEmployeeCode({
+      companyId: req.companyId,
+    });
+    res.json({ status: 'success', data: { next_employee_code: code } });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getEmployeeById(req, res, next) {
   try {
     const data = await employeeService.getEmployeeById({
@@ -414,6 +425,7 @@ export default {
   listEmployees,
   createEmployee,
   getEmployeeMetaOptions,
+  getNextEmployeeCode,
   getEmployeeById,
   updateEmployee,
   updateEmployeeStatus,

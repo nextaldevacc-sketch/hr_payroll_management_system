@@ -22,9 +22,9 @@ import { VarianceTile } from '../../components/features/dashboard/VarianceTile';
 import { Drawer } from '../../components/primitives/Drawer';
 import { Modal } from '../../components/primitives/Modal';
 import { Button } from '../../components/primitives/form/Button';
-import { mockDashboardData } from '../../lib/mockData';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { useVisa } from '../../context/VisaContext';
 import { getDashboardOverview, getDashboardSalary } from '../../services/dashboardApi';
 import { RouteGuard } from '../../components/common/RouteGuard';
 import { formatCurrency } from '@nextal/shared';
@@ -38,6 +38,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { t, language } = useLanguage();
   const { user, seesSalary } = useAuth();
+  const { selectedVisa, companyName } = useVisa();
   const [activeDrawer, setActiveDrawer] = useState(null);
   const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
 
@@ -114,7 +115,150 @@ export default function DashboardPage() {
     }
   };
 
-  // Map API data to tile schemas, falling back gracefully to mockData if API response pending
+  // Fallback schemas when data is loading or empty
+  const defaultHeadcount = {
+    total: 0,
+    joiners: 0,
+    leavers: 0,
+    netChange: '0 net this month',
+    nationalityMix: {
+      uaeNationals: 0,
+      expats: 0,
+      gpssaEligible: 0,
+      uaePercent: 0,
+      expatPercent: 0,
+    },
+  };
+
+  const defaultPendingApprovals = {
+    total: 0,
+    items: [
+      { type: 'Leave Requests', count: 0, code: 'leave' },
+      { type: 'Overtime Hours', count: 0, code: 'ot' },
+      { type: 'Salary Adjustments', count: 0, code: 'adj' },
+      { type: 'Final Settlements', count: 0, code: 'settlement' },
+    ],
+    oldestItems: [],
+  };
+
+  const defaultWps = {
+    percentage: 100,
+    compliant: 0,
+    total: 0,
+    readyCount: 0,
+    needsAttentionCount: 0,
+    issues: [],
+  };
+
+  const defaultExpiringDocs = {
+    total: 0,
+    expired: 0,
+    critical: 0,
+    warning: 0,
+    info: 0,
+    nearestExpiry: { name: 'None', nameAr: 'لا يوجد', docType: 'None', days: 99 },
+  };
+
+  const defaultAttendance = {
+    present: 0,
+    late: 0,
+    absent: 0,
+    onLeave: 0,
+    total: 0,
+  };
+
+  const defaultExceptions = {
+    lateToday: 0,
+    absentToday: 0,
+    missingPunchesThisMonth: 0,
+    exceptions: [],
+  };
+
+  const defaultOvertime = {
+    totalHours: 0,
+    monthNormalHours: 0,
+    monthNightHours: 0,
+    monthHolidayHours: 0,
+    types: [],
+  };
+
+  const defaultLivePayroll = {
+    monthYear: 'Current Period',
+    entityName: companyName || 'Company',
+    visaBadge: selectedVisa?.name || 'All Visas',
+    cutoffDays: 0,
+    employeesIncluded: 0,
+    currentStep: 'Draft',
+    steps: ['Draft', 'Calculated', 'Validated', 'Locked', 'Paid'],
+    nextStep: {
+      owner: 'Payroll Officer',
+      action: 'Calculate run',
+      message: '0 blocking issues',
+      tab: 'validation',
+    },
+    figures: {
+      gross: 0,
+      overtime: 0,
+      absence: 0,
+      loans: 0,
+      latePenalties: 0,
+      otherDeductions: 0,
+      netToWps: 0,
+    },
+    sparkline: [0, 0, 0, 0, 0, 0],
+  };
+
+  const defaultPayrollTrend = {
+    months: [
+      { month: 'May', monthAr: 'مايو', gross: 0, net: 0 },
+      { month: 'Jun', monthAr: 'يونيو', gross: 0, net: 0 },
+      { month: 'Jul', monthAr: 'يوليو', gross: 0, net: 0 },
+      { month: 'Aug', monthAr: 'أغسطس', gross: 0, net: 0 },
+      { month: 'Sep', monthAr: 'سبتمبر', gross: 0, net: 0 },
+      { month: 'Oct', monthAr: 'أكتوبر', gross: 0, net: 0, isCurrent: true },
+    ],
+    thresholdMin: 0,
+    thresholdMax: 100000,
+  };
+
+  const defaultDepartmentHeadcount = [
+    { name: 'Operations', count: 0, percentage: 0 },
+    { name: 'Logistics', count: 0, percentage: 0 },
+    { name: 'Management', count: 0, percentage: 0 },
+  ];
+
+  const defaultFinanceLiabilities = {
+    gratuity: {
+      totalAccrued: 0,
+      monthDelta: 0,
+      deltaPercent: '0%',
+      isPositive: true,
+    },
+    leaveLiability: {
+      totalAccrued: 0,
+      monthDelta: 0,
+      deltaPercent: '0%',
+      isPositive: true,
+    },
+  };
+
+  const defaultQuickActions = [
+    { id: 'import', label: 'Import Punches', icon: 'Upload' },
+    { id: 'new-emp', label: 'Add Employee', icon: 'UserPlus' },
+    { id: 'leave', label: 'Apply Leave', icon: 'Calendar' },
+    { id: 'payrun', label: 'Pay Run', icon: 'DollarSign' },
+  ];
+
+  const defaultVariance = {
+    currentMonthNet: 0,
+    previousMonthNet: 0,
+    diffAmount: 0,
+    diffPercent: 0,
+    isPositive: true,
+    topChanges: [],
+  };
+
+  // Map API data to tile schemas, falling back gracefully
   const headcountData = overviewData?.headcount ? {
     total: overviewData.headcount.total,
     joiners: overviewData.headcount.joinersThisMonth || 0,
@@ -127,7 +271,7 @@ export default function DashboardPage() {
       uaePercent: 10,
       expatPercent: 90,
     },
-  } : mockDashboardData.headcount;
+  } : defaultHeadcount;
 
   const pendingApprovalsData = overviewData?.pendingApprovals ? {
     total: overviewData.pendingApprovals.count,
@@ -146,7 +290,7 @@ export default function DashboardPage() {
       age: 'Pending',
       isOwn: false,
     })),
-  } : mockDashboardData.pendingApprovals;
+  } : defaultPendingApprovals;
 
   const wpsData = overviewData?.wpsReadiness ? {
     percentage: overviewData.wpsReadiness.compliancePct,
@@ -158,7 +302,7 @@ export default function DashboardPage() {
       { field: 'IBAN', count: overviewData.wpsReadiness.missingIban, label: 'Missing primary IBAN', severity: 'danger' },
       { field: 'Bank Routing', count: overviewData.wpsReadiness.missingRouting, label: 'Routing code unverified', severity: 'warning' },
     ],
-  } : mockDashboardData.wpsReadiness;
+  } : defaultWps;
 
   const expiringDocsData = overviewData?.expiringDocs ? {
     total: overviewData.expiringDocs.within90Days + overviewData.expiringDocs.expired,
@@ -172,7 +316,7 @@ export default function DashboardPage() {
       docType: overviewData.expiringDocs.criticalList[0].docType,
       days: 14,
     } : { name: 'None', nameAr: 'لا يوجد', docType: 'None', days: 99 },
-  } : mockDashboardData.expiringDocs;
+  } : defaultExpiringDocs;
 
   const attendanceData = overviewData?.attendanceToday ? {
     present: overviewData.attendanceToday.present,
@@ -180,7 +324,7 @@ export default function DashboardPage() {
     absent: overviewData.attendanceToday.absent,
     onLeave: overviewData.attendanceToday.onLeave,
     total: overviewData.attendanceToday.total,
-  } : mockDashboardData.attendanceToday;
+  } : defaultAttendance;
 
   const exceptionsData = overviewData?.exceptions ? {
     lateToday: overviewData.exceptions.lateToday,
@@ -191,7 +335,7 @@ export default function DashboardPage() {
       { type: 'Unexcused Absences Today', count: overviewData.exceptions.absentToday, severity: 'danger', code: 'absent' },
       { type: 'Missing Punches This Month', count: overviewData.exceptions.missingPunchesThisMonth, severity: 'info', code: 'missing' },
     ],
-  } : mockDashboardData.exceptions;
+  } : defaultExceptions;
 
   const overtimeData = overviewData?.overtimeMonth ? {
     totalHours: overviewData.overtimeMonth.totalHours ?? 0,
@@ -221,11 +365,11 @@ export default function DashboardPage() {
           : 0,
       },
     ],
-  } : mockDashboardData.overtimeMonth;
+  } : defaultOvertime;
 
   const weekAheadData = Array.isArray(overviewData?.weekAhead)
     ? overviewData.weekAhead
-    : mockDashboardData.weekAhead;
+    : [];
 
   const recentActivityData = Array.isArray(overviewData?.recentActivity)
     ? overviewData.recentActivity.map((a) => ({
@@ -237,13 +381,13 @@ export default function DashboardPage() {
         target: a.tableName,
         timestamp: new Date(a.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }))
-    : mockDashboardData.recentActivity;
+    : [];
 
   // Live Payroll metrics (only when seesSalary is true)
   const livePayrollData = salaryData?.livePayroll ? {
     monthYear: salaryData.livePayroll.period || 'October 2026',
-    entityName: 'Gulf Tech Logistics LLC',
-    visaBadge: salaryData.livePayroll.visaName || 'Visa 01',
+    entityName: companyName || 'Company',
+    visaBadge: selectedVisa?.name || salaryData.livePayroll.visaName || 'All Visas',
     cutoffDays: 4,
     employeesIncluded: salaryData.livePayroll.employeeCount,
     currentStep: salaryData.livePayroll.status,
@@ -263,8 +407,8 @@ export default function DashboardPage() {
       otherDeductions: Number(salaryData.livePayroll.figures.deductions),
       netToWps: Number(salaryData.livePayroll.figures.net),
     },
-    sparkline: salaryData.livePayroll.sparkline.length > 0 ? salaryData.livePayroll.sparkline : mockDashboardData.livePayroll.sparkline,
-  } : mockDashboardData.livePayroll;
+    sparkline: salaryData.livePayroll.sparkline.length > 0 ? salaryData.livePayroll.sparkline : [0, 0, 0, 0, 0, 0],
+  } : defaultLivePayroll;
 
   return (
     <RouteGuard area="dashboard">
@@ -276,7 +420,7 @@ export default function DashboardPage() {
             {t('dashboard.title')}
           </h1>
           <p className="text-xs sm:text-sm text-text-muted mt-1">
-            Gulf Tech Logistics LLC · {t('dashboard.subtitle')}
+            {companyName || 'Company'} · {t('dashboard.subtitle')}
           </p>
         </div>
 
@@ -358,23 +502,23 @@ export default function DashboardPage() {
         {seesSalary ? (
           <>
             <PayrollTrendTile
-              data={mockDashboardData.payrollTrend}
+              data={overviewData?.payrollTrend || defaultPayrollTrend}
               onClick={() => router.push('/payroll')}
             />
 
             <DepartmentChartTile
-              data={mockDashboardData.departmentHeadcount}
+              data={Array.isArray(overviewData?.departmentHeadcount) ? overviewData.departmentHeadcount : defaultDepartmentHeadcount}
               onClick={() => router.push('/employees')}
             />
 
             <FinanceLiabilitiesTile
-              data={mockDashboardData.financeLiabilities}
+              data={overviewData?.financeLiabilities || defaultFinanceLiabilities}
               onClick={() => router.push('/payroll')}
             />
           </>
         ) : (
           <DepartmentChartTile
-            data={mockDashboardData.departmentHeadcount}
+            data={Array.isArray(overviewData?.departmentHeadcount) ? overviewData.departmentHeadcount : defaultDepartmentHeadcount}
             onClick={() => router.push('/employees')}
           />
         )}
@@ -386,7 +530,7 @@ export default function DashboardPage() {
         />
 
         <QuickActionsTile
-          data={mockDashboardData.quickActions}
+          data={defaultQuickActions}
           onAction={handleQuickAction}
         />
 
@@ -398,7 +542,7 @@ export default function DashboardPage() {
 
         {seesSalary && (
           <VarianceTile
-            data={mockDashboardData.variance}
+            data={salaryData?.variance || defaultVariance}
             onClick={() => setIsPayrollModalOpen(true)}
           />
         )}
@@ -410,7 +554,7 @@ export default function DashboardPage() {
           isOpen={isPayrollModalOpen}
           onClose={() => setIsPayrollModalOpen(false)}
           title="October 2026 Pay Run Overview"
-          subtitle="MOHRE Visa #442901 · Gulf Tech Logistics LLC"
+          subtitle={`${selectedVisa ? `${selectedVisa.name} · ${selectedVisa.mol_establishment_id || ''}` : 'All Company Visas'} · ${companyName || 'Company'}`}
           maxWidth="max-w-2xl"
         >
           <div className="space-y-4">

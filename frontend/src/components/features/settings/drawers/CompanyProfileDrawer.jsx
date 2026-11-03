@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Drawer } from '../../../primitives/Drawer';
+import { Select } from '../../../primitives/form/Select';
 import { Building2, FileText, CreditCard, ShieldCheck, Plus, Check, Globe, Upload, AlertTriangle, Coins } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 
@@ -18,9 +19,9 @@ export function CompanyProfileDrawer({
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'visas' | 'pension'
 
   const [formData, setFormData] = useState({
-    name: comp?.name || 'Gulf Tech Logistics LLC',
-    name_ar: comp?.name_ar || 'شركة جلف تك للخدمات اللوجستية ش.ذ.م.م',
-    trade_license_no: comp?.trade_license_no || 'TL-DXB-2024-001',
+    name: comp?.name || '',
+    name_ar: comp?.name_ar || '',
+    trade_license_no: comp?.trade_license_no || '',
     default_language: comp?.default_language || 'en',
     logo_url: comp?.logo_url || '/logo.png',
     pension_scheme_default: comp?.pension_scheme_default || 'GPSSA',
@@ -50,9 +51,9 @@ export function CompanyProfileDrawer({
   useEffect(() => {
     if (comp) {
       setFormData({
-        name: comp.name || 'Gulf Tech Logistics LLC',
-        name_ar: comp.name_ar || 'شركة جلف تك للخدمات اللوجستية ش.ذ.م.م',
-        trade_license_no: comp.trade_license_no || 'TL-DXB-2024-001',
+        name: comp.name || '',
+        name_ar: comp.name_ar || '',
+        trade_license_no: comp.trade_license_no || '',
         default_language: comp.default_language || 'en',
         logo_url: comp.logo_url || '/logo.png',
         pension_scheme_default: comp.pension_scheme_default || 'GPSSA',
@@ -200,18 +201,16 @@ export function CompanyProfileDrawer({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-text mb-1">
-                  {language === 'ar' ? 'اللغة الافتراضية للنظام' : 'Default Platform Language'}
-                </label>
-                <select
+                <Select
                   disabled={!canEdit}
+                  label={language === 'ar' ? 'اللغة الافتراضية للنظام' : 'Default Platform Language'}
                   value={formData.default_language}
                   onChange={(e) => setFormData({ ...formData, default_language: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl text-xs bg-surface border border-border text-text focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
-                >
-                  <option value="en">English (LTR)</option>
-                  <option value="ar">العربية (RTL)</option>
-                </select>
+                  options={[
+                    { value: 'en', label: 'English (LTR)' },
+                    { value: 'ar', label: 'العربية (RTL)' },
+                  ]}
+                />
               </div>
             </div>
 
@@ -352,14 +351,14 @@ export function CompanyProfileDrawer({
                     onChange={(e) => setNewVisa({ ...newVisa, bank_routing_code: e.target.value })}
                     className="w-full px-3 py-1.5 rounded-lg text-xs font-mono bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
                   />
-                  <select
+                  <Select
                     value={newVisa.pension_fund}
                     onChange={(e) => setNewVisa({ ...newVisa, pension_fund: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-lg text-xs bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="GPSSA">GPSSA (Federal / Dubai)</option>
-                    <option value="ADPF">ADPF (Abu Dhabi)</option>
-                  </select>
+                    options={[
+                      { value: 'GPSSA', label: 'GPSSA (Federal / Dubai)' },
+                      { value: 'ADPF', label: 'ADPF (Abu Dhabi)' },
+                    ]}
+                  />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-1">
@@ -404,18 +403,22 @@ export function CompanyProfileDrawer({
 
             {/* Default Pension Fund Selector */}
             <div>
-              <label className="block text-xs font-semibold text-text mb-1">
-                {language === 'ar' ? 'صندوق التقاعد الافتراضي للمنشأة' : 'Default Company Pension Fund'}
-              </label>
-              <select
+              <Select
                 disabled={!canEdit}
+                label={language === 'ar' ? 'صندوق التقاعد الافتراضي للمنشأة' : 'Default Company Pension Fund'}
                 value={formData.pension_scheme_default}
                 onChange={(e) => setFormData({ ...formData, pension_scheme_default: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl text-xs bg-surface border border-border text-text focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
-              >
-                <option value="GPSSA">GPSSA - General Pension and Social Security Authority (Federal & Dubai Mainland)</option>
-                <option value="ADPF">ADPF - Abu Dhabi Pension Fund (Abu Dhabi entities)</option>
-              </select>
+                options={[
+                  {
+                    value: 'GPSSA',
+                    label: 'GPSSA - General Pension and Social Security Authority (Federal & Dubai Mainland)',
+                  },
+                  {
+                    value: 'ADPF',
+                    label: 'ADPF - Abu Dhabi Pension Fund (Abu Dhabi entities)',
+                  },
+                ]}
+              />
             </div>
 
             {/* GPSSA Scheme Rates */}

@@ -5,6 +5,7 @@ import { AppShell } from '../../layout/AppShell';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { request } from '../../../services/apiClient';
+import { Select } from '../../primitives/form/Select';
 import {
   Users,
   UserPlus,
@@ -608,40 +609,34 @@ export function UsersAndRolesFeature() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block mb-1 font-medium" style={{ color: 'var(--text-secondary)' }}>
-                      Scope Restriction
-                    </label>
-                    <select
+                    <Select
+                      label="Scope Restriction"
                       value={scopeType}
                       onChange={(e) => setScopeType(e.target.value)}
-                      className="w-full rounded-xl py-2 px-3 border outline-none"
-                      style={{ background: 'var(--bg-well)', borderColor: 'var(--border-subtle)' }}
-                    >
-                      <option value="Company">Company-Wide (All)</option>
-                      <option value="CompanyVisa">Company Visa Only</option>
-                      <option value="Branch">Branch Only</option>
-                      <option value="Department">Department Only</option>
-                    </select>
+                      options={[
+                        { value: 'Company', label: 'Company-Wide (All)' },
+                        { value: 'CompanyVisa', label: 'Company Visa Only' },
+                        { value: 'Branch', label: 'Branch Only' },
+                        { value: 'Department', label: 'Department Only' },
+                      ]}
+                    />
                   </div>
 
                   <div>
-                    <label className="block mb-1 font-medium" style={{ color: 'var(--text-secondary)' }}>
-                      Scope Target
-                    </label>
-                    <select
+                    <Select
+                      label="Scope Target"
                       value={scopeTarget}
                       onChange={(e) => setScopeTarget(e.target.value)}
-                      className="w-full rounded-xl py-2 px-3 border outline-none"
-                      style={{ background: 'var(--bg-well)', borderColor: 'var(--border-subtle)' }}
-                    >
-                      <option value="All">All Entities</option>
-                      <option value="Engineering">Engineering Department</option>
-                      <option value="Operations">Operations Department</option>
-                      <option value="Logistics">Logistics & Fleet</option>
-                      <option value="HR & Admin">HR & Admin</option>
-                      <option value="Dubai HQ">Dubai Headquarters Branch</option>
-                      <option value="DIFC">DIFC FinTech Hub</option>
-                    </select>
+                      options={[
+                        { value: 'All', label: 'All Entities' },
+                        { value: 'Engineering', label: 'Engineering Department' },
+                        { value: 'Operations', label: 'Operations Department' },
+                        { value: 'Logistics', label: 'Logistics & Fleet' },
+                        { value: 'HR & Admin', label: 'HR & Admin' },
+                        { value: 'Dubai HQ', label: 'Dubai Headquarters Branch' },
+                        { value: 'DIFC', label: 'DIFC FinTech Hub' },
+                      ]}
+                    />
                   </div>
                 </div>
 
@@ -688,7 +683,7 @@ export function UsersAndRolesFeature() {
 
               <div className="space-y-3 text-xs">
                 <p style={{ color: 'var(--text-secondary)' }}>
-                  This action searches for all active employees in <strong>Gulf Tech Logistics LLC</strong> who do not have an active login account, generates a secure account, and assigns the <strong>Employee (Self-Service)</strong> role.
+                  This action searches for all active employees in <strong>{user?.company_name || 'the company'}</strong> who do not have an active login account, generates a secure account, and assigns the <strong>Employee (Self-Service)</strong> role.
                 </p>
 
                 <div

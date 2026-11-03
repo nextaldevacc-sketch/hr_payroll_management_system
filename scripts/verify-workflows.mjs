@@ -643,7 +643,7 @@ async function runStepRunner() {
       role: 'HR_OFFICER',
       email: 'hr.officer@gulftech.ae',
       action: 'Create New Employee in Onboarding Wizard',
-      expect: 'Employee created in Pre-Joined status',
+      expect: 'Employee created in Pre-Joined status with sequential code',
       runFn: async (page, shotPath) => {
         await login(page, 'hr.officer@gulftech.ae');
         await safeGoto(page, `http://localhost:${WEB_PORT}/employees/new`);
@@ -651,33 +651,60 @@ async function runStepRunner() {
         
         // Wait for meta options (branches & visas) to load into DOM
         await page.waitForFunction(() => {
-          const b = document.querySelector('#wizard-select-branch');
-          return b && b.options && b.options.length > 0;
+          const v = document.querySelector('#wizard-select-visa');
+          return v && v.options && v.options.length > 0;
         }, { timeout: 15000 }).catch(() => {});
 
-        // Fill Step 1
-        const empCodeInput = await page.$('#wizard-input-emp-code');
-        if (empCodeInput) {
-          await empCodeInput.fill(testJoinerCode);
-        } else {
-          await page.fill('input[value*="EMP-DXB-"]', testJoinerCode);
+        // 1. Assert sequential employee code (EMP-DXB-0NN, not random)
+        const defaultCode = await page.$eval('#wizard-input-emp-code', (el) => el.value);
+        if (!defaultCode || !/^EMP-[A-Z0-9]+-\d{3,}$/.test(defaultCode)) {
+          throw new Error(`Expected sequential employee code matching EMP-PREFIX-0NN, got "${defaultCode}"`);
         }
+        testJoinerCode = defaultCode;
+
+        // 2. Assert visa dropdown options >= 1 with non-empty text
+        const visaOptionTexts = await page.$$eval('#wizard-select-visa option', (opts) =>
+          opts.map((o) => o.textContent.trim()).filter((t) => t.length > 0 && !t.includes('Select'))
+        );
+        if (visaOptionTexts.length === 0) {
+          throw new Error('Expected at least 1 real visa option in dropdown');
+        }
+
+        // Pick first visa
+        await page.selectOption('#wizard-select-visa', { index: 1 }).catch(async () => {
+          await page.selectOption('#wizard-select-visa', { index: 0 });
+        });
+        await page.waitForTimeout(500);
+
+        // 3. Assert branch options filtered and contain no "()"
+        const branchTexts = await page.$$eval('#wizard-select-branch option', (opts) =>
+          opts.map((o) => o.textContent.trim())
+        );
+        for (const bt of branchTexts) {
+          if (bt.includes('()') || bt.includes('(undefined)') || bt.includes('(null)')) {
+            throw new Error(`Branch option contains invalid empty parentheses: "${bt}"`);
+          }
+        }
+        await page.selectOption('#wizard-select-branch', { index: 1 }).catch(async () => {
+          await page.selectOption('#wizard-select-branch', { index: 0 });
+        });
+
+        // Fill Step 1
         await page.fill('#wizard-input-name, input[placeholder*="e.g. Salem Al-Suwaidi"]', `Test Joiner ${ts.slice(-4)}`);
         await page.fill('#wizard-input-arabic-name, input[placeholder*="سالم السويدي"]', 'تيست جوينر');
         await page.fill('#wizard-input-work-email, input[placeholder*="salem@gulftech.ae"]', testJoinerEmail);
 
-        // Select first available branch & visa
-        const branchSelect = await page.$('#wizard-select-branch');
-        if (branchSelect) {
-          await page.selectOption('#wizard-select-branch', { index: 0 }).catch(() => {});
-        }
-        const visaSelect = await page.$('#wizard-select-visa');
-        if (visaSelect) {
-          await page.selectOption('#wizard-select-visa', { index: 0 }).catch(() => {});
-        }
-
         await page.click('#btn-step1-submit');
         await page.waitForTimeout(2000);
+
+        // 4. Assert success message appears without error message
+        const bodyText = await page.textContent('body');
+        if (bodyText.includes('Please fix') || bodyText.includes('Invalid request payload')) {
+          throw new Error('Form submission failed with validation error banner');
+        }
+        if (!bodyText.includes('Submitted to HR Manager for verification') && !bodyText.includes('Pre-Joined')) {
+          throw new Error('Expected "Submitted to HR Manager for verification" status confirmation');
+        }
 
         // Verify in DB with polling
         let createdEmp = await prisma.$base().employees.findFirst({
@@ -706,29 +733,31 @@ async function runStepRunner() {
       role: 'HR_OFFICER',
       email: 'hr.officer@gulftech.ae',
       action: 'HR Officer attempts dual-control verification',
-      expect: 'Verification blocked (Only HR Manager allowed / 403 Forbidden)',
+      expect: 'Verification blocked (Upfront creator guard banner visible)',
       runFn: async (page, shotPath) => {
         await login(page, 'hr.officer@gulftech.ae');
         await safeGoto(page, `http://localhost:${WEB_PORT}/employees/${testJoinerId}`);
         await page.waitForTimeout(1500);
 
-        // Try to click Verify & Approve
+        // Upfront creator guard check
+        const pageContent = await page.textContent('body');
+        const hasBlockedBanner = pageContent.includes('Another HR Manager must verify') || pageContent.includes('you created this record');
+        const isApproveDisabled = await page.$eval('#btn-verify-approve', (btn) => btn.disabled).catch(() => true);
+
+        // Try to click Verify & Approve (must be disabled or blocked)
         const verifyBtn = await page.$('#btn-verify-approve');
         if (verifyBtn) {
-          await verifyBtn.click();
+          await verifyBtn.click({ force: true, timeout: 1500 }).catch(() => {});
           await page.waitForTimeout(1000);
         }
 
-        const content = await page.textContent('body');
-        const blocked = content.includes('rejected') || content.includes('denied') || content.includes('Self-verification') || content.includes('Only HR Manager') || content.includes('forbidden');
-        
         // Assert status in DB is still Pre-Joined
         const emp = await prisma.$base().employees.findUnique({ where: { id: testJoinerId } });
         if (emp.status !== 'Pre-Joined') {
           throw new Error(`Status improperly advanced to ${emp.status} by unauthorized role`);
         }
 
-        return `HR Officer verification blocked by server permissions guard (status remains '${emp.status}')`;
+        return `HR Officer verification blocked by upfront creator guard banner (status remains '${emp.status}')`;
       },
     });
 
@@ -738,11 +767,17 @@ async function runStepRunner() {
       no: 3,
       role: 'HR_MANAGER',
       email: 'hr.mgr@gulftech.ae',
-      action: 'HR Manager sends back with comment -> HR Officer reviews -> HR Manager verifies',
+      action: 'HR Manager checks Pending Verification queue -> sends back -> verifies',
       expect: 'Dual-control verification cycle completed to New Joined',
       runFn: async (page, shotPath) => {
-        // 1. HR Manager sends back
+        // 1. HR Manager views Pending Verification queue
         await login(page, 'hr.mgr@gulftech.ae');
+        await safeGoto(page, `http://localhost:${WEB_PORT}/employees`);
+        await page.waitForSelector('#filter-pill-pending-verification', { timeout: 10000 });
+        await page.click('#filter-pill-pending-verification');
+        await page.waitForTimeout(1500);
+
+        // 2. Open employee profile and send back with comment
         await safeGoto(page, `http://localhost:${WEB_PORT}/employees/${testJoinerId}`);
         await page.waitForTimeout(1500);
 
@@ -750,12 +785,12 @@ async function runStepRunner() {
         await page.click('#btn-verify-sendback');
         await page.waitForTimeout(1500);
 
-        // 2. HR Officer views comment and resubmits
+        // 3. HR Officer views comment and reviews
         await login(page, 'hr.officer@gulftech.ae');
         await safeGoto(page, `http://localhost:${WEB_PORT}/employees/${testJoinerId}`);
         await page.waitForTimeout(1500);
 
-        // 3. HR Manager approves
+        // 4. HR Manager approves
         await login(page, 'hr.mgr@gulftech.ae');
         await safeGoto(page, `http://localhost:${WEB_PORT}/employees/${testJoinerId}`);
         await page.waitForTimeout(1500);

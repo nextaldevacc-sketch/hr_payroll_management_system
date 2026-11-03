@@ -45,6 +45,7 @@ import {
 } from '../../../services/settlementsApi';
 import { fetchEmployees } from '../../../services/employeesApi';
 import { request } from '../../../services/apiClient';
+import { Select } from '../../primitives/form/Select';
 
 export function OffboardingFeature() {
   const { user, seesSalary } = useAuth();
@@ -1140,37 +1141,31 @@ export function OffboardingFeature() {
 
             <form onSubmit={handleCreateSeparationSubmit} className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  {t('offboarding.fields.employee')}
-                </label>
-                <select
+                <Select
+                  label={t('offboarding.fields.employee')}
                   required
+                  placeholder="Select Employee..."
                   value={newSepData.employee_id}
                   onChange={(e) => setNewSepData({ ...newSepData, employee_id: e.target.value })}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500"
-                >
-                  <option value="">Select Employee...</option>
-                  {employeesList.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.employee_code} - {emp.name} ({emp.arabic_name || ''})
-                    </option>
-                  ))}
-                </select>
+                  options={employeesList.map((emp) => ({
+                    value: emp.id,
+                    label: `${emp.employee_code} - ${emp.name}`,
+                    meta: emp.arabic_name || undefined,
+                  }))}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    {t('offboarding.fields.type')}
-                  </label>
-                  <select
+                  <Select
+                    label={t('offboarding.fields.type')}
                     value={newSepData.type}
                     onChange={(e) => setNewSepData({ ...newSepData, type: e.target.value })}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                  >
-                    <option value="Resignation">{t('offboarding.types.resignation')}</option>
-                    <option value="Termination">{t('offboarding.types.termination')}</option>
-                  </select>
+                    options={[
+                      { value: 'Resignation', label: t('offboarding.types.resignation') },
+                      { value: 'Termination', label: t('offboarding.types.termination') },
+                    ]}
+                  />
                 </div>
 
                 <div>
@@ -1256,17 +1251,15 @@ export function OffboardingFeature() {
 
             <form onSubmit={handleClearItemSubmit} className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Status
-                </label>
-                <select
+                <Select
+                  label="Status"
                   value={clearItemForm.status}
                   onChange={(e) => setClearItemForm({ ...clearItemForm, status: e.target.value })}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                >
-                  <option value="Pending">Pending (Not Cleared)</option>
-                  <option value="Cleared">Cleared (Approved)</option>
-                </select>
+                  options={[
+                    { value: 'Pending', label: 'Pending (Not Cleared)' },
+                    { value: 'Cleared', label: 'Cleared (Approved)' },
+                  ]}
+                />
               </div>
 
               <div>

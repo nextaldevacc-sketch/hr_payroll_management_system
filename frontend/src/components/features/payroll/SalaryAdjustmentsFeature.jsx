@@ -28,6 +28,7 @@ import { fetchEmployees } from '../../../services/employeesApi';
 import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
+import { Select } from '../../primitives/form/Select';
 
 export function SalaryAdjustmentsFeature() {
   const queryClient = useQueryClient();
@@ -228,18 +229,21 @@ export function SalaryAdjustmentsFeature() {
           </div>
 
           {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 text-xs rounded-xl bg-surface-raised border border-border/80 text-text focus:outline-none focus:ring-2 focus:ring-primary/40"
-          >
-            <option value="">All Statuses</option>
-            <option value="Pending">Pending Approval</option>
-            <option value="Approved">Approved</option>
-            <option value="Active">Active Deducting</option>
-            <option value="Completed">Completed</option>
-            <option value="Rejected">Rejected</option>
-          </select>
+          <div className="min-w-[160px]">
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              placeholder="All Statuses"
+              options={[
+                { value: '', label: 'All Statuses' },
+                { value: 'Pending', label: 'Pending Approval' },
+                { value: 'Approved', label: 'Approved' },
+                { value: 'Active', label: 'Active Deducting' },
+                { value: 'Completed', label: 'Completed' },
+                { value: 'Rejected', label: 'Rejected' },
+              ]}
+            />
+          </div>
         </div>
 
         <div className="text-xs text-text-muted">
@@ -370,36 +374,32 @@ export function SalaryAdjustmentsFeature() {
           )}
 
           <div>
-            <label className="block text-xs font-bold text-text mb-1">
-              Employee / الموظف <span className="text-red-500">*</span>
-            </label>
-            <select
+            <Select
+              label="Employee / الموظف"
               required
+              placeholder="Select Employee..."
               value={createForm.employee_id}
               onChange={(e) => setCreateForm({ ...createForm, employee_id: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl bg-surface-raised border border-border/80 text-text text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
-            >
-              <option value="">Select Employee...</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.name} ({emp.employee_code}) &bull; {emp.department?.name || 'Operations'}
-                </option>
-              ))}
-            </select>
+              options={employees.map((emp) => ({
+                value: emp.id,
+                label: `${emp.name} (${emp.employee_code})`,
+                meta: emp.department?.name || 'Operations',
+              }))}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-text mb-1">Adjustment Type / النوع</label>
-              <select
+              <Select
+                label="Adjustment Type / النوع"
                 value={createForm.type}
                 onChange={(e) => setCreateForm({ ...createForm, type: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl bg-surface-raised border border-border/80 text-text text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
-              >
-                <option value="Loan">Company Loan</option>
-                <option value="Advance">Salary Advance</option>
-                <option value="Correction">Payroll Correction</option>
-              </select>
+                options={[
+                  { value: 'Loan', label: 'Company Loan' },
+                  { value: 'Advance', label: 'Salary Advance' },
+                  { value: 'Correction', label: 'Payroll Correction' },
+                ]}
+              />
             </div>
             <div>
               <label className="block text-xs font-bold text-text mb-1">

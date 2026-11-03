@@ -23,6 +23,7 @@ import {
 import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
+import { Select } from '../../primitives/form/Select';
 import { listLeaveRequests, getLeaveTypes, requestLeave, actOnLeave, getLeaveBalances } from '../../../services/leaveApi';
 
 export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange }) {
@@ -406,22 +407,18 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
       >
         <form onSubmit={handleCreateRequest} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-text-muted mb-1">
-              {isAr ? 'نوع الإجازة' : 'Leave Type'}
-            </label>
-            <select
+            <Select
               id="new-leave-type"
               data-testid="new-leave-type"
+              label={isAr ? 'نوع الإجازة' : 'Leave Type'}
               value={selectedTypeId}
               onChange={(e) => setSelectedTypeId(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text focus:ring-1 focus:ring-primary focus:outline-none"
-            >
-              {leaveTypes.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {isAr ? (t.name_ar || t.name) : t.name} ({t.paid_percentage}% pay)
-                </option>
-              ))}
-            </select>
+              options={leaveTypes.map((t) => ({
+                value: t.id,
+                label: isAr ? (t.name_ar || t.name) : t.name,
+                meta: `${t.paid_percentage}% pay`,
+              }))}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">

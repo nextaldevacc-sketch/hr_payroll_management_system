@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import reportsApi, { getHeadcountReport } from '../../../services/reportsApi';
 import { fetchPayRuns } from '../../../services/payrollApi';
+import { Select } from '../../primitives/form/Select';
 
 export default function ReportsFeature() {
   const { user } = useAuth();
@@ -155,22 +156,17 @@ export default function ReportsFeature() {
 
           {/* Pay run selector (for salary roles) */}
           {canSeeSalary && (
-            <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-slate-400" />
-              <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                {isAr ? 'دورة الرواتب:' : 'Pay Run:'}
-              </label>
-              <select
+            <div className="min-w-[240px]">
+              <Select
+                label={isAr ? 'دورة الرواتب' : 'Pay Run'}
                 value={selectedPayRunId}
                 onChange={(e) => setSelectedPayRunId(e.target.value)}
-                className="px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 max-w-[240px]"
-              >
-                {payRuns.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.company_visa?.visa_name || 'Visa'} — {r.period_month?.slice(0, 7)} ({r.status})
-                  </option>
-                ))}
-              </select>
+                options={payRuns.map((r) => ({
+                  value: r.id,
+                  label: `${r.company_visa?.visa_name || 'Visa'} — ${r.period_month?.slice(0, 7)}`,
+                  chip: r.status,
+                }))}
+              />
             </div>
           )}
         </div>

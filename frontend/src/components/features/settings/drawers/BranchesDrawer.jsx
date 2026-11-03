@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Drawer } from '../../../primitives/Drawer';
+import { Select } from '../../../primitives/form/Select';
 import { MapPin, Building, Plus, Trash2, PowerOff, Check } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 
@@ -165,29 +166,21 @@ export function BranchesDrawer({
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-[10px] text-text-muted mb-1">{language === 'ar' ? 'الإمارة' : 'Emirate'}</label>
-                <select
+                <Select
+                  label={language === 'ar' ? 'الإمارة' : 'Emirate'}
                   value={newBranch.emirate}
                   onChange={(e) => setNewBranch({ ...newBranch, emirate: e.target.value })}
-                  className="w-full px-3 py-1.5 rounded-lg text-xs bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
-                >
-                  {UAE_EMIRATES.map((em) => (
-                    <option key={em} value={em}>{em}</option>
-                  ))}
-                </select>
+                  options={UAE_EMIRATES.map((em) => ({ value: em, label: em }))}
+                />
               </div>
 
               <div>
-                <label className="block text-[10px] text-text-muted mb-1">{language === 'ar' ? 'التأشيرة التابعة' : 'Associated Visa'}</label>
-                <select
+                <Select
+                  label={language === 'ar' ? 'التأشيرة التابعة' : 'Associated Visa'}
                   value={newBranch.company_visa_id}
                   onChange={(e) => setNewBranch({ ...newBranch, company_visa_id: e.target.value })}
-                  className="w-full px-3 py-1.5 rounded-lg text-xs bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
-                >
-                  {visas.map((v) => (
-                    <option key={v.id} value={v.id}>{v.name}</option>
-                  ))}
-                </select>
+                  options={visas.map((v) => ({ value: v.id, label: v.name }))}
+                />
               </div>
             </div>
 

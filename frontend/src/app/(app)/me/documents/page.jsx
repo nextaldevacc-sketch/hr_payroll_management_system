@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { IconWell } from '@/components/primitives/IconWell';
 import { Button } from '@/components/primitives/form/Button';
+import { Select } from '@/components/primitives/form/Select';
 import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
 import { getMyDocuments, uploadMyDocument } from '@/services/meApi';
@@ -147,17 +148,17 @@ export default function MyDocumentsPage() {
       >
         <form onSubmit={handleUploadSubmit} className="space-y-4 text-xs">
           <div>
-            <label className="font-bold text-text block mb-1">Document Type</label>
-            <select
+            <Select
+              label="Document Type"
               value={docType}
               onChange={(e) => setDocType(e.target.value)}
-              className="topbar-field w-full px-3 py-2 rounded-lg border border-border"
-            >
-              <option value="EMIRATES_ID">Emirates ID</option>
-              <option value="PASSPORT">Passport</option>
-              <option value="LABOUR_CARD">Labour Card / MOHRE</option>
-              <option value="RESIDENCE_VISA">Residence Visa</option>
-            </select>
+              options={[
+                { value: 'EMIRATES_ID', label: 'Emirates ID' },
+                { value: 'PASSPORT', label: 'Passport' },
+                { value: 'LABOUR_CARD', label: 'Labour Card / MOHRE' },
+                { value: 'RESIDENCE_VISA', label: 'Residence Visa' },
+              ]}
+            />
           </div>
 
           <div>

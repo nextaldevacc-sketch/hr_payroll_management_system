@@ -156,7 +156,7 @@ export const INITIAL_JOBS = [
 
 export const INITIAL_SHIFTS = [
   {
-    id: 's1000000-0000-0000-0000-000000000001',
+    id: '01000000-0000-0000-0000-000000000001',
     name: 'Standard Office 8 to 5',
     name_ar: 'المكتب النهاري 8 إلى 5',
     start_time: '08:00',
@@ -175,7 +175,7 @@ export const INITIAL_SHIFTS = [
     last_changed_at: '2026-09-15T10:00:00Z',
   },
   {
-    id: 's1000000-0000-0000-0000-000000000002',
+    id: '02000000-0000-0000-0000-000000000002',
     name: 'Warehouse Operations Night Shift',
     name_ar: 'وردية المستودع المسائية والليلية',
     start_time: '20:00',
@@ -196,7 +196,7 @@ export const INITIAL_SHIFTS = [
 ];
 
 export const INITIAL_ATTENDANCE_POLICY = {
-  id: 'ap100000-0000-0000-0000-000000000001',
+  id: '0a100000-0000-0000-0000-000000000001',
   name: 'UAE Standard Progressive Penalty Policy',
   name_ar: 'سياسة الجزاءات التصاعدية وفق قانون العمل الإماراتي',
   late_grace_minutes: 15,

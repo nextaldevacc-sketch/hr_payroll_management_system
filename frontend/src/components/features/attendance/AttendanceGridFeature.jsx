@@ -22,6 +22,7 @@ import {
 import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
+import { Select } from '../../primitives/form/Select';
 import { getAttendanceGrid, editAttendanceDay } from '../../../services/attendanceApi';
 
 const DAY_STATUS_CONFIG = {
@@ -178,19 +179,19 @@ export default function AttendanceGridFeature() {
 
             {/* Department Filter */}
             {departments.length > 0 && (
-              <div className="flex items-center gap-2 bg-surface/60 border border-border/80 px-3 py-1.5 rounded-xl">
-                <Filter className="w-4 h-4 text-text-muted shrink-0" />
-                <select
+              <div className="min-w-[180px]">
+                <Select
                   id="grid-dept-filter"
                   value={selectedDept}
                   onChange={(e) => setSelectedDept(e.target.value)}
-                  className="bg-transparent text-xs text-text border-none focus:outline-none"
-                >
-                  <option value="all">{isAr ? 'جميع الأقسام' : 'All Departments'}</option>
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>{isAr ? (d.name_ar || d.name) : d.name}</option>
-                  ))}
-                </select>
+                  options={[
+                    { value: 'all', label: isAr ? 'جميع الأقسام' : 'All Departments' },
+                    ...departments.map((d) => ({
+                      value: d.id,
+                      label: isAr ? (d.name_ar || d.name) : d.name,
+                    })),
+                  ]}
+                />
               </div>
             )}
 

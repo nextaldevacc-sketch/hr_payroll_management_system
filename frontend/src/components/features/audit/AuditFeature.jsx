@@ -20,6 +20,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { listAuditLogs, exportAuditLogsCsv } from '../../../services/auditApi';
+import { Select } from '../../primitives/form/Select';
 
 export default function AuditFeature() {
   const { user } = useAuth();
@@ -149,47 +150,53 @@ export default function AuditFeature() {
       {/* Filter Bar */}
       <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 flex flex-wrap gap-3 items-center">
         {/* Action filter */}
-        <select
-          value={actionFilter}
-          onChange={(e) => {
-            setActionFilter(e.target.value);
-            setPage(1);
-          }}
-          className="px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        >
-          <option value="">{isAr ? 'جميع العمليات' : 'All Actions'}</option>
-          <option value="Create">{isAr ? 'إنشاء' : 'Create'}</option>
-          <option value="Update">{isAr ? 'تحديث' : 'Update'}</option>
-          <option value="Validate">{isAr ? 'تدقيق' : 'Validate'}</option>
-          <option value="Lock">{isAr ? 'إقفال' : 'Lock'}</option>
-          <option value="Pay">{isAr ? 'صرف' : 'Pay'}</option>
-          <option value="Approve">{isAr ? 'اعتماد' : 'Approve'}</option>
-          <option value="Reject">{isAr ? 'رفض' : 'Reject'}</option>
-          <option value="UploadDocument">{isAr ? 'رفع وثيقة' : 'Upload Document'}</option>
-          <option value="RenewDocument">{isAr ? 'تجديد وثيقة' : 'Renew Document'}</option>
-          <option value="VerifyDocument">{isAr ? 'التحقق من وثيقة' : 'Verify Document'}</option>
-          <option value="GRANT_SUPPORT_ACCESS">{isAr ? 'منح دعم فني' : 'Grant Support Access'}</option>
-          <option value="REVOKE_SUPPORT_ACCESS">{isAr ? 'إلغاء دعم فني' : 'Revoke Support Access'}</option>
-        </select>
+        <div className="min-w-[180px]">
+          <Select
+            value={actionFilter}
+            onChange={(e) => {
+              setActionFilter(e.target.value);
+              setPage(1);
+            }}
+            placeholder={isAr ? 'جميع العمليات' : 'All Actions'}
+            options={[
+              { value: '', label: isAr ? 'جميع العمليات' : 'All Actions' },
+              { value: 'Create', label: isAr ? 'إنشاء' : 'Create' },
+              { value: 'Update', label: isAr ? 'تحديث' : 'Update' },
+              { value: 'Validate', label: isAr ? 'تدقيق' : 'Validate' },
+              { value: 'Lock', label: isAr ? 'إقفال' : 'Lock' },
+              { value: 'Pay', label: isAr ? 'صرف' : 'Pay' },
+              { value: 'Approve', label: isAr ? 'اعتماد' : 'Approve' },
+              { value: 'Reject', label: isAr ? 'رفض' : 'Reject' },
+              { value: 'UploadDocument', label: isAr ? 'رفع وثيقة' : 'Upload Document' },
+              { value: 'RenewDocument', label: isAr ? 'تجديد وثيقة' : 'Renew Document' },
+              { value: 'VerifyDocument', label: isAr ? 'التحقق من وثيقة' : 'Verify Document' },
+              { value: 'GRANT_SUPPORT_ACCESS', label: isAr ? 'منح دعم فني' : 'Grant Support Access' },
+              { value: 'REVOKE_SUPPORT_ACCESS', label: isAr ? 'إلغاء دعم فني' : 'Revoke Support Access' },
+            ]}
+          />
+        </div>
 
         {/* Table filter */}
-        <select
-          value={tableFilter}
-          onChange={(e) => {
-            setTableFilter(e.target.value);
-            setPage(1);
-          }}
-          className="px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        >
-          <option value="">{isAr ? 'جميع الكيانات والجداول' : 'All Entities / Tables'}</option>
-          <option value="employees">employees</option>
-          <option value="contracts">contracts</option>
-          <option value="pay_runs">pay_runs</option>
-          <option value="attendance_days">attendance_days</option>
-          <option value="leave_requests">leave_requests</option>
-          <option value="employee_documents">employee_documents</option>
-          <option value="support_access_grants">support_access_grants</option>
-        </select>
+        <div className="min-w-[180px]">
+          <Select
+            value={tableFilter}
+            onChange={(e) => {
+              setTableFilter(e.target.value);
+              setPage(1);
+            }}
+            placeholder={isAr ? 'جميع الكيانات والجداول' : 'All Entities / Tables'}
+            options={[
+              { value: '', label: isAr ? 'جميع الكيانات والجداول' : 'All Entities / Tables' },
+              { value: 'employees', label: 'employees' },
+              { value: 'contracts', label: 'contracts' },
+              { value: 'pay_runs', label: 'pay_runs' },
+              { value: 'attendance_days', label: 'attendance_days' },
+              { value: 'leave_requests', label: 'leave_requests' },
+              { value: 'employee_documents', label: 'employee_documents' },
+              { value: 'support_access_grants', label: 'support_access_grants' },
+            ]}
+          />
+        </div>
 
         {/* Date filters */}
         <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">

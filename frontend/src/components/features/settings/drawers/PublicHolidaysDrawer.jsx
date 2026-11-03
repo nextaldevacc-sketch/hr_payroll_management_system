@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Drawer } from '../../../primitives/Drawer';
+import { Select } from '../../../primitives/form/Select';
 import { Calendar, Plus, RotateCcw, Filter, Check, MapPin, Edit3 } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 
@@ -66,18 +67,15 @@ export function PublicHolidaysDrawer({
       <div className="space-y-4 pb-6">
         {/* Controls Bar: Branch Filter & Reset Defaults Button */}
         <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border/70 bg-surface/50">
-          <div className="flex items-center gap-2">
-            <Filter className="w-3.5 h-3.5 text-text-muted" />
-            <select
+          <div className="min-w-[200px]">
+            <Select
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
-              className="px-2.5 py-1 rounded-lg text-xs bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
-            >
-              <option value="ALL">{language === 'ar' ? 'جميع الفروع (شامل)' : 'All Branches (Company-wide)'}</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.name}>{b.name}</option>
-              ))}
-            </select>
+              options={[
+                { value: 'ALL', label: language === 'ar' ? 'جميع الفروع (شامل)' : 'All Branches (Company-wide)' },
+                ...branches.map((b) => ({ value: b.name, label: b.name })),
+              ]}
+            />
           </div>
 
           {canEdit && onResetDefaults && (
@@ -198,17 +196,15 @@ export function PublicHolidaysDrawer({
                 />
               </div>
               <div>
-                <label className="block text-[10px] text-text-muted mb-1">{language === 'ar' ? 'نطاق التطبيق' : 'Branch Scope'}</label>
-                <select
+                <Select
+                  label={language === 'ar' ? 'نطاق التطبيق' : 'Branch Scope'}
                   value={newHoliday.branch_scope}
                   onChange={(e) => setNewHoliday({ ...newHoliday, branch_scope: e.target.value })}
-                  className="w-full px-2 py-1 rounded-lg text-xs bg-surface border border-border text-text"
-                >
-                  <option value="ALL">All Branches</option>
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.name}>{b.name}</option>
-                  ))}
-                </select>
+                  options={[
+                    { value: 'ALL', label: 'All Branches' },
+                    ...branches.map((b) => ({ value: b.name, label: b.name })),
+                  ]}
+                />
               </div>
             </div>
 

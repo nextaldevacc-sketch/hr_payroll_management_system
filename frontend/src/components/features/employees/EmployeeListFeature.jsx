@@ -15,11 +15,13 @@ import {
   Lock,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import clsx from 'clsx';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { fetchEmployees, fetchEmployeeMetaOptions } from '../../../services/employeesApi';
 import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
+import { Select } from '../../primitives/form/Select';
 
 export function EmployeeListFeature() {
   const { user } = useAuth();
@@ -249,12 +251,47 @@ export function EmployeeListFeature() {
               />
             </div>
 
-            {/* Quick Count & Reset */}
-            <div className="flex items-center gap-2 self-end md:self-auto">
+            {/* Quick Filter Tabs / Pills */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => { setStatusFilter(''); setPage(1); }}
+                className={clsx(
+                  'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
+                  !statusFilter ? 'bg-primary text-on-primary' : 'bg-surface-raised dark:bg-inset text-text-muted hover:text-text border border-border'
+                )}
+              >
+                {t('employees.all', 'All')}
+              </button>
+              <button
+                type="button"
+                id="filter-pill-pending-verification"
+                onClick={() => { setStatusFilter('Pre-Joined'); setPage(1); }}
+                className={clsx(
+                  'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 border',
+                  statusFilter === 'Pre-Joined'
+                    ? 'bg-amber-500 text-white font-bold border-amber-600'
+                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border-amber-500/30'
+                )}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span>{t('employees.pendingVerification', 'Pending Verification')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setStatusFilter('Active'); setPage(1); }}
+                className={clsx(
+                  'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
+                  statusFilter === 'Active' ? 'bg-primary text-on-primary' : 'bg-surface-raised dark:bg-inset text-text-muted hover:text-text border border-border'
+                )}
+              >
+                {t('employees.active', 'Active')}
+              </button>
+
               {isFilterActive && (
                 <button
                   onClick={handleResetFilters}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-text-muted hover:text-text hover:bg-surface-raised transition-all"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-text-muted hover:text-text hover:bg-surface-raised transition-all ms-auto"
                   id="btn-reset-filters"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -268,104 +305,94 @@ export function EmployeeListFeature() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 pt-2 border-t border-border/60">
             {/* Status Filter */}
             <div>
-              <select
+              <Select
+                id="filter-status"
                 value={statusFilter}
                 onChange={handleFilterChange(setStatusFilter)}
-                className="w-full text-xs py-2 px-2.5 rounded-lg bg-surface-raised dark:bg-inset border border-border text-text focus:outline-none focus:ring-1 focus:ring-primary"
-                id="filter-status"
-              >
-                <option value="">{t('employees.allStatuses', 'All Statuses')}</option>
-                {metaOptions?.statuses?.map((st) => (
-                  <option key={st} value={st}>
-                    {st}
-                  </option>
-                ))}
-              </select>
+                placeholder={t('employees.allStatuses', 'All Statuses')}
+                options={[
+                  { value: '', label: t('employees.allStatuses', 'All Statuses') },
+                  ...(metaOptions?.statuses?.map((st) => ({ value: st, label: st })) || []),
+                ]}
+              />
             </div>
 
             {/* Department Filter */}
             <div>
-              <select
+              <Select
+                id="filter-department"
                 value={deptFilter}
                 onChange={handleFilterChange(setDeptFilter)}
-                className="w-full text-xs py-2 px-2.5 rounded-lg bg-surface-raised dark:bg-inset border border-border text-text focus:outline-none focus:ring-1 focus:ring-primary"
-                id="filter-department"
-              >
-                <option value="">{t('employees.allDepartments', 'All Departments')}</option>
-                {metaOptions?.departments?.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
+                placeholder={t('employees.allDepartments', 'All Departments')}
+                options={[
+                  { value: '', label: t('employees.allDepartments', 'All Departments') },
+                  ...(metaOptions?.departments?.map((d) => ({ value: d.id, label: d.name })) || []),
+                ]}
+              />
             </div>
 
             {/* Branch Filter */}
             <div>
-              <select
+              <Select
+                id="filter-branch"
                 value={branchFilter}
                 onChange={handleFilterChange(setBranchFilter)}
-                className="w-full text-xs py-2 px-2.5 rounded-lg bg-surface-raised dark:bg-inset border border-border text-text focus:outline-none focus:ring-1 focus:ring-primary"
-                id="filter-branch"
-              >
-                <option value="">{t('employees.allBranches', 'All Branches')}</option>
-                {metaOptions?.branches?.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
+                placeholder={t('employees.allBranches', 'All Branches')}
+                options={[
+                  { value: '', label: t('employees.allBranches', 'All Branches') },
+                  ...(metaOptions?.branches?.map((b) => ({ value: b.id, label: b.name })) || []),
+                ]}
+              />
             </div>
 
             {/* Visa Filter */}
             <div>
-              <select
+              <Select
+                id="filter-visa"
                 value={visaFilter}
                 onChange={handleFilterChange(setVisaFilter)}
-                className="w-full text-xs py-2 px-2.5 rounded-lg bg-surface-raised dark:bg-inset border border-border text-text focus:outline-none focus:ring-1 focus:ring-primary"
-                id="filter-visa"
-              >
-                <option value="">{t('employees.allVisas', 'All Visa Entities')}</option>
-                {metaOptions?.visas?.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.visa_entity_name}
-                  </option>
-                ))}
-              </select>
+                placeholder={t('employees.allVisas', 'All Visa Entities')}
+                options={[
+                  { value: '', label: t('employees.allVisas', 'All Visa Entities') },
+                  ...(metaOptions?.visas?.map((v) => ({ value: v.id, label: v.visa_entity_name })) || []),
+                ]}
+              />
             </div>
 
             {/* Nationality Filter */}
             <div>
-              <select
+              <Select
+                id="filter-nationality"
                 value={nationalityFilter}
                 onChange={handleFilterChange(setNationalityFilter)}
-                className="w-full text-xs py-2 px-2.5 rounded-lg bg-surface-raised dark:bg-inset border border-border text-text focus:outline-none focus:ring-1 focus:ring-primary"
-                id="filter-nationality"
-              >
-                <option value="">{t('employees.allNationalities', 'All Nationalities')}</option>
-                <option value="Emirati">Emirati (GPSSA)</option>
-                <option value="Indian">Indian</option>
-                <option value="Filipino">Filipino</option>
-                <option value="Egyptian">Egyptian</option>
-                <option value="British">British</option>
-                <option value="Pakistani">Pakistani</option>
-              </select>
+                placeholder={t('employees.allNationalities', 'All Nationalities')}
+                options={[
+                  { value: '', label: t('employees.allNationalities', 'All Nationalities') },
+                  { value: 'Emirati', label: 'Emirati (GPSSA)' },
+                  { value: 'Indian', label: 'Indian' },
+                  { value: 'Filipino', label: 'Filipino' },
+                  { value: 'Egyptian', label: 'Egyptian' },
+                  { value: 'British', label: 'British' },
+                  { value: 'Pakistani', label: 'Pakistani' },
+                ]}
+              />
             </div>
 
             {/* Document Status Filter */}
             <div>
-              <select
+              <Select
+                id="filter-doc-status"
                 value={docStatusFilter}
                 onChange={handleFilterChange(setDocStatusFilter)}
-                className="w-full text-xs py-2 px-2.5 rounded-lg bg-surface-raised dark:bg-inset border border-border text-text focus:outline-none focus:ring-1 focus:ring-primary"
-                id="filter-doc-status"
-              >
-                <option value="">{t('employees.allDocumentStatuses', 'All Doc Statuses')}</option>
-                <option value="Valid">Valid</option>
-                <option value="Expiring Soon">Expiring Soon (≤90d)</option>
-                <option value="Expired">Expired</option>
-                <option value="Missing Data">Missing Data</option>
-              </select>
+                placeholder={t('employees.allDocumentStatuses', 'All Doc Statuses')}
+                options={[
+                  { value: '', label: t('employees.allDocumentStatuses', 'All Doc Statuses') },
+                  { value: 'Valid', label: 'Valid' },
+                  { value: 'Expiring Soon', label: 'Expiring Soon (≤90d)' },
+                  { value: 'Expired', label: 'Expired' },
+                  { value: 'Missing Data', label: 'Missing Data' },
+                ]}
+              />
             </div>
           </div>
         </div>

@@ -65,7 +65,20 @@ export async function getCurrentUser(req, res, next) {
     const user = await authService.prisma.$base().users.findUnique({
       where: { id: req.user.userId },
       include: {
-        company: true,
+        company: {
+          include: {
+            company_visas: {
+              select: {
+                id: true,
+                name: true,
+                mol_establishment_id: true,
+                emirate: true,
+                bank_routing_code: true,
+              },
+              orderBy: { name: 'asc' },
+            },
+          },
+        },
         user_roles: {
           include: { role: true },
         },
@@ -76,6 +89,7 @@ export async function getCurrentUser(req, res, next) {
             name: true,
             arabic_name: true,
             work_email: true,
+            company_visa_id: true,
           },
         },
       },
@@ -106,7 +120,9 @@ export async function getCurrentUser(req, res, next) {
         arabic_name: user.employee?.arabic_name || null,
         company_id: user.company_id,
         company_name: user.company?.name || 'Nextal Platform',
+        company_name_ar: user.company?.name_ar || null,
         company_status: user.company?.status || 'Active',
+        visas: user.company?.company_visas || [],
         is_platform_admin: user.is_platform_admin,
         status: user.status,
         employee_id: user.employee_id,

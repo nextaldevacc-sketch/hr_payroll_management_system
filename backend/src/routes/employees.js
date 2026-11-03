@@ -19,6 +19,7 @@ router.use(authenticate);
 router.get('/', requirePermission('employees', 'view'), salaryMaskMiddleware, employeeController.listEmployees);
 router.post('/', requirePermission('employees', 'create'), validate(createEmployeeSchema), employeeController.createEmployee);
 router.get('/meta/options', requirePermission('employees', 'view'), employeeController.getEmployeeMetaOptions);
+router.get('/meta/next-code', requirePermission('employees', 'view'), employeeController.getNextEmployeeCode);
 router.get('/:id', requirePermission('employees', 'view'), salaryMaskMiddleware, employeeController.getEmployeeById);
 router.put('/:id', requirePermission('employees', 'edit'), employeeController.updateEmployee);
 

@@ -18,6 +18,7 @@ import {
   RotateCcw,
   Sparkles,
   Lock,
+  ClipboardList,
 } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../../context/AuthContext';
@@ -34,6 +35,7 @@ import {
 } from '../../../services/employeesApi';
 import { GlassCard } from '../../primitives/GlassCard';
 import { Stepper } from '../../primitives/Stepper';
+import { Select } from '../../primitives/form/Select';
 
 export function EmployeeWizardFeature() {
   const router = useRouter();
@@ -45,6 +47,8 @@ export function EmployeeWizardFeature() {
   const [createdEmpId, setCreatedEmpId] = useState(null);
   const [createdEmpCode, setCreatedEmpCode] = useState('');
   const [creatorUserId, setCreatorUserId] = useState(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [verificationStatus, setVerificationStatus] = useState('Pending');
   const [activationResult, setActivationResult] = useState(null);
   const [actionError, setActionError] = useState(null);
@@ -52,7 +56,7 @@ export function EmployeeWizardFeature() {
 
   // Form states
   const [personalForm, setPersonalForm] = useState({
-    employee_code: `EMP-DXB-${Math.floor(100 + Math.random() * 900)}`,
+    employee_code: '',
     name: '',
     arabic_name: '',
     work_email: '',
@@ -96,14 +100,40 @@ export function EmployeeWizardFeature() {
     staleTime: 0,
   });
 
+  // Scoped branches filtered to the selected Company Visa (Spec 7.2)
+  const selectedVisaId = personalForm.company_visa_id || metaOptions?.visas?.[0]?.id || '';
+  const filteredBranches = (metaOptions?.branches || []).filter(
+    (b) => !selectedVisaId || b.company_visa_id === selectedVisaId
+  );
+
+  const handleVisaChange = (newVisaId) => {
+    const matching = (metaOptions?.branches || []).filter((b) => b.company_visa_id === newVisaId);
+    let newBranchId = personalForm.branch_id;
+    if (matching.length === 1) {
+      newBranchId = matching[0].id;
+    } else if (!matching.some((b) => b.id === personalForm.branch_id)) {
+      newBranchId = matching[0]?.id || '';
+    }
+    setPersonalForm((prev) => ({
+      ...prev,
+      company_visa_id: newVisaId,
+      branch_id: newBranchId,
+    }));
+  };
+
   // Pre-fill default branch & visa when meta loaded
   React.useEffect(() => {
     if (metaOptions) {
-      if (!personalForm.branch_id && metaOptions.branches?.length > 0) {
-        setPersonalForm((f) => ({ ...f, branch_id: metaOptions.branches[0].id }));
+      if (metaOptions.next_employee_code && !personalForm.employee_code) {
+        setPersonalForm((f) => ({ ...f, employee_code: metaOptions.next_employee_code }));
       }
-      if (!personalForm.company_visa_id && metaOptions.visas?.length > 0) {
-        setPersonalForm((f) => ({ ...f, company_visa_id: metaOptions.visas[0].id }));
+      const initialVisaId = personalForm.company_visa_id || metaOptions.visas?.[0]?.id || '';
+      if (!personalForm.company_visa_id && initialVisaId) {
+        setPersonalForm((f) => ({ ...f, company_visa_id: initialVisaId }));
+      }
+      const matchingBranches = (metaOptions.branches || []).filter((b) => b.company_visa_id === initialVisaId);
+      if (!personalForm.branch_id && matchingBranches.length > 0) {
+        setPersonalForm((f) => ({ ...f, branch_id: matchingBranches[0].id }));
       }
       if (!contractForm.department_id && metaOptions.departments?.length > 0) {
         setContractForm((f) => ({ ...f, department_id: metaOptions.departments[0].id }));
@@ -138,12 +168,24 @@ export function EmployeeWizardFeature() {
       setCreatedEmpId(data.id);
       setCreatedEmpCode(data.employee_code);
       setCreatorUserId(user?.id);
-      setActionSuccess(`Employee created in 'Pre-Joined' status with code ${data.employee_code}`);
+      setIsSubmitted(true);
+      setActionSuccess(
+        language === 'ar'
+          ? 'تم الإرسال لمدير الموارد البشرية للتحقق والاعتماد'
+          : 'Submitted to HR Manager for verification'
+      );
       setActionError(null);
-      setCurrentStepIndex(1);
+      setFieldErrors({});
     },
     onError: (err) => {
-      setActionError(err.message || 'Failed to create employee');
+      if (err.fieldErrors) {
+        setFieldErrors(err.fieldErrors);
+      }
+      setActionError(
+        language === 'ar'
+          ? 'يرجى تصحيح الحقول المحددة للمتابعة'
+          : 'Please fix the highlighted fields to continue'
+      );
     },
   });
 
@@ -262,7 +304,7 @@ export function EmployeeWizardFeature() {
       )}
 
       {/* STEP 1: CREATE PRE-JOINED */}
-      {currentStepIndex === 0 && (
+      {!isSubmitted && currentStepIndex === 0 && (
         <GlassCard className="p-6 border border-border space-y-5">
           <div className="border-b border-border pb-3">
             <h2 className="text-lg font-bold text-text">Step 1: Personal & Identity Details</h2>
@@ -275,7 +317,8 @@ export function EmployeeWizardFeature() {
             onSubmit={(e) => {
               e.preventDefault();
               setActionError(null);
-              const branchId = personalForm.branch_id || (metaOptions?.branches?.length > 0 ? metaOptions.branches[0].id : '');
+              setFieldErrors({});
+              const branchId = personalForm.branch_id || (filteredBranches.length > 0 ? filteredBranches[0].id : '');
               const visaId = personalForm.company_visa_id || (metaOptions?.visas?.length > 0 ? metaOptions.visas[0].id : '');
               createMutation.mutate({
                 ...personalForm,
@@ -287,7 +330,9 @@ export function EmployeeWizardFeature() {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block font-semibold text-text mb-1">Employee Code</label>
+                <label className="block font-semibold text-text mb-1">
+                  Employee Code <span className="text-text-muted font-normal text-[11px]">(Sequential ID)</span>
+                </label>
                 <input
                   id="wizard-input-emp-code"
                   type="text"
@@ -296,6 +341,9 @@ export function EmployeeWizardFeature() {
                   className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text font-mono font-bold"
                   required
                 />
+                {fieldErrors.employee_code && (
+                  <span className="text-xs text-danger-text font-medium mt-1 block">{fieldErrors.employee_code}</span>
+                )}
               </div>
 
               <div>
@@ -309,6 +357,9 @@ export function EmployeeWizardFeature() {
                   className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text"
                   required
                 />
+                {fieldErrors.name && (
+                  <span className="text-xs text-danger-text font-medium mt-1 block">{fieldErrors.name}</span>
+                )}
               </div>
 
               <div>
@@ -321,6 +372,9 @@ export function EmployeeWizardFeature() {
                   onChange={(e) => setPersonalForm({ ...personalForm, arabic_name: e.target.value })}
                   className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text"
                 />
+                {fieldErrors.arabic_name && (
+                  <span className="text-xs text-danger-text font-medium mt-1 block">{fieldErrors.arabic_name}</span>
+                )}
               </div>
 
               <div>
@@ -334,12 +388,15 @@ export function EmployeeWizardFeature() {
                   className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text font-mono"
                   required
                 />
+                {fieldErrors.work_email && (
+                  <span className="text-xs text-danger-text font-medium mt-1 block">{fieldErrors.work_email}</span>
+                )}
               </div>
 
               <div>
-                <label className="block font-semibold text-text mb-1">Nationality</label>
-                <select
+                <Select
                   id="wizard-select-nationality"
+                  label="Nationality"
                   value={personalForm.nationality}
                   onChange={(e) => {
                     const nat = e.target.value;
@@ -349,15 +406,16 @@ export function EmployeeWizardFeature() {
                       residency_type: nat === 'Emirati' ? 'UAENational' : 'Expat',
                     });
                   }}
-                  className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text"
-                >
-                  <option value="Emirati">Emirati (UAE National — GPSSA)</option>
-                  <option value="Indian">Indian</option>
-                  <option value="Filipino">Filipino</option>
-                  <option value="Egyptian">Egyptian</option>
-                  <option value="British">British</option>
-                  <option value="Pakistani">Pakistani</option>
-                </select>
+                  error={fieldErrors.nationality}
+                  options={[
+                    { value: 'Emirati', label: 'Emirati (UAE National — GPSSA)' },
+                    { value: 'Indian', label: 'Indian' },
+                    { value: 'Filipino', label: 'Filipino' },
+                    { value: 'Egyptian', label: 'Egyptian' },
+                    { value: 'British', label: 'British' },
+                    { value: 'Pakistani', label: 'Pakistani' },
+                  ]}
+                />
               </div>
 
               <div>
@@ -371,36 +429,60 @@ export function EmployeeWizardFeature() {
                   className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text font-mono"
                   required
                 />
+                {fieldErrors.mohre_person_id && (
+                  <span className="text-xs text-danger-text font-medium mt-1 block">{fieldErrors.mohre_person_id}</span>
+                )}
               </div>
 
+              {/* 1. Company Visa Entity FIRST (Spec 7.2) */}
               <div>
-                <label className="block font-semibold text-text mb-1">Branch / Location</label>
-                <select
-                  id="wizard-select-branch"
-                  value={personalForm.branch_id || (metaOptions?.branches?.[0]?.id ?? '')}
-                  onChange={(e) => setPersonalForm({ ...personalForm, branch_id: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text"
-                  required
-                >
-                  {metaOptions?.branches?.map((b) => (
-                    <option key={b.id} value={b.id}>{b.name} ({b.emirate || b.city || 'UAE'})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-text mb-1">Company Visa Entity</label>
-                <select
+                <Select
                   id="wizard-select-visa"
-                  value={personalForm.company_visa_id || (metaOptions?.visas?.[0]?.id ?? '')}
-                  onChange={(e) => setPersonalForm({ ...personalForm, company_visa_id: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text"
+                  name="company_visa_id"
+                  label="Company Visa Entity"
                   required
-                >
-                  {metaOptions?.visas?.map((v) => (
-                    <option key={v.id} value={v.id}>{v.name || v.visa_entity_name || 'Visa'}</option>
-                  ))}
-                </select>
+                  value={personalForm.company_visa_id || (metaOptions?.visas?.[0]?.id ?? '')}
+                  onChange={(e) => handleVisaChange(e.target.value)}
+                  error={fieldErrors.company_visa_id}
+                  helper={
+                    language === 'ar'
+                      ? 'تأشيرة الكيان = الرخصة المسجل عليها إقامة الموظف وملف حماية الأجور (WPS)'
+                      : "Company visa = the licence the employee's visa and WPS salary file are under"
+                  }
+                  options={(metaOptions?.visas || []).map((v) => {
+                    const molId = v.mol_establishment_id || '';
+                    const vName = v.visa_entity_name || v.name || 'Visa';
+                    return {
+                      value: v.id,
+                      label: molId ? `${vName} · ${molId}` : vName,
+                      meta: molId || undefined,
+                    };
+                  })}
+                />
+              </div>
+
+              {/* 2. Branch / Location SECOND (Filtered to selected visa) */}
+              <div>
+                <Select
+                  id="wizard-select-branch"
+                  name="branch_id"
+                  label="Branch / Location"
+                  required
+                  value={personalForm.branch_id || (filteredBranches?.[0]?.id ?? '')}
+                  onChange={(e) => setPersonalForm({ ...personalForm, branch_id: e.target.value })}
+                  error={fieldErrors.branch_id}
+                  helper={
+                    language === 'ar'
+                      ? 'الفرع = موقع عمل الموظف (يتبع لتأشيرة الكيان المختارة)'
+                      : 'Branch = where the employee works (belongs to the chosen visa)'
+                  }
+                  emptyText="No branches assigned to selected visa entity"
+                  options={filteredBranches.map((b) => ({
+                    value: b.id,
+                    label: b.name,
+                    chip: b.emirate || b.city || undefined,
+                  }))}
+                />
               </div>
             </div>
 
@@ -416,6 +498,100 @@ export function EmployeeWizardFeature() {
               </button>
             </div>
           </form>
+        </GlassCard>
+      )}
+
+      {/* Submitted to HR Manager Screen (Spec 7.2) */}
+      {isSubmitted && (
+        <GlassCard className="p-6 border border-emerald-500/30 bg-emerald-500/5 space-y-6 animate-scale-in">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-full bg-emerald-500 text-white shrink-0">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-text">
+                {language === 'ar'
+                  ? 'تم الإرسال لمدير الموارد البشرية للتحقق والاعتماد'
+                  : 'Submitted to HR Manager for verification'}
+              </h3>
+              <p className="text-xs text-text-muted mt-0.5">
+                {language === 'ar'
+                  ? `تم إنشاء ملف الموظف بنجاح برمز ${createdEmpCode} وبحالة ما قبل الانضمام (Pre-Joined).`
+                  : `Employee file created successfully with code ${createdEmpCode} in Pre-Joined status.`}
+              </p>
+            </div>
+          </div>
+
+          {/* 5-Stage Checklist */}
+          <div className="p-4 rounded-xl border border-border bg-surface-raised dark:bg-inset space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-text flex items-center gap-2">
+              <ClipboardList className="w-4 h-4 text-primary" />
+              <span>{language === 'ar' ? 'مراحل الإعداد الخمس (Spec 7.2)' : '5-Stage Onboarding Setup (Spec 7.2)'}</span>
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs">
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 block flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Stage 1
+                </span>
+                <span className="font-medium text-text mt-0.5 block">Identity & File</span>
+                <span className="text-[10px] text-text-muted block mt-0.5">Completed · File created</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                <span className="font-bold text-amber-600 dark:text-amber-400 block flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" /> Stage 2
+                </span>
+                <span className="font-medium text-text mt-0.5 block">HR Verification</span>
+                <span className="text-[10px] text-text-muted block mt-0.5">Pending HR Manager</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border opacity-70">
+                <span className="font-bold text-text-muted block">Stage 3</span>
+                <span className="font-medium text-text mt-0.5 block">Contract Offer</span>
+                <span className="text-[10px] text-text-muted block mt-0.5">Pending verification</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border opacity-70">
+                <span className="font-bold text-text-muted block">Stage 4</span>
+                <span className="font-medium text-text mt-0.5 block">Bank & WPS</span>
+                <span className="text-[10px] text-text-muted block mt-0.5">Pending verification</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border opacity-70">
+                <span className="font-bold text-text-muted block">Stage 5</span>
+                <span className="font-medium text-text mt-0.5 block">Activation</span>
+                <span className="text-[10px] text-text-muted block mt-0.5">Pending stages 2–4</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              id="btn-create-another-employee"
+              onClick={() => {
+                setIsSubmitted(false);
+                setCreatedEmpId(null);
+                setCreatedEmpCode('');
+                setCurrentStepIndex(0);
+                setPersonalForm((prev) => ({
+                  ...prev,
+                  name: '',
+                  arabic_name: '',
+                  work_email: '',
+                  employee_code: '',
+                }));
+              }}
+              className="px-4 py-2 rounded-xl border border-border hover:bg-surface-raised text-text font-semibold text-xs"
+            >
+              {language === 'ar' ? 'إضافة موظف آخر' : 'Create Another Employee'}
+            </button>
+            <Link
+              id="btn-go-to-profile"
+              href={`/employees/${createdEmpId}`}
+              className="px-5 py-2 rounded-xl bg-primary text-[var(--on-primary)] font-semibold text-xs shadow-md flex items-center gap-2"
+            >
+              <span>{language === 'ar' ? 'عرض ملف الموظف' : 'Go to Employee Profile'}</span>
+              {isRTL ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+            </Link>
+          </div>
         </GlassCard>
       )}
 
@@ -504,31 +680,23 @@ export function EmployeeWizardFeature() {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block font-semibold text-text mb-1">Department</label>
-                <select
+                <Select
+                  label="Department"
+                  required
                   value={contractForm.department_id}
                   onChange={(e) => setContractForm({ ...contractForm, department_id: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text"
-                  required
-                >
-                  {metaOptions?.departments?.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
+                  options={metaOptions?.departments?.map((d) => ({ value: d.id, label: d.name })) || []}
+                />
               </div>
 
               <div>
-                <label className="block font-semibold text-text mb-1">Job Designation</label>
-                <select
+                <Select
+                  label="Job Designation"
+                  required
                   value={contractForm.job_id}
                   onChange={(e) => setContractForm({ ...contractForm, job_id: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text"
-                  required
-                >
-                  {metaOptions?.jobs?.map((j) => (
-                    <option key={j.id} value={j.id}>{j.title}</option>
-                  ))}
-                </select>
+                  options={metaOptions?.jobs?.map((j) => ({ value: j.id, label: j.title })) || []}
+                />
               </div>
 
               <div>
@@ -630,16 +798,16 @@ export function EmployeeWizardFeature() {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block font-semibold text-text mb-1">Shift Policy</label>
-                <select
+                <Select
+                  label="Shift Policy"
                   value={contractForm.shift_id}
                   onChange={(e) => setContractForm({ ...contractForm, shift_id: e.target.value })}
-                  className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text"
-                >
-                  {metaOptions?.shifts?.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.start_time} - {s.end_time})</option>
-                  ))}
-                </select>
+                  options={metaOptions?.shifts?.map((s) => ({
+                    value: s.id,
+                    label: s.name,
+                    meta: `${s.start_time} - ${s.end_time}`,
+                  })) || []}
+                />
               </div>
 
               <div>

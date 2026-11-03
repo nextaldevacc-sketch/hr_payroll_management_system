@@ -23,6 +23,7 @@ import { fetchEmployeeMetaOptions } from '../../../services/employeesApi';
 import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
+import { Select } from '../../primitives/form/Select';
 
 export function PayRunListFeature() {
   const router = useRouter();
@@ -206,19 +207,20 @@ export function PayRunListFeature() {
           </div>
 
           {/* Visa Dropdown Filter */}
-          <div className="relative">
-            <select
+          <div className="min-w-[200px]">
+            <Select
               value={visaFilter}
               onChange={(e) => setVisaFilter(e.target.value)}
-              className="px-3 py-2 text-xs rounded-xl bg-surface-raised border border-border/80 text-text focus:outline-none focus:ring-2 focus:ring-primary/40"
-            >
-              <option value="">All Visa Establishments</option>
-              {metaOptions?.visas?.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name} ({v.mol_establishment_id})
-                </option>
-              ))}
-            </select>
+              placeholder="All Visa Establishments"
+              options={[
+                { value: '', label: 'All Visa Establishments' },
+                ...(metaOptions?.visas?.map((v) => ({
+                  value: v.id,
+                  label: v.name,
+                  meta: v.mol_establishment_id,
+                })) || []),
+              ]}
+            />
           </div>
         </div>
 
@@ -348,22 +350,18 @@ export function PayRunListFeature() {
           )}
 
           <div>
-            <label className="block text-xs font-bold text-text mb-1">
-              Visa Establishment / المنشأة <span className="text-red-500">*</span>
-            </label>
-            <select
+            <Select
+              label="Visa Establishment / المنشأة"
               required
+              placeholder="Select Visa Establishment..."
               value={createForm.company_visa_id}
               onChange={(e) => setCreateForm({ ...createForm, company_visa_id: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl bg-surface-raised border border-border/80 text-text text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
-            >
-              <option value="">Select Visa Establishment...</option>
-              {metaOptions?.visas?.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name} &bull; {v.mol_establishment_id} ({v.bank_routing_code})
-                </option>
-              ))}
-            </select>
+              options={metaOptions?.visas?.map((v) => ({
+                value: v.id,
+                label: v.name,
+                meta: `${v.mol_establishment_id} · ${v.bank_routing_code}`,
+              })) || []}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -394,16 +392,16 @@ export function PayRunListFeature() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-text mb-1">Run Type / نوع المسير</label>
-            <select
+            <Select
+              label="Run Type / نوع المسير"
               value={createForm.run_type}
               onChange={(e) => setCreateForm({ ...createForm, run_type: e.target.value })}
-              className="w-full px-3 py-2 rounded-xl bg-surface-raised border border-border/80 text-text text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
-            >
-              <option value="Regular">Regular (End-of-Month Payroll)</option>
-              <option value="OffCycle">Off-Cycle (Ad-hoc / Intermittent)</option>
-              <option value="Bonus">Bonus & Incentive Disbursement</option>
-            </select>
+              options={[
+                { value: 'Regular', label: 'Regular (End-of-Month Payroll)' },
+                { value: 'OffCycle', label: 'Off-Cycle (Ad-hoc / Intermittent)' },
+                { value: 'Bonus', label: 'Bonus & Incentive Disbursement' },
+              ]}
+            />
           </div>
 
           <div className="pt-3 border-t border-border/60 flex items-center justify-end gap-3">

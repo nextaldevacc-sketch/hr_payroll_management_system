@@ -24,6 +24,7 @@ import {
 import { IconWell } from '../primitives/IconWell';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { useVisa } from '../../context/VisaContext';
 import {
   getNotifications,
   markNotificationRead,
@@ -36,9 +37,18 @@ export function GlassTopBar({ onToggleMobileNav }) {
   const { language, toggleLanguage, t, isRTL } = useLanguage();
   const { user, logout } = useAuth();
   const isPlatformAdmin = Boolean(user?.is_platform_admin);
-  const isEmployeeOnly = user?.roles?.length === 1 && user?.roles?.[0] === 'EMPLOYEE';
+  const {
+    selectedVisaId,
+    selectedVisa,
+    visas,
+    setSelectedVisaId,
+    companyName,
+    companyNameAr,
+    isSingleVisaScope,
+    isEmployeeOnly,
+  } = useVisa();
 
-  const displayName = language === 'ar'
+  const userDisplayName = language === 'ar'
     ? (user?.arabic_name || user?.employee?.arabic_name || user?.name || user?.employee?.name || user?.email?.split('@')[0] || 'User')
     : (user?.name || user?.employee?.name || user?.email?.split('@')[0] || 'User');
 
@@ -99,20 +109,14 @@ export function GlassTopBar({ onToggleMobileNav }) {
     } catch (e) {}
   };
 
-  const [selectedCompany, setSelectedCompany] = useState({
-    name: 'Gulf Tech Logistics LLC',
-    visa: 'MOHRE Visa #442901 - Dubai',
-  });
-
-  const companies = [
-    { name: 'Gulf Tech Logistics LLC', visa: 'MOHRE Visa #442901 - Dubai' },
-    { name: 'Nextal Solutions FZ-LLC', visa: 'DIFC License #98210 - Dubai' },
-    { name: 'Apex Engineering Abu Dhabi', visa: 'Abu Dhabi Main Branch' },
-  ];
+  const companyDisplayName = isRTL && companyNameAr ? companyNameAr : companyName;
+  const currentVisaLabel = selectedVisa
+    ? `${selectedVisa.name} · ${selectedVisa.mol_establishment_id ? `MOHRE #${selectedVisa.mol_establishment_id}` : selectedVisa.emirate}`
+    : (language === 'ar' ? 'جميع تأشيرات الكيان' : 'All Company Visas');
 
   return (
     <header className="glass-top-bar sticky top-0 z-20 h-16 px-4 lg:px-8 flex items-center justify-between transition-colors">
-      {/* Left / Start: Mobile Menu Toggle & Company Switcher */}
+      {/* Left / Start: Mobile Menu Toggle & Company Visa Selector */}
       <div className="flex items-center gap-3 md:gap-4 flex-shrink-0">
         <button
           onClick={onToggleMobileNav}
@@ -137,17 +141,17 @@ export function GlassTopBar({ onToggleMobileNav }) {
               </span>
             </div>
           </div>
-        ) : isEmployeeOnly ? (
+        ) : (isEmployeeOnly || isSingleVisaScope) ? (
           <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-control text-start">
             <IconWell size="sm" shape="square" color="primary">
               <Building2 className="w-3.5 h-3.5" />
             </IconWell>
             <div className="hidden sm:block">
               <span className="text-xs font-bold text-text dark:gold-heading block leading-tight">
-                {selectedCompany.name}
+                {companyDisplayName}
               </span>
               <span className="text-[10px] text-text-muted block leading-tight">
-                {selectedCompany.visa}
+                {currentVisaLabel}
               </span>
             </div>
           </div>
@@ -155,6 +159,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
           <div className="relative">
             <button
               onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
+              id="btn-company-visa-switcher"
               className="topbar-field flex items-center gap-2.5 px-3 py-1.5 rounded-control hover:bg-black/5 dark:hover:bg-inset-hover transition-colors text-start group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <IconWell size="sm" shape="square" color="primary">
@@ -162,10 +167,10 @@ export function GlassTopBar({ onToggleMobileNav }) {
               </IconWell>
               <div className="hidden sm:block">
                 <span className="text-xs font-bold text-text dark:gold-heading block leading-tight">
-                  {selectedCompany.name}
+                  {companyDisplayName}
                 </span>
                 <span className="text-[10px] text-text-muted block leading-tight">
-                  {selectedCompany.visa}
+                  {currentVisaLabel}
                 </span>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-text-muted group-hover:text-text transition-transform duration-200 ms-1" />
@@ -177,25 +182,49 @@ export function GlassTopBar({ onToggleMobileNav }) {
                   className="fixed inset-0 z-30"
                   onClick={() => setIsCompanyDropdownOpen(false)}
                 />
-                <div className="glass-panel rounded-control absolute top-full mt-2 start-0 w-72 p-2 z-40 shadow-xl border border-border dark:bg-surface-raised">
+                <div className="glass-panel rounded-control absolute top-full mt-2 start-0 w-80 p-2 z-40 shadow-xl border border-border dark:bg-surface-raised">
                   <span className="text-[10px] uppercase font-bold text-text-muted px-2 py-1 block">
-                    Select Company Visa / Entity
+                    {language === 'ar' ? 'تأشيرات الكيان وملفات WPS' : 'Company Visas & WPS Context'}
                   </span>
                   <div className="space-y-1 mt-1">
-                    {companies.map((c) => (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedVisaId('all');
+                        setIsCompanyDropdownOpen(false);
+                      }}
+                      className="w-full text-start px-2.5 py-2 rounded-lg text-xs hover:bg-primary-wash/50 dark:hover:bg-inset-hover transition-colors flex items-center justify-between"
+                    >
+                      <div>
+                        <p className="font-semibold text-text">
+                          {language === 'ar' ? 'جميع تأشيرات الكيان' : 'All Company Visas'}
+                        </p>
+                        <p className="text-[10px] text-text-muted">
+                          {language === 'ar' ? 'عرض شامل لكافة الفروع والموظفين' : 'Full organization-wide view'}
+                        </p>
+                      </div>
+                      {selectedVisaId === 'all' && (
+                        <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                      )}
+                    </button>
+
+                    {visas.map((v) => (
                       <button
-                        key={c.name}
+                        key={v.id}
+                        type="button"
                         onClick={() => {
-                          setSelectedCompany(c);
+                          setSelectedVisaId(v.id);
                           setIsCompanyDropdownOpen(false);
                         }}
                         className="w-full text-start px-2.5 py-2 rounded-lg text-xs hover:bg-primary-wash/50 dark:hover:bg-inset-hover transition-colors flex items-center justify-between"
                       >
                         <div>
-                          <p className="font-semibold text-text">{c.name}</p>
-                          <p className="text-[10px] text-text-muted">{c.visa}</p>
+                          <p className="font-semibold text-text">{v.name}</p>
+                          <p className="text-[10px] text-text-muted font-mono">
+                            {v.mol_establishment_id ? `MOHRE #${v.mol_establishment_id} · ` : ''}{v.emirate}
+                          </p>
                         </div>
-                        {selectedCompany.name === c.name && (
+                        {selectedVisaId === v.id && (
                           <Check className="w-4 h-4 text-primary flex-shrink-0" />
                         )}
                       </button>
@@ -369,7 +398,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
             </div>
             <div className="hidden sm:block text-start">
               <span className="text-xs font-bold text-text block leading-tight">
-                {displayName}
+                {userDisplayName}
               </span>
               <span className="text-[10px] text-amber-500 font-semibold block leading-tight">
                 {user?.roles?.[0] || 'EMPLOYEE'}
@@ -387,7 +416,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
               <div className="absolute end-0 mt-2 w-56 p-2 rounded-2xl border shadow-xl z-50 bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800 space-y-2">
                 <div className="p-2 border-b border-slate-100 dark:border-slate-800">
                   <p className="text-xs font-bold text-text truncate leading-tight">
-                    {displayName}
+                    {userDisplayName}
                   </p>
                   <p className="text-[10px] text-text-muted font-mono truncate mt-0.5">
                     {user?.email}

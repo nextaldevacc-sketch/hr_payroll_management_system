@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { IconWell } from '@/components/primitives/IconWell';
 import { Button } from '@/components/primitives/form/Button';
+import { Select } from '@/components/primitives/form/Select';
 import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
 import { getMyLeave, submitMyRequest } from '@/services/meApi';
@@ -181,19 +182,17 @@ export default function MyLeavePage() {
       >
         <form onSubmit={handleApplyLeave} className="space-y-4 text-xs">
           <div>
-            <label className="font-bold text-text block mb-1">Leave Type</label>
-            <select
+            <Select
+              label="Leave Type"
               required
               value={leaveTypeId}
               onChange={(e) => setLeaveTypeId(e.target.value)}
-              className="topbar-field w-full px-3 py-2 rounded-lg border border-border"
-            >
-              {balances.map((b) => (
-                <option key={b.code} value={b.leave_type_id || b.id}>
-                  {b.name} ({b.balance} days available)
-                </option>
-              ))}
-            </select>
+              options={balances.map((b) => ({
+                value: b.leave_type_id || b.id,
+                label: b.name,
+                meta: `${b.balance} days available`,
+              }))}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">

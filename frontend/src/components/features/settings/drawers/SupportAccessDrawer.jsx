@@ -13,6 +13,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
+import { Select } from '../../../primitives/form/Select';
 import {
   fetchSupportGrants,
   createSupportGrant,
@@ -156,21 +157,19 @@ export function SupportAccessDrawer({ isOpen, onClose }) {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                  {isAr ? 'مدة الصلاحية' : 'Access Duration'}
-                </label>
-                <select
+                <Select
+                  label={isAr ? 'مدة الصلاحية' : 'Access Duration'}
                   value={durationHours}
                   onChange={(e) => setDurationHours(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="2">2 {isAr ? 'ساعات' : 'Hours'}</option>
-                  <option value="4">4 {isAr ? 'ساعات' : 'Hours'}</option>
-                  <option value="8">8 {isAr ? 'ساعات' : 'Hours'}</option>
-                  <option value="24">24 {isAr ? 'ساعة (يوم كامل)' : 'Hours (1 Day)'}</option>
-                  <option value="48">48 {isAr ? 'ساعة (يومان)' : 'Hours (2 Days)'}</option>
-                  <option value="72">72 {isAr ? 'ساعة (3 أيام)' : 'Hours (3 Days)'}</option>
-                </select>
+                  options={[
+                    { value: '2', label: `2 ${isAr ? 'ساعات' : 'Hours'}` },
+                    { value: '4', label: `4 ${isAr ? 'ساعات' : 'Hours'}` },
+                    { value: '8', label: `8 ${isAr ? 'ساعات' : 'Hours'}` },
+                    { value: '24', label: `24 ${isAr ? 'ساعة (يوم كامل)' : 'Hours (1 Day)'}` },
+                    { value: '48', label: `48 ${isAr ? 'ساعة (يومان)' : 'Hours (2 Days)'}` },
+                    { value: '72', label: `72 ${isAr ? 'ساعة (3 أيام)' : 'Hours (3 Days)'}` },
+                  ]}
+                />
               </div>
 
               <div className="pt-2 flex justify-end">

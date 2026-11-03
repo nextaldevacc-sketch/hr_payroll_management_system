@@ -26,7 +26,9 @@ describe('Phase 7: 390px Mobile Responsive Layout (No Horizontal Scroll)', { tim
   function killProcWithTree(proc) {
     return new Promise((resolve) => {
       if (!proc || !proc.pid) return resolve();
-      treeKill(proc.pid, 'SIGKILL', () => resolve());
+      treeKill(proc.pid, 'SIGKILL', () => {
+        setTimeout(resolve, 600);
+      });
     });
   }
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Drawer } from '../../../primitives/Drawer';
+import { Select } from '../../../primitives/form/Select';
 import {
   Calculator,
   Play,
@@ -403,20 +404,18 @@ export function SalaryRulesDrawer({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-text mb-1">
-                      {language === 'ar' ? 'نوع القيمة' : 'Amount Type'}
-                    </label>
-                    <select
+                    <Select
                       disabled={isFinance || !canEdit}
+                      label={language === 'ar' ? 'نوع القيمة' : 'Amount Type'}
                       value={selectedRule.amount_type}
                       onChange={(e) => handleUpdateSelectedRule('amount_type', e.target.value)}
-                      className="w-full px-3 py-1.5 rounded-lg text-xs bg-surface border border-border text-text disabled:opacity-60"
-                    >
-                      <option value="Formula">Formula</option>
-                      <option value="Fixed">Fixed Amount</option>
-                      <option value="Percentage">Percentage</option>
-                      <option value="Input">Manual Input</option>
-                    </select>
+                      options={[
+                        { value: 'Formula', label: 'Formula' },
+                        { value: 'Fixed', label: 'Fixed Amount' },
+                        { value: 'Percentage', label: 'Percentage' },
+                        { value: 'Input', label: 'Manual Input' },
+                      ]}
+                    />
                   </div>
                 </div>
 

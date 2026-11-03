@@ -21,6 +21,7 @@ import {
 import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
+import { Select } from '../../primitives/form/Select';
 import { listOvertime, requestOvertime, actOnOvertime, bulkApproveOvertime } from '../../../services/overtimeApi';
 
 const OT_TYPE_LABELS = {
@@ -481,37 +482,33 @@ export default function OvertimeRequestsFeature() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-text-muted mb-1">
-                {isAr ? 'نوع العمل الإضافي' : 'Overtime Category'}
-              </label>
-              <select
+              <Select
                 id="new-ot-type"
                 data-testid="new-ot-type"
+                label={isAr ? 'نوع العمل الإضافي' : 'Overtime Category'}
                 value={newOtType}
                 onChange={(e) => setNewOtType(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text focus:ring-1 focus:ring-primary focus:outline-none"
-              >
-                <option value="OT_NORMAL">Normal Day (1.25x)</option>
-                <option value="OT_NIGHT">Night Window 22:00-04:00 (1.50x)</option>
-                <option value="OT_REST">Rest Day Work (1.50x)</option>
-                <option value="OT_HOLIDAY">Public Holiday (1.50x)</option>
-              </select>
+                options={[
+                  { value: 'OT_NORMAL', label: 'Normal Day (1.25x)' },
+                  { value: 'OT_NIGHT', label: 'Night Window 22:00-04:00 (1.50x)' },
+                  { value: 'OT_REST', label: 'Rest Day Work (1.50x)' },
+                  { value: 'OT_HOLIDAY', label: 'Public Holiday (1.50x)' },
+                ]}
+              />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-text-muted mb-1">
-                {isAr ? 'طريقة التعويض المفضلة' : 'Preferred Compensation'}
-              </label>
-              <select
+              <Select
                 id="new-ot-compensation"
                 data-testid="new-ot-compensation"
+                label={isAr ? 'طريقة التعويض المفضلة' : 'Preferred Compensation'}
                 value={newCompensation}
                 onChange={(e) => setNewCompensation(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text focus:ring-1 focus:ring-primary focus:outline-none"
-              >
-                <option value="Pay">{isAr ? 'صرف مالي مع الراتب' : 'Financial Pay (with payroll)'}</option>
-                <option value="SubstituteDay">{isAr ? 'يوم راحة بديل' : 'Substitute Day Off'}</option>
-              </select>
+                options={[
+                  { value: 'Pay', label: isAr ? 'صرف مالي مع الراتب' : 'Financial Pay (with payroll)' },
+                  { value: 'SubstituteDay', label: isAr ? 'يوم راحة بديل' : 'Substitute Day Off' },
+                ]}
+              />
             </div>
           </div>
 

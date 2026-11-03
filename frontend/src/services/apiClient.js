@@ -35,6 +35,13 @@ export async function request(endpoint, options = {}, fallback = null) {
       err.status = res.status;
       err.code = data.code;
       err.missing = data.missing;
+      err.errors = data.errors || data.issues || [];
+      err.fieldErrors = {};
+      if (Array.isArray(err.errors)) {
+        err.errors.forEach((e) => {
+          if (e.field) err.fieldErrors[e.field] = e.message;
+        });
+      }
       throw err;
     }
 

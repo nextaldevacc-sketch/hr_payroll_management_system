@@ -11,10 +11,11 @@ export function validate(schema, source = 'body') {
       next();
     } catch (error) {
       if (error.errors) {
+        const count = error.errors.length;
         return res.status(400).json({
           status: 'error',
           code: 'VALIDATION_ERROR',
-          message: 'Invalid request payload',
+          message: `Please fix ${count} field${count > 1 ? 's' : ''}`,
           errors: error.errors.map((err) => ({
             field: err.path.join('.'),
             message: err.message,

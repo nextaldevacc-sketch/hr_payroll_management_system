@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Drawer } from '../../../primitives/Drawer';
+import { Select } from '../../../primitives/form/Select';
 import { CheckSquare, ArrowRight, ArrowLeft, Shield, Plus, Trash2, Check, Sparkles } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 
@@ -162,17 +163,16 @@ export function ApprovalSettingsDrawer({
                     </div>
 
                     {canEdit && (
-                      <select
-                        value={st.role}
-                        onChange={(e) => handleUpdateStepRole(idx, e.target.value)}
-                        className="px-2.5 py-1 rounded-lg text-xs bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
-                      >
-                        {AVAILABLE_ROLES.map((r) => (
-                          <option key={r.code} value={r.code}>
-                            {language === 'ar' ? r.nameAr : r.nameEn}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="min-w-[160px]">
+                        <Select
+                          value={st.role}
+                          onChange={(e) => handleUpdateStepRole(idx, e.target.value)}
+                          options={AVAILABLE_ROLES.map((r) => ({
+                            value: r.code,
+                            label: language === 'ar' ? r.nameAr : r.nameEn,
+                          }))}
+                        />
+                      </div>
                     )}
                   </div>
                 </div>

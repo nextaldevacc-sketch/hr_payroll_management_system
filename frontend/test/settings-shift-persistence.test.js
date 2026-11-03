@@ -34,7 +34,9 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
   function killProcWithTree(proc) {
     return new Promise((resolve) => {
       if (!proc || !proc.pid) return resolve();
-      treeKill(proc.pid, 'SIGKILL', () => resolve());
+      treeKill(proc.pid, 'SIGKILL', () => {
+        setTimeout(resolve, 600);
+      });
     });
   }
 

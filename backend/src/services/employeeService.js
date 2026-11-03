@@ -274,12 +274,12 @@ export class EmployeeService {
       }),
       db.branches.findMany({
         where: { company_id: companyId },
-        select: { id: true, name: true, name_ar: true, emirate: true },
+        select: { id: true, name: true, name_ar: true, emirate: true, company_visa_id: true },
         orderBy: { name: 'asc' },
       }),
       db.company_visas.findMany({
         where: { company_id: companyId },
-        select: { id: true, name: true, mol_establishment_id: true, emirate: true },
+        select: { id: true, name: true, mol_establishment_id: true, emirate: true, bank_routing_code: true },
         orderBy: { name: 'asc' },
       }),
       db.jobs.findMany({
@@ -299,6 +299,8 @@ export class EmployeeService {
       }),
     ]);
 
+    const nextCode = await this.getNextEmployeeCode({ companyId });
+
     return {
       departments,
       branches,
@@ -306,9 +308,31 @@ export class EmployeeService {
       jobs,
       shifts,
       policies,
+      next_employee_code: nextCode,
       statuses: ['Pre-Joined', 'New Joined', 'Active', 'Suspended', 'Transferred', 'Archived'],
       documentStatuses: ['Valid', 'Expiring Soon', 'Expired', 'Missing Data'],
     };
+  }
+
+  /**
+   * Get next sequential employee code per company (e.g. EMP-DXB-045).
+   */
+  async getNextEmployeeCode({ companyId }) {
+    const db = companyId && this.prisma.$scoped ? this.prisma.$scoped(companyId) : this.prisma;
+    const all = await db.employees.findMany({
+      where: { company_id: companyId },
+      select: { employee_code: true },
+    });
+    let max = 0;
+    for (const emp of all) {
+      const match = emp.employee_code?.match(/(\d+)$/);
+      if (match) {
+        const n = parseInt(match[1], 10);
+        if (n > max && n < 8000) max = n; // keep realistic sequence, ignore 9000+ temp test series
+      }
+    }
+    const nextNum = max + 1;
+    return `EMP-DXB-${String(nextNum).padStart(3, '0')}`;
   }
 
   /**
@@ -439,9 +463,29 @@ export class EmployeeService {
   async createEmployee({ companyId, data, viewer }) {
     let employeeCode = data.employee_code;
     if (!employeeCode || !employeeCode.trim()) {
-      // Auto-generate next employee code EMP-DXB-XXX
-      const count = await this.prisma.employees.count({ where: { company_id: companyId } });
-      employeeCode = `EMP-DXB-${String(count + 1).padStart(3, '0')}`;
+      employeeCode = await this.getNextEmployeeCode({ companyId });
+    }
+
+    // Spec 4 & Section 2: Validate branch belongs to company visa
+    if (data.branch_id && data.company_visa_id) {
+      const branch = await this.prisma.branches.findFirst({
+        where: { id: data.branch_id, company_id: companyId },
+      });
+      if (!branch) {
+        const err = new Error('Branch not found');
+        err.status = 400;
+        err.code = 'INVALID_BRANCH';
+        err.field = 'branch_id';
+        throw err;
+      }
+      if (branch.company_visa_id !== data.company_visa_id) {
+        const err = new Error('Selected branch does not belong to the selected company visa');
+        err.status = 400;
+        err.code = 'BRANCH_VISA_MISMATCH';
+        err.field = 'branch_id';
+        err.issues = [{ field: 'branch_id', message: 'Selected branch does not belong to the selected company visa' }];
+        throw err;
+      }
     }
 
     const existing = await this.prisma.employees.findFirst({
@@ -489,6 +533,30 @@ export class EmployeeService {
       newValues: { employee_code: created.employee_code, name: created.name, status: created.status },
     });
 
+    // Notify HR Managers of pending verification
+    try {
+      const hrManagers = await this.prisma.user_roles.findMany({
+        where: { role: { code: 'HR_MANAGER' }, user: { company_id: companyId } },
+        select: { user_id: true },
+      });
+      for (const hrm of hrManagers) {
+        if (hrm.user_id !== getViewerUserId(viewer)) {
+          await this.prisma.notifications.create({
+            data: {
+              user_id: hrm.user_id,
+              title: 'New Employee Pending Verification',
+              title_ar: 'موظف جديد بانتظار الاعتماد',
+              message: `New employee ${created.employee_code} (${created.name}) submitted for dual-control verification.`,
+              message_ar: `تم تسجيل موظف جديد ${created.name} بانتظار اعتماد الموارد البشرية.`,
+              type: 'EMPLOYEE_VERIFICATION_PENDING',
+              link: `/employees/${created.id}`,
+              is_read: false,
+            },
+          }).catch(() => {});
+        }
+      }
+    } catch {}
+
     return serializeEmployee(created, viewer);
   }
 
@@ -521,6 +589,23 @@ export class EmployeeService {
         } else {
           updateData[field] = data[field];
         }
+      }
+    }
+
+    // Spec 4 & Section 2: Validate branch belongs to company visa
+    const targetVisaId = updateData.company_visa_id || existing.company_visa_id;
+    const targetBranchId = updateData.branch_id || existing.branch_id;
+    if (targetVisaId && targetBranchId) {
+      const branch = await this.prisma.branches.findFirst({
+        where: { id: targetBranchId, company_id: companyId },
+      });
+      if (branch && branch.company_visa_id !== targetVisaId) {
+        const err = new Error('Selected branch does not belong to the selected company visa');
+        err.status = 400;
+        err.code = 'BRANCH_VISA_MISMATCH';
+        err.field = 'branch_id';
+        err.issues = [{ field: 'branch_id', message: 'Selected branch does not belong to the selected company visa' }];
+        throw err;
       }
     }
 
@@ -653,6 +738,21 @@ export class EmployeeService {
         oldValues: { status: employee.status },
         newValues: { status: 'Pre-Joined', comment },
       });
+
+      if (employee.created_by) {
+        await this.prisma.notifications.create({
+          data: {
+            user_id: employee.created_by,
+            title: 'Employee Record Sent Back for Review',
+            title_ar: 'تمت إعادة ملف الموظف للمراجعة',
+            message: `Employee ${employee.employee_code} (${employee.name}) was sent back with comment: "${comment || 'Please review'}"`,
+            message_ar: `تمت إعادة ملف الموظف ${employee.name} مع تعليق: "${comment || 'يرجى المراجعة'}"`,
+            type: 'EMPLOYEE_VERIFICATION_SENT_BACK',
+            link: `/employees/${employee.id}`,
+            is_read: false,
+          },
+        }).catch(() => {});
+      }
 
       return serializeEmployee(employee, viewer);
     } else {

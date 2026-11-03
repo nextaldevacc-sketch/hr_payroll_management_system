@@ -28,6 +28,7 @@ import {
   verifyDocument,
   getDocumentHistory,
 } from '../../../services/complianceApi';
+import { Select } from '../../primitives/form/Select';
 
 export default function ComplianceFeature() {
   const { user } = useAuth();
@@ -302,32 +303,38 @@ export default function ComplianceFeature() {
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Status select */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="ALL">{isAr ? 'جميع الحالات' : 'All Statuses'}</option>
-            <option value="Expiring Soon">{isAr ? 'توشك على الانتهاء (≤ 90 يوم)' : 'Expiring Soon (≤ 90d)'}</option>
-            <option value="Expired">{isAr ? 'منتهية الصلاحية' : 'Expired'}</option>
-            <option value="Valid">{isAr ? 'سارية المفعول' : 'Valid'}</option>
-            <option value="Missing Data">{isAr ? 'بيانات ناقصة' : 'Missing Data'}</option>
-            <option value="Pending Verification">{isAr ? 'بانتظار التحقق' : 'Pending Verification'}</option>
-          </select>
+          <div className="min-w-[180px]">
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              placeholder={isAr ? 'جميع الحالات' : 'All Statuses'}
+              options={[
+                { value: 'ALL', label: isAr ? 'جميع الحالات' : 'All Statuses' },
+                { value: 'Expiring Soon', label: isAr ? 'توشك على الانتهاء (≤ 90 يوم)' : 'Expiring Soon (≤ 90d)' },
+                { value: 'Expired', label: isAr ? 'منتهية الصلاحية' : 'Expired' },
+                { value: 'Valid', label: isAr ? 'سارية المفعول' : 'Valid' },
+                { value: 'Missing Data', label: isAr ? 'بيانات ناقصة' : 'Missing Data' },
+                { value: 'Pending Verification', label: isAr ? 'بانتظار التحقق' : 'Pending Verification' },
+              ]}
+            />
+          </div>
 
           {/* Type select */}
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="ALL">{isAr ? 'جميع أنواع الوثائق' : 'All Document Types'}</option>
-            <option value="VISA">{isAr ? 'تأشيرة إقامة' : 'Residency Visa'}</option>
-            <option value="EMIRATES_ID">{isAr ? 'الهوية الإماراتية' : 'Emirates ID'}</option>
-            <option value="PASSPORT">{isAr ? 'جواز السفر' : 'Passport'}</option>
-            <option value="LABOUR_CARD">{isAr ? 'بطاقة العمل' : 'Labour Card'}</option>
-            <option value="INSURANCE">{isAr ? 'التأمين الصحي' : 'Health Insurance'}</option>
-          </select>
+          <div className="min-w-[180px]">
+            <Select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              placeholder={isAr ? 'جميع أنواع الوثائق' : 'All Document Types'}
+              options={[
+                { value: 'ALL', label: isAr ? 'جميع أنواع الوثائق' : 'All Document Types' },
+                { value: 'VISA', label: isAr ? 'تأشيرة إقامة' : 'Residency Visa' },
+                { value: 'EMIRATES_ID', label: isAr ? 'الهوية الإماراتية' : 'Emirates ID' },
+                { value: 'PASSPORT', label: isAr ? 'جواز السفر' : 'Passport' },
+                { value: 'LABOUR_CARD', label: isAr ? 'بطاقة العمل' : 'Labour Card' },
+                { value: 'INSURANCE', label: isAr ? 'التأمين الصحي' : 'Health Insurance' },
+              ]}
+            />
+          </div>
         </div>
       </div>
 

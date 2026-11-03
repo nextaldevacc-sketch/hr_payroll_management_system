@@ -128,7 +128,7 @@ export default function SettingsPage() {
     queryFn: fetchJobs,
   });
 
-  const { data: shifts = INITIAL_SHIFTS } = useQuery({
+  const { data: shifts = [] } = useQuery({
     queryKey: ['settings', 'shifts'],
     queryFn: fetchShifts,
   });

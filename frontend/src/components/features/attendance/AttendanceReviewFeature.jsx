@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
+import { Select } from '../../primitives/form/Select';
 import { confirmManagerAttendance, confirmHRAttendance, getAttendanceGrid } from '../../../services/attendanceApi';
 
 export default function AttendanceReviewFeature({ onConfirmed }) {
@@ -248,22 +249,17 @@ export default function AttendanceReviewFeature({ onConfirmed }) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-text-muted mb-1.5">
-              {isAr ? 'حدد القسم للاعتماد:' : 'Select Department to Confirm:'}
-            </label>
-            <select
+            <Select
               id="confirm-dept-select"
               data-testid="confirm-dept-select"
+              label={isAr ? 'حدد القسم للاعتماد:' : 'Select Department to Confirm:'}
               value={selectedDeptId}
               onChange={(e) => setSelectedDeptId(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-text focus:ring-1 focus:ring-primary focus:outline-none"
-            >
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {isAr ? (d.name_ar || d.name) : d.name}
-                </option>
-              ))}
-            </select>
+              options={departments.map((d) => ({
+                value: d.id,
+                label: isAr ? (d.name_ar || d.name) : d.name,
+              }))}
+            />
           </div>
 
           <button

@@ -28,10 +28,13 @@ import {
   AlertCircle,
   FileCheck,
   UserMinus,
+  ClipboardList,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import clsx from 'clsx';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
+import { Select } from '../../primitives/form/Select';
 import {
   fetchEmployeeProfile,
   fetchEmployeeContracts,
@@ -342,6 +345,55 @@ export function EmployeeProfileFeature({ id } = {}) {
         </div>
       )}
 
+      {/* 5-Stage Setup Checklist for Pre-Joined / SentBack (Spec 7.2) */}
+      {(employee.status === 'Pre-Joined' || employee.status === 'SentBack') && (
+        <GlassCard className="p-4 border border-border space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-text flex items-center gap-2">
+            <ClipboardList className="w-4 h-4 text-primary" />
+            <span>Employee Onboarding Setup Checklist (Spec 7.2)</span>
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs">
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 block flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Stage 1
+              </span>
+              <span className="font-medium text-text mt-0.5 block">Identity & File</span>
+              <span className="text-[10px] text-text-muted block mt-0.5">Completed {employee.created_by ? '· File created' : ''}</span>
+            </div>
+            <div className={clsx(
+              "p-2.5 rounded-xl border",
+              employee.status === 'Pre-Joined' ? "bg-amber-500/10 border-amber-500/30" : "bg-rose-500/10 border-rose-500/30"
+            )}>
+              <span className={clsx(
+                "font-bold block flex items-center gap-1",
+                employee.status === 'Pre-Joined' ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400"
+              )}>
+                <Clock className="w-3.5 h-3.5" /> Stage 2
+              </span>
+              <span className="font-medium text-text mt-0.5 block">HR Verification</span>
+              <span className="text-[10px] text-text-muted block mt-0.5">
+                {employee.status === 'SentBack' ? 'Sent Back for Fixes' : 'Pending HR Manager'}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border opacity-70">
+              <span className="font-bold text-text-muted block">Stage 3</span>
+              <span className="font-medium text-text mt-0.5 block">Contract Offer</span>
+              <span className="text-[10px] text-text-muted block mt-0.5">Pending verification</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border opacity-70">
+              <span className="font-bold text-text-muted block">Stage 4</span>
+              <span className="font-medium text-text mt-0.5 block">Bank & WPS</span>
+              <span className="text-[10px] text-text-muted block mt-0.5">Pending verification</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border opacity-70">
+              <span className="font-bold text-text-muted block">Stage 5</span>
+              <span className="font-medium text-text mt-0.5 block">Activation</span>
+              <span className="text-[10px] text-text-muted block mt-0.5">Pending stages 2–4</span>
+            </div>
+          </div>
+        </GlassCard>
+      )}
+
       {/* Pre-Joined Verification Card (Dual-Control) */}
       {(employee.status === 'Pre-Joined' || employee.status === 'SentBack') && isHrOrAdmin && (
         <GlassCard className="p-4 border border-amber-500/30 bg-amber-500/5 space-y-3">
@@ -352,6 +404,15 @@ export function EmployeeProfileFeature({ id } = {}) {
             </div>
             <span className="text-[11px] text-text-muted">Status: {employee.status}</span>
           </div>
+
+          {/* Self-verification blocked banner if creator */}
+          {employee?.created_by === user?.id && (
+            <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-semibold flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
+              <span>Another HR Manager must verify this record (you created this record).</span>
+            </div>
+          )}
+
           <div className="space-y-2">
             <input
               id="input-verify-comment"
@@ -366,20 +427,20 @@ export function EmployeeProfileFeature({ id } = {}) {
                 id="btn-verify-sendback"
                 type="button"
                 onClick={() => verifyMutation.mutate('SEND_BACK')}
-                disabled={verifyMutation.isPending}
-                className="px-3.5 py-1.5 rounded-xl border border-rose-500/30 text-rose-600 hover:bg-rose-500/10 font-semibold text-xs"
+                disabled={employee?.created_by === user?.id || verifyMutation.isPending}
+                className="px-3.5 py-1.5 rounded-xl border border-rose-500/30 text-rose-600 hover:bg-rose-500/10 font-semibold text-xs disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Send Back with Comment
+                Send Back for Corrections
               </button>
               <button
                 id="btn-verify-approve"
                 type="button"
                 onClick={() => verifyMutation.mutate('APPROVE')}
-                disabled={verifyMutation.isPending}
-                className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm flex items-center gap-1.5"
+                disabled={employee?.created_by === user?.id || verifyMutation.isPending}
+                className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Verify & Approve</span>
+                <span>Verify & Approve Record</span>
               </button>
             </div>
           </div>
@@ -432,7 +493,7 @@ export function EmployeeProfileFeature({ id } = {}) {
                 </span>
                 <span className="flex items-center gap-1.5">
                   <FileCheck className="w-3.5 h-3.5 text-text-muted" />
-                  {employee.company_visa?.visa_entity_name || 'Gulf Tech Logistics LLC'}
+                  {employee.company_visa?.visa_entity_name || employee.company?.name || 'Company'}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-text-muted" />
@@ -579,7 +640,7 @@ export function EmployeeProfileFeature({ id } = {}) {
                 <div>
                   <span className="text-text-muted block mb-1">Company Visa Entity</span>
                   <span className="font-semibold text-text">
-                    {employee.company_visa?.visa_entity_name || 'Gulf Tech Logistics LLC'}
+                    {employee.company_visa?.visa_entity_name || employee.company?.name || 'Company'}
                   </span>
                 </div>
                 <div>
@@ -1051,17 +1112,17 @@ export function EmployeeProfileFeature({ id } = {}) {
 
             <form onSubmit={handleDocUploadSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-text mb-1">Document Type</label>
-                <select
+                <Select
+                  label="Document Type"
                   value={docType}
                   onChange={(e) => setDocType(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text"
-                >
-                  <option value="PASSPORT">Passport</option>
-                  <option value="EMIRATES_ID">Emirates ID</option>
-                  <option value="VISA">Residence Visa</option>
-                  <option value="LABOUR_CARD">MOHRE Labour Card</option>
-                </select>
+                  options={[
+                    { value: 'PASSPORT', label: 'Passport' },
+                    { value: 'EMIRATES_ID', label: 'Emirates ID' },
+                    { value: 'VISA', label: 'Residence Visa' },
+                    { value: 'LABOUR_CARD', label: 'MOHRE Labour Card' },
+                  ]}
+                />
               </div>
 
               <div>

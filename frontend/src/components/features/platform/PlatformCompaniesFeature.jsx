@@ -23,6 +23,7 @@ import {
   Clock,
   Sparkles,
 } from 'lucide-react';
+import { Select } from '../../primitives/form/Select';
 
 export function PlatformCompaniesFeature() {
   const { user } = useAuth();
@@ -645,23 +646,20 @@ export function PlatformCompaniesFeature() {
                     />
                   </div>
                   <div>
-                    <label className="block mb-1 font-medium" style={{ color: 'var(--text-secondary)' }}>
-                      Emirate
-                    </label>
-                    <select
+                    <Select
+                      label="Emirate"
                       value={newCompany.emirate}
                       onChange={(e) => setNewCompany({ ...newCompany, emirate: e.target.value })}
-                      className="w-full rounded-xl py-2 px-3 border outline-none"
-                      style={{ background: 'var(--bg-well)', borderColor: 'var(--border-subtle)' }}
-                    >
-                      <option value="Dubai">Dubai</option>
-                      <option value="Abu Dhabi">Abu Dhabi</option>
-                      <option value="Sharjah">Sharjah</option>
-                      <option value="Ajman">Ajman</option>
-                      <option value="Ras Al Khaimah">Ras Al Khaimah</option>
-                      <option value="Fujairah">Fujairah</option>
-                      <option value="Umm Al Quwain">Umm Al Quwain</option>
-                    </select>
+                      options={[
+                        { value: 'Dubai', label: 'Dubai' },
+                        { value: 'Abu Dhabi', label: 'Abu Dhabi' },
+                        { value: 'Sharjah', label: 'Sharjah' },
+                        { value: 'Ajman', label: 'Ajman' },
+                        { value: 'Ras Al Khaimah', label: 'Ras Al Khaimah' },
+                        { value: 'Fujairah', label: 'Fujairah' },
+                        { value: 'Umm Al Quwain', label: 'Umm Al Quwain' },
+                      ]}
+                    />
                   </div>
                 </div>
 
@@ -789,20 +787,17 @@ export function PlatformCompaniesFeature() {
                 </div>
 
                 <div>
-                  <label className="block mb-1 font-medium" style={{ color: 'var(--text-secondary)' }}>
-                    Access Duration (Hours)
-                  </label>
-                  <select
+                  <Select
+                    label="Access Duration (Hours)"
                     value={supportHours}
                     onChange={(e) => setSupportHours(Number(e.target.value))}
-                    className="w-full rounded-xl py-2 px-3 border outline-none"
-                    style={{ background: 'var(--bg-well)', borderColor: 'var(--border-subtle)' }}
-                  >
-                    <option value={1}>1 hour</option>
-                    <option value={2}>2 hours (Standard)</option>
-                    <option value={4}>4 hours</option>
-                    <option value={8}>8 hours (Max for single shift)</option>
-                  </select>
+                    options={[
+                      { value: '1', label: '1 hour' },
+                      { value: '2', label: '2 hours (Standard)' },
+                      { value: '4', label: '4 hours' },
+                      { value: '8', label: '8 hours (Max for single shift)' },
+                    ]}
+                  />
                 </div>
 
                 <div

@@ -35,16 +35,24 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
   const figures = data.figures;
 
   // 6-month sparkline data
-  const sparkline = data.sparkline || [];
-  const minNet = Math.min(...sparkline.map((s) => s.net));
-  const maxNet = Math.max(...sparkline.map((s) => s.net));
+  const sparkline = Array.isArray(data.sparkline) ? data.sparkline : [];
+  const netValues = sparkline.map((s) => (typeof s === 'object' && s !== null ? Number(s.net || 0) : Number(s || 0)));
+  const minNet = netValues.length > 0 ? Math.min(...netValues) : 0;
+  const maxNet = netValues.length > 0 ? Math.max(...netValues) : 0;
   const sparkWidth = 200;
   const sparkHeight = 42;
 
   const points = sparkline.map((s, idx) => {
-    const x = (idx / (sparkline.length - 1)) * sparkWidth;
-    const y = sparkHeight - ((s.net - minNet) / (maxNet - minNet || 1)) * (sparkHeight - 12) - 6;
-    return { x, y, ...s };
+    const val = typeof s === 'object' && s !== null ? Number(s.net || 0) : Number(s || 0);
+    const x = sparkline.length > 1 ? (idx / (sparkline.length - 1)) * sparkWidth : 0;
+    const y = maxNet === minNet ? sparkHeight / 2 : sparkHeight - ((val - minNet) / (maxNet - minNet || 1)) * (sparkHeight - 12) - 6;
+    return {
+      x,
+      y: Number.isNaN(y) ? sparkHeight / 2 : y,
+      month: (typeof s === 'object' && s !== null ? s.month : null) || `M${idx + 1}`,
+      isCurrent: (typeof s === 'object' && s !== null ? s.isCurrent : false) || idx === sparkline.length - 1,
+      net: val,
+    };
   });
 
   const polylinePoints = points.map((p) => `${p.x},${p.y}`).join(' ');
