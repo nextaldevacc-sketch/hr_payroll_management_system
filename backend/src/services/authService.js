@@ -43,7 +43,20 @@ export class AuthService {
     const user = await this.prisma.$base().users.findUnique({
       where: { email: cleanEmail },
       include: {
-        company: true,
+        company: {
+          include: {
+            company_visas: {
+              select: {
+                id: true,
+                name: true,
+                mol_establishment_id: true,
+                emirate: true,
+                bank_routing_code: true,
+              },
+              orderBy: { name: 'asc' },
+            },
+          },
+        },
         user_roles: {
           include: {
             role: true,
@@ -249,7 +262,9 @@ export class AuthService {
         arabic_name: user.employee?.arabic_name || null,
         company_id: user.company_id,
         company_name: user.company?.name || 'Nextal Platform',
+        company_name_ar: user.company?.name_ar || null,
         company_status: user.company?.status || 'Active',
+        visas: user.company?.company_visas || [],
         is_platform_admin: user.is_platform_admin,
         status: updatedUser.status,
         employee_id: user.employee_id,

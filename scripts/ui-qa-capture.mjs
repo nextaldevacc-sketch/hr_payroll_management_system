@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import http from 'node:http';
 import { spawn, execSync } from 'node:child_process';
 import { chromium } from 'playwright';
-import { PrismaClient } from '@prisma/client';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,11 +13,6 @@ const webDir = path.resolve(rootDir, 'frontend');
 
 const API_PORT = 5000;
 const WEB_PORT = 3100;
-const TEST_DB_URL = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
-
-const prisma = new PrismaClient({
-  datasources: { db: { url: TEST_DB_URL } },
-});
 
 const reportsDir = path.resolve(rootDir, 'docs/reports');
 const shotsDir = path.resolve(reportsDir, 'screenshots/qa');
@@ -44,6 +38,7 @@ function killPort(port) {
           killedPids.add(pid);
           try {
             execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' });
+            console.log(`[killPort] Terminated process ${pid} on port ${port}`);
           } catch {}
         }
       }
@@ -60,7 +55,7 @@ function checkHttp(url) {
       resolve(res.statusCode < 500);
     });
     req.on('error', () => resolve(false));
-    req.setTimeout(1000, () => {
+    req.setTimeout(1500, () => {
       req.destroy();
       resolve(false);
     });
@@ -96,80 +91,220 @@ const VARIANTS = [
   { id: 'dark-ar-390', theme: 'dark', lang: 'ar', dir: 'rtl', viewport: { width: 390, height: 844 } },
 ];
 
+const USERS = {
+  employee: { email: 'employee@gulftech.ae', password: 'Nextal@2026!' },
+  admin: { email: 'admin@gulftech.ae', password: 'Nextal@2026!' },
+  hr_manager: { email: 'hr.mgr@gulftech.ae', password: 'Nextal@2026!' },
+};
+
+function getRoleForPage(pagePath) {
+  if (pagePath === '/me' || pagePath.startsWith('/me/')) return 'employee';
+  if (
+    pagePath === '/settings' ||
+    pagePath.startsWith('/settings/') ||
+    pagePath === '/audit' ||
+    pagePath.startsWith('/audit/')
+  ) {
+    return 'admin';
+  }
+  return 'hr_manager';
+}
+
+const ALLOWLIST = [
+  'NEXTAL', 'EN', 'AED', 'IBAN', 'WPS', 'SIF', 'MOHRE', 'DIFC',
+  'GPSSA', 'LLC', 'PDF', 'CSV', 'API', 'UUID', 'ID', 'DXB', 'AUH', 'SHJ',
+  'KBD', 'CMD',
+];
+
+function flattenKeys(obj, prefix = '') {
+  let keys = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}.${k}` : k;
+    if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+      keys = keys.concat(flattenKeys(v, fullKey));
+    } else {
+      keys.push(fullKey);
+    }
+  }
+  return keys;
+}
+
+async function getApiMetadata() {
+  const loginRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'hr.mgr@gulftech.ae', password: 'Nextal@2026!' }),
+  });
+  const loginData = await loginRes.json();
+  const token = loginData.token;
+
+  let empId = 'sample';
+  try {
+    const empRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/employees?limit=1`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const empData = await empRes.json();
+    if (empData.data && empData.data.length > 0) {
+      empId = empData.data[0].id;
+    }
+  } catch {}
+
+  let latestRunId = 'latest';
+  try {
+    const runsRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/payroll/runs`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const runsData = await runsRes.json();
+    if (runsData.data && runsData.data.length > 0) {
+      latestRunId = runsData.data[0].id;
+    }
+  } catch {}
+
+  return { empId, latestRunId };
+}
+
+async function createAuthenticatedContext(browser, variant, roleKey) {
+  const context = await browser.newContext({
+    viewport: variant.viewport,
+    locale: variant.lang === 'ar' ? 'ar-AE' : 'en-US',
+  });
+
+  const page = await context.newPage();
+  const user = USERS[roleKey];
+
+  // 1. Log in via UI
+  await page.goto(`http://127.0.0.1:${WEB_PORT}/login`);
+  await page.waitForSelector('button[type="submit"]:not([disabled])', { timeout: 15000 });
+  await page.fill('input[type="email"]', user.email);
+  await page.fill('input[type="password"]', user.password);
+  await page.click('button[type="submit"]');
+
+  // Wait for redirect
+  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20000 });
+  await page.waitForLoadState('networkidle');
+
+  // 2. Set language via real topbar button click
+  await page.waitForSelector('#btn-language-toggle', { timeout: 15000 });
+  const currentLang = await page.getAttribute('html', 'lang');
+  if (currentLang !== variant.lang) {
+    await page.click('#btn-language-toggle');
+    await page.waitForFunction(
+      (expectedLang) => document.documentElement.getAttribute('lang') === expectedLang,
+      variant.lang,
+      { timeout: 10000 }
+    );
+    await page.waitForTimeout(500);
+  }
+
+  // 3. Set theme via real topbar button click
+  await page.waitForSelector('#btn-theme-toggle', { timeout: 15000 });
+  const isDarkNow = await page.evaluate(
+    () => document.documentElement.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark'
+  );
+  const needsDark = variant.theme === 'dark';
+  if (isDarkNow !== needsDark) {
+    await page.click('#btn-theme-toggle');
+    await page.waitForFunction(
+      (expectedTheme) => {
+        const isDark = document.documentElement.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
+        return expectedTheme === 'dark' ? isDark : !isDark;
+      },
+      variant.theme,
+      { timeout: 10000 }
+    );
+    await page.waitForTimeout(500);
+  }
+
+  // 4. Assert app-set DOM state
+  const finalDir = await page.getAttribute('html', 'dir');
+  const finalLang = await page.getAttribute('html', 'lang');
+  const finalTheme = (await page.getAttribute('html', 'data-theme')) || (await page.evaluate(() => document.documentElement.classList.contains('dark') ? 'dark' : 'light'));
+
+  if (finalDir !== variant.dir) {
+    throw new Error(`[${roleKey}] Direction mismatch: expected ${variant.dir}, got ${finalDir}`);
+  }
+  if (finalLang !== variant.lang) {
+    throw new Error(`[${roleKey}] Language mismatch: expected ${variant.lang}, got ${finalLang}`);
+  }
+  if (finalTheme !== variant.theme) {
+    throw new Error(`[${roleKey}] Theme mismatch: expected ${variant.theme}, got ${finalTheme}`);
+  }
+
+  return { context, page };
+}
+
 async function main() {
   console.log(`\n===============================================================`);
-  console.log(`NEXTAL HR & PAYROLL - SCRIPTED UI QA CAPTURE & AUDIT SWEEP`);
+  console.log(`NEXTAL HR & PAYROLL - HONEST UI QA CAPTURE & AUDIT SWEEP`);
   console.log(`===============================================================\n`);
 
-  // 1. Ensure servers are answering
-  let spawnedApi = null;
-  let spawnedWeb = null;
-
-  const apiUp = await checkHttp(`http://127.0.0.1:${API_PORT}/health`).catch(() => false);
+  // Ensure servers are running
+  let apiProc = null;
+  let webProc = null;
+  let apiUp = await checkHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`);
   if (!apiUp) {
     killPort(API_PORT);
-    console.log(`Starting backend server on port ${API_PORT}...`);
-    spawnedApi = spawn(process.execPath, ['src/server.js'], {
+    console.log(`Starting API server on port ${API_PORT}...`);
+    apiProc = spawn(process.execPath, ['src/server.js'], {
       cwd: apiDir,
       env: {
         ...process.env,
         PORT: String(API_PORT),
+        DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public',
+        DATABASE_URL_TEST: 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public',
         NODE_ENV: 'development',
-        DATABASE_URL: TEST_DB_URL,
-        DATABASE_URL_TEST: TEST_DB_URL,
         FEATURE_PLATFORM_ADMIN: 'false',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
-    spawnedApi.stdout.on('data', (d) => {
-      const s = d.toString().trim();
-      if (s) console.log(`[API] ${s}`);
+    apiProc.stdout.on('data', (d) => {
+      const s = d.toString();
+      if (s.includes('listening') || s.includes('Listening')) console.log(`  [API] ${s.trim()}`);
     });
-    spawnedApi.stderr.on('data', (d) => {
-      const s = d.toString().trim();
-      if (s && !s.includes('ExperimentalWarning')) console.error(`[API ERR] ${s}`);
+    apiProc.stderr.on('data', (d) => {
+      const s = d.toString();
+      if (!s.includes('ExperimentalWarning')) console.error(`  [API ERR] ${s.trim()}`);
     });
-    await waitForHttp(`http://127.0.0.1:${API_PORT}/health`, 45000);
-    console.log('Backend server ready.');
-  } else {
-    console.log(`Backend server already active on port ${API_PORT}.`);
+    await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 30000);
   }
 
-  const webUp = await checkHttp(`http://localhost:${WEB_PORT}/login`).catch(() => false);
+  let webUp = await checkHttp(`http://127.0.0.1:${WEB_PORT}/login`);
   if (!webUp) {
     killPort(WEB_PORT);
-    console.log(`Starting frontend Next.js server on port ${WEB_PORT}...`);
-    spawnedWeb = spawn(process.execPath, [nextBin, 'start', '-p', String(WEB_PORT)], {
+    console.log(`Starting Web server on port ${WEB_PORT}...`);
+    webProc = spawn(process.execPath, [nextBin, 'dev', '-p', String(WEB_PORT)], {
       cwd: webDir,
       env: {
         ...process.env,
+        NODE_ENV: 'development',
         PORT: String(WEB_PORT),
-        NODE_ENV: 'production',
         API_ORIGIN: `http://127.0.0.1:${API_PORT}`,
         NEXT_PUBLIC_API_URL: '/api/v1',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
-    spawnedWeb.stdout.on('data', (d) => {
-      const s = d.toString().trim();
-      if (s.includes('Ready in') || s.includes('started server')) console.log(`[WEB] ${s}`);
+    webProc.stdout.on('data', (d) => {
+      const s = d.toString();
+      if (s.includes('Ready in') || s.includes('started server')) console.log(`  [WEB] ${s.trim()}`);
     });
-    spawnedWeb.stderr.on('data', (d) => {
-      const s = d.toString().trim();
-      if (s) console.error(`[WEB ERR] ${s}`);
+    webProc.stderr.on('data', (d) => {
+      const s = d.toString();
+      if (!s.includes('ExperimentalWarning')) console.error(`  [WEB ERR] ${s.trim()}`);
     });
-    await waitForHttp(`http://localhost:${WEB_PORT}/login`, 45000);
-    console.log('Frontend server ready.');
-  } else {
-    console.log(`Frontend server already active on port ${WEB_PORT}.`);
+    await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 45000);
   }
 
-  // 2. Resolve sample employee and pay run IDs from test database
-  const sampleEmp = await prisma.employees.findFirst({
-    where: { company: { name: 'Gulf Tech Logistics LLC' } },
-    select: { id: true, name: true, employee_code: true },
-  });
-  const empId = sampleEmp?.id || 'sample';
+  console.log('API and Web servers verified responding.');
+
+  // Load en.json for raw key verification
+  const enJsonPath = path.resolve(webDir, 'src/i18n/en.json');
+  const enJson = JSON.parse(fs.readFileSync(enJsonPath, 'utf8'));
+  const allFlattenedKeys = flattenKeys(enJson);
+  console.log(`Loaded ${allFlattenedKeys.length} keys from en.json for raw key validation.`);
+
+  // Resolve IDs via API
+  const { empId, latestRunId } = await getApiMetadata();
+  console.log(`Resolved empId: ${empId}, latestRunId: ${latestRunId}`);
 
   const PAGES = [
     { id: 'dashboard', path: '/', name: 'Dashboard' },
@@ -181,124 +316,101 @@ async function main() {
     { id: 'leave', path: '/leave', name: 'Leave & Holidays' },
     { id: 'payroll', path: '/payroll', name: 'Pay Runs & WPS' },
     { id: 'payroll-adjustments', path: '/payroll/adjustments', name: 'Salary Adjustments' },
+    { id: 'payroll-detail', path: `/payroll/${latestRunId}`, name: 'Pay Run Details' },
     { id: 'offboarding', path: '/offboarding', name: 'Offboarding & Settlements' },
     { id: 'compliance', path: '/compliance', name: 'Compliance & Documents' },
     { id: 'reports', path: '/reports', name: 'Reports & Exports' },
     { id: 'settings', path: '/settings', name: 'Company Settings' },
     { id: 'settings-users', path: '/settings/users', name: 'Users & Roles' },
+    { id: 'settings-visas', path: '/settings/visas', name: 'Company Visas' },
+    { id: 'settings-branches', path: '/settings/branches', name: 'Branches' },
     { id: 'audit', path: '/audit', name: 'Audit Trail' },
     { id: 'me', path: '/me', name: 'Employee Self-Service' },
+    { id: 'me-payslips', path: '/me/payslips', name: 'Employee Payslips' },
   ];
 
-  console.log(`Auditing 16 pages across 4 variants (64 cells total)...`);
+  console.log(`Auditing ${PAGES.length} pages across 4 variants (${PAGES.length * VARIANTS.length} cells total)...\n`);
 
   const browser = await chromium.launch({ headless: true });
   const results = [];
 
+  const forbiddenPatterns = [
+    { name: 'undefined', regex: /\bundefined\b/ },
+    { name: 'null', regex: /\bnull\b/ },
+    { name: 'NaN', regex: /\bNaN\b/ },
+    { name: 'Invalid request payload', regex: /Invalid request payload/i },
+    { name: '()', regex: /\(\s*\)/ },
+  ];
+
   try {
     for (const variant of VARIANTS) {
-      console.log(`\n--- Starting variant context: ${variant.id} (${variant.lang}, ${variant.theme}, ${variant.viewport.width}x${variant.viewport.height}) ---`);
-      const context = await browser.newContext({
-        viewport: variant.viewport,
-        locale: variant.lang === 'ar' ? 'ar-AE' : 'en-US',
-      });
+      console.log(`\n===============================================================`);
+      console.log(`Variant: ${variant.id} (${variant.lang}, ${variant.theme}, ${variant.viewport.width}x${variant.viewport.height})`);
+      console.log(`===============================================================`);
 
-      // Set locale cookie
-      await context.addCookies([
-        {
-          name: 'NEXT_LOCALE',
-          value: variant.lang,
-          domain: 'localhost',
-          path: '/',
-        },
-      ]);
-
-      const page = await context.newPage();
-
-      const consoleErrors = [];
-      page.on('console', (msg) => {
-        if (msg.type() === 'error') {
-          const txt = msg.text();
-          if (
-            !txt.includes('hydration') &&
-            !txt.includes('React DevTools') &&
-            !txt.includes('favicon') &&
-            !txt.includes('Failed to load resource: the server responded with a status of 404')
-          ) {
-            consoleErrors.push(txt);
-          }
-        }
-      });
-
-      // Login once per variant context
-      await page.goto(`http://localhost:${WEB_PORT}/login`, { waitUntil: 'domcontentloaded', timeout: 25000 });
-      await page.fill('input[type="email"]', 'hr.mgr@gulftech.ae');
-      await page.fill('input[type="password"]', 'Nextal@2026!');
-      await page.click('button[type="submit"]');
-      await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20000 });
-
-      // Apply theme & dir once for the context session
-      await page.evaluate(({ theme, lang, dir }) => {
-        try {
-          localStorage.setItem('theme', theme);
-          localStorage.setItem('language', lang);
-          document.documentElement.setAttribute('data-theme', theme);
-          document.documentElement.setAttribute('lang', lang);
-          document.documentElement.setAttribute('dir', dir);
-          if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-          }
-        } catch {}
-      }, variant);
+      // Set up authenticated contexts per role
+      const contexts = {};
+      for (const roleKey of ['hr_manager', 'admin', 'employee']) {
+        console.log(`  Setting up session for role: ${roleKey}...`);
+        contexts[roleKey] = await createAuthenticatedContext(browser, variant, roleKey);
+      }
 
       for (const pageDef of PAGES) {
+        const roleKey = getRoleForPage(pageDef.path);
+        const { page } = contexts[roleKey];
+
         const shotFilename = `${pageDef.id}__${variant.id}.png`;
         const shotPath = path.join(shotsDir, shotFilename);
         const relShotPath = `screenshots/qa/${shotFilename}`;
 
-        // Navigate to target page
-        await page.goto(`http://localhost:${WEB_PORT}${pageDef.path}`, {
-          waitUntil: 'domcontentloaded',
-          timeout: 25000,
-        });
-        await page.waitForTimeout(1000);
-
-        // Re-apply DOM attributes
-        await page.evaluate(({ theme, lang, dir }) => {
-          try {
-            document.documentElement.setAttribute('data-theme', theme);
-            document.documentElement.setAttribute('lang', lang);
-            document.documentElement.setAttribute('dir', dir);
-            if (theme === 'dark') {
-              document.documentElement.classList.add('dark');
-            } else {
-              document.documentElement.classList.remove('dark');
+        // Error collectors for this specific page navigation
+        const consoleErrors = [];
+        const onConsole = (msg) => {
+          if (msg.type() === 'error') {
+            const txt = msg.text();
+            if (!txt.includes('favicon.ico')) {
+              consoleErrors.push(txt);
             }
-          } catch {}
-        }, variant);
-
-        // 1. Text inspection for forbidden tokens
-        const visibleText = await page.innerText('body').catch(() => '');
-        const forbiddenPatterns = [
-          { name: 'undefined', regex: /\bundefined\b/ },
-          { name: 'null', regex: /\bnull\b/ },
-          { name: 'NaN', regex: /\bNaN\b/ },
-          { name: 'Invalid request payload', regex: /Invalid request payload/i },
-          { name: '()', regex: /\(\s*\)/ },
-        ];
-
-        const forbiddenHits = [];
-        for (const fp of forbiddenPatterns) {
-          if (fp.regex.test(visibleText)) {
-            const sample = visibleText.match(new RegExp(`.{0,40}${fp.regex.source}.{0,40}`, 'g'));
-            console.log(`  [DEBUG FORBIDDEN] Page: ${pageDef.id}, pattern: ${fp.name}, sample:`, JSON.stringify(sample));
-            forbiddenHits.push(fp.name);
           }
+        };
+        page.on('console', onConsole);
+
+        const failedResponses = [];
+        const onResponse = (res) => {
+          if (res.status() >= 400) {
+            const url = res.url();
+            if (!url.includes('favicon.ico')) {
+              failedResponses.push(`${res.request().method()} ${url} (${res.status()})`);
+            }
+          }
+        };
+        page.on('response', onResponse);
+
+        let mainStatus = 0;
+        let navigationError = null;
+
+        try {
+          const resp = await page.goto(`http://127.0.0.1:${WEB_PORT}${pageDef.path}`, {
+            timeout: 30000,
+          });
+          mainStatus = resp ? resp.status() : 0;
+          await page.waitForLoadState('networkidle');
+          await page.waitForTimeout(600);
+        } catch (err) {
+          navigationError = err.message;
         }
 
-        // 2. Horizontal overflow check
+        // 1. Next.js Error Overlay Check
+        const hasErrorOverlay = await page.evaluate(() => {
+          return Boolean(
+            document.querySelector('nextjs-portal') ||
+            document.querySelector('[data-nextjs-dialog-overlay]') ||
+            document.querySelector('body > #__next-build-watcher') ||
+            document.querySelector('[data-nextjs-toast]')
+          );
+        });
+
+        // 2. Horizontal Overflow Check
         const scrollWidth = await page.evaluate(() => {
           return Math.max(
             document.documentElement.scrollWidth,
@@ -306,72 +418,133 @@ async function main() {
             document.documentElement.offsetWidth
           );
         });
-
         const maxAllowedWidth = variant.viewport.width;
-        // Allow up to 1px rounding margin
         const overflowPx = Math.max(0, scrollWidth - maxAllowedWidth);
         const hasOverflow = overflowPx > 2;
 
-        // 3. Direction check for Arabic
-        const actualDir = await page.evaluate(() => document.documentElement.getAttribute('dir'));
-        const dirValid = variant.lang === 'ar' ? actualDir === 'rtl' : true;
+        // 3. Direction and Language Check
+        const actualDir = await page.getAttribute('html', 'dir');
+        const dirValid = variant.lang === 'ar' ? actualDir === 'rtl' : actualDir === 'ltr';
 
-        // 4. Determine cell status
-        const isPassed = forbiddenHits.length === 0 && !hasOverflow && dirValid;
-
-        let failureReason = null;
-        if (!isPassed) {
-          const reasons = [];
-          if (forbiddenHits.length > 0) reasons.push(`Forbidden text: ${forbiddenHits.join(', ')}`);
-          if (hasOverflow) reasons.push(`Overflow: ${scrollWidth}px > ${maxAllowedWidth}px (+${overflowPx}px)`);
-          if (!dirValid) reasons.push(`Dir mismatch: expected rtl, got ${actualDir}`);
-          failureReason = reasons.join('; ');
+        // 4. Forbidden Text Check
+        const visibleText = await page.innerText('body').catch(() => '');
+        const forbiddenHits = [];
+        for (const fp of forbiddenPatterns) {
+          if (fp.regex.test(visibleText)) {
+            forbiddenHits.push(fp.name);
+          }
         }
 
-        // Capture screenshot
+        // 5. Raw i18n Key Check
+        const rawKeyHits = await page.evaluate((allKeys) => {
+          const keySet = new Set(allKeys);
+          const hits = [];
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+            acceptNode: (node) => {
+              const parent = node.parentElement;
+              if (!parent) return NodeFilter.FILTER_REJECT;
+              if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(parent.tagName)) return NodeFilter.FILTER_REJECT;
+              if (parent.closest('[data-i18n-skip]')) return NodeFilter.FILTER_REJECT;
+              const val = node.nodeValue.trim();
+              return val ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+            },
+          });
+          let node;
+          while ((node = walker.nextNode())) {
+            const txt = node.nodeValue.trim();
+            if (keySet.has(txt)) {
+              hits.push(txt);
+            }
+          }
+          return [...new Set(hits)];
+        }, allFlattenedKeys);
+
+        // 6. Arabic English-word Check
+        let arabicViolations = [];
+        if (variant.lang === 'ar') {
+          arabicViolations = await page.evaluate((allowlist) => {
+            const allowSet = new Set(allowlist.map((w) => w.toUpperCase()));
+            const hits = [];
+            const selectors = 'button, th, label, h1, h2, h3, h4, nav a, [class*="title"], [class*="Title"]';
+            const elements = document.querySelectorAll(selectors);
+
+            for (const el of elements) {
+              if (el.closest('[data-i18n-skip]')) continue;
+              const rect = el.getBoundingClientRect();
+              if (rect.width === 0 || rect.height === 0) continue;
+
+              const text = el.innerText || '';
+              const words = text.match(/[A-Za-z]{3,}/g) || [];
+              for (const w of words) {
+                const upper = w.toUpperCase();
+                if (allowSet.has(upper)) continue;
+                if (upper.startsWith('EMP-')) continue;
+                if (text.includes('@')) continue;
+                hits.push(`${w} in <${el.tagName.toLowerCase()}> "${text.slice(0, 30).trim()}"`);
+              }
+            }
+            return [...new Set(hits)];
+          }, ALLOWLIST);
+        }
+
+        // Remove listeners
+        page.off('console', onConsole);
+        page.off('response', onResponse);
+
+        // Screenshot
         await page.screenshot({ path: shotPath, fullPage: false });
+
+        // Pass/Fail evaluation
+        const failureReasons = [];
+        if (navigationError) failureReasons.push(`Navigation error: ${navigationError}`);
+        if (mainStatus !== 200) failureReasons.push(`HTTP status: ${mainStatus}`);
+        if (hasErrorOverlay) failureReasons.push('Next.js error overlay present');
+        if (consoleErrors.length > 0) failureReasons.push(`Console errors (${consoleErrors.length}): ${consoleErrors.slice(0, 2).join(' | ')}`);
+        if (failedResponses.length > 0) failureReasons.push(`Network >= 400 (${failedResponses.length}): ${failedResponses.slice(0, 2).join(' | ')}`);
+        if (hasOverflow) failureReasons.push(`Horizontal overflow: ${scrollWidth}px > ${maxAllowedWidth}px (+${overflowPx}px)`);
+        if (!dirValid) failureReasons.push(`Dir mismatch: expected ${variant.dir}, got ${actualDir}`);
+        if (forbiddenHits.length > 0) failureReasons.push(`Forbidden tokens: ${forbiddenHits.join(', ')}`);
+        if (rawKeyHits.length > 0) failureReasons.push(`Raw i18n keys: ${rawKeyHits.join(', ')}`);
+        if (arabicViolations.length > 0) failureReasons.push(`English in Arabic: ${arabicViolations.slice(0, 3).join(', ')}`);
+
+        const isPassed = failureReasons.length === 0;
 
         results.push({
           page: pageDef.id,
           pageName: pageDef.name,
           route: pageDef.path,
           variant: variant.id,
+          role: roleKey,
           passed: isPassed,
-          failureReason,
-          forbiddenTextHits: forbiddenHits,
-          overflowPx,
+          failureReason: isPassed ? null : failureReasons.join('; '),
+          status: mainStatus,
           consoleErrors,
+          failedResponses,
+          overflowPx,
           screenshotPath: relShotPath,
         });
 
         console.log(
-          `[${isPassed ? 'PASS' : 'FAIL'}] ${pageDef.id} :: ${variant.id}${
-            failureReason ? ` -> ${failureReason}` : ''
+          `  [${isPassed ? 'PASS' : 'FAIL'}] ${pageDef.id} :: ${variant.id}${
+            !isPassed ? ` -> ${failureReasons.join('; ')}` : ''
           }`
         );
       }
 
-      await context.close();
+      // Close role contexts for this variant
+      for (const roleKey of Object.keys(contexts)) {
+        await contexts[roleKey].context.close();
+      }
     }
   } finally {
     await browser.close();
-    await prisma.$disconnect();
-
-    if (spawnedApi) {
-      try { spawnedApi.kill(); } catch {}
-      killPort(API_PORT);
-    }
-    if (spawnedWeb) {
-      try { spawnedWeb.kill(); } catch {}
-      killPort(WEB_PORT);
-    }
   }
 
-  // 3. Write results JSON
+  // Write results JSON
   fs.writeFileSync(resultsJsonPath, JSON.stringify(results, null, 2), 'utf8');
   console.log(`\nWrote full results to ${resultsJsonPath}`);
 
-  // 4. Regenerate ui-qa-sweep.md FROM JSON (NO hand edits)
+  // Generate ui-qa-sweep.md
   const totalCells = results.length;
   const passedCells = results.filter((r) => r.passed).length;
   const failedCells = results.filter((r) => !r.passed).length;
@@ -380,19 +553,17 @@ async function main() {
   md += `> **Platform**: Nextal HR & Payroll Management System (UAE Labor & MOHRE Compliant)  \n`;
   md += `> **Sweep Timestamp**: ${new Date().toISOString()}  \n`;
   md += `> **Engine**: Playwright Chromium (Automated Scripted Sweep)  \n`;
-  md += `> **Total Visual Cells Tested**: ${totalCells} cells (16 pages × 4 viewport/theme variants)  \n`;
+  md += `> **Total Visual Cells Tested**: ${totalCells} cells (${PAGES.length} pages × 4 viewport/theme variants)  \n`;
   md += `> **Passed**: **${passedCells} / ${totalCells}** (${Math.round((passedCells / totalCells) * 100)}%) · **Failed**: **${failedCells}**  \n\n`;
   md += `---\n\n`;
 
-  md += `## 1. Automated 64-Cell Verification Matrix\n\n`;
-  md += `| Page / Route | light-en-1440 | dark-en-1440 | light-ar-1440 (RTL) | dark-ar-390 (Mobile RTL) |\n`;
-  md += `|:---|:---:|:---:|:---:|:---:|\n`;
+  md += `## 1. Automated Verification Matrix\n\n`;
+  md += `| Page / Route | Role | light-en-1440 | dark-en-1440 | light-ar-1440 (RTL) | dark-ar-390 (Mobile RTL) |\n`;
+  md += `|:---|:---:|:---:|:---:|:---:|:---:|\n`;
 
-  const uniquePages = [...new Set(results.map((r) => r.page))];
-  for (const pid of uniquePages) {
-    const pageRuns = results.filter((r) => r.page === pid);
-    const pName = pageRuns[0]?.pageName || pid;
-    const pRoute = pageRuns[0]?.route || '';
+  for (const pageDef of PAGES) {
+    const pageRuns = results.filter((r) => r.page === pageDef.id);
+    const role = pageRuns[0]?.role || getRoleForPage(pageDef.path);
 
     const getCell = (vid) => {
       const match = pageRuns.find((r) => r.variant === vid);
@@ -404,22 +575,28 @@ async function main() {
       }
     };
 
-    md += `| **${pName}**<br>\`${pRoute}\` | ${getCell('light-en-1440')} | ${getCell('dark-en-1440')} | ${getCell('light-ar-1440')} | ${getCell('dark-ar-390')} |\n`;
+    md += `| **${pageDef.name}**<br>\`${pageDef.path}\` | \`${role}\` | ${getCell('light-en-1440')} | ${getCell('dark-en-1440')} | ${getCell('light-ar-1440')} | ${getCell('dark-ar-390')} |\n`;
   }
 
   md += `\n---\n\n`;
   md += `## 2. Assertion Audit Details\n\n`;
+  md += `- **HTTP Status & Overlay**: Asserted HTTP 200 main document response and absence of Next.js error overlay / \`nextjs-portal\`.\n`;
+  md += `- **Console & Network Errors**: Recorded all response status ≥ 400 and all console errors (favicon excluded).\n`;
+  md += `- **Role Scoping**: Tested pages under authentic sessions (\`employee@gulftech.ae\` for self-service, \`admin@gulftech.ae\` for settings/audit, \`hr.mgr@gulftech.ae\` for operations).\n`;
+  md += `- **Theme & Language Switching**: Triggered exclusively via UI buttons (\`#btn-language-toggle\` and \`#btn-theme-toggle\`) with zero \`page.evaluate\` DOM faking.\n`;
   md += `- **Forbidden text leak scan**: Checked for literal \`undefined\`, \`null\`, \`NaN\`, \`Invalid request payload\`, and empty parentheticals \`()\`.  \n`;
   md += `- **Mobile 390px responsive viewport**: Zero horizontal overflow verified (\`scrollWidth <= 390px\`).  \n`;
-  md += `- **RTL mirroring**: Verified \`dir="rtl"\` on all Arabic screenshots.  \n`;
-  md += `- **Zero mock status**: All data generated by real headless Chromium instances reading live PostgreSQL database \`nextal_hr_test\` via \`localhost:5000\`.  \n`;
+  md += `- **Raw Translation Keys**: Verified no visible text matches unrendered dictionary keys from \`en.json\`.\n`;
+  md += `- **Arabic Linguistic Integrity**: Verified Arabic screens contain no unapproved English text in interactive controls or headers.\n`;
 
   fs.writeFileSync(sweepMdPath, md, 'utf8');
   console.log(`Regenerated ${sweepMdPath} successfully directly from ${resultsJsonPath}.`);
+  console.log(`\nSUMMARY: ${passedCells}/${totalCells} cells passed (${failedCells} failed).`);
+  if (apiProc) apiProc.kill();
+  if (webProc) webProc.kill();
 }
 
 main().catch((err) => {
   console.error('Fatal error in ui-qa-capture:', err);
   process.exit(1);
 });
-

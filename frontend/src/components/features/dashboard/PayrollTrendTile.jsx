@@ -67,8 +67,8 @@ export function PayrollTrendTile({ data, onClick }) {
           <TrendingUp className="w-5 h-5 stroke-[2]" />
         </IconWell>
       }
-      title="Payroll Cost Trend (6 Months)"
-      subtitle="Gross vs Net WPS disbursements with ±5% variance band"
+      title={t('dashboard.payrollTrend.title')}
+      subtitle={t('dashboard.payrollTrend.subtitle')}
     >
       <div className="space-y-2 h-full flex flex-col justify-between">
         {/* Recharts Area Chart */}

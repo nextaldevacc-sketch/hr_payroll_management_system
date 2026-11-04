@@ -8,7 +8,7 @@ import { ListDivided } from '../../primitives/ListDivided';
 import { useLanguage } from '../../../context/LanguageContext';
 
 export function WpsReadinessTile({ data, onClick, onFilterMissing }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const ready = data?.ready || 40;
   const total = data?.total || 42;
   const percentage = Math.round((ready / total) * 100);
@@ -22,9 +22,9 @@ export function WpsReadinessTile({ data, onClick, onFilterMissing }) {
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   const checks = data?.checks || [
-    { key: 'iban', label: 'IBAN account present', missing: 1, status: 'warning' },
-    { key: 'routing', label: 'Bank routing code present', missing: 1, status: 'warning' },
-    { key: 'personId', label: 'Labour Card / Person ID present', missing: 0, status: 'success' },
+    { key: 'iban', label: language === 'ar' ? 'حساب الآيبان (IBAN) متوفر' : 'IBAN account present', missing: 1, status: 'warning' },
+    { key: 'routing', label: language === 'ar' ? 'رمز التوجيه المصرفي متوفر' : 'Bank routing code present', missing: 1, status: 'warning' },
+    { key: 'personId', label: language === 'ar' ? 'بطاقة العمل / رقم المنشأة متوفر' : 'Labour Card / Person ID present', missing: 0, status: 'success' },
   ];
 
   return (
@@ -37,8 +37,8 @@ export function WpsReadinessTile({ data, onClick, onFilterMissing }) {
           <ShieldCheck className="w-5 h-5 stroke-[2]" />
         </IconWell>
       }
-      title="WPS SIF Readiness"
-      subtitle="UAE Wage Protection System audit"
+      title={t('dashboard.wpsReadiness.title')}
+      subtitle={t('dashboard.wpsReadiness.subtitle')}
     >
       <div className="flex-1 flex flex-col justify-between">
         {/* Progress Ring and Ready Count */}
@@ -112,7 +112,9 @@ export function WpsReadinessTile({ data, onClick, onFilterMissing }) {
                       : 'bg-warning-wash text-warning-text'
                   }`}
                 >
-                  {check.missing === 0 ? 'All 42 valid' : `${check.missing} missing`}
+                  {check.missing === 0
+                    ? (language === 'ar' ? 'مكتمل' : 'All 42 valid')
+                    : (language === 'ar' ? `${check.missing} ناقص` : `${check.missing} missing`)}
                 </span>
                 <ChevronRight className="w-3 h-3 text-text-muted group-hover:text-text rtl:-scale-x-100" />
               </div>

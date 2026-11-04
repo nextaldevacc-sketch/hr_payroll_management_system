@@ -29,9 +29,11 @@ import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
 import { Select } from '../../primitives/form/Select';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export function SalaryAdjustmentsFeature() {
   const queryClient = useQueryClient();
+  const { language } = useLanguage();
 
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -147,10 +149,10 @@ export function SalaryAdjustmentsFeature() {
             </Link>
             <div>
               <h1 className="text-2xl font-black text-text dark:gold-heading tracking-tight">
-                Salary Adjustments & Loans
+                {language === 'ar' ? 'تعديلات الرواتب والقروض' : 'Salary Adjustments & Loans'}
               </h1>
               <p className="text-xs text-text-muted mt-0.5">
-                سلف وقروض الموظفين &bull; Scheduled monthly instalment deductions, advances, and payroll corrections
+                {language === 'ar' ? 'سلف وقروض الموظفين وأقساط الخصم الشهرية والتسويات' : 'سلف وقروض الموظفين • Scheduled monthly instalment deductions, advances, and payroll corrections'}
               </p>
             </div>
           </div>
@@ -166,7 +168,7 @@ export function SalaryAdjustmentsFeature() {
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-black hover:opacity-95 transition-all shadow-md active:scale-95"
         >
           <Plus className="w-4 h-4" />
-          Create Adjustment
+          <span>{language === 'ar' ? 'إضافة تسوية جديدة' : 'Create Adjustment'}</span>
         </button>
       </div>
 
@@ -223,7 +225,9 @@ export function SalaryAdjustmentsFeature() {
                     : 'text-text-muted hover:text-text'
                 }`}
               >
-                {t || 'All Types'}
+                {t
+                  ? (language === 'ar' ? ({ Loan: 'قرض', Advance: 'سلفة', Correction: 'تسوية' }[t] || t) : t)
+                  : (language === 'ar' ? 'جميع الأنواع' : 'All Types')}
               </button>
             ))}
           </div>
@@ -231,16 +235,17 @@ export function SalaryAdjustmentsFeature() {
           {/* Status Filter */}
           <div className="min-w-[160px]">
             <Select
+              data-i18n-skip="true"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              placeholder="All Statuses"
+              placeholder={language === 'ar' ? 'جميع الحالات' : 'All Statuses'}
               options={[
-                { value: '', label: 'All Statuses' },
-                { value: 'Pending', label: 'Pending Approval' },
-                { value: 'Approved', label: 'Approved' },
-                { value: 'Active', label: 'Active Deducting' },
-                { value: 'Completed', label: 'Completed' },
-                { value: 'Rejected', label: 'Rejected' },
+                { value: '', label: language === 'ar' ? 'جميع الحالات' : 'All Statuses' },
+                { value: 'Pending', label: language === 'ar' ? 'قيد الموافقة' : 'Pending Approval' },
+                { value: 'Approved', label: language === 'ar' ? 'معتمد' : 'Approved' },
+                { value: 'Active', label: language === 'ar' ? 'نشط / قيد الخصم' : 'Active Deducting' },
+                { value: 'Completed', label: language === 'ar' ? 'مكتمل' : 'Completed' },
+                { value: 'Rejected', label: language === 'ar' ? 'مرفوض' : 'Rejected' },
               ]}
             />
           </div>
@@ -257,15 +262,15 @@ export function SalaryAdjustmentsFeature() {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-border/80 bg-surface-raised/50 text-text-muted font-bold tracking-wider uppercase text-[10px]">
-                <th className="py-3.5 px-4">Employee</th>
-                <th className="py-3.5 px-4">Type</th>
-                <th className="py-3.5 px-4 text-right">Total Amount</th>
-                <th className="py-3.5 px-4 text-right">Monthly Deduction</th>
-                <th className="py-3.5 px-4 text-right">Remaining Balance</th>
-                <th className="py-3.5 px-4">Start Month</th>
-                <th className="py-3.5 px-4">Reason / Notes</th>
-                <th className="py-3.5 px-4 text-center">Status</th>
-                <th className="py-3.5 px-4 text-center">Actions</th>
+                <th className="py-3.5 px-4">{language === 'ar' ? 'الموظف' : 'Employee'}</th>
+                <th className="py-3.5 px-4">{language === 'ar' ? 'النوع' : 'Type'}</th>
+                <th className="py-3.5 px-4 text-right">{language === 'ar' ? 'إجمالي المبلغ' : 'Total Amount'}</th>
+                <th className="py-3.5 px-4 text-right">{language === 'ar' ? 'الخصم الشهري' : 'Monthly Deduction'}</th>
+                <th className="py-3.5 px-4 text-right">{language === 'ar' ? 'الرصيد المتبقي' : 'Remaining Balance'}</th>
+                <th className="py-3.5 px-4">{language === 'ar' ? 'شهر البدء' : 'Start Month'}</th>
+                <th className="py-3.5 px-4">{language === 'ar' ? 'السبب / الملاحظات' : 'Reason / Notes'}</th>
+                <th className="py-3.5 px-4 text-center">{language === 'ar' ? 'الحالة' : 'Status'}</th>
+                <th className="py-3.5 px-4 text-right">{language === 'ar' ? 'الإجراءات' : 'Actions'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">

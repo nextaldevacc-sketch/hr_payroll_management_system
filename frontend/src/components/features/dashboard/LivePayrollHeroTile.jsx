@@ -97,13 +97,13 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
             <div className="w-1 h-1 rounded-full bg-border" />
             <div className="flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-secondary-text" />
-              <span>{data.employeesIncluded} employees included</span>
+              <span>{t('dashboard.livePayroll.employeesIncluded', '{{count}} employees included', { count: data.employeesIncluded })}</span>
             </div>
           </div>
 
           {/* 6-Month Net Payroll Sparkline with Tooltip */}
           <div className="relative flex items-center gap-2">
-            <span className="text-[11px] text-text-muted">6M Net:</span>
+            <span className="text-[11px] text-text-muted">{t('dashboard.livePayroll.sixMonthNet', '6M Net')}:</span>
             <div className="relative">
               <svg width={sparkWidth} height={sparkHeight} className="overflow-visible">
                 <polyline
@@ -169,14 +169,14 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
           </div>
 
           <div className="flex flex-col">
-            <span className="text-warning-text text-[11px]">− Late Penalties</span>
+            <span className="text-warning-text text-[11px]">− {t('dashboard.livePayroll.latePenalties', 'Late Penalties')}</span>
             <bdi className="tabular-nums font-semibold text-warning-text mt-0.5">
               {seesSalary ? `−${formatCurrency(figures.latePenalties, 'AED', language)}` : '−••••••'}
             </bdi>
           </div>
 
           <div className="flex flex-col">
-            <span className="text-danger-text text-[11px]">− Other Deductions</span>
+            <span className="text-danger-text text-[11px]">− {t('dashboard.livePayroll.otherDeductions', 'Other Deductions')}</span>
             <bdi className="tabular-nums font-semibold text-danger-text mt-0.5">
               {seesSalary ? `−${formatCurrency(figures.otherDeductions, 'AED', language)}` : '−••••••'}
             </bdi>
@@ -192,9 +192,9 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                <span className="text-text-muted truncate text-[11px]">{v.name} ({v.count})</span>
+                <span className="text-text-muted truncate text-[11px]" data-i18n-skip>{v.name} ({v.count})</span>
               </div>
-              <bdi className="tabular-nums font-semibold text-text ms-2">
+              <bdi className="tabular-nums font-semibold text-text ms-2" data-i18n-skip>
                 {seesSalary ? formatCurrency(v.net, 'AED', language) : '••••••'}
               </bdi>
             </InsetBox>
@@ -207,7 +207,7 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
             <span className="text-[11px] uppercase font-bold tracking-wider text-text-muted block">
               {t('dashboard.livePayroll.netToWps')}
             </span>
-            <bdi className="text-2xl sm:text-3xl font-black text-text dark:gold-hero-number tabular-nums tracking-tight mt-0.5 block">
+            <bdi className="text-2xl sm:text-3xl font-black text-text dark:gold-hero-number tabular-nums tracking-tight mt-0.5 block" data-i18n-skip>
               {seesSalary ? formatCurrency(figures.netToWps, 'AED', language) : 'AED ••••••••'}
             </bdi>
             {!seesSalary && (
@@ -219,9 +219,9 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
 
           <div className="flex flex-col items-end gap-1">
             <span className="text-xs font-bold px-2.5 py-1 rounded-pill bg-primary text-[var(--on-primary)] shadow-sm">
-              Stage: {data.currentStep}
+              {t('dashboard.livePayroll.stage', 'Stage')}: {t(`payroll.stages.${data.currentStep}`, data.currentStep)}
             </span>
-            <span className="text-[10px] text-text-muted">Direct SIF generation</span>
+            <span className="text-[10px] text-text-muted">{t('dashboard.livePayroll.directSif', 'Direct SIF generation')}</span>
           </div>
         </InsetBox>
 

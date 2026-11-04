@@ -380,7 +380,7 @@ export function OffboardingFeature() {
                 title="Download UAE Statutory Gratuity Provision Excel Report"
               >
                 <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
-                <span>Gratuity Report</span>
+                <span>{language === 'ar' ? 'تقرير مكافأة نهاية الخدمة' : 'Gratuity Report'}</span>
               </button>
               <button
                 onClick={handleDownloadLeaveLiabilityReport}
@@ -388,7 +388,7 @@ export function OffboardingFeature() {
                 title="Download Leave Liability Excel Report"
               >
                 <FileSpreadsheet className="w-4 h-4 text-amber-500" />
-                <span>Leave Liability</span>
+                <span>{language === 'ar' ? 'تقرير مستحقات الإجازات' : 'Leave Liability'}</span>
               </button>
             </>
           )}
@@ -494,7 +494,9 @@ export function OffboardingFeature() {
           {/* Filter Bar */}
           <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-white/60 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filters:</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                {language === 'ar' ? 'التصفية:' : 'Filters:'}
+              </span>
               {['ALL', 'PENDING', 'APPROVED', 'COMPLETED'].map((st) => (
                 <button
                   key={st}
@@ -505,7 +507,9 @@ export function OffboardingFeature() {
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                   }`}
                 >
-                  {st}
+                  {language === 'ar'
+                    ? ({ ALL: 'الكل', PENDING: 'قيد الانتظار', APPROVED: 'معتمد', COMPLETED: 'مكتمل' }[st] || st)
+                    : st}
                 </button>
               ))}
             </div>
@@ -644,7 +648,7 @@ export function OffboardingFeature() {
                             }}
                             className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 hover:text-rose-600 transition-colors"
                           >
-                            Manage
+                            {language === 'ar' ? 'إدارة' : 'Manage'}
                           </button>
                         </td>
                       </tr>

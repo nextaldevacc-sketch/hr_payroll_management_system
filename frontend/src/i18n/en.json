@@ -44,11 +44,16 @@
   "dashboard": {
     "title": "HR & Payroll Overview",
     "subtitle": "Real-time compliance, payroll run & workforce analytics",
+    "actions": {
+      "calculatePayroll": "Calculate Payroll",
+      "importPunches": "Import Punches"
+    },
     "livePayroll": {
       "title": "Live Payroll — October 2026",
       "subtitle": "Company Payroll",
       "cutoff": "Cut-off in 4 days",
       "employeesCount": "42 employees included",
+      "employeesIncluded": "{{count}} employees included",
       "gross": "Contract Gross",
       "overtime": "Approved Overtime",
       "absence": "Unapproved Absence",
@@ -56,6 +61,9 @@
       "otherDeductions": "Other Deductions",
       "latePenalties": "Late Penalties",
       "netToWps": "Net Pay to WPS",
+      "stage": "Stage",
+      "directSif": "Direct SIF generation",
+      "sixMonthNet": "6M Net",
       "stepperDraft": "Draft",
       "stepperCalc": "Calculated",
       "stepperValid": "Validated",
@@ -152,6 +160,23 @@
     "title": "Employee Directory",
     "subtitle": "Master records, versioned contracts & compliance status",
     "newEmployee": "New Employee",
+    "all": "All",
+    "pendingVerification": "Pending Verification",
+    "active": "Active",
+    "bento": {
+      "totalFiltered": "Total Filtered",
+      "workforce": "Gulf Tech Workforce",
+      "managedTeam": "Your Managed Team",
+      "statusCoverage": "Status Coverage",
+      "compliantVisas": "Compliant UAE Visas",
+      "salaryAccess": "Salary Access",
+      "statutoryActive": "Statutory Active",
+      "restrictedRole": "Restricted Role",
+      "payrollHrView": "Payroll & HR Manager View",
+      "privacyEnforced": "Spec 5.3 Privacy Enforced",
+      "docAlerts": "Document Alerts",
+      "daysToExpiry": "≤90 Days to Expiry"
+    },
     "search": "Search by name, employee code, email...",
     "status": "Status",
     "allStatuses": "All Statuses",
@@ -268,6 +293,36 @@
       "pay": "Finance Mark Paid",
       "downloadPdf": "Download Settlement Payslip (PDF)",
       "frozenBadge": "Frozen & Locked (Article 51)"
+    }
+  },
+  "payroll": {
+    "stages": {
+      "Draft": "Draft",
+      "Calculated": "Calculated",
+      "Validated": "Validated",
+      "Locked": "Locked",
+      "Paid": "Paid"
+    }
+  },
+  "settings": {
+    "visas": {
+      "title": "Company Visas & Entities",
+      "subtitle": "Configure MOHRE, Freezone visas and WPS routing",
+      "mohreEmployerId": "MOHRE Employer ID",
+      "bankRoutingCode": "Bank Routing Code",
+      "pensionFund": "Pension Fund",
+      "active": "Active",
+      "inactive": "Inactive",
+      "employeeCount": "Employees"
+    },
+    "branches": {
+      "title": "Company Branches & Locations",
+      "subtitle": "Manage UAE operational locations and branch visa assignments",
+      "emirate": "Emirate",
+      "assignedVisa": "Assigned Visa",
+      "active": "Active",
+      "inactive": "Inactive",
+      "employeeCount": "Employees"
     }
   }
 }

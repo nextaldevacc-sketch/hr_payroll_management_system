@@ -212,10 +212,17 @@ class AttendanceService {
     // 7. Auto-build attendance days for the affected period
     let rebuildStart = fromDate;
     let rebuildEnd = toDate;
-    if (!periodFrom && validPunches.length > 0) {
+    if (validPunches.length > 0) {
       const timestamps = validPunches.map((p) => p.punched_at.getTime());
-      rebuildStart = new Date(Math.min(...timestamps));
-      rebuildEnd = new Date(Math.max(...timestamps));
+      const minPunchDate = new Date(Math.min(...timestamps));
+      const maxPunchDate = new Date(Math.max(...timestamps));
+      if (!periodFrom) {
+        rebuildStart = minPunchDate;
+        rebuildEnd = maxPunchDate;
+      } else {
+        rebuildStart = minPunchDate < rebuildStart ? minPunchDate : rebuildStart;
+        rebuildEnd = maxPunchDate > rebuildEnd ? maxPunchDate : rebuildEnd;
+      }
     }
 
     await this.buildAttendanceDays({
@@ -758,16 +765,17 @@ class AttendanceService {
    * 5. Missing Punch Queue
    */
   async getMissingPunchQueue({ companyId, month, companyVisaId }) {
-    const monthKey = month || toDubaiDateString(new Date()).slice(0, 7);
-    const [y, m] = monthKey.split('-').map(Number);
-    const startOfMonth = new Date(Date.UTC(y, m - 1, 1));
-    const endOfMonth = new Date(Date.UTC(y, m, 0, 23, 59, 59));
-
     const where = {
       company_id: companyId,
-      work_date: { gte: startOfMonth, lte: endOfMonth },
       exception_codes: { has: 'MISSING_PUNCH' },
     };
+
+    if (month) {
+      const [y, m] = month.split('-').map(Number);
+      const startOfMonth = new Date(Date.UTC(y, m - 1, 1));
+      const endOfMonth = new Date(Date.UTC(y, m, 0, 23, 59, 59));
+      where.work_date = { gte: startOfMonth, lte: endOfMonth };
+    }
 
     if (companyVisaId) {
       const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });

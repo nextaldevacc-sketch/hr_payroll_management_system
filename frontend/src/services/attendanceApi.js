@@ -28,17 +28,18 @@ export async function editAttendanceDay(id, data) {
 
 export async function getMissingPunchQueue(params = {}) {
   const query = new URLSearchParams();
+  if (params.month) query.append('month', params.month);
   if (params.from) query.append('from', params.from);
   if (params.to) query.append('to', params.to);
   if (params.departmentId) query.append('departmentId', params.departmentId);
   if (params.company_visa_id) query.append('company_visa_id', params.company_visa_id);
   if (params.companyVisaId) query.append('company_visa_id', params.companyVisaId);
   const qStr = query.toString() ? `?${query.toString()}` : '';
-  return request(`/attendance/missing-punches${qStr}`);
+  return request(`/attendance/missing-punch${qStr}`);
 }
 
 export async function resolveMissingPunch(id, data) {
-  return request(`/attendance/missing-punches/${id}/resolve`, {
+  return request(`/attendance/days/${id}/resolve-missing-punch`, {
     method: 'POST',
     body: JSON.stringify(data),
   });

@@ -18,6 +18,12 @@ export function DepartmentsJobsDrawer({
   const [activeTab, setActiveTab] = useState('departments'); // 'departments' | 'jobs'
   const [deptList, setDeptList] = useState(departments);
   const [jobList, setJobList] = useState(jobs);
+  React.useEffect(() => {
+    setDeptList(departments || []);
+  }, [departments]);
+  React.useEffect(() => {
+    setJobList(jobs || []);
+  }, [jobs]);
 
   const [isAddingJob, setIsAddingJob] = useState(false);
   const [newJob, setNewJob] = useState({

@@ -9,6 +9,7 @@ import clsx from 'clsx';
  * Soft raised or inset circle/rounded-square holding an icon
  */
 export function IconWell({
+  id,
   children,
   size = 'md',
   shape = 'square',
@@ -42,6 +43,7 @@ export function IconWell({
 
   return (
     <div
+      id={id}
       onClick={onClick}
       title={title}
       className={clsx(

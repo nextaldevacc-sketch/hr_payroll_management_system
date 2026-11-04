@@ -129,6 +129,10 @@ export async function authenticate(req, res, next) {
   const token = extractToken(req);
 
   if (!token) {
+    if (req.path === '/me' || req.originalUrl?.includes('/auth/me')) {
+      req.user = null;
+      return next();
+    }
     return res.status(401).json({
       status: 'error',
       code: 'UNAUTHORIZED',

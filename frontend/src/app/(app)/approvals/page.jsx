@@ -6,7 +6,7 @@ import { RouteGuard } from '../../../components/common/RouteGuard';
 
 export default function ApprovalsPage() {
   return (
-    <RouteGuard permission={['approvals:view', 'approvals:approve', 'employees:verify', 'employees:edit']}>
+    <RouteGuard area="approvals">
       <ApprovalsInboxFeature />
     </RouteGuard>
   );

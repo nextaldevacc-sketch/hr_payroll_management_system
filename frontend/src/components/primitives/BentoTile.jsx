@@ -32,9 +32,9 @@ export function BentoTile({
     >
       {/* Compact Tile Header: 40px icon well, 16px/700 title, 13px muted subtitle */}
       {(title || iconWell || badge || headerAction) && (
-        <div className="flex items-center justify-between gap-3 mb-4 flex-shrink-0 min-w-0">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            {iconWell && <div className="flex-shrink-0">{iconWell}</div>}
+        <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-2.5 sm:gap-3 mb-4 flex-shrink-0 min-w-0">
+          <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+            {iconWell && <div className="flex-shrink-0 mt-0.5 sm:mt-0">{iconWell}</div>}
             <div className="min-w-0 flex-1">
               {title && (
                 <h3 className="text-base font-bold text-text dark:gold-heading tracking-tight leading-snug line-clamp-2">
@@ -42,13 +42,13 @@ export function BentoTile({
                 </h3>
               )}
               {subtitle && (
-                <p className="text-[13px] text-text-muted leading-tight truncate mt-0.5">
+                <p className="text-[13px] text-text-muted leading-tight line-clamp-2 mt-0.5">
                   {subtitle}
                 </p>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0 ms-auto">
             {badge}
             {headerAction}
           </div>

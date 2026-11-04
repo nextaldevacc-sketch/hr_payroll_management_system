@@ -79,7 +79,7 @@ export function PendingApprovalsTile({ data, onClick, onApproveItem, onOpenItem 
                     className="px-2 py-0.5 rounded text-[11px] font-bold bg-secondary text-white hover:bg-secondary/90 flex items-center gap-1 transition-colors"
                   >
                     <Check className="w-3 h-3" />
-                    <span>Approve</span>
+                    <span>{language === 'ar' ? 'موافقة' : 'Approve'}</span>
                   </button>
                 ) : (
                   <button
@@ -89,7 +89,7 @@ export function PendingApprovalsTile({ data, onClick, onApproveItem, onOpenItem 
                     }}
                     className="px-2 py-0.5 rounded text-[11px] font-medium bg-black/5 dark:bg-inset text-text hover:bg-black/10 dark:hover:bg-inset-hover transition-colors"
                   >
-                    Open
+                    <span>{language === 'ar' ? 'فتح' : 'Open'}</span>
                   </button>
                 )}
               </div>

@@ -301,7 +301,15 @@ export default function SettingsPage() {
     try {
       for (const b of updatedBranches) {
         if (b.id && !b.id.startsWith('b-custom')) {
-          await updateBranch(b.id, b);
+          try {
+            await updateBranch(b.id, b);
+          } catch (e) {
+            if (e.status === 404) {
+              await createBranch(b);
+            } else {
+              throw e;
+            }
+          }
         } else {
           await createBranch(b);
         }
@@ -318,14 +326,30 @@ export default function SettingsPage() {
     try {
       for (const d of depts) {
         if (d.id && !d.id.startsWith('d-custom')) {
-          await updateDepartment(d.id, d);
+          try {
+            await updateDepartment(d.id, d);
+          } catch (e) {
+            if (e.status === 404) {
+              await createDepartment(d);
+            } else {
+              throw e;
+            }
+          }
         } else {
           await createDepartment(d);
         }
       }
       for (const j of jobList) {
         if (j.id && !j.id.startsWith('j-custom')) {
-          await updateJob(j.id, j);
+          try {
+            await updateJob(j.id, j);
+          } catch (e) {
+            if (e.status === 404) {
+              await createJob(j);
+            } else {
+              throw e;
+            }
+          }
         } else {
           await createJob(j);
         }
@@ -493,7 +517,7 @@ export default function SettingsPage() {
               {language === 'ar' ? 'إعدادات المنشأة والنظام (المرحلة 3)' : 'Company Settings & Configuration'}
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/20 text-primary border border-primary/30">
-              PHASE 3 COMPLETE
+              {language === 'ar' ? 'المرحلة 3 مكتملة' : 'PHASE 3 COMPLETE'}
             </span>
           </div>
           <p className="text-xs text-text-muted mt-1">
@@ -519,17 +543,17 @@ export default function SettingsPage() {
               </span>
               {isHrOrAdmin && (
                 <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Full Access
+                  {language === 'ar' ? 'صلاحية كاملة' : 'Full Access'}
                 </span>
               )}
               {isPayrollOfficer && (
                 <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                  Salary Rules Only
+                  {language === 'ar' ? 'قواعد الرواتب فقط' : 'Salary Rules Only'}
                 </span>
               )}
               {isFinance && (
                 <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-sky-500/10 text-sky-300 border border-sky-500/20">
-                  GL Accounts Only
+                  {language === 'ar' ? 'حسابات دفتر الأستاذ فقط' : 'GL Accounts Only'}
                 </span>
               )}
             </div>

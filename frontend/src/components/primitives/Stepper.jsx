@@ -3,6 +3,7 @@
 import React from 'react';
 import clsx from 'clsx';
 import { Check } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
  * Horizontal Stepper Primitive
@@ -16,6 +17,7 @@ export function Stepper({
   currentStep = 'Calculated',
   className = '',
 }) {
+  const { t } = useLanguage();
   const currentIndex = steps.findIndex(
     (s) => s.toLowerCase() === currentStep.toLowerCase()
   );
@@ -65,7 +67,7 @@ export function Stepper({
                   isFuture && 'text-text-muted/70'
                 )}
               >
-                {step}
+                {t(`payroll.stages.${step}`, step)}
               </span>
             </div>
           );

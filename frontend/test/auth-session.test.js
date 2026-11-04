@@ -66,6 +66,11 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
       await prisma.users.updateMany({
         data: { failed_logins: 0, locked_until: null },
       });
+      if (process.env.DATABASE_URL) {
+        const devPrisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });
+        await devPrisma.users.updateMany({ data: { failed_logins: 0, locked_until: null } });
+        await devPrisma.$disconnect();
+      }
 
       // 1. Ensure API server is running on test database
       try {
@@ -186,7 +191,8 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
       page.on('console', (msg) => console.log(`[BROWSER LOG (${item.email})]:`, msg.text()));
       page.on('pageerror', (err) => console.log(`[BROWSER ERROR (${item.email})]:`, err.message));
 
-      await page.goto(`http://127.0.0.1:${WEB_PORT}/login`, { waitUntil: 'domcontentloaded' });
+      await page.goto(`http://127.0.0.1:${WEB_PORT}/login`);
+      await page.waitForSelector('button[type="submit"]:not([disabled])', { timeout: 15000 });
       await page.fill('input[type="email"]', item.email);
       await page.fill('input[type="password"]', TEST_PASSWORD);
       await page.click('button[type="submit"]');
@@ -211,7 +217,8 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
     const lockTargetEmail = 'emp-dxb-020@gulftech.ae'; // Dedicated employee account for lockout test
 
     // 1. Single wrong password
-    await page.goto(`http://127.0.0.1:${WEB_PORT}/login`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`http://127.0.0.1:${WEB_PORT}/login`);
+    await page.waitForSelector('button[type="submit"]:not([disabled])', { timeout: 15000 });
     await page.fill('input[type="email"]', lockTargetEmail);
     await page.fill('input[type="password"]', 'WrongPassword123!');
     await page.click('button[type="submit"]');
@@ -248,7 +255,8 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
     const page = await context.newPage();
 
     // Sign in as HR Manager
-    await page.goto(`http://127.0.0.1:${WEB_PORT}/login`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`http://127.0.0.1:${WEB_PORT}/login`);
+    await page.waitForSelector('button[type="submit"]:not([disabled])', { timeout: 15000 });
     await page.fill('input[type="email"]', 'hr.mgr@gulftech.ae');
     await page.fill('input[type="password"]', TEST_PASSWORD);
     await page.click('button[type="submit"]');
@@ -300,13 +308,14 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
     const context1 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page1 = await context1.newPage();
 
-    await page1.goto(`http://127.0.0.1:${WEB_PORT}/login`, { waitUntil: 'domcontentloaded' });
+    await page1.goto(`http://127.0.0.1:${WEB_PORT}/login`);
+    await page1.waitForSelector('button[type="submit"]:not([disabled])', { timeout: 15000 });
     await page1.fill('input[type="email"]', 'employee@gulftech.ae');
     await page1.fill('input[type="password"]', TEST_PASSWORD);
     await page1.click('button[type="submit"]');
     await page1.waitForURL((url) => url.pathname.startsWith('/me'), { timeout: 15000 });
 
-    await page1.goto(`http://127.0.0.1:${WEB_PORT}/payroll`, { waitUntil: 'domcontentloaded' });
+    await page1.goto(`http://127.0.0.1:${WEB_PORT}/payroll`);
     await page1.waitForSelector('text=403', { timeout: 15000 });
     const text1 = await page1.textContent('body');
     assert.ok(text1.includes('403') && (text1.includes('Forbidden') || text1.includes('صلاحية')), 'Employee typing /payroll must see 403 page');
@@ -316,7 +325,8 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
     const context2 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page2 = await context2.newPage();
 
-    await page2.goto(`http://127.0.0.1:${WEB_PORT}/login`, { waitUntil: 'domcontentloaded' });
+    await page2.goto(`http://127.0.0.1:${WEB_PORT}/login`);
+    await page2.waitForSelector('button[type="submit"]:not([disabled])', { timeout: 15000 });
     await page2.fill('input[type="email"]', 'hr.officer@gulftech.ae');
     await page2.fill('input[type="password"]', TEST_PASSWORD);
     await page2.click('button[type="submit"]');
@@ -360,7 +370,8 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
       const page = await context.newPage();
 
-      await page.goto(`http://${host}:${WEB_PORT}/login`, { waitUntil: 'domcontentloaded' });
+      await page.goto(`http://${host}:${WEB_PORT}/login`);
+      await page.waitForSelector('button[type="submit"]:not([disabled])', { timeout: 15000 });
       await page.fill('input[type="email"]', 'admin@gulftech.ae');
       await page.fill('input[type="password"]', TEST_PASSWORD);
       await page.click('button[type="submit"]');
@@ -417,7 +428,8 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
     const page = await context.newPage();
 
     // 1. Log in as HR Manager
-    await page.goto(`http://127.0.0.1:${WEB_PORT}/login`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`http://127.0.0.1:${WEB_PORT}/login`);
+    await page.waitForSelector('button[type="submit"]:not([disabled])', { timeout: 15000 });
     await page.fill('input[type="email"]', 'hr.mgr@gulftech.ae');
     await page.fill('input[type="password"]', TEST_PASSWORD);
     await page.click('button[type="submit"]');
@@ -441,6 +453,7 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
     });
 
     // 3. Log in as Employee
+    await page.waitForSelector('button[type="submit"]:not([disabled])', { timeout: 15000 });
     await page.fill('input[type="email"]', 'employee@gulftech.ae');
     await page.fill('input[type="password"]', TEST_PASSWORD);
     await page.click('button[type="submit"]');

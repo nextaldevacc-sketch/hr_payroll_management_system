@@ -26,7 +26,7 @@ import { Select } from '../../primitives/form/Select';
 
 export function EmployeeListFeature() {
   const { user } = useAuth();
-  const { isRTL, t } = useLanguage();
+  const { isRTL, language, t } = useLanguage();
   const { selectedVisaId, setSelectedVisaId } = useVisa();
 
   // Filter & Search states
@@ -202,29 +202,29 @@ export function EmployeeListFeature() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <GlassCard className="p-4 border border-border">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-text-muted">Total Filtered</span>
+            <span className="text-xs font-medium text-text-muted">{t('employees.bento.totalFiltered', 'Total Filtered')}</span>
             <Users className="w-4 h-4 text-primary" />
           </div>
-          <div className="mt-2 text-2xl font-black text-text">{meta.total}</div>
+          <div className="mt-2 text-2xl font-black text-text" data-i18n-skip>{meta.total}</div>
           <div className="text-[11px] text-text-muted mt-1">
-            {user?.roles?.includes('DEPT_MANAGER') ? 'Your Managed Team' : 'Gulf Tech Workforce'}
+            {user?.roles?.includes('DEPT_MANAGER') ? t('employees.bento.managedTeam', 'Your Managed Team') : t('employees.bento.workforce', 'Gulf Tech Workforce')}
           </div>
         </GlassCard>
 
         <GlassCard className="p-4 border border-border">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-text-muted">Status Coverage</span>
+            <span className="text-xs font-medium text-text-muted">{t('employees.bento.statusCoverage', 'Status Coverage')}</span>
             <Building2 className="w-4 h-4 text-emerald-500" />
           </div>
-          <div className="mt-2 text-2xl font-black text-text">100%</div>
+          <div className="mt-2 text-2xl font-black text-text" data-i18n-skip>100%</div>
           <div className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">
-            Compliant UAE Visas
+            {t('employees.bento.compliantVisas', 'Compliant UAE Visas')}
           </div>
         </GlassCard>
 
         <GlassCard className="p-4 border border-border">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-text-muted">Salary Access</span>
+            <span className="text-xs font-medium text-text-muted">{t('employees.bento.salaryAccess', 'Salary Access')}</span>
             {canSeeSalary ? (
               <CreditCard className="w-4 h-4 text-amber-500" />
             ) : (
@@ -232,20 +232,20 @@ export function EmployeeListFeature() {
             )}
           </div>
           <div className="mt-2 text-xl font-bold text-text">
-            {canSeeSalary ? 'Statutory Active' : 'Restricted Role'}
+            {canSeeSalary ? t('employees.bento.statutoryActive', 'Statutory Active') : t('employees.bento.restrictedRole', 'Restricted Role')}
           </div>
           <div className="text-[11px] text-text-muted mt-1">
-            {canSeeSalary ? 'Payroll & HR Manager View' : 'Spec 5.3 Privacy Enforced'}
+            {canSeeSalary ? t('employees.bento.payrollHrView', 'Payroll & HR Manager View') : t('employees.bento.privacyEnforced', 'Spec 5.3 Privacy Enforced')}
           </div>
         </GlassCard>
 
         <GlassCard className="p-4 border border-border">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-text-muted">Document Alerts</span>
+            <span className="text-xs font-medium text-text-muted">{t('employees.bento.docAlerts', 'Document Alerts')}</span>
             <AlertTriangle className="w-4 h-4 text-rose-500" />
           </div>
-          <div className="mt-2 text-2xl font-black text-rose-600 dark:text-rose-400">10</div>
-          <div className="text-[11px] text-text-muted mt-1">≤90 Days to Expiry</div>
+          <div className="mt-2 text-2xl font-black text-rose-600 dark:text-rose-400" data-i18n-skip>10</div>
+          <div className="text-[11px] text-text-muted mt-1">{t('employees.bento.daysToExpiry', '≤90 Days to Expiry')}</div>
         </GlassCard>
       </div>
 
@@ -418,27 +418,28 @@ export function EmployeeListFeature() {
         <div className="overflow-x-auto">
           <table className="w-full text-start text-xs border-collapse">
             <thead>
-              <tr className="border-b border-border bg-surface-raised/40 dark:bg-white/[0.02] text-text-muted font-semibold uppercase tracking-wider">
-                <th className="py-3.5 px-4 text-start">{t('employees.code', 'Code')}</th>
-                <th className="py-3.5 px-4 text-start">{t('employees.employee', 'Employee')}</th>
-                <th className="py-3.5 px-4 text-start">{t('employees.department', 'Department')}</th>
-                <th className="py-3.5 px-4 text-start">{t('employees.jobTitle', 'Job Title')}</th>
-                <th className="py-3.5 px-4 text-start">{t('employees.status', 'Status')}</th>
-                <th className="py-3.5 px-4 text-start">{t('employees.documentStatus', 'UAE Docs')}</th>
-                <th className="py-3.5 px-4 text-start">{t('employees.bankAccount', 'Bank Account')}</th>
+              <tr className="border-b border-border bg-surface-raised/40 dark:bg-white/[0.02] text-text-muted font-semibold uppercase tracking-wider text-[11px]">
+                <th className="py-3 px-2.5 text-start">{t('employees.code', 'Code')}</th>
+                <th className="py-3 px-2.5 text-start">{t('employees.employee', 'Employee')}</th>
+                <th className="py-3 px-2.5 text-start">{t('employees.department', 'Department')}</th>
+                <th className="py-3 px-2.5 text-start">{t('employees.branch', 'Branch')}</th>
+                <th className="py-3 px-2.5 text-start">{t('employees.jobTitle', 'Job Title')}</th>
+                <th className="py-3 px-2.5 text-start">{t('employees.status', 'Status')}</th>
+                <th className="py-3 px-2.5 text-start">{t('employees.documentStatus', 'UAE Docs')}</th>
+                <th className="py-3 px-2.5 text-start">{t('employees.bankAccount', 'Bank Account')}</th>
                 {canSeeSalary && (
                   <>
-                    <th className="py-3.5 px-4 text-end">{t('employees.basicSalary', 'Basic (AED)')}</th>
-                    <th className="py-3.5 px-4 text-end">{t('employees.contractGross', 'Gross (AED)')}</th>
+                    <th className="py-3 px-2.5 text-end">{t('employees.basicSalary', 'Basic (AED)')}</th>
+                    <th className="py-3 px-2.5 text-end">{t('employees.contractGross', 'Gross (AED)')}</th>
                   </>
                 )}
-                <th className="py-3.5 px-4 text-center">{t('employees.actions', 'Action')}</th>
+                <th className="py-3 px-2.5 text-center">{t('employees.actions', 'Action')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={canSeeSalary ? 10 : 8} className="py-12 text-center text-text-muted">
+                  <td colSpan={canSeeSalary ? 11 : 9} className="py-12 text-center text-text-muted">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                       <span>Loading employee master records...</span>
@@ -447,7 +448,7 @@ export function EmployeeListFeature() {
                 </tr>
               ) : employees.length === 0 ? (
                 <tr>
-                  <td colSpan={canSeeSalary ? 10 : 8} className="py-12 text-center text-text-muted">
+                  <td colSpan={canSeeSalary ? 11 : 9} className="py-12 text-center text-text-muted">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Users className="w-8 h-8 opacity-40" />
                       <span className="font-medium">No employees found matching filter criteria.</span>
@@ -475,26 +476,26 @@ export function EmployeeListFeature() {
                       className="hover:bg-surface-raised/50 dark:hover:bg-white/[0.02] transition-colors group cursor-pointer"
                     >
                       {/* Code */}
-                      <td className="py-3 px-4 font-mono font-semibold text-primary whitespace-nowrap">
+                      <td className="py-2.5 px-2.5 font-mono font-semibold text-primary whitespace-nowrap" data-i18n-skip>
                         <Link href={`/employees/${emp.id}`} className="hover:underline">
                           {emp.employee_code}
                         </Link>
                       </td>
 
                       {/* Employee Info */}
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-xs flex items-center justify-center shrink-0">
+                      <td className="py-2.5 px-2.5 whitespace-nowrap" data-i18n-skip>
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold text-xs flex items-center justify-center shrink-0">
                             {initial}
                           </div>
                           <div>
                             <Link
                               href={`/employees/${emp.id}`}
-                              className="font-semibold text-text hover:text-primary transition-colors block text-sm leading-tight"
+                              className="font-semibold text-text hover:text-primary transition-colors block text-xs leading-tight"
                             >
                               {isRTL && emp.arabic_name ? emp.arabic_name : emp.name}
                             </Link>
-                            <span className="text-[11px] text-text-muted block leading-tight mt-0.5">
+                            <span className="text-[10px] text-text-muted block leading-tight mt-0.5">
                               {emp.work_email || emp.nationality || 'Expat'}
                             </span>
                           </div>
@@ -502,34 +503,39 @@ export function EmployeeListFeature() {
                       </td>
 
                       {/* Department */}
-                      <td className="py-3 px-4 text-text-muted whitespace-nowrap">
+                      <td className="py-2.5 px-2.5 text-text-muted whitespace-nowrap" data-i18n-skip>
                         {emp.department?.name || activeContract?.department?.name || '—'}
                       </td>
 
+                      {/* Branch */}
+                      <td className="py-2.5 px-2.5 text-text-muted whitespace-nowrap" data-i18n-skip>
+                        {emp.branch?.name || activeContract?.branch?.name || '—'}
+                      </td>
+
                       {/* Job Title */}
-                      <td className="py-3 px-4 text-text whitespace-nowrap">
+                      <td className="py-2.5 px-2.5 text-text whitespace-nowrap" data-i18n-skip>
                         {emp.job?.title || activeContract?.job?.title || '—'}
                       </td>
 
                       {/* Status */}
-                      <td className="py-3 px-4 whitespace-nowrap">
+                      <td className="py-2.5 px-2.5 whitespace-nowrap">
                         <StatusPill status={emp.status} variant={getStatusVariant(emp.status)} />
                       </td>
 
                       {/* UAE Documents Status */}
-                      <td className="py-3 px-4 whitespace-nowrap">
+                      <td className="py-2.5 px-2.5 whitespace-nowrap">
                         {getDocStatusPill(emp.document_status || (docAlertCount > 0 ? 'Expiring Soon' : 'Valid'))}
                       </td>
 
                       {/* Bank IBAN (Masked) */}
-                      <td className="py-3 px-4 font-mono text-[11px] text-text-muted whitespace-nowrap">
+                      <td className="py-2.5 px-2.5 font-mono text-[11px] text-text-muted whitespace-nowrap" data-i18n-skip>
                         {primaryBank?.iban || '—'}
                       </td>
 
                       {/* Salary Columns (Visible ONLY to statutory salary roles) */}
                       {canSeeSalary && (
                         <>
-                          <td className="py-3 px-4 text-end font-mono text-text whitespace-nowrap">
+                          <td className="py-2.5 px-2.5 text-end font-mono text-text whitespace-nowrap" data-i18n-skip>
                             {activeContract?.basic !== undefined
                               ? Number(activeContract.basic).toLocaleString('en-US', {
                                   minimumFractionDigits: 2,
@@ -537,7 +543,7 @@ export function EmployeeListFeature() {
                                 })
                               : '—'}
                           </td>
-                          <td className="py-3 px-4 text-end font-mono font-bold text-text whitespace-nowrap">
+                          <td className="py-2.5 px-2.5 text-end font-mono font-bold text-text whitespace-nowrap" data-i18n-skip>
                             {activeContract?.gross !== undefined
                               ? Number(activeContract.gross).toLocaleString('en-US', {
                                   minimumFractionDigits: 2,
@@ -549,7 +555,7 @@ export function EmployeeListFeature() {
                       )}
 
                       {/* Actions */}
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                      <td className="py-2.5 px-2.5 text-center whitespace-nowrap">
                         <Link
                           href={`/employees/${emp.id}`}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-raised hover:bg-primary hover:text-[var(--on-primary)] transition-all border border-border"
@@ -589,7 +595,7 @@ export function EmployeeListFeature() {
               id="btn-prev-page"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Previous</span>
+              <span>{language === 'ar' ? 'السابق' : 'Previous'}</span>
             </button>
 
             <span className="px-2 font-mono">
@@ -602,7 +608,7 @@ export function EmployeeListFeature() {
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border hover:bg-surface-raised disabled:opacity-40 disabled:cursor-not-allowed transition-all font-medium"
               id="btn-next-page"
             >
-              <span>Next</span>
+              <span>{language === 'ar' ? 'التالي' : 'Next'}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>

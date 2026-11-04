@@ -307,7 +307,9 @@ export function EmployeeWizardFeature() {
       {!isSubmitted && currentStepIndex === 0 && (
         <GlassCard className="p-6 border border-border space-y-5">
           <div className="border-b border-border pb-3">
-            <h2 className="text-lg font-bold text-text">Step 1: Personal & Identity Details</h2>
+            <h2 className="text-lg font-bold text-text">
+              {language === 'ar' ? 'الخطوة 1: البيانات الشخصية والهوية' : 'Step 1: Personal & Identity Details'}
+            </h2>
             <p className="text-xs text-text-muted">
               Creates employee in &apos;Pre-Joined&apos; state. Status will be locked pending HR verification.
             </p>
@@ -331,7 +333,10 @@ export function EmployeeWizardFeature() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block font-semibold text-text mb-1">
-                  Employee Code <span className="text-text-muted font-normal text-[11px]">(Sequential ID)</span>
+                  {language === 'ar' ? 'كود الموظف' : 'Employee Code'}{' '}
+                  <span className="text-text-muted font-normal text-[11px]">
+                    ({language === 'ar' ? 'معرف تسلسلي' : 'Sequential ID'})
+                  </span>
                 </label>
                 <input
                   id="wizard-input-emp-code"
@@ -347,7 +352,9 @@ export function EmployeeWizardFeature() {
               </div>
 
               <div>
-                <label className="block font-semibold text-text mb-1">Full Legal Name (English)</label>
+                <label className="block font-semibold text-text mb-1">
+                  {language === 'ar' ? 'الاسم القانوني الكامل (بالإنجليزية)' : 'Full Legal Name (English)'}
+                </label>
                 <input
                   id="wizard-input-name"
                   type="text"
@@ -363,7 +370,9 @@ export function EmployeeWizardFeature() {
               </div>
 
               <div>
-                <label className="block font-semibold text-text mb-1">Full Legal Name (Arabic)</label>
+                <label className="block font-semibold text-text mb-1">
+                  {language === 'ar' ? 'الاسم القانوني الكامل (بالعربية)' : 'Full Legal Name (Arabic)'}
+                </label>
                 <input
                   id="wizard-input-arabic-name"
                   type="text"
@@ -378,7 +387,9 @@ export function EmployeeWizardFeature() {
               </div>
 
               <div>
-                <label className="block font-semibold text-text mb-1">Official Work Email</label>
+                <label className="block font-semibold text-text mb-1">
+                  {language === 'ar' ? 'البريد الإلكتروني للعمل' : 'Official Work Email'}
+                </label>
                 <input
                   id="wizard-input-work-email"
                   type="email"
@@ -396,7 +407,8 @@ export function EmployeeWizardFeature() {
               <div>
                 <Select
                   id="wizard-select-nationality"
-                  label="Nationality"
+                  data-i18n-skip="true"
+                  label={language === 'ar' ? 'الجنسية' : 'Nationality'}
                   value={personalForm.nationality}
                   onChange={(e) => {
                     const nat = e.target.value;
@@ -408,18 +420,20 @@ export function EmployeeWizardFeature() {
                   }}
                   error={fieldErrors.nationality}
                   options={[
-                    { value: 'Emirati', label: 'Emirati (UAE National — GPSSA)' },
-                    { value: 'Indian', label: 'Indian' },
-                    { value: 'Filipino', label: 'Filipino' },
-                    { value: 'Egyptian', label: 'Egyptian' },
-                    { value: 'British', label: 'British' },
-                    { value: 'Pakistani', label: 'Pakistani' },
+                    { value: 'Emirati', label: language === 'ar' ? 'إماراتي (مواطن الدولة — GPSSA)' : 'Emirati (UAE National — GPSSA)' },
+                    { value: 'Indian', label: language === 'ar' ? 'هندي' : 'Indian' },
+                    { value: 'Filipino', label: language === 'ar' ? 'فلبيني' : 'Filipino' },
+                    { value: 'Egyptian', label: language === 'ar' ? 'مصري' : 'Egyptian' },
+                    { value: 'British', label: language === 'ar' ? 'بريطاني' : 'British' },
+                    { value: 'Pakistani', label: language === 'ar' ? 'باكستاني' : 'Pakistani' },
                   ]}
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-text mb-1">MOHRE Person ID / Labour Card</label>
+                <label className="block font-semibold text-text mb-1">
+                  {language === 'ar' ? 'بطاقة العمل / رقم المنشأة (MOHRE)' : 'MOHRE Person ID / Labour Card'}
+                </label>
                 <input
                   id="wizard-input-mohre-id"
                   type="text"
@@ -439,7 +453,8 @@ export function EmployeeWizardFeature() {
                 <Select
                   id="wizard-select-visa"
                   name="company_visa_id"
-                  label="Company Visa Entity"
+                  data-i18n-skip="true"
+                  label={language === 'ar' ? 'جهة التأشيرة للشركة' : 'Company Visa Entity'}
                   required
                   value={personalForm.company_visa_id || (metaOptions?.visas?.[0]?.id ?? '')}
                   onChange={(e) => handleVisaChange(e.target.value)}
@@ -466,7 +481,8 @@ export function EmployeeWizardFeature() {
                 <Select
                   id="wizard-select-branch"
                   name="branch_id"
-                  label="Branch / Location"
+                  data-i18n-skip="true"
+                  label={language === 'ar' ? 'الفرع / الموقع' : 'Branch / Location'}
                   required
                   value={personalForm.branch_id || (filteredBranches?.[0]?.id ?? '')}
                   onChange={(e) => setPersonalForm({ ...personalForm, branch_id: e.target.value })}
@@ -493,7 +509,7 @@ export function EmployeeWizardFeature() {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-[var(--on-primary)] font-semibold shadow-md transition-all active:scale-95 disabled:opacity-50"
                 id="btn-step1-submit"
               >
-                <span>Save as Pre-Joined & Continue</span>
+                <span>{language === 'ar' ? 'حفظ كمعين مسبقاً والمتابعة' : 'Save as Pre-Joined & Continue'}</span>
                 {isRTL ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
               </button>
             </div>
@@ -599,7 +615,9 @@ export function EmployeeWizardFeature() {
       {currentStepIndex === 1 && (
         <GlassCard className="p-6 border border-border space-y-5">
           <div className="border-b border-border pb-3">
-            <h2 className="text-lg font-bold text-text">Step 2: HR Manager Verification (Spec 7.2)</h2>
+            <h2 className="text-lg font-bold text-text">
+              {language === 'ar' ? 'الخطوة 2: تدقيق مسؤول الموارد البشرية' : 'Step 2: HR Manager Verification (Spec 7.2)'}
+            </h2>
             <p className="text-xs text-text-muted">
               HR Manager reviews and verifies the pre-joined employee before contract issuance.
             </p>
@@ -664,7 +682,9 @@ export function EmployeeWizardFeature() {
       {currentStepIndex === 2 && (
         <GlassCard className="p-6 border border-border space-y-5">
           <div className="border-b border-border pb-3">
-            <h2 className="text-lg font-bold text-text">Step 3: Version 1 Contract & Initial Documents</h2>
+            <h2 className="text-lg font-bold text-text">
+              {language === 'ar' ? 'الخطوة 3: عقد العمل والمستندات الأولية' : 'Step 3: Version 1 Contract & Initial Documents'}
+            </h2>
             <p className="text-xs text-text-muted">
               Spec Rule B: Establishes initial version 1 contract with statutory salary breakdown.
             </p>
@@ -782,7 +802,9 @@ export function EmployeeWizardFeature() {
       {currentStepIndex === 3 && (
         <GlassCard className="p-6 border border-border space-y-5">
           <div className="border-b border-border pb-3">
-            <h2 className="text-lg font-bold text-text">Step 4: Shift Schedule & WPS Bank Account</h2>
+            <h2 className="text-lg font-bold text-text">
+              {language === 'ar' ? 'الخطوة 4: جدول الورديات وحساب حماية الأجور' : 'Step 4: Shift Schedule & WPS Bank Account'}
+            </h2>
             <p className="text-xs text-text-muted">
               Rule D: Validates UAE IBAN with ISO-7064 mod-97 checksum for WPS file compliance.
             </p>
@@ -874,7 +896,9 @@ export function EmployeeWizardFeature() {
       {currentStepIndex === 4 && (
         <GlassCard className="p-6 border border-border space-y-6">
           <div className="border-b border-border pb-3">
-            <h2 className="text-lg font-bold text-text">Step 5: Statutory Activation Check (Rule A)</h2>
+            <h2 className="text-lg font-bold text-text">
+              {language === 'ar' ? 'الخطوة 5: التحقق من التفعيل القانوني' : 'Step 5: Statutory Activation Check (Rule A)'}
+            </h2>
             <p className="text-xs text-text-muted">
               Live inspection of the 4 statutory requirements needed for Active status.
             </p>

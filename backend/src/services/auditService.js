@@ -30,7 +30,8 @@ export class AuditService {
     recordId,
     oldValues = null,
     newValues = null,
-    ipAddress = null
+    ipAddress = null,
+    tx = null,
   }) {
     if (!companyId) {
       throw new Error('companyId is required for audit logging');
@@ -39,9 +40,9 @@ export class AuditService {
       throw new Error('action, tableName, and recordId are required for audit logging');
     }
 
-    const scopedPrisma = this.prisma.$scoped ? this.prisma.$scoped(companyId) : this.prisma;
+    const client = tx || (this.prisma.$scoped ? this.prisma.$scoped(companyId) : this.prisma);
 
-    return await scopedPrisma.audit_logs.create({
+    return await client.audit_logs.create({
       data: {
         company_id: companyId,
         user_id: sanitizeUuid(userId),

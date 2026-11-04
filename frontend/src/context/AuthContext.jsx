@@ -25,9 +25,15 @@ export function AuthProvider({ children }) {
 
       if (res.ok) {
         const data = await res.json();
-        setUser(data.user);
-        setStatus('authenticated');
-        return data.user;
+        if (data.user) {
+          setUser(data.user);
+          setStatus('authenticated');
+          return data.user;
+        } else {
+          setUser(null);
+          setStatus('unauthenticated');
+          return null;
+        }
       } else {
         setUser(null);
         setStatus('unauthenticated');

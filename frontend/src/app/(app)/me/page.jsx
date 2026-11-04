@@ -266,7 +266,7 @@ export default function MyHomePage() {
                 {data.expiringDocuments.slice(0, 2).map((d) => (
                   <div key={d.id} className="text-xs flex justify-between items-center text-text-muted">
                     <span>{d.docType}</span>
-                    <span className="font-semibold text-danger">{d.daysLeft}d left</span>
+                    <span className="font-semibold text-danger">{language === 'ar' ? `متبقي ${d.daysLeft} يوم` : `${d.daysLeft}d left`}</span>
                   </div>
                 ))}
               </div>

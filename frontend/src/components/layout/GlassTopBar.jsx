@@ -182,13 +182,14 @@ export function GlassTopBar({ onToggleMobileNav }) {
                   className="fixed inset-0 z-30"
                   onClick={() => setIsCompanyDropdownOpen(false)}
                 />
-                <div className="glass-panel rounded-control absolute top-full mt-2 start-0 w-80 p-2 z-40 shadow-xl border border-border dark:bg-surface-raised">
+                <div id="company-visa-dropdown-panel" className="glass-panel rounded-control absolute top-full mt-2 start-0 w-80 p-2 z-40 shadow-xl border border-border dark:bg-surface-raised">
                   <span className="text-[10px] uppercase font-bold text-text-muted px-2 py-1 block">
                     {language === 'ar' ? 'تأشيرات الكيان وملفات WPS' : 'Company Visas & WPS Context'}
                   </span>
                   <div className="space-y-1 mt-1">
                     <button
                       type="button"
+                      id="btn-select-visa-all"
                       onClick={() => {
                         setSelectedVisaId('all');
                         setIsCompanyDropdownOpen(false);
@@ -212,6 +213,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
                       <button
                         key={v.id}
                         type="button"
+                        id={`btn-select-visa-${v.id}`}
                         onClick={() => {
                           setSelectedVisaId(v.id);
                           setIsCompanyDropdownOpen(false);
@@ -256,6 +258,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
       <div className="flex items-center gap-2.5 sm:gap-3">
         {/* Language Toggle */}
         <button
+          id="btn-language-toggle"
           onClick={toggleLanguage}
           title="Toggle English / Arabic"
           className="topbar-field flex items-center gap-1.5 px-2.5 py-1.5 rounded-control text-xs font-semibold text-text hover:bg-black/5 dark:hover:bg-inset-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -266,6 +269,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
 
         {/* Theme Toggle in Neumorphic Well */}
         <IconWell
+          id="btn-theme-toggle"
           size="sm"
           shape="circle"
           onClick={() => {
@@ -290,8 +294,12 @@ export function GlassTopBar({ onToggleMobileNav }) {
             <Bell className="w-4 h-4 text-text-muted hover:text-text cursor-pointer" />
           </IconWell>
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -end-0.5 w-4 h-4 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center shadow-sm pointer-events-none">
-              {unreadCount > 9 ? '9+' : unreadCount}
+            <span
+              id="notifications-badge"
+              data-count={unreadCount}
+              className="absolute -top-0.5 -end-0.5 min-w-4 h-4 px-1 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center shadow-sm pointer-events-none"
+            >
+              {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
 
@@ -301,7 +309,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
                 className="fixed inset-0 z-30"
                 onClick={() => setIsNotifOpen(false)}
               />
-              <div className="glass-panel rounded-xl absolute top-full mt-2 end-0 w-80 sm:w-96 p-3 z-40 shadow-2xl border border-border dark:bg-surface-raised max-h-[420px] flex flex-col">
+              <div id="notifications-dropdown-panel" className="glass-panel rounded-xl absolute top-full mt-2 end-0 w-80 sm:w-96 p-3 z-40 shadow-2xl border border-border dark:bg-surface-raised max-h-[420px] flex flex-col">
                 <div className="flex items-center justify-between pb-2 border-b border-border/50">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-bold text-text">Notifications</span>
@@ -385,6 +393,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
         <div className="relative">
           <button
             type="button"
+            data-i18n-skip="true"
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
             className="flex items-center gap-2.5 ps-2 border-s border-border/60 dark:border-border hover:opacity-85 transition-opacity"
           >
@@ -402,7 +411,9 @@ export function GlassTopBar({ onToggleMobileNav }) {
                 {userDisplayName}
               </span>
               <span className="text-[10px] text-amber-500 font-semibold block leading-tight">
-                {user?.roles?.[0] || 'EMPLOYEE'}
+                {language === 'ar'
+                  ? ({ COMPANY_ADMIN: 'مسؤول النظام', HR_MANAGER: 'مدير الموارد البشرية', EMPLOYEE: 'موظف', FINANCE: 'المالية', GM: 'المدير العام' }[user?.roles?.[0]] || user?.roles?.[0] || 'موظف')
+                  : (user?.roles?.[0] || 'EMPLOYEE')}
               </span>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-text-muted hidden sm:block" />

@@ -46,13 +46,13 @@ router.put(
 
 // 4. Missing Punch Queue
 router.get(
-  '/missing-punch',
+  ['/missing-punch', '/missing-punches'],
   authorizeAttendance(['HR_MANAGER', 'HR_OFFICER', 'COMPANY_ADMIN']),
   attendanceController.getMissingPunchQueue
 );
 
 router.post(
-  '/days/:id/resolve-missing-punch',
+  ['/days/:id/resolve-missing-punch', '/missing-punches/:id/resolve', '/missing-punch/:id/resolve'],
   authorizeAttendance(['HR_MANAGER', 'HR_OFFICER', 'COMPANY_ADMIN']),
   attendanceController.resolveMissingPunch
 );

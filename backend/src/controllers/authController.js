@@ -62,6 +62,12 @@ export async function logout(req, res, next) {
 
 export async function getCurrentUser(req, res, next) {
   try {
+    if (!req.user) {
+      return res.json({
+        status: 'success',
+        user: null,
+      });
+    }
     const user = await authService.prisma.$base().users.findUnique({
       where: { id: req.user.userId },
       include: {

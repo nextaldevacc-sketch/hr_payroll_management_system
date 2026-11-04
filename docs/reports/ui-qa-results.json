@@ -4,13 +4,13 @@
     "pageName": "Dashboard",
     "route": "/",
     "variant": "light-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/dashboard__light-en-1440.png"
   },
   {
@@ -18,13 +18,13 @@
     "pageName": "Employee Directory",
     "route": "/employees",
     "variant": "light-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/employees__light-en-1440.png"
   },
   {
@@ -32,27 +32,27 @@
     "pageName": "New Employee Wizard",
     "route": "/employees/new",
     "variant": "light-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/employee-new__light-en-1440.png"
   },
   {
     "page": "employee-detail",
     "pageName": "Employee Profile",
-    "route": "/employees/b86e7573-eb15-4f08-b058-b06bab1b14fb",
+    "route": "/employees/5d59256e-ae27-40a1-9cc2-9611485208bf",
     "variant": "light-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/employee-detail__light-en-1440.png"
   },
   {
@@ -60,13 +60,13 @@
     "pageName": "Approvals Inbox",
     "route": "/approvals",
     "variant": "light-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/approvals__light-en-1440.png"
   },
   {
@@ -74,13 +74,13 @@
     "pageName": "Attendance Register",
     "route": "/attendance",
     "variant": "light-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/attendance__light-en-1440.png"
   },
   {
@@ -88,13 +88,13 @@
     "pageName": "Leave & Holidays",
     "route": "/leave",
     "variant": "light-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/leave__light-en-1440.png"
   },
   {
@@ -102,13 +102,13 @@
     "pageName": "Pay Runs & WPS",
     "route": "/payroll",
     "variant": "light-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/payroll__light-en-1440.png"
   },
   {
@@ -116,27 +116,41 @@
     "pageName": "Salary Adjustments",
     "route": "/payroll/adjustments",
     "variant": "light-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/payroll-adjustments__light-en-1440.png"
+  },
+  {
+    "page": "payroll-detail",
+    "pageName": "Pay Run Details",
+    "route": "/payroll/fa9422a0-5de4-4eea-a30c-b74a6ac35905",
+    "variant": "light-en-1440",
+    "role": "hr_manager",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/payroll-detail__light-en-1440.png"
   },
   {
     "page": "offboarding",
     "pageName": "Offboarding & Settlements",
     "route": "/offboarding",
     "variant": "light-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/offboarding__light-en-1440.png"
   },
   {
@@ -144,13 +158,13 @@
     "pageName": "Compliance & Documents",
     "route": "/compliance",
     "variant": "light-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/compliance__light-en-1440.png"
   },
   {
@@ -158,13 +172,13 @@
     "pageName": "Reports & Exports",
     "route": "/reports",
     "variant": "light-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/reports__light-en-1440.png"
   },
   {
@@ -172,13 +186,13 @@
     "pageName": "Company Settings",
     "route": "/settings",
     "variant": "light-en-1440",
+    "role": "admin",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/settings__light-en-1440.png"
   },
   {
@@ -186,27 +200,55 @@
     "pageName": "Users & Roles",
     "route": "/settings/users",
     "variant": "light-en-1440",
+    "role": "admin",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/settings-users__light-en-1440.png"
+  },
+  {
+    "page": "settings-visas",
+    "pageName": "Company Visas",
+    "route": "/settings/visas",
+    "variant": "light-en-1440",
+    "role": "admin",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/settings-visas__light-en-1440.png"
+  },
+  {
+    "page": "settings-branches",
+    "pageName": "Branches",
+    "route": "/settings/branches",
+    "variant": "light-en-1440",
+    "role": "admin",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/settings-branches__light-en-1440.png"
   },
   {
     "page": "audit",
     "pageName": "Audit Trail",
     "route": "/audit",
     "variant": "light-en-1440",
+    "role": "admin",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/audit__light-en-1440.png"
   },
   {
@@ -214,27 +256,41 @@
     "pageName": "Employee Self-Service",
     "route": "/me",
     "variant": "light-en-1440",
+    "role": "employee",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/me__light-en-1440.png"
+  },
+  {
+    "page": "me-payslips",
+    "pageName": "Employee Payslips",
+    "route": "/me/payslips",
+    "variant": "light-en-1440",
+    "role": "employee",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/me-payslips__light-en-1440.png"
   },
   {
     "page": "dashboard",
     "pageName": "Dashboard",
     "route": "/",
     "variant": "dark-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/dashboard__dark-en-1440.png"
   },
   {
@@ -242,13 +298,13 @@
     "pageName": "Employee Directory",
     "route": "/employees",
     "variant": "dark-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/employees__dark-en-1440.png"
   },
   {
@@ -256,27 +312,27 @@
     "pageName": "New Employee Wizard",
     "route": "/employees/new",
     "variant": "dark-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/employee-new__dark-en-1440.png"
   },
   {
     "page": "employee-detail",
     "pageName": "Employee Profile",
-    "route": "/employees/b86e7573-eb15-4f08-b058-b06bab1b14fb",
+    "route": "/employees/5d59256e-ae27-40a1-9cc2-9611485208bf",
     "variant": "dark-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/employee-detail__dark-en-1440.png"
   },
   {
@@ -284,13 +340,13 @@
     "pageName": "Approvals Inbox",
     "route": "/approvals",
     "variant": "dark-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/approvals__dark-en-1440.png"
   },
   {
@@ -298,13 +354,13 @@
     "pageName": "Attendance Register",
     "route": "/attendance",
     "variant": "dark-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/attendance__dark-en-1440.png"
   },
   {
@@ -312,13 +368,13 @@
     "pageName": "Leave & Holidays",
     "route": "/leave",
     "variant": "dark-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/leave__dark-en-1440.png"
   },
   {
@@ -326,13 +382,13 @@
     "pageName": "Pay Runs & WPS",
     "route": "/payroll",
     "variant": "dark-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/payroll__dark-en-1440.png"
   },
   {
@@ -340,27 +396,41 @@
     "pageName": "Salary Adjustments",
     "route": "/payroll/adjustments",
     "variant": "dark-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/payroll-adjustments__dark-en-1440.png"
+  },
+  {
+    "page": "payroll-detail",
+    "pageName": "Pay Run Details",
+    "route": "/payroll/fa9422a0-5de4-4eea-a30c-b74a6ac35905",
+    "variant": "dark-en-1440",
+    "role": "hr_manager",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/payroll-detail__dark-en-1440.png"
   },
   {
     "page": "offboarding",
     "pageName": "Offboarding & Settlements",
     "route": "/offboarding",
     "variant": "dark-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/offboarding__dark-en-1440.png"
   },
   {
@@ -368,13 +438,13 @@
     "pageName": "Compliance & Documents",
     "route": "/compliance",
     "variant": "dark-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/compliance__dark-en-1440.png"
   },
   {
@@ -382,13 +452,13 @@
     "pageName": "Reports & Exports",
     "route": "/reports",
     "variant": "dark-en-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/reports__dark-en-1440.png"
   },
   {
@@ -396,13 +466,13 @@
     "pageName": "Company Settings",
     "route": "/settings",
     "variant": "dark-en-1440",
+    "role": "admin",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/settings__dark-en-1440.png"
   },
   {
@@ -410,27 +480,55 @@
     "pageName": "Users & Roles",
     "route": "/settings/users",
     "variant": "dark-en-1440",
+    "role": "admin",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/settings-users__dark-en-1440.png"
+  },
+  {
+    "page": "settings-visas",
+    "pageName": "Company Visas",
+    "route": "/settings/visas",
+    "variant": "dark-en-1440",
+    "role": "admin",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/settings-visas__dark-en-1440.png"
+  },
+  {
+    "page": "settings-branches",
+    "pageName": "Branches",
+    "route": "/settings/branches",
+    "variant": "dark-en-1440",
+    "role": "admin",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/settings-branches__dark-en-1440.png"
   },
   {
     "page": "audit",
     "pageName": "Audit Trail",
     "route": "/audit",
     "variant": "dark-en-1440",
+    "role": "admin",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/audit__dark-en-1440.png"
   },
   {
@@ -438,27 +536,41 @@
     "pageName": "Employee Self-Service",
     "route": "/me",
     "variant": "dark-en-1440",
+    "role": "employee",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/me__dark-en-1440.png"
+  },
+  {
+    "page": "me-payslips",
+    "pageName": "Employee Payslips",
+    "route": "/me/payslips",
+    "variant": "dark-en-1440",
+    "role": "employee",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/me-payslips__dark-en-1440.png"
   },
   {
     "page": "dashboard",
     "pageName": "Dashboard",
     "route": "/",
     "variant": "light-ar-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/dashboard__light-ar-1440.png"
   },
   {
@@ -466,13 +578,13 @@
     "pageName": "Employee Directory",
     "route": "/employees",
     "variant": "light-ar-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/employees__light-ar-1440.png"
   },
   {
@@ -480,27 +592,27 @@
     "pageName": "New Employee Wizard",
     "route": "/employees/new",
     "variant": "light-ar-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/employee-new__light-ar-1440.png"
   },
   {
     "page": "employee-detail",
     "pageName": "Employee Profile",
-    "route": "/employees/b86e7573-eb15-4f08-b058-b06bab1b14fb",
+    "route": "/employees/5d59256e-ae27-40a1-9cc2-9611485208bf",
     "variant": "light-ar-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/employee-detail__light-ar-1440.png"
   },
   {
@@ -508,13 +620,13 @@
     "pageName": "Approvals Inbox",
     "route": "/approvals",
     "variant": "light-ar-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/approvals__light-ar-1440.png"
   },
   {
@@ -522,13 +634,13 @@
     "pageName": "Attendance Register",
     "route": "/attendance",
     "variant": "light-ar-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/attendance__light-ar-1440.png"
   },
   {
@@ -536,13 +648,13 @@
     "pageName": "Leave & Holidays",
     "route": "/leave",
     "variant": "light-ar-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/leave__light-ar-1440.png"
   },
   {
@@ -550,13 +662,13 @@
     "pageName": "Pay Runs & WPS",
     "route": "/payroll",
     "variant": "light-ar-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/payroll__light-ar-1440.png"
   },
   {
@@ -564,27 +676,41 @@
     "pageName": "Salary Adjustments",
     "route": "/payroll/adjustments",
     "variant": "light-ar-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/payroll-adjustments__light-ar-1440.png"
+  },
+  {
+    "page": "payroll-detail",
+    "pageName": "Pay Run Details",
+    "route": "/payroll/fa9422a0-5de4-4eea-a30c-b74a6ac35905",
+    "variant": "light-ar-1440",
+    "role": "hr_manager",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/payroll-detail__light-ar-1440.png"
   },
   {
     "page": "offboarding",
     "pageName": "Offboarding & Settlements",
     "route": "/offboarding",
     "variant": "light-ar-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/offboarding__light-ar-1440.png"
   },
   {
@@ -592,13 +718,13 @@
     "pageName": "Compliance & Documents",
     "route": "/compliance",
     "variant": "light-ar-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/compliance__light-ar-1440.png"
   },
   {
@@ -606,13 +732,13 @@
     "pageName": "Reports & Exports",
     "route": "/reports",
     "variant": "light-ar-1440",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/reports__light-ar-1440.png"
   },
   {
@@ -620,13 +746,13 @@
     "pageName": "Company Settings",
     "route": "/settings",
     "variant": "light-ar-1440",
+    "role": "admin",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/settings__light-ar-1440.png"
   },
   {
@@ -634,27 +760,55 @@
     "pageName": "Users & Roles",
     "route": "/settings/users",
     "variant": "light-ar-1440",
+    "role": "admin",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/settings-users__light-ar-1440.png"
+  },
+  {
+    "page": "settings-visas",
+    "pageName": "Company Visas",
+    "route": "/settings/visas",
+    "variant": "light-ar-1440",
+    "role": "admin",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/settings-visas__light-ar-1440.png"
+  },
+  {
+    "page": "settings-branches",
+    "pageName": "Branches",
+    "route": "/settings/branches",
+    "variant": "light-ar-1440",
+    "role": "admin",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/settings-branches__light-ar-1440.png"
   },
   {
     "page": "audit",
     "pageName": "Audit Trail",
     "route": "/audit",
     "variant": "light-ar-1440",
+    "role": "admin",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/audit__light-ar-1440.png"
   },
   {
@@ -662,27 +816,41 @@
     "pageName": "Employee Self-Service",
     "route": "/me",
     "variant": "light-ar-1440",
+    "role": "employee",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/me__light-ar-1440.png"
+  },
+  {
+    "page": "me-payslips",
+    "pageName": "Employee Payslips",
+    "route": "/me/payslips",
+    "variant": "light-ar-1440",
+    "role": "employee",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/me-payslips__light-ar-1440.png"
   },
   {
     "page": "dashboard",
     "pageName": "Dashboard",
     "route": "/",
     "variant": "dark-ar-390",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/dashboard__dark-ar-390.png"
   },
   {
@@ -690,13 +858,13 @@
     "pageName": "Employee Directory",
     "route": "/employees",
     "variant": "dark-ar-390",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/employees__dark-ar-390.png"
   },
   {
@@ -704,27 +872,27 @@
     "pageName": "New Employee Wizard",
     "route": "/employees/new",
     "variant": "dark-ar-390",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/employee-new__dark-ar-390.png"
   },
   {
     "page": "employee-detail",
     "pageName": "Employee Profile",
-    "route": "/employees/b86e7573-eb15-4f08-b058-b06bab1b14fb",
+    "route": "/employees/5d59256e-ae27-40a1-9cc2-9611485208bf",
     "variant": "dark-ar-390",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/employee-detail__dark-ar-390.png"
   },
   {
@@ -732,13 +900,13 @@
     "pageName": "Approvals Inbox",
     "route": "/approvals",
     "variant": "dark-ar-390",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/approvals__dark-ar-390.png"
   },
   {
@@ -746,13 +914,13 @@
     "pageName": "Attendance Register",
     "route": "/attendance",
     "variant": "dark-ar-390",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/attendance__dark-ar-390.png"
   },
   {
@@ -760,13 +928,13 @@
     "pageName": "Leave & Holidays",
     "route": "/leave",
     "variant": "dark-ar-390",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/leave__dark-ar-390.png"
   },
   {
@@ -774,13 +942,13 @@
     "pageName": "Pay Runs & WPS",
     "route": "/payroll",
     "variant": "dark-ar-390",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/payroll__dark-ar-390.png"
   },
   {
@@ -788,27 +956,41 @@
     "pageName": "Salary Adjustments",
     "route": "/payroll/adjustments",
     "variant": "dark-ar-390",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/payroll-adjustments__dark-ar-390.png"
+  },
+  {
+    "page": "payroll-detail",
+    "pageName": "Pay Run Details",
+    "route": "/payroll/fa9422a0-5de4-4eea-a30c-b74a6ac35905",
+    "variant": "dark-ar-390",
+    "role": "hr_manager",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/payroll-detail__dark-ar-390.png"
   },
   {
     "page": "offboarding",
     "pageName": "Offboarding & Settlements",
     "route": "/offboarding",
     "variant": "dark-ar-390",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/offboarding__dark-ar-390.png"
   },
   {
@@ -816,13 +998,13 @@
     "pageName": "Compliance & Documents",
     "route": "/compliance",
     "variant": "dark-ar-390",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/compliance__dark-ar-390.png"
   },
   {
@@ -830,13 +1012,13 @@
     "pageName": "Reports & Exports",
     "route": "/reports",
     "variant": "dark-ar-390",
+    "role": "hr_manager",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/reports__dark-ar-390.png"
   },
   {
@@ -844,13 +1026,13 @@
     "pageName": "Company Settings",
     "route": "/settings",
     "variant": "dark-ar-390",
+    "role": "admin",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/settings__dark-ar-390.png"
   },
   {
@@ -858,27 +1040,55 @@
     "pageName": "Users & Roles",
     "route": "/settings/users",
     "variant": "dark-ar-390",
+    "role": "admin",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/settings-users__dark-ar-390.png"
+  },
+  {
+    "page": "settings-visas",
+    "pageName": "Company Visas",
+    "route": "/settings/visas",
+    "variant": "dark-ar-390",
+    "role": "admin",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/settings-visas__dark-ar-390.png"
+  },
+  {
+    "page": "settings-branches",
+    "pageName": "Branches",
+    "route": "/settings/branches",
+    "variant": "dark-ar-390",
+    "role": "admin",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/settings-branches__dark-ar-390.png"
   },
   {
     "page": "audit",
     "pageName": "Audit Trail",
     "route": "/audit",
     "variant": "dark-ar-390",
+    "role": "admin",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/audit__dark-ar-390.png"
   },
   {
@@ -886,13 +1096,27 @@
     "pageName": "Employee Self-Service",
     "route": "/me",
     "variant": "dark-ar-390",
+    "role": "employee",
     "passed": true,
     "failureReason": null,
-    "forbiddenTextHits": [],
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
     "overflowPx": 0,
-    "consoleErrors": [
-      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
-    ],
     "screenshotPath": "screenshots/qa/me__dark-ar-390.png"
+  },
+  {
+    "page": "me-payslips",
+    "pageName": "Employee Payslips",
+    "route": "/me/payslips",
+    "variant": "dark-ar-390",
+    "role": "employee",
+    "passed": true,
+    "failureReason": null,
+    "status": 200,
+    "consoleErrors": [],
+    "failedResponses": [],
+    "overflowPx": 0,
+    "screenshotPath": "screenshots/qa/me-payslips__dark-ar-390.png"
   }
 ]

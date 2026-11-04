@@ -189,6 +189,34 @@ describe('GAP 1, GAP 2, GAP 3 Verification Integration Tests', () => {
       assert(approvalItem, 'Expected EMPLOYEE_VERIFICATION item in pending approvals inbox');
       assert.equal(approvalItem.employee?.code, testEmp.employee_code);
       assert.equal(approvalItem.employee?.name, testEmp.name);
+
+      // Assert (a): after create, exactly one notifications row per active HR manager with employee code
+      const activeHrManagers = await prisma.$base().user_roles.findMany({
+        where: {
+          company_id: company1.id,
+          role: { code: 'HR_MANAGER' },
+          user: {
+            status: 'Active',
+            deactivated_at: null,
+            OR: [
+              { locked_until: null },
+              { locked_until: { lte: new Date() } },
+            ],
+          },
+        },
+        select: { user_id: true },
+      });
+      assert(activeHrManagers.length > 0, 'Must have at least 1 active HR Manager');
+      for (const hrm of activeHrManagers) {
+        const notifs = await prisma.$base().notifications.findMany({
+          where: {
+            user_id: hrm.user_id,
+            type: 'EMPLOYEE_VERIFICATION_PENDING',
+            body: { contains: testEmp.employee_code },
+          },
+        });
+        assert.equal(notifs.length, 1, `Expected exactly 1 notification for HR Manager ${hrm.user_id} with employee code ${testEmp.employee_code}`);
+      }
     });
 
     it('creator is forbidden from self-approval (HTTP 403 SELF_APPROVAL_FORBIDDEN)', async () => {
@@ -228,6 +256,64 @@ describe('GAP 1, GAP 2, GAP 3 Verification Integration Tests', () => {
       assert.equal(updated.status, 'New Joined');
       assert.equal(updated.verified_by, hrMgrUser.id);
       assert(updated.verified_at, 'verified_at timestamp must be recorded');
+
+      // Assert (b): after HR Manager verifies, an audit_logs row exists with action Verify/Approve on that employee
+      const auditLog = await prisma.$base().audit_logs.findFirst({
+        where: {
+          company_id: company1.id,
+          table_name: 'employees',
+          record_id: testEmp.id,
+          action: { in: ['Verify', 'Approve'] },
+        },
+      });
+      assert(auditLog, 'Expected audit_logs row with action Verify/Approve on verified employee');
+    });
+
+    it('HR Manager returns employee for correction -> creator receives notification containing reason', async () => {
+      // Create employee to test return-for-correction
+      const empToReject = await employeeService.createEmployee({
+        companyId: company1.id,
+        data: {
+          name: `SendBack Test Joiner ${Date.now()}`,
+          company_visa_id: visa1.id,
+          branch_id: branch1?.id || null,
+          status: 'Pre-Joined',
+          joining_date: '2026-11-20',
+          residency_type: 'Expat',
+          nationality: 'Pakistani',
+          gender: 'Male',
+        },
+        viewer: { id: hrOfficerUser.id, userId: hrOfficerUser.id, role: 'HR_OFFICER' },
+      });
+
+      const pendingReq = await prisma.$base().approval_requests.findFirst({
+        where: {
+          company_id: company1.id,
+          record_id: empToReject.id,
+          request_type: 'EMPLOYEE_VERIFICATION',
+          status: 'Pending',
+        },
+      });
+      assert(pendingReq, 'Expected pending approval request for empToReject');
+
+      const rejectReason = 'Passport copy is blurry, please re-upload clear scan';
+      const res = await request(app)
+        .post(`/api/v1/approvals/${pendingReq.id}/action`)
+        .set('Authorization', `Bearer ${hrMgrToken}`)
+        .send({ action: 'REJECT', reason: rejectReason });
+
+      assert.equal(res.status, 200);
+
+      // Assert (c): creator receives notification containing the reason
+      const creatorNotif = await prisma.$base().notifications.findFirst({
+        where: {
+          user_id: hrOfficerUser.id,
+          type: 'EMPLOYEE_VERIFICATION_SENT_BACK',
+          body: { contains: rejectReason },
+        },
+      });
+      assert(creatorNotif, `Expected notification to creator containing reject reason: "${rejectReason}"`);
+      assert(creatorNotif.body.includes(empToReject.employee_code), 'Notification must reference employee code');
     });
   });
 });

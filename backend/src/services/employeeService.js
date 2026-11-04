@@ -9,6 +9,7 @@ import {
   checkActivationRequirements as checkActivationReqs,
   ALLOWED_STATUS_TRANSITIONS,
   calculateOpeningLeaveAllocation,
+  DEFAULT_EMPLOYEE_CODE_PREFIX,
 } from '@nextal/shared';
 import storageService from '../lib/storage.js';
 import auditService from './auditService.js';
@@ -323,7 +324,7 @@ export class EmployeeService {
    * Get next sequential employee code per company (e.g. EMP-DXB-045).
    * GAP 2: Uses atomic raw SQL MAX query without arbitrary caps (n < 8000).
    */
-  async getNextEmployeeCode({ companyId, prefix = 'EMP-DXB', tx }) {
+  async getNextEmployeeCode({ companyId, prefix = DEFAULT_EMPLOYEE_CODE_PREFIX, tx }) {
     const base = this.prisma.$base ? this.prisma.$base() : this.prisma;
     const client = tx || base;
     const pattern = `^${prefix}-[0-9]+$`;
@@ -539,6 +540,59 @@ export class EmployeeService {
               },
             });
 
+            // 1. Audit log
+            await auditService.log({
+              companyId,
+              userId: getViewerUserId(viewer),
+              action: 'Create',
+              tableName: 'employees',
+              recordId: created.id,
+              newValues: { employee_code: created.employee_code, name: created.name, status: created.status },
+              tx,
+            });
+
+            // 2. Create approval request for EMPLOYEE_VERIFICATION
+            await approvalService.createRequest({
+              companyId,
+              requestType: 'EMPLOYEE_VERIFICATION',
+              recordId: created.id,
+              requestedBy: getViewerUserId(viewer),
+              comment: 'Initial employee verification task',
+              tx,
+            });
+
+            // 3. In-app notification to all active HR_MANAGER users
+            const hrManagers = await tx.user_roles.findMany({
+              where: {
+                company_id: companyId,
+                role: { code: 'HR_MANAGER' },
+                user: {
+                  status: 'Active',
+                  deactivated_at: null,
+                  OR: [
+                    { locked_until: null },
+                    { locked_until: { lte: new Date() } },
+                  ],
+                },
+              },
+              select: { user_id: true },
+            });
+            for (const hrm of hrManagers) {
+              await tx.notifications.create({
+                data: {
+                  company_id: companyId,
+                  user_id: hrm.user_id,
+                  title: 'New Employee Pending Verification',
+                  title_ar: 'موظف جديد بانتظار الاعتماد',
+                  body: `New employee ${created.employee_code} ${created.name} awaits verification`,
+                  body_ar: `تم تسجيل موظف جديد ${created.name} بانتظار اعتماد الموارد البشرية.`,
+                  type: 'EMPLOYEE_VERIFICATION_PENDING',
+                  link: `/approvals`,
+                  is_read: false,
+                },
+              });
+            }
+
             return created;
           });
 
@@ -563,52 +617,6 @@ export class EmployeeService {
         err.code = 'CODE_GENERATION_FAILED';
         throw err;
       }
-
-      await auditService.log({
-        companyId,
-        userId: getViewerUserId(viewer),
-        action: 'Create',
-        tableName: 'employees',
-        recordId: createdRecord.id,
-        newValues: { employee_code: createdRecord.employee_code, name: createdRecord.name, status: createdRecord.status },
-      });
-
-      // GAP 3: Create approval request for EMPLOYEE_VERIFICATION
-      try {
-        await approvalService.createRequest({
-          companyId,
-          requestType: 'EMPLOYEE_VERIFICATION',
-          recordId: createdRecord.id,
-          requestedBy: getViewerUserId(viewer),
-          comment: 'Initial employee verification task',
-        });
-      } catch (apprErr) {
-        console.warn('Failed to auto-create approval request for employee verification:', apprErr.message);
-      }
-
-      // GAP 3: In-app notification to all HR_MANAGER users
-      try {
-        const hrManagers = await base.user_roles.findMany({
-          where: { role: { code: 'HR_MANAGER' }, user: { company_id: companyId } },
-          select: { user_id: true },
-        });
-        for (const hrm of hrManagers) {
-          if (hrm.user_id !== getViewerUserId(viewer)) {
-            await base.notifications.create({
-              data: {
-                user_id: hrm.user_id,
-                title: 'New Employee Pending Verification',
-                title_ar: 'موظف جديد بانتظار الاعتماد',
-                message: `New employee ${createdRecord.employee_code} ${createdRecord.name} awaits verification`,
-                message_ar: `تم تسجيل موظف جديد ${createdRecord.name} بانتظار اعتماد الموارد البشرية.`,
-                type: 'EMPLOYEE_VERIFICATION_PENDING',
-                link: `/approvals`,
-                is_read: false,
-              },
-            }).catch(() => {});
-          }
-        }
-      } catch {}
 
       return serializeEmployee(createdRecord, viewer);
     });
@@ -822,13 +830,14 @@ export class EmployeeService {
       }).catch(() => {});
 
       if (employee.created_by) {
-        await this.prisma.notifications.create({
+        await this.prisma.$base().notifications.create({
           data: {
+            company_id: companyId,
             user_id: employee.created_by,
             title: 'Employee Record Sent Back for Review',
             title_ar: 'تمت إعادة ملف الموظف للمراجعة',
-            message: `Employee ${employee.employee_code} (${employee.name}) was sent back with comment: "${comment || 'Please review'}"`,
-            message_ar: `تمت إعادة ملف الموظف ${employee.name} مع تعليق: "${comment || 'يرجى المراجعة'}"`,
+            body: `Employee ${employee.employee_code} (${employee.name}) was sent back with comment: "${comment || 'Please review'}"`,
+            body_ar: `تمت إعادة ملف الموظف ${employee.name} مع تعليق: "${comment || 'يرجى المراجعة'}"`,
             type: 'EMPLOYEE_VERIFICATION_SENT_BACK',
             link: `/employees/${employee.id}`,
             is_read: false,

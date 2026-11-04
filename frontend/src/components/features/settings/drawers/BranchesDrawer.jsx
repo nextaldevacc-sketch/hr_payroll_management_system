@@ -27,6 +27,9 @@ export function BranchesDrawer({
 }) {
   const { isRTL, language } = useLanguage();
   const [branchList, setBranchList] = useState(branches);
+  React.useEffect(() => {
+    setBranchList(branches || []);
+  }, [branches]);
   const [isAdding, setIsAdding] = useState(false);
   const [newBranch, setNewBranch] = useState({
     name: '',

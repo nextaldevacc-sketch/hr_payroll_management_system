@@ -14,7 +14,7 @@ const testUrl = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres
 // 1. Reset and seed the TEST database
 console.log(`[test:runner] Initializing isolated test database: ${testUrl}`);
 try {
-  execSync('npx prisma migrate reset --schema prisma/schema.prisma --force --skip-seed', {
+  execSync('npx prisma migrate reset --schema prisma/schema.prisma --force --skip-seed --skip-generate', {
     cwd: backendDir,
     env: { ...process.env, DATABASE_URL: testUrl, NODE_ENV: 'test' },
     stdio: 'inherit',

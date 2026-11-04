@@ -10,7 +10,7 @@ export class ApprovalService {
   /**
    * Submit a new approval request
    */
-  async createRequest({ companyId, requestType, recordId, requestedBy, comment = null }) {
+  async createRequest({ companyId, requestType, recordId, requestedBy, comment = null, tx = null }) {
     if (!companyId || !requestType || !recordId || !requestedBy) {
       const err = new Error('companyId, requestType, recordId, and requestedBy are required');
       err.status = 400;
@@ -18,7 +18,9 @@ export class ApprovalService {
       throw err;
     }
 
-    let flow = await this.prisma.$base().approval_flows.findFirst({
+    const client = tx || (this.prisma.$base ? this.prisma.$base() : this.prisma);
+
+    let flow = await client.approval_flows.findFirst({
       where: {
         company_id: companyId,
         request_type: requestType,
@@ -34,11 +36,11 @@ export class ApprovalService {
     });
 
     if ((!flow || flow.steps.length === 0) && requestType === 'EMPLOYEE_VERIFICATION') {
-      const hrMgrRole = await this.prisma.$base().roles.findFirst({
+      const hrMgrRole = await client.roles.findFirst({
         where: { code: 'HR_MANAGER' },
       });
       if (hrMgrRole) {
-        flow = await this.prisma.$base().approval_flows.create({
+        flow = await client.approval_flows.create({
           data: {
             company_id: companyId,
             request_type: 'EMPLOYEE_VERIFICATION',
@@ -52,7 +54,7 @@ export class ApprovalService {
             },
           },
         });
-        const step = await this.prisma.$base().approval_flow_steps.create({
+        const step = await client.approval_flow_steps.create({
           data: {
             company_id: companyId,
             flow_id: flow.id,
@@ -76,7 +78,7 @@ export class ApprovalService {
     // Self-approval check: If the requester holds the role of the initial step,
     // advance the step to the next approver tier (e.g. HR Manager's own request advances to GM / Step 2)
     // EXCEPTION: EMPLOYEE_VERIFICATION is strictly evaluated against the creator at action time (FR-EM4/FR-WF2).
-    const requesterUserRoles = await this.prisma.$base().user_roles.findMany({
+    const requesterUserRoles = await client.user_roles.findMany({
       where: { company_id: companyId, user_id: requestedBy },
       include: { role: true },
     });
@@ -95,7 +97,7 @@ export class ApprovalService {
       }
     }
 
-    const request = await this.prisma.$base().approval_requests.create({
+    const request = await client.approval_requests.create({
       data: {
         company_id: companyId,
         flow_id: flow.id,
@@ -131,6 +133,7 @@ export class ApprovalService {
         current_step: 1,
         status: 'Pending',
       },
+      tx,
     }).catch(() => {});
 
     // Notify approver(s) for Step 1

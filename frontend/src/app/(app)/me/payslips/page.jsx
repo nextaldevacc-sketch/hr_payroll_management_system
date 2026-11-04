@@ -211,7 +211,7 @@ export default function MyPayslipsPage() {
             {/* Top Net Banner */}
             <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
               <div>
-                <span className="text-text-muted text-[11px] font-semibold">Net Pay to Bank Account</span>
+                <span className="text-text-muted text-[11px] font-semibold">{language === 'ar' ? 'صافي الراتب المحول للحساب البنكي' : 'Net Pay to Bank Account'}</span>
                 <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
                   {formatCurrency(selectedPayslip.net, 'AED', language)}
                 </p>
@@ -222,13 +222,13 @@ export default function MyPayslipsPage() {
                 icon={<Download className="w-3.5 h-3.5" />}
                 onClick={() => handleDownloadPdf(selectedPayslip.id)}
               >
-                Download PDF
+                {language === 'ar' ? 'تحميل كشف الراتب (PDF)' : 'Download PDF'}
               </Button>
             </div>
 
             {/* Lines List */}
             <div className="space-y-2">
-              <span className="text-[11px] font-bold uppercase text-text-muted">Salary Components</span>
+              <span className="text-[11px] font-bold uppercase text-text-muted">{language === 'ar' ? 'بنود الراتب' : 'Salary Components'}</span>
               <div className="rounded-xl border border-border divide-y divide-border/40 overflow-hidden">
                 {selectedPayslip.lines?.map((l) => {
                   const isDeduction = l.line_type === 'Deduction' || Number(l.amount) < 0;
@@ -249,7 +249,7 @@ export default function MyPayslipsPage() {
 
             <div className="pt-2 flex justify-end">
               <Button variant="outline" size="sm" onClick={() => setDetailModalOpen(false)}>
-                Close
+                {language === 'ar' ? 'إغلاق' : 'Close'}
               </Button>
             </div>
           </div>

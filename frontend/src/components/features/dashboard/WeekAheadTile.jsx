@@ -8,7 +8,7 @@ import { InsetBox } from '../../primitives/InsetBox';
 import { useLanguage } from '../../../context/LanguageContext';
 
 export function WeekAheadTile({ data = [], onClick }) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
 
   const getItemDotColor = (type) => {
     switch (type) {
@@ -39,8 +39,8 @@ export function WeekAheadTile({ data = [], onClick }) {
           <CalendarDays className="w-5 h-5 stroke-[2]" />
         </IconWell>
       }
-      title="The Week Ahead"
-      subtitle="7-day schedule · leaves, contractual events & cut-off deadlines"
+      title={t('dashboard.weekAhead.title')}
+      subtitle={t('dashboard.weekAhead.subtitle')}
     >
       {/* 7-Day Horizontal Strip: one column per day starting today */}
       <div className="grid grid-cols-7 gap-2 h-full">

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useVisa } from '../../../context/VisaContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import { fetchPayRuns, createPayRun } from '../../../services/payrollApi';
 import { fetchEmployeeMetaOptions } from '../../../services/employeesApi';
 import { GlassCard } from '../../primitives/GlassCard';
@@ -30,6 +31,7 @@ export function PayRunListFeature() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { selectedVisaId, setSelectedVisaId } = useVisa();
+  const { language } = useLanguage();
 
   const [visaFilter, setVisaFilter] = useState(
     selectedVisaId === 'all' || !selectedVisaId ? '' : selectedVisaId
@@ -114,10 +116,10 @@ export function PayRunListFeature() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-text dark:gold-heading tracking-tight">
-                Pay Runs & WPS Payroll
+                {language === 'ar' ? 'مسيرات الرواتب ونظام حماية الأجور (WPS)' : 'Pay Runs & WPS Payroll'}
               </h1>
               <p className="text-xs text-text-muted mt-0.5">
-                مسيرات الرواتب ونظام حماية الأجور &bull; End-to-end statutory calculation & bank SIF file generation
+                {language === 'ar' ? 'الحساب القانوني الشامل وإصدار ملفات حماية الأجور المصرفية' : 'مسيرات الرواتب ونظام حماية الأجور • End-to-end statutory calculation & bank SIF file generation'}
               </p>
             </div>
           </div>
@@ -142,7 +144,7 @@ export function PayRunListFeature() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-black hover:opacity-95 transition-all shadow-md active:scale-95"
           >
             <Plus className="w-4 h-4" />
-            Create Pay Run
+            <span>{language === 'ar' ? 'إنشاء مسير رواتب' : 'Create Pay Run'}</span>
           </button>
         </div>
       </div>
@@ -211,7 +213,9 @@ export function PayRunListFeature() {
                     : 'text-text-muted hover:text-text'
                 }`}
               >
-                {st || 'All Statuses'}
+                {language === 'ar'
+                  ? ({ '': 'جميع الحالات', Draft: 'مسودة', Calculated: 'تم الحساب', Validated: 'تم التدقيق', Locked: 'مقفل', Paid: 'تم الصرف' }[st] || st)
+                  : (st || 'All Statuses')}
               </button>
             ))}
           </div>
@@ -219,18 +223,19 @@ export function PayRunListFeature() {
           {/* Visa Dropdown Filter */}
           <div className="min-w-[200px]">
             <Select
+              data-i18n-skip="true"
               value={visaFilter}
               onChange={(e) => {
                 const val = e.target.value;
                 setVisaFilter(val);
                 setSelectedVisaId(val || 'all');
               }}
-              placeholder="All Visa Establishments"
+              placeholder={language === 'ar' ? 'جميع جهات التأشيرات' : 'All Visa Establishments'}
               options={[
-                { value: '', label: 'All Visa Establishments' },
+                { value: '', label: language === 'ar' ? 'جميع جهات التأشيرات' : 'All Visa Establishments' },
                 ...(metaOptions?.visas?.map((v) => ({
                   value: v.id,
-                  label: v.name,
+                  label: language === 'ar' ? (v.name_ar || v.name) : v.name,
                   meta: v.mol_establishment_id,
                 })) || []),
               ]}
@@ -249,16 +254,16 @@ export function PayRunListFeature() {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-border/80 bg-surface-raised/50 text-text-muted font-bold tracking-wider uppercase text-[10px]">
-                <th className="py-3.5 px-4">Period Month</th>
-                <th className="py-3.5 px-4">Visa Establishment</th>
-                <th className="py-3.5 px-4">Type</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4 text-center">Employees</th>
-                <th className="py-3.5 px-4 text-right">Total Gross</th>
-                <th className="py-3.5 px-4 text-right">Deductions</th>
-                <th className="py-3.5 px-4 text-right">Net Pay (WPS)</th>
-                <th className="py-3.5 px-4 text-center">Issues</th>
-                <th className="py-3.5 px-4 text-center">Actions</th>
+                <th className="py-3.5 px-4">{language === 'ar' ? 'شهر الدورة' : 'Period Month'}</th>
+                <th className="py-3.5 px-4">{language === 'ar' ? 'جهة التأشيرة' : 'Visa Establishment'}</th>
+                <th className="py-3.5 px-4">{language === 'ar' ? 'النوع' : 'Type'}</th>
+                <th className="py-3.5 px-4">{language === 'ar' ? 'الحالة' : 'Status'}</th>
+                <th className="py-3.5 px-4 text-center">{language === 'ar' ? 'الموظفون' : 'Employees'}</th>
+                <th className="py-3.5 px-4 text-right">{language === 'ar' ? 'إجمالي الراتب' : 'Total Gross'}</th>
+                <th className="py-3.5 px-4 text-right">{language === 'ar' ? 'الخصومات' : 'Deductions'}</th>
+                <th className="py-3.5 px-4 text-right">{language === 'ar' ? 'صافي الأجور (WPS)' : 'Net Pay (WPS)'}</th>
+                <th className="py-3.5 px-4 text-center">{language === 'ar' ? 'الملاحظات' : 'Issues'}</th>
+                <th className="py-3.5 px-4 text-center">{language === 'ar' ? 'الإجراءات' : 'Actions'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">

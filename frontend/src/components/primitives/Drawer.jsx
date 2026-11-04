@@ -53,14 +53,20 @@ export function Drawer({
             <h2 className="text-lg font-bold text-text dark:gold-heading">{title}</h2>
             {subtitle && <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>}
           </div>
-          <IconWell
-            size="sm"
-            shape="circle"
+          <button
+            type="button"
             onClick={onClose}
-            title="Close drawer"
+            aria-label="Close"
+            className="rounded-full focus:outline-none"
           >
-            <X className="w-4 h-4" />
-          </IconWell>
+            <IconWell
+              size="sm"
+              shape="circle"
+              title="Close drawer"
+            >
+              <X className="w-4 h-4" />
+            </IconWell>
+          </button>
         </div>
 
         <div className="overflow-y-auto flex-1">{children}</div>

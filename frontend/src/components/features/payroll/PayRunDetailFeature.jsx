@@ -45,11 +45,13 @@ import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Stepper } from '../../primitives/Stepper';
 import { PayslipModal } from './PayslipModal';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export function PayRunDetailFeature() {
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { language } = useLanguage();
   const payRunId = params?.id;
 
   const [activeTab, setActiveTab] = useState('summary');
@@ -220,8 +222,8 @@ export function PayRunDetailFeature() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-black text-text dark:gold-heading tracking-tight">
-                {periodName} Pay Run
+              <h1 className="text-2xl font-black text-text dark:gold-heading tracking-tight" data-i18n-skip="true">
+                {language === 'ar' ? `مسير رواتب ${periodName}` : `${periodName} Pay Run`}
               </h1>
               <StatusPill status={payRun.status} />
               <span className="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-surface-raised border border-border text-text-muted">
@@ -246,10 +248,10 @@ export function PayRunDetailFeature() {
                 onClick={() => calcMutation.mutate()}
                 disabled={calcMutation.isPending}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-surface-raised border border-border text-text hover:bg-surface-raised/80 transition-all shadow-sm active:scale-95 disabled:opacity-50"
-                title="Execute 17 statutory salary rules and prorations"
+                title={language === 'ar' ? 'تنفيذ 17 قاعدة راتب نظامية والتناسبات' : 'Execute 17 statutory salary rules and prorations'}
               >
                 <Calculator className="w-4 h-4 text-primary" />
-                {calcMutation.isPending ? 'Calculating...' : 'Calculate Run'}
+                {calcMutation.isPending ? (language === 'ar' ? 'جارٍ الحساب...' : 'Calculating...') : (language === 'ar' ? 'حساب المسيرة' : 'Calculate Run')}
               </button>
             )}
 
@@ -261,7 +263,7 @@ export function PayRunDetailFeature() {
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-sm active:scale-95 disabled:opacity-50"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                {validateMutation.isPending ? 'Validating...' : 'Validate Run'}
+                {validateMutation.isPending ? (language === 'ar' ? 'جارٍ التحقق...' : 'Validating...') : (language === 'ar' ? 'اعتماد المسيرة' : 'Validate Run')}
               </button>
             )}
 
@@ -271,10 +273,10 @@ export function PayRunDetailFeature() {
                 onClick={() => lockMutation.mutate()}
                 disabled={lockMutation.isPending || blockingIssues.length > 0}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 text-black hover:bg-amber-400 transition-all shadow-sm active:scale-95 disabled:opacity-50"
-                title={blockingIssues.length > 0 ? 'Resolve blocking issues first' : 'Lock pay run to prevent modifications'}
+                title={blockingIssues.length > 0 ? (language === 'ar' ? 'يجب حل المشكلات المعطلة أولاً' : 'Resolve blocking issues first') : (language === 'ar' ? 'إقفال مسيرة الرواتب لمنع التعديلات' : 'Lock pay run to prevent modifications')}
               >
                 <Lock className="w-4 h-4" />
-                {lockMutation.isPending ? 'Locking...' : 'Lock Pay Run'}
+                {lockMutation.isPending ? (language === 'ar' ? 'جارٍ الإقفال...' : 'Locking...') : (language === 'ar' ? 'إقفال المسيرة' : 'Lock Pay Run')}
               </button>
             )}
 
@@ -286,7 +288,7 @@ export function PayRunDetailFeature() {
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-secondary text-white hover:bg-secondary/90 transition-all shadow-sm active:scale-95 disabled:opacity-50"
               >
                 <DollarSign className="w-4 h-4" />
-                {payMutation.isPending ? 'Processing...' : 'Mark as Paid'}
+                {payMutation.isPending ? (language === 'ar' ? 'جارٍ المعالجة...' : 'Processing...') : (language === 'ar' ? 'تحديد كمدفوع' : 'Mark as Paid')}
               </button>
             )}
 
@@ -303,7 +305,7 @@ export function PayRunDetailFeature() {
                 title={!isLockedOrPaid ? 'SIF generation requires Locked status' : 'Download UAE WPS SIF file'}
               >
                 <Download className="w-4 h-4" />
-                Export WPS SIF
+                <span>{language === 'ar' ? 'تصدير ملف WPS SIF' : 'Export WPS SIF'}</span>
               </button>
 
               <button
@@ -354,23 +356,23 @@ export function PayRunDetailFeature() {
       )}
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-border/60 pb-1 text-xs font-bold">
+      <div className="flex items-center gap-2 border-b border-border/60 pb-1 text-xs font-bold overflow-x-auto max-w-full">
         {[
-          { key: 'summary', label: 'Summary & KPIs', icon: Banknote },
+          { key: 'summary', label: language === 'ar' ? 'الملخص والمؤشرات' : 'Summary & KPIs', icon: Banknote },
           {
             key: 'validation',
-            label: `Validation Issues (${issues.length})`,
+            label: language === 'ar' ? `الملاحظات (${issues.length})` : `Validation Issues (${issues.length})`,
             icon: AlertCircle,
-            badge: blockingIssues.length > 0 ? `${blockingIssues.length} Blocking` : null,
+            badge: blockingIssues.length > 0 ? (language === 'ar' ? `${blockingIssues.length} معطلة` : `${blockingIssues.length} Blocking`) : null,
           },
-          { key: 'payslips', label: `Payslips (${payRun.employee_count || 0})`, icon: FileText },
+          { key: 'payslips', label: language === 'ar' ? `قسائم الرواتب (${payRun.employee_count || 0})` : `Payslips (${payRun.employee_count || 0})`, icon: FileText },
           {
             key: 'variances',
-            label: `Variances > ${payRun.variance_threshold_pct || payRun.company?.variance_threshold_pct || 10}% (${variancePayslips.length})`,
+            label: language === 'ar' ? `الفروقات (${variancePayslips.length})` : `Variances > ${payRun.variance_threshold_pct || payRun.company?.variance_threshold_pct || 10}% (${variancePayslips.length})`,
             icon: AlertTriangle,
-            badge: payRun.pending_variance_count > 0 ? `${payRun.pending_variance_count} Pending` : null,
+            badge: payRun.pending_variance_count > 0 ? (language === 'ar' ? `${payRun.pending_variance_count} معلقة` : `${payRun.pending_variance_count} Pending`) : null,
           },
-          { key: 'audit', label: 'Signoff & Audit', icon: ShieldCheck },
+          { key: 'audit', label: language === 'ar' ? 'الاعتماد والتدقيق' : 'Signoff & Audit', icon: ShieldCheck },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.key;
@@ -460,7 +462,7 @@ export function PayRunDetailFeature() {
                 onClick={() => setActiveTab('validation')}
                 className="text-xs font-bold text-primary flex items-center gap-1 hover:underline"
               >
-                Inspect Issues <ChevronRight className="w-3.5 h-3.5" />
+                <span>{language === 'ar' ? 'فحص الملاحظات' : 'Inspect Issues'}</span> <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </GlassCard>
 
@@ -486,7 +488,7 @@ export function PayRunDetailFeature() {
                 onClick={() => setActiveTab('variances')}
                 className="text-xs font-bold text-primary flex items-center gap-1 hover:underline"
               >
-                Review Variances <ChevronRight className="w-3.5 h-3.5" />
+                <span>{language === 'ar' ? 'مراجعة الفروقات' : 'Review Variances'}</span> <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </GlassCard>
 
@@ -509,7 +511,12 @@ export function PayRunDetailFeature() {
                 disabled={!isLockedOrPaid}
                 className="text-xs font-bold text-primary flex items-center gap-1 hover:underline disabled:opacity-40"
               >
-                {isLockedOrPaid ? 'Download SIF File' : 'Locks to enable SIF'} <ExternalLink className="w-3.5 h-3.5" />
+                <span>
+                  {isLockedOrPaid
+                    ? (language === 'ar' ? 'تنزيل ملف SIF' : 'Download SIF File')
+                    : (language === 'ar' ? 'يتطلب الإقفال لتفعيل التحميل' : 'Locks to enable SIF')}
+                </span>{' '}
+                <ExternalLink className="w-3.5 h-3.5" />
               </button>
             </GlassCard>
           </div>
@@ -539,11 +546,11 @@ export function PayRunDetailFeature() {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-border/80 bg-surface-raised/50 text-text-muted font-bold tracking-wider uppercase text-[10px]">
-                  <th className="py-3 px-4">Severity</th>
-                  <th className="py-3 px-4">Issue Code</th>
-                  <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Issue Description</th>
-                  <th className="py-3 px-4">Action / Resolution</th>
+                  <th className="py-3 px-4">{language === 'ar' ? 'الخطورة' : 'Severity'}</th>
+                  <th className="py-3 px-4">{language === 'ar' ? 'رمز الملاحظة' : 'Issue Code'}</th>
+                  <th className="py-3 px-4">{language === 'ar' ? 'الموظف' : 'Employee'}</th>
+                  <th className="py-3 px-4">{language === 'ar' ? 'الوصف' : 'Issue Description'}</th>
+                  <th className="py-3 px-4">{language === 'ar' ? 'الإجراء / الحل' : 'Action / Resolution'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
@@ -630,15 +637,15 @@ export function PayRunDetailFeature() {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-border/80 bg-surface-raised/50 text-text-muted font-bold tracking-wider uppercase text-[10px]">
-                  <th className="py-3 px-4">Code</th>
-                  <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Department</th>
-                  <th className="py-3 px-4 text-right">Basic</th>
-                  <th className="py-3 px-4 text-right">Gross</th>
-                  <th className="py-3 px-4 text-right">Deductions</th>
-                  <th className="py-3 px-4 text-right">Net Pay (AED)</th>
-                  <th className="py-3 px-4 text-center">Variance</th>
-                  <th className="py-3 px-4 text-center">Actions</th>
+                  <th className="py-3 px-4">{language === 'ar' ? 'الرمز' : 'Code'}</th>
+                  <th className="py-3 px-4">{language === 'ar' ? 'الموظف' : 'Employee'}</th>
+                  <th className="py-3 px-4">{language === 'ar' ? 'القسم' : 'Department'}</th>
+                  <th className="py-3 px-4 text-right">{language === 'ar' ? 'الأساسي' : 'Basic'}</th>
+                  <th className="py-3 px-4 text-right">{language === 'ar' ? 'الإجمالي' : 'Gross'}</th>
+                  <th className="py-3 px-4 text-right">{language === 'ar' ? 'الاستقطاعات' : 'Deductions'}</th>
+                  <th className="py-3 px-4 text-right">{language === 'ar' ? 'صافي الراتب' : 'Net Pay'} (AED)</th>
+                  <th className="py-3 px-4 text-center">{language === 'ar' ? 'الفرق' : 'Variance'}</th>
+                  <th className="py-3 px-4 text-center">{language === 'ar' ? 'الإجراءات' : 'Actions'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
@@ -699,7 +706,7 @@ export function PayRunDetailFeature() {
                               onClick={() => handleOpenPayslipModal(ps)}
                               className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-raised border border-border hover:bg-primary hover:text-black transition-all"
                             >
-                              Breakdown
+                              {language === 'ar' ? 'تفاصيل' : 'Breakdown'}
                             </button>
                             <button
                               onClick={() => downloadPayslipPdf(ps.id, `payslip-${emp.employee_code}.pdf`)}
@@ -739,13 +746,13 @@ export function PayRunDetailFeature() {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-border/80 bg-surface-raised/50 text-text-muted font-bold tracking-wider uppercase text-[10px]">
-                  <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4 text-right">Previous Net</th>
-                  <th className="py-3 px-4 text-right">Current Net</th>
-                  <th className="py-3 px-4 text-right">Difference</th>
-                  <th className="py-3 px-4 text-center">Variance %</th>
-                  <th className="py-3 px-4">Justification Reason</th>
-                  <th className="py-3 px-4 text-center">Status</th>
+                  <th className="py-3 px-4">{language === 'ar' ? 'الموظف' : 'Employee'}</th>
+                  <th className="py-3 px-4 text-right">{language === 'ar' ? 'الصافي السابق' : 'Previous Net'}</th>
+                  <th className="py-3 px-4 text-right">{language === 'ar' ? 'الصافي الحالي' : 'Current Net'}</th>
+                  <th className="py-3 px-4 text-right">{language === 'ar' ? 'الفرق' : 'Difference'}</th>
+                  <th className="py-3 px-4 text-center">{language === 'ar' ? 'نسبة الفرق %' : 'Variance %'}</th>
+                  <th className="py-3 px-4">{language === 'ar' ? 'سبب التبرير' : 'Justification Reason'}</th>
+                  <th className="py-3 px-4 text-center">{language === 'ar' ? 'الحالة' : 'Status'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
@@ -825,7 +832,7 @@ export function PayRunDetailFeature() {
                                   }}
                                   className="text-[11px] font-bold text-primary hover:underline shrink-0"
                                 >
-                                  {ps.variance_reason ? 'Edit' : 'Justify'}
+                                  {ps.variance_reason ? (language === 'ar' ? 'تعديل' : 'Edit') : (language === 'ar' ? 'تبرير' : 'Justify')}
                                 </button>
                               )}
                             </div>

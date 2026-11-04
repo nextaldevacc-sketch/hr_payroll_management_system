@@ -254,7 +254,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
       </div>
 
       {/* User Session Profile in Footer */}
-      <div className="p-2 xl:p-3 border-t border-border/50 dark:border-border space-y-2">
+      <div className="p-2 xl:p-3 border-t border-border/50 dark:border-border space-y-2" data-i18n-skip="true">
         <div className="p-2 xl:p-2.5 rounded-xl border flex items-center justify-between text-start"
           style={{
             background: 'var(--bg-well)',
@@ -276,7 +276,9 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
                 {displayName}
               </span>
               <span className="text-[10px] block truncate font-medium text-amber-500">
-                {user?.roles?.[0] || 'USER'}
+                {isAr
+                  ? ({ COMPANY_ADMIN: 'مسؤول النظام', HR_MANAGER: 'مدير الموارد البشرية', EMPLOYEE: 'موظف', FINANCE: 'المالية', GM: 'المدير العام' }[user?.roles?.[0]] || user?.roles?.[0] || 'موظف')
+                  : (user?.roles?.[0] || 'USER')}
               </span>
             </div>
           </div>

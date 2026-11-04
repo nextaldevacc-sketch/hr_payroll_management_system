@@ -120,7 +120,8 @@ describe('Phase 7: 390px Mobile Responsive Layout (No Horizontal Scroll)', { tim
     const page = await context.newPage();
 
     // Log in as employee
-    await page.goto(`http://127.0.0.1:${WEB_PORT}/login`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`http://127.0.0.1:${WEB_PORT}/login`);
+    await page.waitForLoadState('networkidle');
     await page.waitForSelector('input[type="email"]', { timeout: 15000 });
     await page.fill('input[type="email"]', 'employee@gulftech.ae');
     await page.fill('input[type="password"]', 'Nextal@2026!');

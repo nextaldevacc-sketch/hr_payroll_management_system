@@ -16,7 +16,7 @@ import { InsetBox } from '../../primitives/InsetBox';
 import { useLanguage } from '../../../context/LanguageContext';
 
 export function QuickActionsTile({ data = [], onAction }) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
 
   const getActionIcon = (iconName) => {
     switch (iconName) {
@@ -46,8 +46,8 @@ export function QuickActionsTile({ data = [], onAction }) {
           <Zap className="w-5 h-5 stroke-[2]" />
         </IconWell>
       }
-      title="Quick Actions"
-      subtitle="Role-based fast shortcuts"
+      title={t('dashboard.quickActions.title')}
+      subtitle={t('dashboard.quickActions.subtitle')}
     >
       {/* 2x3 Grid of Action Wells */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 h-full">

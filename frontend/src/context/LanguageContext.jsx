@@ -7,6 +7,7 @@ import arTranslations from '../i18n/ar.json';
 
 const LanguageContext = createContext({
   language: 'en',
+  locale: 'en',
   isRTL: false,
   toggleLanguage: () => {},
   setLanguage: () => {},
@@ -23,10 +24,21 @@ export function LanguageProvider({ children, initialLocale = 'en' }) {
   const [, startTransition] = useTransition();
   const [language, setLanguageState] = useState(initialLocale);
 
+  React.useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('lang', language);
+      document.documentElement.setAttribute('dir', language === 'ar' ? 'rtl' : 'ltr');
+    }
+  }, [language]);
+
   const setLanguage = (lang) => {
     if (lang !== 'en' && lang !== 'ar') return;
     setLanguageState(lang);
-    document.cookie = `NEXT_LOCALE=${lang}; path=/; max-age=31536000; SameSite=Lax`;
+    if (typeof document !== 'undefined') {
+      document.cookie = `NEXT_LOCALE=${lang}; path=/; max-age=31536000; SameSite=Lax`;
+      document.documentElement.setAttribute('lang', lang);
+      document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+    }
     startTransition(() => {
       router.refresh();
     });
@@ -65,7 +77,7 @@ export function LanguageProvider({ children, initialLocale = 'en' }) {
   };
 
   return (
-    <LanguageContext.Provider value={{ language, isRTL, toggleLanguage, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, locale: language, isRTL, toggleLanguage, setLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );

@@ -41,7 +41,8 @@ export default function MissingPunchQueueFeature({ onResolved }) {
     setError(null);
     try {
       const data = await getMissingPunchQueue();
-      setQueue(Array.isArray(data) ? data : (data?.items || []));
+      const items = Array.isArray(data) ? data : (data?.data || data?.items || []);
+      setQueue(items);
     } catch (err) {
       console.error('Failed to load missing punch queue:', err);
       setError(err.message || 'Failed to load missing punch queue');

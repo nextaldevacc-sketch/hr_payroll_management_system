@@ -183,10 +183,26 @@ export default function DashboardPage() {
     types: [],
   };
 
+  const getVisaBadge = (visaName) => {
+    if (!visaName || visaName === 'All Visas' || visaName === 'All Entities') {
+      return language === 'ar' ? 'جميع التأشيرات' : 'All Visas';
+    }
+    if (language === 'ar') {
+      if (visaName.includes('01') || visaName.includes('Visa 01')) {
+        return 'تأشيرة 01 دبي';
+      }
+      if (visaName.includes('02') || visaName.includes('Visa 02')) {
+        return 'تأشيرة 02 مركز دبي المالي';
+      }
+      return visaName.replace(/[()]/g, '').trim();
+    }
+    return visaName;
+  };
+
   const defaultLivePayroll = {
     monthYear: 'Current Period',
     entityName: companyName || 'Company',
-    visaBadge: selectedVisa?.name || 'All Visas',
+    visaBadge: getVisaBadge(selectedVisa?.name || 'All Visas'),
     cutoffDays: 0,
     employeesIncluded: 0,
     currentStep: 'Draft',
@@ -332,9 +348,9 @@ export default function DashboardPage() {
     absentToday: overviewData.exceptions.absentToday,
     missingPunchesThisMonth: overviewData.exceptions.missingPunchesThisMonth,
     exceptions: [
-      { type: 'Late Arrivals Today', count: overviewData.exceptions.lateToday, severity: 'warning', code: 'late' },
-      { type: 'Unexcused Absences Today', count: overviewData.exceptions.absentToday, severity: 'danger', code: 'absent' },
-      { type: 'Missing Punches This Month', count: overviewData.exceptions.missingPunchesThisMonth, severity: 'info', code: 'missing' },
+      { type: language === 'ar' ? 'تأخرات الحضور اليوم' : 'Late Arrivals Today', count: overviewData.exceptions.lateToday, severity: 'warning', code: 'late' },
+      { type: language === 'ar' ? 'غياب غير مبرر اليوم' : 'Unexcused Absences Today', count: overviewData.exceptions.absentToday, severity: 'danger', code: 'absent' },
+      { type: language === 'ar' ? 'بصمات مفقودة هذا الشهر' : 'Missing Punches This Month', count: overviewData.exceptions.missingPunchesThisMonth, severity: 'info', code: 'missing' },
     ],
   } : defaultExceptions;
 
@@ -388,15 +404,15 @@ export default function DashboardPage() {
   const livePayrollData = salaryData?.livePayroll ? {
     monthYear: salaryData.livePayroll.period || 'October 2026',
     entityName: companyName || 'Company',
-    visaBadge: selectedVisa?.name || salaryData.livePayroll.visaName || 'All Visas',
+    visaBadge: getVisaBadge(selectedVisa?.name || salaryData.livePayroll.visaName || 'All Visas'),
     cutoffDays: 4,
     employeesIncluded: salaryData.livePayroll.employeeCount,
     currentStep: salaryData.livePayroll.status,
     steps: ['Draft', 'Calculated', 'Validated', 'Locked', 'Paid'],
     nextStep: {
-      owner: salaryData.livePayroll.status === 'Calculated' ? 'HR Manager' : salaryData.livePayroll.status === 'Validated' ? 'GM' : 'Finance',
-      action: salaryData.livePayroll.status === 'Draft' ? 'Calculate run' : salaryData.livePayroll.status === 'Calculated' ? 'Validate run' : salaryData.livePayroll.status === 'Validated' ? 'Lock run' : salaryData.livePayroll.status === 'Locked' ? 'Mark Paid' : 'Complete',
-      message: `${salaryData.livePayroll.blockingIssuesCount} blocking issues`,
+      owner: salaryData.livePayroll.status === 'Calculated' ? (language === 'ar' ? 'مدير الموارد البشرية' : 'HR Manager') : salaryData.livePayroll.status === 'Validated' ? (language === 'ar' ? 'المدير العام' : 'GM') : (language === 'ar' ? 'المالية' : 'Finance'),
+      action: salaryData.livePayroll.status === 'Draft' ? (language === 'ar' ? 'حساب المسير' : 'Calculate run') : salaryData.livePayroll.status === 'Calculated' ? (language === 'ar' ? 'تدقيق المسير' : 'Validate run') : salaryData.livePayroll.status === 'Validated' ? (language === 'ar' ? 'إقفال المسير' : 'Lock run') : salaryData.livePayroll.status === 'Locked' ? (language === 'ar' ? 'تأكيد الصرف' : 'Mark Paid') : (language === 'ar' ? 'مكتمل' : 'Complete'),
+      message: `${salaryData.livePayroll.blockingIssuesCount} ${language === 'ar' ? 'مشاكل معلقة' : 'blocking issues'}`,
       tab: 'validation',
     },
     figures: {
@@ -433,7 +449,7 @@ export default function DashboardPage() {
             icon={<Upload className="w-3.5 h-3.5" />}
             onClick={() => setActiveDrawer('import')}
           >
-            Import Punches
+            {t('dashboard.actions.importPunches', 'Import Punches')}
           </Button>
           {seesSalary && (
             <Button
@@ -442,7 +458,7 @@ export default function DashboardPage() {
               icon={<Play className="w-3.5 h-3.5" />}
               onClick={() => router.push('/payroll')}
             >
-              Calculate Payroll
+              {t('dashboard.actions.calculatePayroll', 'Calculate Payroll')}
             </Button>
           )}
         </div>
@@ -561,25 +577,25 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <div className="p-4 rounded-xl bg-primary-wash/50 border border-primary/20">
               <div className="flex items-center justify-between text-xs font-semibold mb-2">
-                <span className="text-primary font-bold">Pay Run Stage</span>
+                <span className="text-primary font-bold">{language === 'ar' ? 'مرحلة مسير الرواتب' : 'Pay Run Stage'}</span>
                 <span className="px-2 py-0.5 rounded-full bg-primary text-[var(--on-primary)] text-[10px] font-bold">
                   {livePayrollData.currentStep?.toUpperCase() || 'CALCULATED'}
                 </span>
               </div>
               <p className="text-xs text-text-muted">
-                Live calculation verified with {livePayrollData.employeesIncluded} contracts. Ready for HR Manager review and variance audit.
+                {language === 'ar' ? `تم التحقق من الحساب المباشر لعدد ${livePayrollData.employeesIncluded} عقداً.` : `Live calculation verified with ${livePayrollData.employeesIncluded} contracts.`}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border">
-                <span className="text-text-muted">Total Gross Salary</span>
+                <span className="text-text-muted">{language === 'ar' ? 'إجمالي الراتب' : 'Total Gross Salary'}</span>
                 <p className="text-base font-bold text-text tabular-nums mt-0.5">
                   <bdi>{formatCurrency(livePayrollData.figures.gross, 'AED', language)}</bdi>
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-secondary-wash border border-secondary/20">
-                <span className="text-secondary-text font-semibold">Net to WPS SIF</span>
+                <span className="text-secondary-text font-semibold">{language === 'ar' ? 'صافي حماية الأجور (SIF)' : 'Net to WPS SIF'}</span>
                 <p className="text-base font-bold text-secondary-text tabular-nums mt-0.5">
                   <bdi>{formatCurrency(livePayrollData.figures.netToWps, 'AED', language)}</bdi>
                 </p>
@@ -588,7 +604,7 @@ export default function DashboardPage() {
 
             <div className="pt-2 flex items-center justify-end gap-2 border-t border-border/40">
               <Button variant="outline" size="sm" onClick={() => setIsPayrollModalOpen(false)}>
-                Close
+                {language === 'ar' ? 'إغلاق' : 'Close'}
               </Button>
               <Button
                 variant="primary"
@@ -599,7 +615,7 @@ export default function DashboardPage() {
                   router.push('/payroll');
                 }}
               >
-                Open Full Run
+                {language === 'ar' ? 'عرض مسير الرواتب' : 'Open Full Run'}
               </Button>
             </div>
           </div>
@@ -610,18 +626,18 @@ export default function DashboardPage() {
       <Drawer
         isOpen={activeDrawer === 'import'}
         onClose={() => setActiveDrawer(null)}
-        title="Biometric Punches Import"
-        subtitle="Upload attendance records (CSV/Excel format)"
+        title={language === 'ar' ? 'استيراد بصمات الحضور البيومترية' : 'Biometric Punches Import'}
+        subtitle={language === 'ar' ? 'تحميل سجلات الحضور (ملف CSV/Excel)' : 'Upload attendance records (CSV/Excel format)'}
       >
         <div className="space-y-4">
           <p className="text-xs text-text-muted">
-            Upload biometric device logs to reconcile with scheduled shift timings.
+            {language === 'ar' ? 'تحميل سجلات أجهزة البصمة لمطابقتها مع مواعيد الورديات المجدولة.' : 'Upload biometric device logs to reconcile with scheduled shift timings.'}
           </p>
           <div className="border-2 border-dashed border-border rounded-xl p-8 text-center space-y-3 bg-black/[0.01] dark:bg-white/[0.01]">
             <Upload className="w-8 h-8 mx-auto text-primary" />
-            <p className="text-xs text-text-muted">Drag & drop punch log file here, or click to browse</p>
+            <p className="text-xs text-text-muted">{language === 'ar' ? 'اسحب ملف سجل البصمات وأفلته هنا، أو اضغط للاختيار' : 'Drag & drop punch log file here, or click to browse'}</p>
             <Button size="sm" variant="outline" onClick={() => setActiveDrawer(null)}>
-              Browse Files
+              {language === 'ar' ? 'استعراض الملفات' : 'Browse Files'}
             </Button>
           </div>
         </div>

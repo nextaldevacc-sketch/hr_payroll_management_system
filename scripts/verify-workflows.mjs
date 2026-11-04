@@ -151,7 +151,7 @@ async function runStepRunner() {
 
   // 1. Reset and seed test database
   console.log(`[setup] Resetting and seeding isolated test database: ${TEST_DB_URL}`);
-  execSync('npx prisma migrate reset --schema prisma/schema.prisma --force --skip-seed', {
+  execSync('npx prisma migrate reset --schema prisma/schema.prisma --force --skip-seed --skip-generate', {
     cwd: apiDir,
     env: { ...process.env, DATABASE_URL: TEST_DB_URL, NODE_ENV: 'test' },
     stdio: 'inherit',
@@ -193,11 +193,11 @@ async function runStepRunner() {
 
   // 4. Spawn frontend server
   console.log(`[setup] Spawning frontend web server on port ${WEB_PORT}...`);
-  const webProc = spawn(process.execPath, [nextBin, 'start', '-p', String(WEB_PORT)], {
+  const webProc = spawn(process.execPath, [nextBin, 'dev', '-p', String(WEB_PORT)], {
     cwd: webDir,
     env: {
       ...process.env,
-      NODE_ENV: 'production',
+      NODE_ENV: 'development',
       PORT: String(WEB_PORT),
       API_ORIGIN: `http://127.0.0.1:${API_PORT}`,
       NEXT_PUBLIC_API_URL: '/api/v1',
@@ -287,6 +287,7 @@ async function runStepRunner() {
   let testJoinerId = '';
   let testJoinerCode = '';
   let testJoinerEmail = '';
+  let hrMgrBellCountBefore = 0;
 
   try {
     // =========================================================================
@@ -422,8 +423,8 @@ async function runStepRunner() {
         const updatedAr = 'شركة اللوجستيات المحدثة ش.ذ.م.م';
 
         await page.fill('input[value*="TL-"], input[placeholder*="TL-"]', updatedLicence);
-        const nameArInput = await page.$('input[value*="شركة"], input[dir="rtl"]');
-        if (nameArInput) await nameArInput.fill(updatedAr);
+        const nameArInput = await page.waitForSelector('input[value*="شركة"], input[dir="rtl"]', { timeout: 10000 });
+        await nameArInput.fill(updatedAr);
 
         await page.click('button:has-text("Save Changes"), button:has-text("حفظ")');
         await page.waitForTimeout(1500);
@@ -462,16 +463,14 @@ async function runStepRunner() {
         // 1. Branches drawer
         await page.click('#tile-branches, button:has-text("Branches & Locations")');
         await page.waitForTimeout(1000);
-        const addBranchBtn = await page.$('button:has-text("Add Operating Branch"), button:has-text("Add Branch")');
-        if (addBranchBtn) {
-          await addBranchBtn.click();
-          await page.fill('input[placeholder*="Branch Name"]', `Abu Dhabi Facility ${ts.slice(-3)}`);
-          const saveBranchBtn = await page.$('button:has-text("Save Branch")');
-          if (saveBranchBtn) await saveBranchBtn.click();
-          await page.waitForTimeout(500);
-          await page.click('button:has-text("Save Changes")');
-          await page.waitForTimeout(1500);
-        }
+        const addBranchBtn = await page.waitForSelector('button:has-text("Add Operating Branch"), button:has-text("Add Branch")', { timeout: 10000 });
+        await addBranchBtn.click();
+        await page.fill('input[placeholder*="Branch Name"]', `Abu Dhabi Facility ${ts.slice(-3)}`);
+        const saveBranchBtn = await page.waitForSelector('button:has-text("Save Branch")', { timeout: 10000 });
+        await saveBranchBtn.click();
+        await page.waitForTimeout(500);
+        await page.click('button:has-text("Save Changes")');
+        await page.waitForTimeout(1500);
 
         // Return to settings overview so drawer backdrop is cleared
         await safeGoto(page, `http://localhost:${WEB_PORT}/settings`);
@@ -480,22 +479,18 @@ async function runStepRunner() {
         // 2. Departments & Jobs drawer
         await page.click('#tile-departments_jobs, button:has-text("Departments & Jobs")');
         await page.waitForTimeout(1000);
-        const jobsTab = await page.$('button:has-text("Job Positions"), button:has-text("الوظائف")');
-        if (jobsTab) {
-          await jobsTab.click();
-          await page.waitForTimeout(500);
-          const addJobBtn = await page.$('button:has-text("Add Job"), button:has-text("إضافة مسمى")');
-          if (addJobBtn) {
-            await addJobBtn.click();
-            await page.fill('input[placeholder*="Job Code"]', `OPS-${ts.slice(-3)}`);
-            await page.fill('input[placeholder*="Job Title"]', 'Operations Specialist');
-            const saveJobBtn = await page.$('button:has-text("Save Job")');
-            if (saveJobBtn) await saveJobBtn.click();
-            await page.waitForTimeout(500);
-            await page.click('button:has-text("Save Changes")');
-            await page.waitForTimeout(1500);
-          }
-        }
+        const jobsTab = await page.waitForSelector('button:has-text("Job Titles & Grades"), button:has-text("Job Positions"), button:has-text("المسميات والرتب الوظيفية"), button:has-text("الوظائف")', { timeout: 10000 });
+        await jobsTab.click();
+        await page.waitForTimeout(500);
+        const addJobBtn = await page.waitForSelector('button:has-text("Add Job Title"), button:has-text("Add Job"), button:has-text("إضافة مسمى")', { timeout: 10000 });
+        await addJobBtn.click();
+        await page.fill('input[placeholder*="Job Code"], input[placeholder*="Code (e.g."]', `OPS-${ts.slice(-3)}`);
+        await page.fill('input[placeholder*="Title (English)"], input[placeholder*="Job Title"]', 'Operations Specialist');
+        const saveJobBtn = await page.waitForSelector('button:has-text("Save Job"), button:has-text("حفظ المسمى")', { timeout: 10000 });
+        await saveJobBtn.click();
+        await page.waitForTimeout(500);
+        await page.click('button:has-text("Save Changes"), button:has-text("حفظ التغييرات")');
+        await page.waitForTimeout(1500);
 
         return 'Branch (Abu Dhabi Facility) and Job (Operations Specialist) configured';
       },
@@ -522,8 +517,8 @@ async function runStepRunner() {
           throw new Error('Public Holidays drawer failed to load 2026 calendar');
         }
 
-        const closeBtn = await page.$('button[aria-label="Close"], button:has-text("Cancel"), button:has-text("إلغاء")');
-        if (closeBtn) await closeBtn.click();
+        const closeBtn = await page.waitForSelector('button[aria-label="Close"], button:has-text("Cancel"), button:has-text("إلغاء")', { timeout: 5000 });
+        await closeBtn.click();
         await page.waitForTimeout(500);
 
         return 'Public Holidays 2026 statutory baseline verified';
@@ -577,8 +572,8 @@ async function runStepRunner() {
         await page.fill('input[type="email"]', testHrMgrEmail);
 
         // Select HR_MANAGER role checkbox
-        const hrMgrCheckbox = await page.$('input[value="HR_MANAGER"], label:has-text("HR Manager")');
-        if (hrMgrCheckbox) await hrMgrCheckbox.click();
+        const hrMgrCheckbox = await page.waitForSelector('input[value="HR_MANAGER"], #role-checkbox-HR_MANAGER, label:has-text("HR Manager")', { timeout: 10000 });
+        await hrMgrCheckbox.click();
 
         await page.click('button[type="submit"]:has-text("Send Invitation"), button:has-text("إرسال الدعوة")');
         await page.waitForTimeout(2000);
@@ -632,13 +627,14 @@ async function runStepRunner() {
       no: 8,
       role: 'HR_MANAGER',
       email: 'hr.mgr@gulftech.ae',
-      action: 'HR Manager tests Top-bar Visa filter (Visa 01, Visa 02, All Entities)',
+      action: 'HR Manager tests Top-bar Visa filter (Visa 02 & All Visas)',
       expect: 'Employee list updates to show only matching visa entity records',
-      shotPathOverride: path.join(shotsDir, 'workflows', 'wf-7.1-08-visa-filter.png'),
+      shotPathOverride: path.join(shotsDir, '7.1-8a-HR_MANAGER.png'),
       runFn: async (page, shotPath) => {
+        // 1. Log in as hr.mgr@gulftech.ae, open /employees, wait for the table.
         await login(page, 'hr.mgr@gulftech.ae');
         await safeGoto(page, `http://localhost:${WEB_PORT}/employees`);
-        await page.waitForTimeout(2000);
+        await page.waitForSelector('table tbody tr', { timeout: 15000 });
 
         // Get visas for Gulf Tech
         const gt = await prisma.$base().companies.findFirst({ where: { name: 'Gulf Tech Logistics LLC' } });
@@ -646,33 +642,99 @@ async function runStepRunner() {
           where: { company_id: gt.id },
           orderBy: { created_at: 'asc' },
         });
+        const visa02 = visas.find((v) => v.name.includes('Visa 02') || v.name.includes('DIFC')) || visas[1];
+        if (!visa02) throw new Error('Visa 02 not found in database for Gulf Tech');
 
-        // 1. Select Visa 01 from top-bar dropdown
-        const visaSelect = await page.$('#topbar-visa-select');
-        if (visaSelect && visas[0]) {
-          await visaSelect.selectOption(visas[0].id);
-          await page.waitForTimeout(1500);
-          const rows = await page.$$('table tbody tr');
-          console.log(`Visa 01 selected (${visas[0].name}): ${rows.length} rows visible`);
+        // 2. Click #btn-company-visa-switcher, click the option whose visible text contains the Visa 02 name.
+        // Wait for network request containing company_visa_id=<visa02 id> to finish (page.waitForResponse) — assert it was sent.
+        const switcherBtn = await page.waitForSelector('#btn-company-visa-switcher', { timeout: 10000 });
+        await switcherBtn.click();
+        await page.waitForSelector('#company-visa-dropdown-panel', { timeout: 5000 });
+
+        const visaOption = await page.waitForSelector(
+          `#company-visa-dropdown-panel #btn-select-visa-${visa02.id}, #company-visa-dropdown-panel button:has-text("${visa02.name}")`,
+          { timeout: 10000 }
+        );
+
+        const [visaResponse] = await Promise.all([
+          page.waitForResponse(
+            (res) => res.url().includes('company_visa_id=' + visa02.id) && res.status() === 200,
+            { timeout: 15000 }
+          ),
+          visaOption.click(),
+        ]);
+        if (!visaResponse) {
+          throw new Error(`Expected network request containing company_visa_id=${visa02.id}`);
+        }
+        await page.waitForTimeout(1500);
+
+        // 3. Assert: table has >=1 row; EVERY row's branch cell = "DIFC FinTech Hub"; no row contains "EMP-DXB-043" (Ahmed, Visa 01). Screenshot 7.1-8a-HR_MANAGER.png.
+        const rows = await page.$$('table tbody tr');
+        if (rows.length === 0) {
+          throw new Error('Expected employee table to have >= 1 row after selecting Visa 02');
         }
 
-        // 2. Select Visa 02 from top-bar dropdown
-        if (visaSelect && visas[1]) {
-          await visaSelect.selectOption(visas[1].id);
-          await page.waitForTimeout(1500);
-          const rows = await page.$$('table tbody tr');
-          console.log(`Visa 02 selected (${visas[1].name}): ${rows.length} rows visible`);
+        const tableText = await page.textContent('table tbody');
+        if (tableText.includes('EMP-DXB-043')) {
+          throw new Error('Table must not contain EMP-DXB-043 when Visa 02 is selected');
         }
 
-        // 3. Select 'all' Entities
-        if (visaSelect) {
-          await visaSelect.selectOption('all');
-          await page.waitForTimeout(1500);
-          const rows = await page.$$('table tbody tr');
-          console.log(`All Entities selected: ${rows.length} rows visible`);
+        for (const row of rows) {
+          const rowText = await row.textContent();
+          if (!rowText.includes('DIFC FinTech Hub')) {
+            throw new Error(`Expected row branch cell to be "DIFC FinTech Hub", got: ${rowText}`);
+          }
         }
 
-        return `Top-bar Visa selector filtered employee list across Visa 01, Visa 02, and All Entities successfully`;
+        const shotA = path.join(shotsDir, '7.1-8a-HR_MANAGER.png');
+        await page.screenshot({ path: shotA, fullPage: true });
+
+        // 4. Switch to "All Company Visas". Assert a row with EMP-DXB-043 is present (search box if paginated). Screenshot 7.1-8b-HR_MANAGER.png.
+        const reSwitcherBtn = await page.waitForSelector('#btn-company-visa-switcher', { timeout: 10000 });
+        await reSwitcherBtn.click();
+        await page.waitForSelector('#company-visa-dropdown-panel', { timeout: 5000 });
+
+        const allOption = await page.waitForSelector('#company-visa-dropdown-panel #btn-select-visa-all', { timeout: 10000 });
+        await allOption.click();
+        await page.waitForTimeout(1500);
+
+        let fullTableText = await page.textContent('table tbody');
+        if (!fullTableText.includes('EMP-DXB-043')) {
+          const searchInput = await page.waitForSelector('#employee-search-input', { timeout: 5000 });
+          await Promise.all([
+            page.waitForResponse(
+              (res) => res.url().includes('search=EMP-DXB-043') && res.status() === 200,
+              { timeout: 10000 }
+            ),
+            searchInput.fill('EMP-DXB-043'),
+          ]);
+          await page.waitForTimeout(500);
+          fullTableText = await page.textContent('table tbody');
+        }
+        if (!fullTableText.includes('EMP-DXB-043')) {
+          throw new Error('Expected EMP-DXB-043 to be present when All Company Visas is selected');
+        }
+
+        const shotB = path.join(shotsDir, '7.1-8b-HR_MANAGER.png');
+        await page.screenshot({ path: shotB, fullPage: true });
+
+        // 5. Reload the page — assert the selection persisted.
+        await page.reload();
+        await page.waitForSelector('table tbody tr', { timeout: 15000 });
+        const persistedSwitcherText = await (await page.waitForSelector('#btn-company-visa-switcher')).textContent();
+        if (
+          !persistedSwitcherText.includes('All Company Visas') &&
+          !persistedSwitcherText.includes('All Visas') &&
+          !persistedSwitcherText.includes('جميع تأشيرات الكيان')
+        ) {
+          throw new Error(`Expected visa selection 'All Company Visas' to persist after reload, got: ${persistedSwitcherText}`);
+        }
+
+        // Record HR Manager's notification bell count before HR Officer creates employee
+        const badgeEl = await page.$('#notifications-badge');
+        hrMgrBellCountBefore = badgeEl ? parseInt(((await badgeEl.getAttribute('data-count')) || (await badgeEl.textContent())).trim(), 10) || 0 : 0;
+
+        return 'Top-bar Visa selector filtered to Visa 02 and persisted All Company Visas successfully';
       },
     });
 
@@ -792,13 +854,12 @@ async function runStepRunner() {
         // Upfront creator guard check
         const pageContent = await page.textContent('body');
         const hasBlockedBanner = pageContent.includes('Another HR Manager must verify') || pageContent.includes('you created this record');
+        if (!hasBlockedBanner) {
+          throw new Error('Expected upfront creator guard banner to be displayed');
+        }
         const isApproveDisabled = await page.$eval('#btn-verify-approve', (btn) => btn.disabled).catch(() => true);
-
-        // Try to click Verify & Approve (must be disabled or blocked)
-        const verifyBtn = await page.$('#btn-verify-approve');
-        if (verifyBtn) {
-          await verifyBtn.click({ force: true, timeout: 1500 }).catch(() => {});
-          await page.waitForTimeout(1000);
+        if (!isApproveDisabled) {
+          throw new Error('Verify & Approve button must be disabled for creator');
         }
 
         // Assert status in DB is still Pre-Joined
@@ -819,42 +880,43 @@ async function runStepRunner() {
       email: 'hr.mgr@gulftech.ae',
       action: 'HR Manager opens Approvals Inbox -> verifies new employee verification item',
       expect: 'Dual-control verification cycle completed to New Joined via Approval Inbox',
-      shotPathOverride: path.join(shotsDir, 'workflows', 'wf-7.2-03-hr-manager-verify.png'),
+      shotPathOverride: path.join(shotsDir, '7.2-3-HR_MANAGER.png'),
       runFn: async (page, shotPath) => {
         // 1. HR Manager logs in
         await login(page, 'hr.mgr@gulftech.ae');
+        await safeGoto(page, `http://localhost:${WEB_PORT}/me`);
+        await page.waitForTimeout(1000);
 
-        // 2. Assert notification bell shows notification
-        const bell = await page.$('#btn-notifications-bell, [title="Notifications"]');
-        if (bell) {
-          await bell.click();
-          await page.waitForTimeout(1000);
-          console.log('Notification dropdown inspected for employee verification notification');
-          await page.click('body');
+        // 2. Read bell badge count AFTER; assert it went up by >= 1
+        const badgeEl = await page.waitForSelector('#notifications-badge', { timeout: 10000 });
+        const countStr = (await badgeEl.getAttribute('data-count')) || (await badgeEl.textContent());
+        const hrMgrBellCountAfter = parseInt(countStr.trim(), 10) || 0;
+        if (hrMgrBellCountAfter < hrMgrBellCountBefore + 1) {
+          throw new Error(`Notification badge did not increase by >= 1: before=${hrMgrBellCountBefore}, after=${hrMgrBellCountAfter}`);
         }
+
+        // Open dropdown and assert text "Pending Verification" + new employee code is visible
+        const bell = await page.waitForSelector('#btn-notifications-bell', { timeout: 10000 });
+        await bell.click();
+        await page.waitForTimeout(500);
+        const notifDropdown = await page.waitForSelector('#notifications-dropdown-panel', { timeout: 5000 });
+        const dropdownText = await notifDropdown.textContent();
+        if (!dropdownText.includes('Pending Verification') || !dropdownText.includes(testJoinerCode)) {
+          throw new Error(`Expected notification to contain "Pending Verification" and "${testJoinerCode}", got: ${dropdownText}`);
+        }
+        await page.click('body');
 
         // 3. Navigate to /approvals
         await safeGoto(page, `http://localhost:${WEB_PORT}/approvals`);
-        await page.waitForTimeout(2000);
+        await page.waitForSelector('table tbody tr', { timeout: 15000 });
 
-        // 4. Look for verification item in Approvals Inbox
-        const verifyBtn = await page.$(
-          `tr[data-entity-id="${testJoinerId}"] #btn-verify-approve, #btn-verify-approve`
+        // 4. Look for verification item in Approvals Inbox and approve
+        const verifyBtn = await page.waitForSelector(
+          `tr[data-entity-id="${testJoinerId}"] #btn-verify-approve, #btn-verify-approve`,
+          { timeout: 10000 }
         );
-        if (verifyBtn) {
-          await verifyBtn.click();
-          await page.waitForTimeout(2000);
-        } else {
-          // Direct fallback if already verified or button differs
-          await safeGoto(page, `http://localhost:${WEB_PORT}/employees/${testJoinerId}`);
-          await page.waitForTimeout(1500);
-          const fallbackBtn = await page.$('#btn-verify-approve');
-          if (fallbackBtn) {
-            await page.fill('#input-verify-comment', 'Approved verified legal records');
-            await fallbackBtn.click();
-            await page.waitForTimeout(2000);
-          }
-        }
+        await verifyBtn.click();
+        await page.waitForTimeout(2000);
 
         // 5. Assert status updates to 'New Joined'
         const updated = await prisma.$base().employees.findUnique({ where: { id: testJoinerId } });
@@ -910,17 +972,9 @@ async function runStepRunner() {
         await page.click('#tab-salaryHistory');
         await page.waitForTimeout(1000);
 
-        const approveContractBtn = await page.$(`button[id*="btn-approve-contract-"]`);
-        if (approveContractBtn) {
-          await approveContractBtn.click();
-          await page.waitForTimeout(2000);
-        } else {
-          // If already approved or approval endpoint called
-          await prisma.$base().contracts.update({
-            where: { id: contract.id },
-            data: { status: 'Approved', approved_at: new Date() },
-          });
-        }
+        const approveContractBtn = await page.waitForSelector(`button[id*="btn-approve-contract-"]`, { timeout: 10000 });
+        await approveContractBtn.click();
+        await page.waitForTimeout(2000);
 
         const approvedContract = await prisma.$base().contracts.findUnique({
           where: { id: contract.id },
@@ -962,8 +1016,8 @@ async function runStepRunner() {
           await page.fill('input[placeholder*="e.g. 784-1990-1234567-1"], input[value=""]', doc.num);
           await page.fill('input[type="date"]', doc.exp);
 
-          const fileInput = await page.$('input[type="file"]');
-          if (fileInput) await fileInput.setInputFiles(samplePdf);
+          const fileInput = await page.waitForSelector('input[type="file"]', { state: 'attached', timeout: 10000 });
+          await fileInput.setInputFiles(samplePdf);
 
           await page.click('button[type="submit"]:has-text("Upload & Verify")');
           await page.waitForTimeout(1500);
@@ -1027,11 +1081,9 @@ async function runStepRunner() {
         await page.waitForTimeout(1500);
 
         // Click Activate Employee button
-        const actBtn = await page.$('#btn-activate-employee-profile');
-        if (actBtn) {
-          await actBtn.click();
-          await page.waitForTimeout(1500);
-        }
+        const actBtn = await page.waitForSelector('#btn-activate-employee-profile', { timeout: 10000 });
+        await actBtn.click();
+        await page.waitForTimeout(1500);
 
         const content = await page.textContent('body');
         if (!content.includes('bank') && !content.includes('Bank') && !content.includes('missing') && !content.includes('requirements')) {
@@ -1105,11 +1157,9 @@ async function runStepRunner() {
         await safeGoto(page, `http://localhost:${WEB_PORT}/employees/${testJoinerId}`);
         await page.waitForTimeout(1500);
 
-        const actBtn = await page.$('#btn-activate-employee-profile');
-        if (actBtn) {
-          await actBtn.click();
-          await page.waitForTimeout(2500);
-        }
+        const actBtn = await page.waitForSelector('#btn-activate-employee-profile', { timeout: 10000 });
+        await actBtn.click();
+        await page.waitForTimeout(2500);
 
         const emp = await prisma.$base().employees.findUnique({ where: { id: testJoinerId } });
         if (emp.status !== 'Active') {
@@ -1214,8 +1264,7 @@ async function runStepRunner() {
         await page.click('#tab-biometric-import');
         await page.waitForTimeout(1000);
 
-        const fileInput = await page.$('#biometric-file-input');
-        if (!fileInput) throw new Error('Biometric file input not found');
+        const fileInput = await page.waitForSelector('#biometric-file-input', { state: 'attached', timeout: 10000 });
         await fileInput.setInputFiles(fixtureCsv);
         await page.waitForTimeout(500);
 
@@ -1247,7 +1296,7 @@ async function runStepRunner() {
         await page.click('#tab-biometric-import');
         await page.waitForTimeout(1000);
 
-        const fileInput = await page.$('#biometric-file-input');
+        const fileInput = await page.waitForSelector('#biometric-file-input', { state: 'attached', timeout: 10000 });
         await fileInput.setInputFiles(fixtureCsv);
         await page.waitForTimeout(500);
 
@@ -1304,15 +1353,13 @@ async function runStepRunner() {
         await page.click('#tab-missing-punches');
         await page.waitForTimeout(1500);
 
-        const resolveBtn = await page.$('button:has-text("Resolve"), button:has-text("معالجة")');
-        if (resolveBtn) {
-          await resolveBtn.click();
-          await page.waitForTimeout(500);
+        const resolveBtn = await page.waitForSelector('button:has-text("Resolve"), button:has-text("معالجة")', { timeout: 10000 });
+        await resolveBtn.click();
+        await page.waitForTimeout(500);
 
-          await page.fill('textarea', 'Biometric scanner reader glitch verified by site supervisor');
-          await page.click('button[type="submit"]:has-text("Confirm"), button:has-text("تأكيد")');
-          await page.waitForTimeout(1500);
-        }
+        await page.fill('textarea', 'Biometric scanner reader glitch verified by site supervisor');
+        await page.click('#confirm-resolve-btn, button[type="submit"]:has-text("Confirm"), button:has-text("تأكيد")');
+        await page.waitForTimeout(1500);
 
         return 'Missing punch resolved with mandatory audit justification';
       },
@@ -1430,11 +1477,9 @@ async function runStepRunner() {
         await page.click('#tab-attendance-review');
         await page.waitForTimeout(1000);
 
-        const deptConfirmBtn = await page.$('button:has-text("Confirm Department"), button:has-text("اعتماد القسم")');
-        if (deptConfirmBtn) {
-          await deptConfirmBtn.click();
-          await page.waitForTimeout(2000);
-        }
+        const deptConfirmBtn = await page.waitForSelector('#confirm-dept-btn, button:has-text("Confirm Department"), button:has-text("اعتماد القسم")', { timeout: 10000 });
+        await deptConfirmBtn.click();
+        await page.waitForTimeout(2000);
 
         // 2. HR Officer confirms company-wide
         await login(page, 'hr.officer@gulftech.ae');
@@ -1444,11 +1489,9 @@ async function runStepRunner() {
         await page.click('#tab-attendance-review');
         await page.waitForTimeout(1000);
 
-        const hrConfirmBtn = await page.$('button:has-text("HR Confirmation"), button:has-text("اعتماد الموارد البشرية")');
-        if (hrConfirmBtn) {
-          await hrConfirmBtn.click();
-          await page.waitForTimeout(2000);
-        }
+        const hrConfirmBtn = await page.waitForSelector('#confirm-hr-btn, button:has-text("Confirm Company Attendance"), button:has-text("HR Confirmation"), button:has-text("اعتماد الموارد البشرية")', { timeout: 10000 });
+        await hrConfirmBtn.click();
+        await page.waitForTimeout(2000);
 
         return 'Dual-stage monthly sign-off complete: ManagerConfirmed -> HrConfirmed (Payroll-Ready)';
       },

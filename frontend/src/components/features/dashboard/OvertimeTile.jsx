@@ -9,7 +9,7 @@ import { useLanguage } from '../../../context/LanguageContext';
 import { useAuth } from '../../../context/AuthContext';
 
 export function OvertimeTile({ data, onClick }) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const { seesSalary } = useAuth();
 
   const types = data?.types || [
@@ -36,7 +36,7 @@ export function OvertimeTile({ data, onClick }) {
           <Clock className="w-5 h-5 stroke-[2]" />
         </IconWell>
       }
-      title="Overtime This Month"
+      title={t('dashboard.overtime.title')}
       subtitle={subtitle}
     >
       <div className="space-y-2">

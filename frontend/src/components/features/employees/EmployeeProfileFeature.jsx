@@ -565,7 +565,9 @@ export function EmployeeProfileFeature({ id } = {}) {
         {/* TAB 1: PERSONAL */}
         {activeTab === 'personal' && (
           <GlassCard className="p-6 border border-border">
-            <h3 className="text-base font-bold text-text mb-4">Personal & Identity Information</h3>
+            <h3 className="text-base font-bold text-text mb-4">
+              {language === 'ar' ? 'البيانات الشخصية والهوية' : 'Personal & Identity Information'}
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-xs">
               <div>
                 <span className="text-text-muted block mb-1">Full Legal Name (English)</span>
@@ -616,7 +618,9 @@ export function EmployeeProfileFeature({ id } = {}) {
           <div className="space-y-6">
             <GlassCard className="p-6 border border-border">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-bold text-text">Job Role & Organizational Placement</h3>
+                <h3 className="text-base font-bold text-text">
+                  {language === 'ar' ? 'المسمى الوظيفي والهيكل التنظيمي' : 'Job Role & Organizational Placement'}
+                </h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-xs">
                 <div>
@@ -663,7 +667,9 @@ export function EmployeeProfileFeature({ id } = {}) {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-text">Versioned Salary Contracts (Rule B)</h3>
+                <h3 className="text-base font-bold text-text">
+                  {language === 'ar' ? 'عقود العمل والرواتب المعتمدة' : 'Versioned Salary Contracts (Rule B)'}
+                </h3>
                 <p className="text-xs text-text-muted">
                   Every raise or structural change creates a NEW contract row with an effective date. Old rows are never updated.
                 </p>
@@ -752,7 +758,9 @@ export function EmployeeProfileFeature({ id } = {}) {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-text">UAE Statutory Documents Vault</h3>
+                <h3 className="text-base font-bold text-text">
+                  {language === 'ar' ? 'مستودع الوثائق الرسمية لدولة الإمارات' : 'UAE Statutory Documents Vault'}
+                </h3>
                 <p className="text-xs text-text-muted">
                   Passports, Emirates IDs, Visas, and Labour Cards stored outside web root with magic-byte validation.
                 </p>
@@ -821,7 +829,9 @@ export function EmployeeProfileFeature({ id } = {}) {
         {/* TAB 5: ATTENDANCE SETUP */}
         {activeTab === 'attendance' && (
           <GlassCard className="p-6 border border-border space-y-4">
-            <h3 className="text-base font-bold text-text">Shift & Biometric Mapping</h3>
+            <h3 className="text-base font-bold text-text">
+              {language === 'ar' ? 'جدول الورديات والربط الحيوي' : 'Shift & Biometric Mapping'}
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
               <div>
                 <span className="text-text-muted block mb-1">Assigned Shift</span>
@@ -853,7 +863,9 @@ export function EmployeeProfileFeature({ id } = {}) {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-text">UAE Bank Account & WPS Readiness (Rule D)</h3>
+                <h3 className="text-base font-bold text-text">
+                  {language === 'ar' ? 'الحساب المصرفي ونظام حماية الأجور' : 'UAE Bank Account & WPS Readiness (Rule D)'}
+                </h3>
                 <p className="text-xs text-text-muted">
                   Full IBAN is displayed only to authorized salary roles. Verified via ISO 7064 mod-97 checksum.
                 </p>
@@ -901,7 +913,9 @@ export function EmployeeProfileFeature({ id } = {}) {
         {activeTab === 'history' && (
           <GlassCard className="p-0 border border-border overflow-hidden">
             <div className="p-4 border-b border-border">
-              <h3 className="text-base font-bold text-text">Audit Log History (Rule F)</h3>
+              <h3 className="text-base font-bold text-text">
+                {language === 'ar' ? 'سجل العمليات والتدقيق' : 'Audit Log History (Rule F)'}
+              </h3>
               <p className="text-xs text-text-muted">
                 Immutable chronological log of all changes made to this employee master record.
               </p>

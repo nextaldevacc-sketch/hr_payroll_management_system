@@ -44,11 +44,16 @@
   "dashboard": {
     "title": "نظرة عامة على الموارد البشرية والرواتب",
     "subtitle": "الامتثال اللحظي، مسير الرواتب المباشر وتحليلات القوى العاملة",
+    "actions": {
+      "calculatePayroll": "حساب مسير الرواتب",
+      "importPunches": "استيراد البصمات"
+    },
     "livePayroll": {
       "title": "مسير الرواتب المباشر — أكتوبر 2026",
       "subtitle": "مسير رواتب الشركة",
       "cutoff": "متبقي 4 أيام على الإغلاق",
       "employeesCount": "42 موظفاً مشمولاً",
+      "employeesIncluded": "{{count}} موظفاً مشمولاً",
       "gross": "إجمالي الراتب التعاقدي",
       "overtime": "العمل الإضافي المعتمد",
       "absence": "الغياب غير المعتمد",
@@ -56,6 +61,9 @@
       "otherDeductions": "خصومات أخرى",
       "latePenalties": "جزاءات التأخير",
       "netToWps": "صافي الرواتب لنظام حماية الأجور (WPS)",
+      "stage": "المرحلة",
+      "directSif": "توليد ملف SIF المباشر",
+      "sixMonthNet": "صافي 6 أشهر",
       "stepperDraft": "مسودة",
       "stepperCalc": "محسوب",
       "stepperValid": "مدقق",
@@ -152,6 +160,23 @@
     "title": "دليل الموظفين",
     "subtitle": "السجلات الرئيسية، إصدارات العقود وحالة الامتثال",
     "newEmployee": "موظف جديد",
+    "all": "الكل",
+    "pendingVerification": "بانتظار الاعتماد",
+    "active": "نشط",
+    "bento": {
+      "totalFiltered": "إجمالي النتائج",
+      "workforce": "فريق عمل جلف تك",
+      "managedTeam": "فريقك المدار",
+      "statusCoverage": "تغطية الحالات",
+      "compliantVisas": "تأشيرات متوافقة",
+      "salaryAccess": "صلاحية الرواتب",
+      "statutoryActive": "صلاحية قانونية نشطة",
+      "restrictedRole": "صلاحية مقيدة",
+      "payrollHrView": "عرض الرواتب والموارد البشرية",
+      "privacyEnforced": "خصوصية البند 5.3 مفعلة",
+      "docAlerts": "تنبيهات الوثائق",
+      "daysToExpiry": "تاريخ الانتهاء خلال ≤90 يوماً"
+    },
     "search": "البحث بالاسم، الرقم الوظيفي، البريد الإلكتروني...",
     "status": "الحالة",
     "allStatuses": "جميع الحالات",
@@ -268,6 +293,36 @@
       "pay": "تأكيد الصرف من المالية",
       "downloadPdf": "تحميل كشف التسوية (PDF)",
       "frozenBadge": "مجمدة ومقفلة (المادة 51)"
+    }
+  },
+  "payroll": {
+    "stages": {
+      "Draft": "مسودة",
+      "Calculated": "تم الحساب",
+      "Validated": "تم التدقيق",
+      "Locked": "مقفل",
+      "Paid": "تم الصرف"
+    }
+  },
+  "settings": {
+    "visas": {
+      "title": "تأشيرات وكيانات الشركة",
+      "subtitle": "إعداد تأشيرات الوزارة والمناطق الحرة ونظام حماية الأجور",
+      "mohreEmployerId": "رقم منشأة الوزارة",
+      "bankRoutingCode": "رمز التوجيه المصرفي",
+      "pensionFund": "صندوق التقاعد",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "employeeCount": "الموظفون"
+    },
+    "branches": {
+      "title": "فروع ومواقع الشركة",
+      "subtitle": "إدارة الفروع التشغيلية وتعيين التأشيرات داخل الدولة",
+      "emirate": "الإمارة",
+      "assignedVisa": "التأشيرة المرتبطة",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "employeeCount": "الموظفون"
     }
   }
 }

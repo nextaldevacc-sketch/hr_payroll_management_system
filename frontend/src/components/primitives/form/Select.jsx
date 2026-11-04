@@ -33,6 +33,7 @@ export function Select({
   name,
   className = '',
   required = false,
+  ...rest
 }) {
   const generatedId = useId();
   const selectId = id || generatedId;
@@ -267,6 +268,7 @@ export function Select({
         ref={triggerRef}
         type="button"
         role="combobox"
+        data-i18n-skip={rest['data-i18n-skip'] || undefined}
         aria-controls={listboxId}
         aria-expanded={isOpen}
         aria-haspopup="listbox"

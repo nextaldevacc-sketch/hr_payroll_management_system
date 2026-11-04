@@ -315,6 +315,7 @@ export function UsersAndRolesFeature() {
             </button>
 
             <button
+              id="btn-invite-user"
               onClick={() => setIsInviteModalOpen(true)}
               className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg transition-transform active:scale-95"
               style={{
@@ -415,8 +416,8 @@ export function UsersAndRolesFeature() {
                     }}
                   >
                     <th className="py-3 px-4 text-start">{locale === 'ar' ? 'المستخدم' : 'User'}</th>
-                    <th className="py-3 px-4 text-start">{locale === 'ar' ? 'الأدوار المعينة (Section 5.2)' : 'Assigned Roles'}</th>
-                    <th className="py-3 px-4 text-start">{locale === 'ar' ? 'نطاق الصلاحية (Scope)' : 'Scope'}</th>
+                    <th className="py-3 px-4 text-start">{locale === 'ar' ? 'الأدوار المعينة' : 'Assigned Roles'}</th>
+                    <th className="py-3 px-4 text-start">{locale === 'ar' ? 'نطاق الصلاحية' : 'Scope'}</th>
                     <th className="py-3 px-4 text-center">{locale === 'ar' ? 'رؤية الرواتب' : 'Salary Access'}</th>
                     <th className="py-3 px-4 text-center">{locale === 'ar' ? 'الحالة' : 'Status'}</th>
                     <th className="py-3 px-4 text-end">{locale === 'ar' ? 'الإجراءات' : 'Actions'}</th>
@@ -588,11 +589,13 @@ export function UsersAndRolesFeature() {
                         >
                           <input
                             type="checkbox"
+                            id={`role-checkbox-${r.code}`}
+                            value={r.code}
                             checked={isChecked}
                             onChange={() => {}}
                             className="mt-0.5 rounded text-amber-500 focus:ring-amber-500"
                           />
-                          <div>
+                          <label htmlFor={`role-checkbox-${r.code}`} className="cursor-pointer block">
                             <span className="font-semibold block">{r.nameEn}</span>
                             <span className="text-[10px] block" style={{ color: 'var(--text-tertiary)' }}>
                               {r.nameAr}
@@ -600,7 +603,7 @@ export function UsersAndRolesFeature() {
                             {r.seesSalary && (
                               <span className="text-[8px] text-amber-400 font-mono">✓ Sees Salary Figures</span>
                             )}
-                          </div>
+                          </label>
                         </div>
                       );
                     })}

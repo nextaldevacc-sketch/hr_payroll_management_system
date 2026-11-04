@@ -21,6 +21,7 @@ import {
   PieChart,
   BarChart3,
   Lock,
+  X,
 } from 'lucide-react';
 import reportsApi, { getHeadcountReport } from '../../../services/reportsApi';
 import { fetchPayRuns } from '../../../services/payrollApi';
@@ -162,12 +163,13 @@ export default function ReportsFeature() {
             <div className="min-w-[240px]">
               <Select
                 label={isAr ? 'دورة الرواتب' : 'Pay Run'}
+                data-i18n-skip="true"
                 value={selectedPayRunId}
                 onChange={(e) => setSelectedPayRunId(e.target.value)}
                 options={payRuns.map((r) => ({
                   value: r.id,
-                  label: `${r.company_visa?.visa_name || 'Visa'} — ${r.period_month?.slice(0, 7)}`,
-                  chip: r.status,
+                  label: `${r.company_visa?.visa_name_ar || r.company_visa?.visa_name || (isAr ? 'التأشيرة' : 'Visa')} — ${r.period_month?.slice(0, 7)}`,
+                  chip: isAr ? (r.status === 'PAID' ? 'تم الصرف' : r.status === 'CALCULATED' ? 'تم الحساب' : r.status) : r.status,
                 }))}
               />
             </div>

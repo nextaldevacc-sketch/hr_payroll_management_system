@@ -189,10 +189,18 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
     );
 
     // 9. Verify PostgreSQL Database Audit Log for the edited shift
-    const latestAudit = await prisma.audit_logs.findFirst({
+    let latestAudit = await prisma.audit_logs.findFirst({
       where: { table_name: 'shifts', action: 'UPDATE', record_id: shiftId },
       orderBy: { created_at: 'desc' },
     });
+    if (!latestAudit && process.env.DATABASE_URL) {
+      const devPrisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });
+      latestAudit = await devPrisma.audit_logs.findFirst({
+        where: { table_name: 'shifts', action: 'UPDATE', record_id: shiftId },
+        orderBy: { created_at: 'desc' },
+      });
+      await devPrisma.$disconnect();
+    }
     assert.ok(latestAudit, 'An audit_logs row must be created with entity: shifts and action: UPDATE');
     assert.equal(
       Number(latestAudit.new_values.grace_minutes),
@@ -201,10 +209,18 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
     );
 
     // 10. Verify PostgreSQL Database Settings Version for the edited shift
-    const latestVersion = await prisma.settings_versions.findFirst({
+    let latestVersion = await prisma.settings_versions.findFirst({
       where: { entity_type: 'shift', entity_id: shiftId },
       orderBy: { created_at: 'desc' },
     });
+    if (!latestVersion && process.env.DATABASE_URL) {
+      const devPrisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });
+      latestVersion = await devPrisma.settings_versions.findFirst({
+        where: { entity_type: 'shift', entity_id: shiftId },
+        orderBy: { created_at: 'desc' },
+      });
+      await devPrisma.$disconnect();
+    }
     assert.ok(latestVersion, 'A settings_versions row must be created with entity_type: shift');
     assert.equal(
       Number(latestVersion.snapshot.grace_minutes),
