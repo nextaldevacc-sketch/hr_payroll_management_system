@@ -2,6 +2,7 @@ import Decimal from 'decimal.js';
 import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
 import { toDubaiDateString, getDubaiDayBounds } from '@nextal/shared';
+import { validateAndResolveVisa } from './visaValidator.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function sanitizeUuid(val) {
@@ -12,7 +13,20 @@ class LeaveService {
   /**
    * 1. Get Leave Balances for an employee
    */
-  async getLeaveBalances({ companyId, employeeId, year }) {
+  async getLeaveBalances({ companyId, employeeId, year, companyVisaId }) {
+    if (companyVisaId) {
+      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
+      if (validVisa) {
+        const emp = await prisma.$base().employees.findUnique({
+          where: { id: employeeId },
+          select: { company_visa_id: true },
+        });
+        if (emp && emp.company_visa_id !== validVisa) {
+          return [];
+        }
+      }
+    }
+
     const curYear = year ? parseInt(year, 10) : new Date().getFullYear();
     const startOfYear = new Date(Date.UTC(curYear, 0, 1));
     const endOfYear = new Date(Date.UTC(curYear, 11, 31, 23, 59, 59));
@@ -405,6 +419,57 @@ class LeaveService {
     }
 
     return request;
+  }
+
+  /**
+   * 5. List Leave Requests with visa & role scoping
+   */
+  async listLeaveRequests({ companyId, query = {}, user = {} }) {
+    const roles = user.roles || [];
+    const where = { company_id: companyId };
+    if (query.status) where.status = query.status;
+    if (query.employee_id) where.employee_id = query.employee_id;
+
+    if (roles.includes('EMPLOYEE') && !roles.includes('HR_MANAGER') && !roles.includes('COMPANY_ADMIN') && !roles.includes('DEPT_MANAGER')) {
+      where.employee_id = user.employeeId;
+    } else if (roles.includes('DEPT_MANAGER') && !roles.includes('HR_MANAGER') && !roles.includes('COMPANY_ADMIN')) {
+      if (user.departmentId) {
+        where.employee = { contracts: { some: { department_id: user.departmentId } } };
+      }
+    }
+
+    const visaParam = query.company_visa_id || query.companyVisaId;
+    if (visaParam) {
+      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId: visaParam });
+      if (validVisa) {
+        where.employee = {
+          ...(where.employee || {}),
+          company_visa_id: validVisa,
+        };
+      }
+    }
+
+    return prisma.$base().leave_requests.findMany({
+      where,
+      include: {
+        leave_type: true,
+        employee: {
+          select: {
+            id: true,
+            name: true,
+            arabic_name: true,
+            employee_code: true,
+            company_visa_id: true,
+            contracts: {
+              take: 1,
+              orderBy: { effective_date: 'desc' },
+              select: { department: { select: { name: true } } },
+            },
+          },
+        },
+      },
+      orderBy: { date_from: 'desc' },
+    });
   }
 }
 

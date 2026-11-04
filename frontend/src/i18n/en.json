@@ -22,6 +22,7 @@
   "menu": {
     "dashboard": "Dashboard",
     "employees": "Employees",
+    "approvals": "Approvals",
     "attendance": "Attendance",
     "leaveHolidays": "Leave & Holidays",
     "payroll": "Payroll",

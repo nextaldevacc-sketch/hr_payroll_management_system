@@ -39,3 +39,5 @@ export const APPROVAL_STATUS = {
   APPROVED: 'Approved',
   REJECTED: 'Rejected'
 };
+
+export const DEFAULT_EMPLOYEE_CODE_PREFIX = 'EMP-DXB';

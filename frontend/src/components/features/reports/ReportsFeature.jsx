@@ -25,10 +25,13 @@ import {
 import reportsApi, { getHeadcountReport } from '../../../services/reportsApi';
 import { fetchPayRuns } from '../../../services/payrollApi';
 import { Select } from '../../primitives/form/Select';
+import { useVisa } from '../../../context/VisaContext';
+import { withVisa } from '../../../lib/visaQuery';
 
 export default function ReportsFeature() {
   const { user } = useAuth();
   const { language } = useLanguage();
+  const { selectedVisaId } = useVisa();
   const isAr = language === 'ar';
 
   const [payRuns, setPayRuns] = useState([]);
@@ -59,7 +62,7 @@ export default function ReportsFeature() {
         setLoading(true);
         // Load pay runs for selectors
         if (canSeeSalary) {
-          const runsRes = await fetchPayRuns();
+          const runsRes = await fetchPayRuns(withVisa({}, selectedVisaId));
           const items = Array.isArray(runsRes) ? runsRes : (runsRes?.data || []);
           setPayRuns(items);
           const lockedRun = items.find((r) => r.status === 'Locked' || r.status === 'Paid') || items[0];
@@ -67,7 +70,7 @@ export default function ReportsFeature() {
         }
 
         // Load headcount dashboard
-        const hcRes = await getHeadcountReport({ year: selectedYear });
+        const hcRes = await getHeadcountReport(withVisa({ year: selectedYear }, selectedVisaId));
         if (hcRes?.data) setHeadcountData(hcRes.data);
       } catch (err) {
         console.error('Failed to initialize reports hub:', err);
@@ -76,7 +79,7 @@ export default function ReportsFeature() {
       }
     };
     init();
-  }, [canSeeSalary, selectedYear]);
+  }, [canSeeSalary, selectedYear, selectedVisaId]);
 
   const handleDownload = async (reportId, actionFn) => {
     setDownloadingId(reportId);
@@ -181,7 +184,7 @@ export default function ReportsFeature() {
               {isAr ? 'مؤشرات القوى العاملة ودوران الموظفين' : 'Headcount & Attrition Overview'} ({headcountData.year})
             </h2>
             <button
-              onClick={() => handleDownload('headcount', () => reportsApi.downloadHeadcountReport({ year: selectedYear }))}
+              onClick={() => handleDownload('headcount', () => reportsApi.downloadHeadcountReport(withVisa({ year: selectedYear }, selectedVisaId)))}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
@@ -235,7 +238,7 @@ export default function ReportsFeature() {
           <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
             <span className="text-xs text-slate-400 font-mono">{selectedMonth}</span>
             <button
-              onClick={() => handleDownload('attendance', () => reportsApi.downloadAttendanceReport({ month: selectedMonth }))}
+              onClick={() => handleDownload('attendance', () => reportsApi.downloadAttendanceReport(withVisa({ month: selectedMonth }, selectedVisaId)))}
               disabled={downloadingId === 'attendance'}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50"
             >
@@ -268,7 +271,7 @@ export default function ReportsFeature() {
           <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
             <span className="text-xs text-slate-400 font-mono">{selectedYear}</span>
             <button
-              onClick={() => handleDownload('leave', () => reportsApi.downloadLeaveReport({ year: selectedYear }))}
+              onClick={() => handleDownload('leave', () => reportsApi.downloadLeaveReport(withVisa({ year: selectedYear }, selectedVisaId)))}
               disabled={downloadingId === 'leave'}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50"
             >

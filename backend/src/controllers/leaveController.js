@@ -21,6 +21,7 @@ export async function getLeaveBalances(req, res, next) {
       companyId: req.companyId,
       employeeId,
       year: req.query.year,
+      companyVisaId: req.query.company_visa_id || req.query.companyVisaId,
     });
     res.json({ status: 'success', data });
   } catch (err) { next(err); }
@@ -28,37 +29,10 @@ export async function getLeaveBalances(req, res, next) {
 
 export async function listLeaveRequests(req, res, next) {
   try {
-    const roles = req.user.roles || [];
-    const where = { company_id: req.companyId };
-    if (req.query.status) where.status = req.query.status;
-    if (req.query.employee_id) where.employee_id = req.query.employee_id;
-    if (roles.includes('EMPLOYEE') && !roles.includes('HR_MANAGER') && !roles.includes('COMPANY_ADMIN') && !roles.includes('DEPT_MANAGER')) {
-      where.employee_id = req.user.employeeId;
-    } else if (roles.includes('DEPT_MANAGER') && !roles.includes('HR_MANAGER') && !roles.includes('COMPANY_ADMIN')) {
-      if (req.user.departmentId) {
-        where.employee = { contracts: { some: { department_id: req.user.departmentId } } };
-      }
-    }
-
-    const data = await prisma.$base().leave_requests.findMany({
-      where,
-      include: {
-        leave_type: true,
-        employee: {
-          select: {
-            id: true,
-            name: true,
-            arabic_name: true,
-            employee_code: true,
-            contracts: {
-              take: 1,
-              orderBy: { effective_date: 'desc' },
-              select: { department: { select: { name: true } } },
-            },
-          },
-        },
-      },
-      orderBy: { created_at: 'desc' },
+    const data = await leaveService.listLeaveRequests({
+      companyId: req.companyId,
+      query: req.query,
+      user: req.user,
     });
     res.json({ status: 'success', count: data.length, data });
   } catch (err) { next(err); }

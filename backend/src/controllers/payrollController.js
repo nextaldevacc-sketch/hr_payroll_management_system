@@ -4,9 +4,9 @@ import { SALARY_ROLES } from '../middleware/permissions.js';
 
 export async function listPayRuns(req, res, next) {
   try {
-    const { companyVisaId, periodMonth, status, limit, offset } = req.query;
+    const { companyVisaId, company_visa_id, periodMonth, status, limit, offset } = req.query;
     const result = await payrollService.listPayRuns(req.companyId, {
-      companyVisaId,
+      companyVisaId: companyVisaId || company_visa_id,
       periodMonth,
       status,
       limit,

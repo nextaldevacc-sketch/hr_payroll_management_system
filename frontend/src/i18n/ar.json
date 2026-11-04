@@ -22,6 +22,7 @@
   "menu": {
     "dashboard": "لوحة المؤشرات",
     "employees": "الموظفون",
+    "approvals": "الموافقات",
     "attendance": "الحضور والانصراف",
     "leaveHolidays": "الإجازات والعطلات",
     "payroll": "الرواتب والأجور",

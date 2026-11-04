@@ -2,6 +2,7 @@ import prisma from '../lib/prisma.js';
 import mailer from '../lib/mailer.js';
 import auditService from './auditService.js';
 import storageService from '../lib/storage.js';
+import { validateAndResolveVisa } from './visaValidator.js';
 
 // Dubai timezone is UTC+4 (no DST)
 const DUBAI_OFFSET_MS = 4 * 60 * 60 * 1000;
@@ -253,12 +254,21 @@ export class ComplianceService {
   /**
    * Get compliance overview statistics for dashboard / tracker bento
    */
-  async getComplianceOverview(companyId) {
+  async getComplianceOverview(companyId, companyVisaId = null) {
+    const where = {
+      company_id: companyId,
+      employee: { status: 'Active' },
+    };
+
+    if (companyVisaId) {
+      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
+      if (validVisa) {
+        where.employee.company_visa_id = validVisa;
+      }
+    }
+
     const docs = await this.prisma.$base().employee_documents.findMany({
-      where: {
-        company_id: companyId,
-        employee: { status: 'Active' },
-      },
+      where,
       select: {
         id: true,
         doc_type: true,
@@ -322,6 +332,14 @@ export class ComplianceService {
       company_id: companyId,
       employee: { status: 'Active' },
     };
+
+    const visaParam = filters.company_visa_id || filters.companyVisaId;
+    if (visaParam) {
+      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId: visaParam });
+      if (validVisa) {
+        where.employee.company_visa_id = validVisa;
+      }
+    }
 
     if (status) {
       if (status === 'Pending Verification') {

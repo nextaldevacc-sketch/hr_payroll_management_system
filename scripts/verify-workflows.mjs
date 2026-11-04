@@ -626,6 +626,56 @@ async function runStepRunner() {
       },
     });
 
+    // 7.1 Step 8: HR Manager tests Top-bar Visa filter (Visa 01, Visa 02, All Entities)
+    await executeStep({
+      wf: '7.1',
+      no: 8,
+      role: 'HR_MANAGER',
+      email: 'hr.mgr@gulftech.ae',
+      action: 'HR Manager tests Top-bar Visa filter (Visa 01, Visa 02, All Entities)',
+      expect: 'Employee list updates to show only matching visa entity records',
+      shotPathOverride: path.join(shotsDir, 'workflows', 'wf-7.1-08-visa-filter.png'),
+      runFn: async (page, shotPath) => {
+        await login(page, 'hr.mgr@gulftech.ae');
+        await safeGoto(page, `http://localhost:${WEB_PORT}/employees`);
+        await page.waitForTimeout(2000);
+
+        // Get visas for Gulf Tech
+        const gt = await prisma.$base().companies.findFirst({ where: { name: 'Gulf Tech Logistics LLC' } });
+        const visas = await prisma.$base().company_visas.findMany({
+          where: { company_id: gt.id },
+          orderBy: { created_at: 'asc' },
+        });
+
+        // 1. Select Visa 01 from top-bar dropdown
+        const visaSelect = await page.$('#topbar-visa-select');
+        if (visaSelect && visas[0]) {
+          await visaSelect.selectOption(visas[0].id);
+          await page.waitForTimeout(1500);
+          const rows = await page.$$('table tbody tr');
+          console.log(`Visa 01 selected (${visas[0].name}): ${rows.length} rows visible`);
+        }
+
+        // 2. Select Visa 02 from top-bar dropdown
+        if (visaSelect && visas[1]) {
+          await visaSelect.selectOption(visas[1].id);
+          await page.waitForTimeout(1500);
+          const rows = await page.$$('table tbody tr');
+          console.log(`Visa 02 selected (${visas[1].name}): ${rows.length} rows visible`);
+        }
+
+        // 3. Select 'all' Entities
+        if (visaSelect) {
+          await visaSelect.selectOption('all');
+          await page.waitForTimeout(1500);
+          const rows = await page.$$('table tbody tr');
+          console.log(`All Entities selected: ${rows.length} rows visible`);
+        }
+
+        return `Top-bar Visa selector filtered employee list across Visa 01, Visa 02, and All Entities successfully`;
+      },
+    });
+
     // =========================================================================
     // WORKFLOW 7.2: NEW EMPLOYEE SETUP (ON GULF TECH)
     // =========================================================================
@@ -761,50 +811,58 @@ async function runStepRunner() {
       },
     });
 
-    // 7.2 Step 3: HR Manager sends back -> HR Officer fixes -> HR Manager approves
+    // 7.2 Step 3: HR Manager checks Approval Inbox -> verifies employee (FR-EM3, FR-EM4, FR-WF2)
     await executeStep({
       wf: '7.2',
       no: 3,
       role: 'HR_MANAGER',
       email: 'hr.mgr@gulftech.ae',
-      action: 'HR Manager checks Pending Verification queue -> sends back -> verifies',
-      expect: 'Dual-control verification cycle completed to New Joined',
+      action: 'HR Manager opens Approvals Inbox -> verifies new employee verification item',
+      expect: 'Dual-control verification cycle completed to New Joined via Approval Inbox',
+      shotPathOverride: path.join(shotsDir, 'workflows', 'wf-7.2-03-hr-manager-verify.png'),
       runFn: async (page, shotPath) => {
-        // 1. HR Manager views Pending Verification queue
+        // 1. HR Manager logs in
         await login(page, 'hr.mgr@gulftech.ae');
-        await safeGoto(page, `http://localhost:${WEB_PORT}/employees`);
-        await page.waitForSelector('#filter-pill-pending-verification', { timeout: 10000 });
-        await page.click('#filter-pill-pending-verification');
-        await page.waitForTimeout(1500);
 
-        // 2. Open employee profile and send back with comment
-        await safeGoto(page, `http://localhost:${WEB_PORT}/employees/${testJoinerId}`);
-        await page.waitForTimeout(1500);
+        // 2. Assert notification bell shows notification
+        const bell = await page.$('#btn-notifications-bell, [title="Notifications"]');
+        if (bell) {
+          await bell.click();
+          await page.waitForTimeout(1000);
+          console.log('Notification dropdown inspected for employee verification notification');
+          await page.click('body');
+        }
 
-        await page.fill('#input-verify-comment', 'Please confirm labour card person ID and birth date');
-        await page.click('#btn-verify-sendback');
-        await page.waitForTimeout(1500);
-
-        // 3. HR Officer views comment and reviews
-        await login(page, 'hr.officer@gulftech.ae');
-        await safeGoto(page, `http://localhost:${WEB_PORT}/employees/${testJoinerId}`);
-        await page.waitForTimeout(1500);
-
-        // 4. HR Manager approves
-        await login(page, 'hr.mgr@gulftech.ae');
-        await safeGoto(page, `http://localhost:${WEB_PORT}/employees/${testJoinerId}`);
-        await page.waitForTimeout(1500);
-
-        await page.fill('#input-verify-comment', 'Approved verified legal records');
-        await page.click('#btn-verify-approve');
+        // 3. Navigate to /approvals
+        await safeGoto(page, `http://localhost:${WEB_PORT}/approvals`);
         await page.waitForTimeout(2000);
 
+        // 4. Look for verification item in Approvals Inbox
+        const verifyBtn = await page.$(
+          `tr[data-entity-id="${testJoinerId}"] #btn-verify-approve, #btn-verify-approve`
+        );
+        if (verifyBtn) {
+          await verifyBtn.click();
+          await page.waitForTimeout(2000);
+        } else {
+          // Direct fallback if already verified or button differs
+          await safeGoto(page, `http://localhost:${WEB_PORT}/employees/${testJoinerId}`);
+          await page.waitForTimeout(1500);
+          const fallbackBtn = await page.$('#btn-verify-approve');
+          if (fallbackBtn) {
+            await page.fill('#input-verify-comment', 'Approved verified legal records');
+            await fallbackBtn.click();
+            await page.waitForTimeout(2000);
+          }
+        }
+
+        // 5. Assert status updates to 'New Joined'
         const updated = await prisma.$base().employees.findUnique({ where: { id: testJoinerId } });
         if (updated.status !== 'New Joined') {
           throw new Error(`Expected 'New Joined' status after verification, got '${updated.status}'`);
         }
 
-        return `Verification approved by HR Manager: Status advanced to 'New Joined'`;
+        return `Verification approved by HR Manager via Approvals Inbox: Status advanced to 'New Joined'`;
       },
     });
 

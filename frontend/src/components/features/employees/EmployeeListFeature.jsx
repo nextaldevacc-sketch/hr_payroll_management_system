@@ -18,6 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
+import { useVisa } from '../../../context/VisaContext';
 import { fetchEmployees, fetchEmployeeMetaOptions } from '../../../services/employeesApi';
 import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
@@ -26,6 +27,7 @@ import { Select } from '../../primitives/form/Select';
 export function EmployeeListFeature() {
   const { user } = useAuth();
   const { isRTL, t } = useLanguage();
+  const { selectedVisaId, setSelectedVisaId } = useVisa();
 
   // Filter & Search states
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,11 +35,17 @@ export function EmployeeListFeature() {
   const [statusFilter, setStatusFilter] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
   const [branchFilter, setBranchFilter] = useState('');
-  const [visaFilter, setVisaFilter] = useState('');
+  const [visaFilter, setVisaFilter] = useState(selectedVisaId === 'all' || !selectedVisaId ? '' : selectedVisaId);
   const [nationalityFilter, setNationalityFilter] = useState('');
   const [docStatusFilter, setDocStatusFilter] = useState('');
   const [page, setPage] = useState(1);
   const limit = 10;
+
+  // Sync visaFilter with selectedVisaId from top bar
+  useEffect(() => {
+    setVisaFilter(selectedVisaId === 'all' || !selectedVisaId ? '' : selectedVisaId);
+    setPage(1);
+  }, [selectedVisaId]);
 
   // Debounce search input
   useEffect(() => {
@@ -54,13 +62,20 @@ export function EmployeeListFeature() {
     setPage(1);
   };
 
+  const handleVisaChange = (e) => {
+    const val = e.target.value;
+    setVisaFilter(val);
+    setSelectedVisaId(val || 'all');
+    setPage(1);
+  };
+
   const handleResetFilters = () => {
     setSearchTerm('');
     setDebouncedSearch('');
     setStatusFilter('');
     setDeptFilter('');
     setBranchFilter('');
-    setVisaFilter('');
+    setVisaFilter(selectedVisaId === 'all' || !selectedVisaId ? '' : selectedVisaId);
     setNationalityFilter('');
     setDocStatusFilter('');
     setPage(1);
@@ -350,7 +365,7 @@ export function EmployeeListFeature() {
               <Select
                 id="filter-visa"
                 value={visaFilter}
-                onChange={handleFilterChange(setVisaFilter)}
+                onChange={handleVisaChange}
                 placeholder={t('employees.allVisas', 'All Visa Entities')}
                 options={[
                   { value: '', label: t('employees.allVisas', 'All Visa Entities') },

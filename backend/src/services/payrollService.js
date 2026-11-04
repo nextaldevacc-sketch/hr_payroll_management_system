@@ -7,6 +7,7 @@ import { generatePayslipPdf } from '../lib/pdf.js';
 import { generatePayrollRegisterExcel, generateVarianceReportExcel } from '../lib/reports/payrollReportGenerator.js';
 import notificationService from './notificationService.js';
 import mailer from '../lib/mailer.js';
+import { validateAndResolveVisa } from './visaValidator.js';
 
 Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_UP });
 
@@ -34,7 +35,10 @@ export class PayrollService {
    */
   async listPayRuns(companyId, { companyVisaId, periodMonth, status, limit = 50, offset = 0 } = {}) {
     const where = { company_id: companyId };
-    if (companyVisaId) where.company_visa_id = companyVisaId;
+    if (companyVisaId) {
+      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
+      if (validVisa) where.company_visa_id = validVisa;
+    }
     if (status) where.status = status;
     if (periodMonth) {
       const pmDate = new Date(periodMonth);

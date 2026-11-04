@@ -22,7 +22,7 @@ export default function LeavePage() {
 
   return (
     <RouteGuard area="leave">
-      <div className="space-y-6 max-w-7xl mx-auto pb-12" data-testid="leave-page">
+      <div className="space-y-6 max-w-7xl mx-auto pb-12 w-full max-w-full overflow-x-hidden" data-testid="leave-page">
       {/* Page Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -38,7 +38,7 @@ export default function LeavePage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 bg-surface/80 border border-border/80 p-1 rounded-2xl text-xs backdrop-blur-md">
+        <div className="flex items-center gap-1.5 bg-surface/80 border border-border/80 p-1 rounded-2xl text-xs backdrop-blur-md overflow-x-auto max-w-full">
           <button
             type="button"
             id="tab-leave-requests"

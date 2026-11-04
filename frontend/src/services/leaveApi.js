@@ -8,6 +8,8 @@ export async function getLeaveBalances(params = {}) {
   const query = new URLSearchParams();
   if (params.employeeId) query.append('employeeId', params.employeeId);
   if (params.year) query.append('year', params.year);
+  if (params.company_visa_id) query.append('company_visa_id', params.company_visa_id);
+  if (params.companyVisaId) query.append('company_visa_id', params.companyVisaId);
   const qStr = query.toString() ? `?${query.toString()}` : '';
   return request(`/leave/balances${qStr}`);
 }
@@ -17,6 +19,8 @@ export async function listLeaveRequests(params = {}) {
   if (params.status) query.append('status', params.status);
   if (params.employeeId) query.append('employeeId', params.employeeId);
   if (params.year) query.append('year', params.year);
+  if (params.company_visa_id) query.append('company_visa_id', params.company_visa_id);
+  if (params.companyVisaId) query.append('company_visa_id', params.companyVisaId);
   const qStr = query.toString() ? `?${query.toString()}` : '';
   return request(`/leave/requests${qStr}`);
 }

@@ -16,10 +16,13 @@ import {
 import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Select } from '../../primitives/form/Select';
+import { useVisa } from '../../../context/VisaContext';
+import { withVisa } from '../../../lib/visaQuery';
 import { confirmManagerAttendance, confirmHRAttendance, getAttendanceGrid } from '../../../services/attendanceApi';
 
 export default function AttendanceReviewFeature({ onConfirmed }) {
   const { user, language } = useAuth();
+  const { selectedVisaId } = useVisa();
   const isAr = language === 'ar';
 
   const [periodFrom, setPeriodFrom] = useState('2026-10-01');
@@ -46,7 +49,7 @@ export default function AttendanceReviewFeature({ onConfirmed }) {
     setLoading(true);
     setErrorMessage(null);
     try {
-      const grid = await getAttendanceGrid({ from: periodFrom, to: periodTo });
+      const grid = await getAttendanceGrid(withVisa({ from: periodFrom, to: periodTo }, selectedVisaId));
       if (grid) {
         setDepartments(grid.departments || []);
         if (grid.departments && grid.departments.length > 0 && !selectedDeptId) {
@@ -80,7 +83,7 @@ export default function AttendanceReviewFeature({ onConfirmed }) {
 
   useEffect(() => {
     loadReviewStatus();
-  }, [periodFrom, periodTo]);
+  }, [periodFrom, periodTo, selectedVisaId]);
 
   const handleManagerConfirm = async () => {
     if (!selectedDeptId) return;

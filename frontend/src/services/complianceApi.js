@@ -1,7 +1,11 @@
 import { request, API_BASE } from './apiClient';
 
-export async function getComplianceOverview() {
-  return await request('/compliance/overview');
+export async function getComplianceOverview(params = {}) {
+  const query = new URLSearchParams();
+  if (params.company_visa_id) query.append('company_visa_id', params.company_visa_id);
+  if (params.companyVisaId) query.append('company_visa_id', params.companyVisaId);
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  return await request(`/compliance/overview${qs}`);
 }
 
 export async function listComplianceDocuments(params = {}) {

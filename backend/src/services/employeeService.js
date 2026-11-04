@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
-import prisma from '../lib/prisma.js';
+import prisma, { companyStorage } from '../lib/prisma.js';
+import { validateAndResolveVisa } from './visaValidator.js';
 import {
   validateUAEIban,
   maskIban,
@@ -11,6 +12,7 @@ import {
 } from '@nextal/shared';
 import storageService from '../lib/storage.js';
 import auditService from './auditService.js';
+import approvalService from './approvalService.js';
 import {
   hasSalaryAccess,
   hasSensitiveIdAccess,
@@ -112,7 +114,10 @@ export class EmployeeService {
       where.branch_id = query.branch_id;
     }
     if (query.company_visa_id) {
-      where.company_visa_id = query.company_visa_id;
+      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId: query.company_visa_id });
+      if (validVisa) {
+        where.company_visa_id = validVisa;
+      }
     }
     if (query.nationality) {
       const natInput = query.nationality.trim().toUpperCase();
@@ -316,23 +321,21 @@ export class EmployeeService {
 
   /**
    * Get next sequential employee code per company (e.g. EMP-DXB-045).
+   * GAP 2: Uses atomic raw SQL MAX query without arbitrary caps (n < 8000).
    */
-  async getNextEmployeeCode({ companyId }) {
-    const db = companyId && this.prisma.$scoped ? this.prisma.$scoped(companyId) : this.prisma;
-    const all = await db.employees.findMany({
-      where: { company_id: companyId },
-      select: { employee_code: true },
-    });
-    let max = 0;
-    for (const emp of all) {
-      const match = emp.employee_code?.match(/(\d+)$/);
-      if (match) {
-        const n = parseInt(match[1], 10);
-        if (n > max && n < 8000) max = n; // keep realistic sequence, ignore 9000+ temp test series
-      }
-    }
+  async getNextEmployeeCode({ companyId, prefix = 'EMP-DXB', tx }) {
+    const base = this.prisma.$base ? this.prisma.$base() : this.prisma;
+    const client = tx || base;
+    const pattern = `^${prefix}-[0-9]+$`;
+    const result = await client.$queryRaw`
+      SELECT COALESCE(MAX(SUBSTRING(employee_code FROM '([0-9]+)$')::integer), 0) AS max_code
+      FROM employees
+      WHERE company_id = ${companyId}::uuid
+        AND employee_code ~ ${pattern}
+    `;
+    const max = Number(result[0]?.max_code || 0);
     const nextNum = max + 1;
-    return `EMP-DXB-${String(nextNum).padStart(3, '0')}`;
+    return `${prefix}-${String(nextNum).padStart(3, '0')}`;
   }
 
   /**
@@ -459,105 +462,156 @@ export class EmployeeService {
 
   /**
    * Create new employee in Pre-Joined state (Wizard Step 1).
+   * Safe code generator with concurrency retry & dual-control approval inbox dispatch.
    */
   async createEmployee({ companyId, data, viewer }) {
-    let employeeCode = data.employee_code;
-    if (!employeeCode || !employeeCode.trim()) {
-      employeeCode = await this.getNextEmployeeCode({ companyId });
-    }
+    return companyStorage.run({ companyId }, async () => {
+      const base = this.prisma.$base ? this.prisma.$base() : this.prisma;
 
-    // Spec 4 & Section 2: Validate branch belongs to company visa
-    if (data.branch_id && data.company_visa_id) {
-      const branch = await this.prisma.branches.findFirst({
-        where: { id: data.branch_id, company_id: companyId },
-      });
-      if (!branch) {
-        const err = new Error('Branch not found');
-        err.status = 400;
-        err.code = 'INVALID_BRANCH';
-        err.field = 'branch_id';
-        throw err;
-      }
-      if (branch.company_visa_id !== data.company_visa_id) {
-        const err = new Error('Selected branch does not belong to the selected company visa');
-        err.status = 400;
-        err.code = 'BRANCH_VISA_MISMATCH';
-        err.field = 'branch_id';
-        err.issues = [{ field: 'branch_id', message: 'Selected branch does not belong to the selected company visa' }];
-        throw err;
-      }
-    }
-
-    const existing = await this.prisma.employees.findFirst({
-      where: { company_id: companyId, employee_code: employeeCode },
-    });
-    if (existing) {
-      const err = new Error(`Employee code '${employeeCode}' already exists`);
-      err.status = 400;
-      err.code = 'DUPLICATE_CODE';
-      throw err;
-    }
-
-    const created = await this.prisma.employees.create({
-      data: {
-        company_id: companyId,
-        employee_code: employeeCode,
-        name: data.name,
-        arabic_name: data.arabic_name || null,
-        legal_name: data.legal_name || data.name,
-        status: 'Pre-Joined',
-        joining_date: new Date(data.joining_date || Date.now()),
-        residency_type: data.residency_type || 'Expat',
-        nationality: data.nationality || 'Other',
-        gender: data.gender || 'Male',
-        birth_date: data.birth_date ? new Date(data.birth_date) : null,
-        mohre_person_id: data.mohre_person_id || null,
-        company_visa_id: data.company_visa_id,
-        branch_id: data.branch_id,
-        manager_id: data.manager_id || null,
-        hr_manager_id: data.hr_manager_id || null,
-        work_email: data.work_email || null,
-        mobile: data.mobile || null,
-        emergency_contact_name: data.emergency_contact_name || null,
-        emergency_contact_phone: data.emergency_contact_phone || null,
-        created_by: getViewerUserId(viewer),
-      },
-    });
-
-    await auditService.log({
-      companyId,
-      userId: getViewerUserId(viewer),
-      action: 'Create',
-      tableName: 'employees',
-      recordId: created.id,
-      newValues: { employee_code: created.employee_code, name: created.name, status: created.status },
-    });
-
-    // Notify HR Managers of pending verification
-    try {
-      const hrManagers = await this.prisma.user_roles.findMany({
-        where: { role: { code: 'HR_MANAGER' }, user: { company_id: companyId } },
-        select: { user_id: true },
-      });
-      for (const hrm of hrManagers) {
-        if (hrm.user_id !== getViewerUserId(viewer)) {
-          await this.prisma.notifications.create({
-            data: {
-              user_id: hrm.user_id,
-              title: 'New Employee Pending Verification',
-              title_ar: 'موظف جديد بانتظار الاعتماد',
-              message: `New employee ${created.employee_code} (${created.name}) submitted for dual-control verification.`,
-              message_ar: `تم تسجيل موظف جديد ${created.name} بانتظار اعتماد الموارد البشرية.`,
-              type: 'EMPLOYEE_VERIFICATION_PENDING',
-              link: `/employees/${created.id}`,
-              is_read: false,
-            },
-          }).catch(() => {});
+      // Spec 4 & Section 2: Validate branch belongs to company visa upfront
+      if (data.branch_id && data.company_visa_id) {
+        const branch = await base.branches.findFirst({
+          where: { id: data.branch_id, company_id: companyId },
+        });
+        if (!branch) {
+          const err = new Error('Branch not found');
+          err.status = 400;
+          err.code = 'INVALID_BRANCH';
+          err.field = 'branch_id';
+          throw err;
+        }
+        if (branch.company_visa_id !== data.company_visa_id) {
+          const err = new Error('Selected branch does not belong to the selected company visa');
+          err.status = 400;
+          err.code = 'BRANCH_VISA_MISMATCH';
+          err.field = 'branch_id';
+          err.issues = [{ field: 'branch_id', message: 'Selected branch does not belong to the selected company visa' }];
+          throw err;
         }
       }
-    } catch {}
 
-    return serializeEmployee(created, viewer);
+      let attempts = 0;
+      const maxAttempts = 5;
+      let createdRecord = null;
+
+      while (attempts < maxAttempts) {
+        attempts++;
+        try {
+          createdRecord = await base.$transaction(async (tx) => {
+            let employeeCode = data.employee_code;
+            if (!employeeCode || !employeeCode.trim()) {
+              employeeCode = await this.getNextEmployeeCode({ companyId, tx });
+            }
+
+            const existing = await tx.employees.findFirst({
+              where: { company_id: companyId, employee_code: employeeCode },
+            });
+            if (existing) {
+              const err = new Error(`Employee code '${employeeCode}' already exists`);
+              err.status = 400;
+              err.code = 'DUPLICATE_CODE';
+              throw err;
+            }
+
+            const created = await tx.employees.create({
+              data: {
+                company_id: companyId,
+                employee_code: employeeCode,
+                name: data.name,
+                arabic_name: data.arabic_name || null,
+                legal_name: data.legal_name || data.name,
+                status: 'Pre-Joined',
+                joining_date: new Date(data.joining_date || Date.now()),
+                residency_type: data.residency_type || 'Expat',
+                nationality: data.nationality || 'Other',
+                gender: data.gender || 'Male',
+                birth_date: data.birth_date ? new Date(data.birth_date) : null,
+                mohre_person_id: data.mohre_person_id || null,
+                company_visa_id: data.company_visa_id,
+                branch_id: data.branch_id,
+                manager_id: data.manager_id || null,
+                hr_manager_id: data.hr_manager_id || null,
+                work_email: data.work_email || null,
+                mobile: data.mobile || null,
+                emergency_contact_name: data.emergency_contact_name || null,
+                emergency_contact_phone: data.emergency_contact_phone || null,
+                created_by: getViewerUserId(viewer),
+              },
+            });
+
+            return created;
+          });
+
+          // Succeeded
+          break;
+        } catch (err) {
+          if (
+            (err.code === 'P2002' || err.code === 'DUPLICATE_CODE') &&
+            (!data.employee_code || !data.employee_code.trim()) &&
+            attempts < maxAttempts
+          ) {
+            // Retry on concurrent code clash
+            continue;
+          }
+          throw err;
+        }
+      }
+
+      if (!createdRecord) {
+        const err = new Error('Failed to generate unique employee code after max retries');
+        err.status = 500;
+        err.code = 'CODE_GENERATION_FAILED';
+        throw err;
+      }
+
+      await auditService.log({
+        companyId,
+        userId: getViewerUserId(viewer),
+        action: 'Create',
+        tableName: 'employees',
+        recordId: createdRecord.id,
+        newValues: { employee_code: createdRecord.employee_code, name: createdRecord.name, status: createdRecord.status },
+      });
+
+      // GAP 3: Create approval request for EMPLOYEE_VERIFICATION
+      try {
+        await approvalService.createRequest({
+          companyId,
+          requestType: 'EMPLOYEE_VERIFICATION',
+          recordId: createdRecord.id,
+          requestedBy: getViewerUserId(viewer),
+          comment: 'Initial employee verification task',
+        });
+      } catch (apprErr) {
+        console.warn('Failed to auto-create approval request for employee verification:', apprErr.message);
+      }
+
+      // GAP 3: In-app notification to all HR_MANAGER users
+      try {
+        const hrManagers = await base.user_roles.findMany({
+          where: { role: { code: 'HR_MANAGER' }, user: { company_id: companyId } },
+          select: { user_id: true },
+        });
+        for (const hrm of hrManagers) {
+          if (hrm.user_id !== getViewerUserId(viewer)) {
+            await base.notifications.create({
+              data: {
+                user_id: hrm.user_id,
+                title: 'New Employee Pending Verification',
+                title_ar: 'موظف جديد بانتظار الاعتماد',
+                message: `New employee ${createdRecord.employee_code} ${createdRecord.name} awaits verification`,
+                message_ar: `تم تسجيل موظف جديد ${createdRecord.name} بانتظار اعتماد الموارد البشرية.`,
+                type: 'EMPLOYEE_VERIFICATION_PENDING',
+                link: `/approvals`,
+                is_read: false,
+              },
+            }).catch(() => {});
+          }
+        }
+      } catch {}
+
+      return serializeEmployee(createdRecord, viewer);
+    });
   }
 
   /**
@@ -727,6 +781,20 @@ export class EmployeeService {
         newValues: { status: 'New Joined', verified_by: viewerUserId, comment },
       });
 
+      // Complete pending approval request if present
+      await this.prisma.$base().approval_requests.updateMany({
+        where: {
+          company_id: companyId,
+          record_id: employeeId,
+          request_type: 'EMPLOYEE_VERIFICATION',
+          status: 'Pending',
+        },
+        data: {
+          status: 'Approved',
+          completed_at: new Date(),
+        },
+      }).catch(() => {});
+
       return serializeEmployee(updated, viewer);
     } else if (action === 'SEND_BACK') {
       await auditService.log({
@@ -738,6 +806,20 @@ export class EmployeeService {
         oldValues: { status: employee.status },
         newValues: { status: 'Pre-Joined', comment },
       });
+
+      // Reject/Complete pending approval request if present
+      await this.prisma.$base().approval_requests.updateMany({
+        where: {
+          company_id: companyId,
+          record_id: employeeId,
+          request_type: 'EMPLOYEE_VERIFICATION',
+          status: 'Pending',
+        },
+        data: {
+          status: 'Rejected',
+          completed_at: new Date(),
+        },
+      }).catch(() => {});
 
       if (employee.created_by) {
         await this.prisma.notifications.create({

@@ -29,10 +29,13 @@ import {
   getDocumentHistory,
 } from '../../../services/complianceApi';
 import { Select } from '../../primitives/form/Select';
+import { useVisa } from '../../../context/VisaContext';
+import { withVisa } from '../../../lib/visaQuery';
 
 export default function ComplianceFeature() {
   const { user } = useAuth();
   const { language } = useLanguage();
+  const { selectedVisaId } = useVisa();
   const isAr = language === 'ar';
 
   const [stats, setStats] = useState({
@@ -73,12 +76,17 @@ export default function ComplianceFeature() {
     setLoading(true);
     try {
       const [overviewRes, listRes] = await Promise.all([
-        getComplianceOverview(),
-        listComplianceDocuments({
-          status: statusFilter !== 'ALL' ? statusFilter : undefined,
-          doc_type: typeFilter !== 'ALL' ? typeFilter : undefined,
-          search: search || undefined,
-        }),
+        getComplianceOverview(withVisa({}, selectedVisaId)),
+        listComplianceDocuments(
+          withVisa(
+            {
+              status: statusFilter !== 'ALL' ? statusFilter : undefined,
+              doc_type: typeFilter !== 'ALL' ? typeFilter : undefined,
+              search: search || undefined,
+            },
+            selectedVisaId
+          )
+        ),
       ]);
 
       if (overviewRes?.data) {
@@ -98,7 +106,7 @@ export default function ComplianceFeature() {
 
   useEffect(() => {
     loadData();
-  }, [statusFilter, typeFilter]);
+  }, [statusFilter, typeFilter, selectedVisaId]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();

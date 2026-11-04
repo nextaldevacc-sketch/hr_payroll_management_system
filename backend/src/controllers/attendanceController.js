@@ -33,6 +33,7 @@ export async function getAttendanceGrid(req, res, next) {
       to: req.query.to,
       departmentId: deptId,
       branchId: req.query.branch_id,
+      companyVisaId: req.query.company_visa_id || req.query.companyVisaId,
       search: req.query.search,
     });
     res.json({ status: 'success', data });
@@ -56,6 +57,7 @@ export async function getMissingPunchQueue(req, res, next) {
     const data = await attendanceService.getMissingPunchQueue({
       companyId: req.companyId,
       month: req.query.month,
+      companyVisaId: req.query.company_visa_id || req.query.companyVisaId,
     });
     res.json({ status: 'success', count: data.length, data });
   } catch (err) { next(err); }

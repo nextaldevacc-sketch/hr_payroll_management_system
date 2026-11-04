@@ -61,7 +61,8 @@ export function VarianceTile({ data, onClick }) {
             >
               <ArrowUpRight className="w-3.5 h-3.5" />
               <bdi className="tabular-nums">
-                +{formatCurrency(data.diffAmount, 'AED', language)} ({data.diffPercent})
+                +{formatCurrency(data.diffAmount ?? data.diffAed ?? 0, 'AED', language)}{' '}
+                {(data.diffPercent != null || data.diffPct != null) ? `(${data.diffPercent ?? data.diffPct}%)` : '(+0.0%)'}
               </bdi>
             </div>
           </div>

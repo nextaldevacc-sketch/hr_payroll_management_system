@@ -3,6 +3,7 @@ import ExcelJS from 'exceljs';
 import Decimal from 'decimal.js';
 import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
+import { validateAndResolveVisa } from './visaValidator.js';
 import {
   toDubaiDateString,
   getDubaiDayBounds,
@@ -574,7 +575,7 @@ class AttendanceService {
   /**
    * 3. Daily Attendance Grid (employees x days)
    */
-  async getAttendanceGrid({ companyId, month, from, to, departmentId, branchId, search }) {
+  async getAttendanceGrid({ companyId, month, from, to, departmentId, branchId, search, companyVisaId }) {
     let startDate;
     let endDate;
     let monthKey;
@@ -610,6 +611,10 @@ class AttendanceService {
     const whereEmp = { company_id: companyId, status: { in: ['Active', 'New Joined'] } };
     if (departmentId) whereEmp.department_id = departmentId;
     if (branchId) whereEmp.branch_id = branchId;
+    if (companyVisaId) {
+      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
+      if (validVisa) whereEmp.company_visa_id = validVisa;
+    }
     if (search) {
       whereEmp.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -752,18 +757,27 @@ class AttendanceService {
   /**
    * 5. Missing Punch Queue
    */
-  async getMissingPunchQueue({ companyId, month }) {
+  async getMissingPunchQueue({ companyId, month, companyVisaId }) {
     const monthKey = month || toDubaiDateString(new Date()).slice(0, 7);
     const [y, m] = monthKey.split('-').map(Number);
     const startOfMonth = new Date(Date.UTC(y, m - 1, 1));
     const endOfMonth = new Date(Date.UTC(y, m, 0, 23, 59, 59));
 
+    const where = {
+      company_id: companyId,
+      work_date: { gte: startOfMonth, lte: endOfMonth },
+      exception_codes: { has: 'MISSING_PUNCH' },
+    };
+
+    if (companyVisaId) {
+      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
+      if (validVisa) {
+        where.employee = { company_visa_id: validVisa };
+      }
+    }
+
     return prisma.$base().attendance_days.findMany({
-      where: {
-        company_id: companyId,
-        work_date: { gte: startOfMonth, lte: endOfMonth },
-        exception_codes: { has: 'MISSING_PUNCH' },
-      },
+      where,
       include: {
         employee: { select: { id: true, name: true, employee_code: true } },
         shift: { select: { name: true, start_time: true, end_time: true } },

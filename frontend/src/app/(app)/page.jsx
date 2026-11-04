@@ -26,6 +26,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { useVisa } from '../../context/VisaContext';
 import { getDashboardOverview, getDashboardSalary } from '../../services/dashboardApi';
+import { withVisa } from '../../lib/visaQuery';
 import { RouteGuard } from '../../components/common/RouteGuard';
 import { formatCurrency } from '@nextal/shared';
 import {
@@ -38,7 +39,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { t, language } = useLanguage();
   const { user, seesSalary } = useAuth();
-  const { selectedVisa, companyName } = useVisa();
+  const { selectedVisaId, selectedVisa, companyName } = useVisa();
   const [activeDrawer, setActiveDrawer] = useState(null);
   const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
 
@@ -49,7 +50,7 @@ export default function DashboardPage() {
   // Fetch overview metrics for all authorized users
   const loadOverview = async () => {
     try {
-      const data = await getDashboardOverview();
+      const data = await getDashboardOverview(withVisa({}, selectedVisaId));
       if (data) setOverviewData(data);
     } catch (e) {
       console.warn('Failed to fetch dashboard overview:', e.message);
@@ -60,7 +61,7 @@ export default function DashboardPage() {
   const loadSalary = async () => {
     if (!seesSalary) return;
     try {
-      const data = await getDashboardSalary();
+      const data = await getDashboardSalary(withVisa({}, selectedVisaId));
       if (data) setSalaryData(data);
     } catch (e) {
       console.warn('Failed to fetch dashboard salary metrics:', e.message);
@@ -88,7 +89,7 @@ export default function DashboardPage() {
       const interval = setInterval(loadSalary, 30000);
       return () => clearInterval(interval);
     }
-  }, [seesSalary]);
+  }, [seesSalary, selectedVisaId]);
 
   const handleQuickAction = (actionId) => {
     switch (actionId) {

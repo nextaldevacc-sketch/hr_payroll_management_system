@@ -1,6 +1,7 @@
 import Decimal from 'decimal.js';
 import prisma from '../lib/prisma.js';
 import { toDubaiDateString } from '@nextal/shared';
+import { validateAndResolveVisa } from './visaValidator.js';
 
 export class DashboardService {
   constructor(client = prisma) {
@@ -10,7 +11,13 @@ export class DashboardService {
   /**
    * General dashboard metrics accessible to all internal company roles
    */
-  async getOverviewMetrics(companyId, user) {
+  async getOverviewMetrics(companyId, user, options = {}) {
+    const visaParam = options.companyVisaId || options.company_visa_id;
+    let validVisa = null;
+    if (visaParam) {
+      validVisa = await validateAndResolveVisa({ companyId, companyVisaId: visaParam });
+    }
+
     const now = new Date();
     const todayDubai = toDubaiDateString(now);
     const startOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
@@ -19,11 +26,18 @@ export class DashboardService {
     // 1. Headcount & Visas
     const [employees, visas] = await Promise.all([
       this.prisma.$base().employees.findMany({
-        where: { company_id: companyId, status: 'Active' },
+        where: {
+          company_id: companyId,
+          status: 'Active',
+          ...(validVisa ? { company_visa_id: validVisa } : {}),
+        },
         select: { id: true, company_visa_id: true, joining_date: true },
       }),
       this.prisma.$base().company_visas.findMany({
-        where: { company_id: companyId },
+        where: {
+          company_id: companyId,
+          ...(validVisa ? { id: validVisa } : {}),
+        },
         select: { id: true, name: true },
       }),
     ]);
@@ -92,7 +106,10 @@ export class DashboardService {
     const in90d = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
     const allDocs = await this.prisma.$base().employee_documents.findMany({
-      where: { company_id: companyId },
+      where: {
+        company_id: companyId,
+        ...(validVisa ? { employee: { company_visa_id: validVisa } } : {}),
+      },
       include: {
         employee: { select: { name: true, employee_code: true } },
       },
@@ -139,6 +156,7 @@ export class DashboardService {
       where: {
         company_id: companyId,
         work_date: new Date(todayDubai),
+        ...(validVisa ? { employee: { company_visa_id: validVisa } } : {}),
       },
     });
 
@@ -153,6 +171,7 @@ export class DashboardService {
         company_id: companyId,
         status: 'Approved',
         work_date: { gte: startOfMonth, lte: endOfMonth },
+        ...(validVisa ? { employee: { company_visa_id: validVisa } } : {}),
       },
       select: {
         hours: true,
@@ -179,6 +198,7 @@ export class DashboardService {
         status: 'Approved',
         date_from: { lte: next7d },
         date_to: { gte: now },
+        ...(validVisa ? { employee: { company_visa_id: validVisa } } : {}),
       },
       include: {
         employee: { select: { name: true } },
@@ -252,9 +272,18 @@ export class DashboardService {
   /**
    * Salary-specific metrics: Strictly restricted to roles with salary:view permission.
    */
-  async getSalaryMetrics(companyId) {
+  async getSalaryMetrics(companyId, options = {}) {
+    const visaParam = options.companyVisaId || options.company_visa_id;
+    let validVisa = null;
+    if (visaParam) {
+      validVisa = await validateAndResolveVisa({ companyId, companyVisaId: visaParam });
+    }
+
     const payRuns = await this.prisma.$base().pay_runs.findMany({
-      where: { company_id: companyId },
+      where: {
+        company_id: companyId,
+        ...(validVisa ? { company_visa_id: validVisa } : {}),
+      },
       include: {
         company_visa: true,
         payslips: true,

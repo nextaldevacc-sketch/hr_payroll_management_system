@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import Decimal from 'decimal.js';
 import prisma from '../lib/prisma.js';
+import { validateAndResolveVisa } from './visaValidator.js';
 
 Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_UP });
 
@@ -43,7 +44,7 @@ export class ReportService {
    * 1. Attendance Report (Excel)
    * Late arrivals, early outs, absences, missing punches and OT by employee / department / month
    */
-  async generateAttendanceReportExcel({ companyId, month, departmentId = null }) {
+  async generateAttendanceReportExcel({ companyId, month, departmentId = null, companyVisaId = null }) {
     // month format: 'YYYY-MM'
     const targetMonth = month || new Date().toISOString().slice(0, 7);
     const [yearStr, monthStr] = targetMonth.split('-');
@@ -59,6 +60,12 @@ export class ReportService {
     };
     if (departmentId) {
       empWhere.department_id = departmentId;
+    }
+    if (companyVisaId) {
+      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
+      if (validVisa) {
+        empWhere.company_visa_id = validVisa;
+      }
     }
 
     const [company, employees, attendanceDays] = await Promise.all([
@@ -228,7 +235,7 @@ export class ReportService {
    * 2. Leave Report (Excel)
    * Leave taken, balances and upcoming leave by employee, department and leave type
    */
-  async generateLeaveReportExcel({ companyId, year = null, departmentId = null, leaveTypeId = null }) {
+  async generateLeaveReportExcel({ companyId, year = null, departmentId = null, leaveTypeId = null, companyVisaId = null }) {
     const targetYear = year ? parseInt(year, 10) : new Date().getUTCFullYear();
     const yearStart = new Date(Date.UTC(targetYear, 0, 1));
     const yearEnd = new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59));
@@ -239,6 +246,12 @@ export class ReportService {
     };
     if (departmentId) {
       empWhere.department_id = departmentId;
+    }
+    if (companyVisaId) {
+      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
+      if (validVisa) {
+        empWhere.company_visa_id = validVisa;
+      }
     }
 
     const [company, employees, leaveTypes, allocations, leaveRequests] = await Promise.all([
@@ -369,14 +382,22 @@ export class ReportService {
    * 3. Headcount & Attrition Report (Dashboard JSON & Excel)
    * Joiners, leavers, by department and nationality
    */
-  async getHeadcountReportData({ companyId, year = null }) {
+  async getHeadcountReportData({ companyId, year = null, companyVisaId = null }) {
     const targetYear = year ? parseInt(year, 10) : new Date().getUTCFullYear();
     const yearStart = new Date(Date.UTC(targetYear, 0, 1));
     const yearEnd = new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59));
 
+    const empWhere = { company_id: companyId };
+    if (companyVisaId) {
+      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
+      if (validVisa) {
+        empWhere.company_visa_id = validVisa;
+      }
+    }
+
     const [allEmployees, departments] = await Promise.all([
       this.prisma.$base().employees.findMany({
-        where: { company_id: companyId },
+        where: empWhere,
         include: {
           contracts: {
             where: { status: { in: ['Approved', 'Active'] } },
@@ -489,8 +510,8 @@ export class ReportService {
     };
   }
 
-  async generateHeadcountReportExcel({ companyId, year = null }) {
-    const data = await this.getHeadcountReportData({ companyId, year });
+  async generateHeadcountReportExcel({ companyId, year = null, companyVisaId = null }) {
+    const data = await this.getHeadcountReportData({ companyId, year, companyVisaId });
     const company = await this.prisma.$base().companies.findUnique({ where: { id: companyId } });
 
     const workbook = new ExcelJS.Workbook();

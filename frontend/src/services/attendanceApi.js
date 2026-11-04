@@ -6,6 +6,8 @@ export async function getAttendanceGrid(params = {}) {
   if (params.to) query.append('to', params.to);
   if (params.departmentId) query.append('departmentId', params.departmentId);
   if (params.employeeId) query.append('employeeId', params.employeeId);
+  if (params.company_visa_id) query.append('company_visa_id', params.company_visa_id);
+  if (params.companyVisaId) query.append('company_visa_id', params.companyVisaId);
   const qStr = query.toString() ? `?${query.toString()}` : '';
   return request(`/attendance/grid${qStr}`);
 }
@@ -29,6 +31,8 @@ export async function getMissingPunchQueue(params = {}) {
   if (params.from) query.append('from', params.from);
   if (params.to) query.append('to', params.to);
   if (params.departmentId) query.append('departmentId', params.departmentId);
+  if (params.company_visa_id) query.append('company_visa_id', params.company_visa_id);
+  if (params.companyVisaId) query.append('company_visa_id', params.companyVisaId);
   const qStr = query.toString() ? `?${query.toString()}` : '';
   return request(`/attendance/missing-punches${qStr}`);
 }

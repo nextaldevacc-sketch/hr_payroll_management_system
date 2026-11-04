@@ -24,10 +24,13 @@ import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
 import { Select } from '../../primitives/form/Select';
+import { useVisa } from '../../../context/VisaContext';
+import { withVisa } from '../../../lib/visaQuery';
 import { listLeaveRequests, getLeaveTypes, requestLeave, actOnLeave, getLeaveBalances } from '../../../services/leaveApi';
 
 export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange }) {
   const { user, language } = useAuth();
+  const { selectedVisaId } = useVisa();
   const isAr = language === 'ar';
 
   const [currentTab, setCurrentTab] = useState(activeTab); // 'all' or 'inbox'
@@ -64,7 +67,7 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
     setError(null);
     try {
       const [reqs, types] = await Promise.all([
-        listLeaveRequests(),
+        listLeaveRequests(withVisa({}, selectedVisaId)),
         getLeaveTypes(),
       ]);
       setRequests(Array.isArray(reqs) ? reqs : (reqs?.items || []));
@@ -82,7 +85,7 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedVisaId]);
 
   const handleOpenNewRequest = async () => {
     setModalOpen(true);

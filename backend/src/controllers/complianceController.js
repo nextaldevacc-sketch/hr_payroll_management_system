@@ -4,7 +4,10 @@ export const complianceController = {
   async getOverview(req, res, next) {
     try {
       const companyId = req.companyId;
-      const stats = await complianceService.getComplianceOverview(companyId);
+      const stats = await complianceService.getComplianceOverview(
+        companyId,
+        req.query.company_visa_id || req.query.companyVisaId
+      );
       res.json({ success: true, data: stats });
     } catch (err) {
       next(err);

@@ -41,13 +41,14 @@ export async function createApprovalRequest(req, res, next) {
 
 export async function actionApprovalRequest(req, res, next) {
   try {
-    const { action, comment } = req.body;
+    const { action, comment, reason } = req.body;
     const result = await approvalService.actionRequest({
       companyId: req.companyId,
       requestId: req.params.id,
       actorId: req.user.userId,
       action,
-      comment,
+      comment: comment || reason,
+      reason,
     });
 
     res.json(result);

@@ -46,7 +46,9 @@ function sanitizeForNonSalaryRole(obj) {
 
 export async function getOverview(req, res, next) {
   try {
-    const rawData = await dashboardService.getOverviewMetrics(req.companyId, req.user);
+    const rawData = await dashboardService.getOverviewMetrics(req.companyId, req.user, {
+      companyVisaId: req.query.company_visa_id || req.query.companyVisaId,
+    });
     const seesSalary = Boolean(req.user?.seesSalary || req.user?.sees_salary);
     const data = seesSalary ? rawData : sanitizeForNonSalaryRole(rawData);
     res.json({ status: 'success', data });
@@ -57,7 +59,9 @@ export async function getOverview(req, res, next) {
 
 export async function getSalary(req, res, next) {
   try {
-    const data = await dashboardService.getSalaryMetrics(req.companyId);
+    const data = await dashboardService.getSalaryMetrics(req.companyId, {
+      companyVisaId: req.query.company_visa_id || req.query.companyVisaId,
+    });
     res.json({ status: 'success', data });
   } catch (err) {
     next(err);

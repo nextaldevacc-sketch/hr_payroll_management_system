@@ -18,6 +18,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useVisa } from '../../../context/VisaContext';
 import { fetchPayRuns, createPayRun } from '../../../services/payrollApi';
 import { fetchEmployeeMetaOptions } from '../../../services/employeesApi';
 import { GlassCard } from '../../primitives/GlassCard';
@@ -28,17 +29,25 @@ import { Select } from '../../primitives/form/Select';
 export function PayRunListFeature() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { selectedVisaId, setSelectedVisaId } = useVisa();
 
-  const [visaFilter, setVisaFilter] = useState('');
+  const [visaFilter, setVisaFilter] = useState(
+    selectedVisaId === 'all' || !selectedVisaId ? '' : selectedVisaId
+  );
   const [statusFilter, setStatusFilter] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createForm, setCreateForm] = useState({
-    company_visa_id: '',
+    company_visa_id: (selectedVisaId && selectedVisaId !== 'all') ? selectedVisaId : '',
     period_month: '2026-11-01',
     cutoff_date: '2026-11-25',
     run_type: 'Regular',
   });
   const [createError, setCreateError] = useState('');
+
+  // Sync visaFilter with top bar
+  React.useEffect(() => {
+    setVisaFilter(selectedVisaId === 'all' || !selectedVisaId ? '' : selectedVisaId);
+  }, [selectedVisaId]);
 
   // Fetch pay runs list
   const { data: payRunsData, isLoading } = useQuery({
@@ -124,9 +133,10 @@ export function PayRunListFeature() {
           </Link>
           <button
             onClick={() => {
-              if (metaOptions?.visas?.length && !createForm.company_visa_id) {
-                setCreateForm((prev) => ({ ...prev, company_visa_id: metaOptions.visas[0].id }));
-              }
+              const defaultVisaId = (selectedVisaId && selectedVisaId !== 'all')
+                ? selectedVisaId
+                : (metaOptions?.visas?.[0]?.id || '');
+              setCreateForm((prev) => ({ ...prev, company_visa_id: defaultVisaId }));
               setIsCreateModalOpen(true);
             }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-black hover:opacity-95 transition-all shadow-md active:scale-95"
@@ -210,7 +220,11 @@ export function PayRunListFeature() {
           <div className="min-w-[200px]">
             <Select
               value={visaFilter}
-              onChange={(e) => setVisaFilter(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setVisaFilter(val);
+                setSelectedVisaId(val || 'all');
+              }}
               placeholder="All Visa Establishments"
               options={[
                 { value: '', label: 'All Visa Establishments' },

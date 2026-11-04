@@ -281,6 +281,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
         {/* Notifications Bell */}
         <div className="relative">
           <IconWell
+            id="btn-notifications-bell"
             size="sm"
             shape="circle"
             title="Notifications"

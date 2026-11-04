@@ -9,12 +9,13 @@ export const reportController = {
   async downloadAttendanceReport(req, res, next) {
     try {
       const companyId = req.companyId;
-      const { month, department_id } = req.query;
+      const { month, department_id, company_visa_id, companyVisaId } = req.query;
 
       const buffer = await reportService.generateAttendanceReportExcel({
         companyId,
         month,
         departmentId: department_id || null,
+        companyVisaId: company_visa_id || companyVisaId || null,
       });
 
       const filename = `attendance_report_${month || new Date().toISOString().slice(0, 7)}.xlsx`;
@@ -32,13 +33,14 @@ export const reportController = {
   async downloadLeaveReport(req, res, next) {
     try {
       const companyId = req.companyId;
-      const { year, department_id, leave_type_id } = req.query;
+      const { year, department_id, leave_type_id, company_visa_id, companyVisaId } = req.query;
 
       const buffer = await reportService.generateLeaveReportExcel({
         companyId,
         year,
         departmentId: department_id || null,
         leaveTypeId: leave_type_id || null,
+        companyVisaId: company_visa_id || companyVisaId || null,
       });
 
       const targetYear = year || new Date().getUTCFullYear();
@@ -57,8 +59,12 @@ export const reportController = {
   async getHeadcountData(req, res, next) {
     try {
       const companyId = req.companyId;
-      const { year } = req.query;
-      const data = await reportService.getHeadcountReportData({ companyId, year });
+      const { year, company_visa_id, companyVisaId } = req.query;
+      const data = await reportService.getHeadcountReportData({
+        companyId,
+        year,
+        companyVisaId: company_visa_id || companyVisaId || null,
+      });
       res.json({ success: true, data });
     } catch (err) {
       next(err);
@@ -68,11 +74,12 @@ export const reportController = {
   async downloadHeadcountReport(req, res, next) {
     try {
       const companyId = req.companyId;
-      const { year } = req.query;
+      const { year, company_visa_id, companyVisaId } = req.query;
 
       const buffer = await reportService.generateHeadcountReportExcel({
         companyId,
         year,
+        companyVisaId: company_visa_id || companyVisaId || null,
       });
 
       const targetYear = year || new Date().getUTCFullYear();

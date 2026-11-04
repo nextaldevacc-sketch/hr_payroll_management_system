@@ -7,6 +7,7 @@ import clsx from 'clsx';
 import {
   LayoutDashboard,
   Users,
+  Inbox,
   Clock,
   CalendarDays,
   Banknote,
@@ -63,6 +64,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
   const allNavItems = [
     { href: '/', icon: LayoutDashboard, label: t('menu.dashboard'), exact: true, area: 'dashboard' },
     { href: '/employees', icon: Users, label: t('menu.employees'), area: 'employees' },
+    { href: '/approvals', icon: Inbox, label: t('menu.approvals') || 'Approvals', area: 'approvals' },
     { href: '/attendance', icon: Clock, label: t('menu.attendance'), area: 'attendance' },
     { href: '/leave', icon: CalendarDays, label: t('menu.leaveHolidays'), area: 'leave' },
     { href: '/payroll', icon: Banknote, label: t('menu.payroll'), area: 'payroll' },

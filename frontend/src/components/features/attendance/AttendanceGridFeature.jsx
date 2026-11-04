@@ -23,6 +23,8 @@ import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
 import { Select } from '../../primitives/form/Select';
+import { useVisa } from '../../../context/VisaContext';
+import { withVisa } from '../../../lib/visaQuery';
 import { getAttendanceGrid, editAttendanceDay } from '../../../services/attendanceApi';
 
 const DAY_STATUS_CONFIG = {
@@ -39,6 +41,7 @@ const DAY_STATUS_CONFIG = {
 
 export default function AttendanceGridFeature() {
   const { user, language } = useAuth();
+  const { selectedVisaId } = useVisa();
   const isAr = language === 'ar';
 
   const [periodFrom, setPeriodFrom] = useState('2026-10-01');
@@ -66,11 +69,16 @@ export default function AttendanceGridFeature() {
     setLoading(true);
     setError(null);
     try {
-      const res = await getAttendanceGrid({
-        from: periodFrom,
-        to: periodTo,
-        departmentId: selectedDept !== 'all' ? selectedDept : undefined,
-      });
+      const res = await getAttendanceGrid(
+        withVisa(
+          {
+            from: periodFrom,
+            to: periodTo,
+            departmentId: selectedDept !== 'all' ? selectedDept : undefined,
+          },
+          selectedVisaId
+        )
+      );
 
       if (res) {
         setGridData(res.grid || []);
@@ -87,7 +95,7 @@ export default function AttendanceGridFeature() {
 
   useEffect(() => {
     loadGrid();
-  }, [periodFrom, periodTo, selectedDept]);
+  }, [periodFrom, periodTo, selectedDept, selectedVisaId]);
 
   // Open Edit Modal for a cell
   const handleCellClick = (emp, dayRecord, dateStr) => {

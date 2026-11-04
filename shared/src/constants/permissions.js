@@ -220,6 +220,10 @@ export function canAccessNavArea(userRoles = [], area, seesSalary = false) {
     return userRoles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'GM'].includes(r));
   }
 
+  if (area === 'approvals') {
+    return userRoles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'DEPT_MANAGER'].includes(r));
+  }
+
   if (area === 'dashboard') {
     return userRoles.some((r) =>
       ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'DEPT_MANAGER'].includes(r)
