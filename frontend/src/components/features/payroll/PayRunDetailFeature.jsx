@@ -198,8 +198,8 @@ export function PayRunDetailFeature() {
   }
 
   const periodName = payRun.period_month
-    ? new Date(payRun.period_month).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
-    : 'October 2026';
+    ? new Date(payRun.period_month).toLocaleDateString(language === 'ar' ? 'ar-AE' : 'en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+    : (language === 'ar' ? 'أكتوبر 2026' : 'October 2026');
 
   const isLockedOrPaid = ['Locked', 'Paid'].includes(payRun.status);
 
@@ -212,9 +212,9 @@ export function PayRunDetailFeature() {
           className="inline-flex items-center gap-2 text-xs font-semibold text-text-muted hover:text-text transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          Back to Pay Runs
+          <span>{language === 'ar' ? 'العودة إلى مسيرات الرواتب' : 'Back to Pay Runs'}</span>
         </Link>
-        <span className="text-[11px] text-text-muted font-mono">ID: {payRun.id}</span>
+        <span className="text-[11px] text-text-muted font-mono" data-i18n-skip>ID: PR-{payRun?.id ? String(payRun.id).slice(-6).toUpperCase() : '---'}</span>
       </div>
 
       {/* Main Header Banner */}
@@ -222,7 +222,7 @@ export function PayRunDetailFeature() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-black text-text dark:gold-heading tracking-tight" data-i18n-skip="true">
+              <h1 className="text-2xl font-black text-text dark:gold-heading tracking-tight">
                 {language === 'ar' ? `مسير رواتب ${periodName}` : `${periodName} Pay Run`}
               </h1>
               <StatusPill status={payRun.status} />
@@ -232,7 +232,7 @@ export function PayRunDetailFeature() {
             </div>
             <p className="text-xs text-text-muted flex items-center gap-2">
               <Building className="w-3.5 h-3.5 text-primary" />
-              <span>{payRun.company_visa?.name || 'MOHRE Dubai'}</span>
+              <span>{language === 'ar' ? (payRun.company_visa?.name_ar || payRun.company_visa?.name || 'MOHRE Dubai') : (payRun.company_visa?.name || 'MOHRE Dubai')}</span>
               &bull;
               <span>MOL ID: <strong className="text-text font-mono">{payRun.company_visa?.mol_establishment_id}</strong></span>
               &bull;
@@ -671,7 +671,9 @@ export function PayRunDetailFeature() {
                       <tr key={ps.id} className="hover:bg-surface-raised/30 transition-colors">
                         <td className="py-3.5 px-4 font-mono font-bold text-text">{emp.employee_code || '---'}</td>
                         <td className="py-3.5 px-4">
-                          <span className="font-bold text-text">{emp.name}</span>
+                          <span className="font-bold text-text" data-i18n-skip>
+                            {language === 'ar' ? (emp.arabic_name || emp.name) : emp.name}
+                          </span>
                           {emp.arabic_name && (
                             <span className="block text-[10px] text-text-muted font-arabic">{emp.arabic_name}</span>
                           )}
@@ -776,7 +778,9 @@ export function PayRunDetailFeature() {
                     return (
                       <tr key={ps.id} className="hover:bg-surface-raised/30 transition-colors">
                         <td className="py-3.5 px-4">
-                          <span className="font-bold text-text">{emp.name}</span>
+                          <span className="font-bold text-text" data-i18n-skip>
+                            {language === 'ar' ? (emp.arabic_name || emp.name) : emp.name}
+                          </span>
                           <span className="block text-[10px] text-text-muted font-mono">{emp.employee_code}</span>
                         </td>
                         <td className="py-3.5 px-4 text-right text-text-muted font-medium">

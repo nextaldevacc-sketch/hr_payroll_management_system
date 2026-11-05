@@ -131,7 +131,7 @@ export function PayRunListFeature() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-surface-raised border border-border/80 text-text hover:bg-surface-raised/80 transition-all shadow-sm"
           >
             <SlidersHorizontal className="w-4 h-4 text-primary" />
-            Salary Adjustments
+            <span>{language === 'ar' ? 'تعديلات الرواتب' : 'Salary Adjustments'}</span>
           </Link>
           <button
             onClick={() => {
@@ -156,9 +156,9 @@ export function PayRunListFeature() {
             <Calendar className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-text-muted font-medium">Monthly Cut-Off</span>
-            <div className="text-lg font-bold text-text mt-0.5">25th of Month</div>
-            <span className="text-[11px] text-secondary font-semibold">Active Cycle: Oct 2026</span>
+            <span className="text-xs text-text-muted font-medium">{language === 'ar' ? 'تاريخ إغلاق الشهر' : 'Monthly Cut-Off'}</span>
+            <div className="text-lg font-bold text-text mt-0.5">{language === 'ar' ? 'اليوم 25 من كل شهر' : '25th of Month'}</div>
+            <span className="text-[11px] text-secondary font-semibold">{language === 'ar' ? 'الدورة الحالية: أكتوبر 2026' : 'Active Cycle: Oct 2026'}</span>
           </div>
         </GlassCard>
 
@@ -167,11 +167,11 @@ export function PayRunListFeature() {
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-text-muted font-medium">Locked / Paid Disbursement</span>
+            <span className="text-xs text-text-muted font-medium">{language === 'ar' ? 'المبالغ المقفلة / المصروفة' : 'Locked / Paid Disbursement'}</span>
             <div className="text-lg font-bold text-text dark:text-gold mt-0.5">
               AED {totalDisbursed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-            <span className="text-[11px] text-text-muted">Total Disbursed WPS</span>
+            <span className="text-[11px] text-text-muted">{language === 'ar' ? 'إجمالي تحويلات نظام حماية الأجور' : 'Total Disbursed WPS'}</span>
           </div>
         </GlassCard>
 
@@ -223,7 +223,6 @@ export function PayRunListFeature() {
           {/* Visa Dropdown Filter */}
           <div className="min-w-[200px]">
             <Select
-              data-i18n-skip="true"
               value={visaFilter}
               onChange={(e) => {
                 const val = e.target.value;

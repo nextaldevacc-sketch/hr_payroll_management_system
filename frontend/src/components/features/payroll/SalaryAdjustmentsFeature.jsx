@@ -179,9 +179,9 @@ export function SalaryAdjustmentsFeature() {
             <SlidersHorizontal className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-text-muted font-medium">Active Company Loans</span>
-            <div className="text-lg font-bold text-text mt-0.5">{activeLoans.length} Loans</div>
-            <span className="text-[11px] text-primary font-semibold">Scheduled in Payroll</span>
+            <span className="text-xs text-text-muted font-medium">{language === 'ar' ? 'سلف وقروض الموظفين النشطة' : 'Active Company Loans'}</span>
+            <div className="text-lg font-bold text-text mt-0.5">{activeLoans.length} {language === 'ar' ? 'سلفة' : 'Loans'}</div>
+            <span className="text-[11px] text-primary font-semibold">{language === 'ar' ? 'مجدولة في مسير الرواتب' : 'Scheduled in Payroll'}</span>
           </div>
         </GlassCard>
 
@@ -190,11 +190,11 @@ export function SalaryAdjustmentsFeature() {
             <DollarSign className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-text-muted font-medium">Outstanding Loan Balance</span>
+            <span className="text-xs text-text-muted font-medium">{language === 'ar' ? 'الرصيد المتبقي للقروض' : 'Outstanding Loan Balance'}</span>
             <div className="text-lg font-bold text-text dark:text-gold mt-0.5">
               AED {loanBalanceTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-            <span className="text-[11px] text-text-muted">Recoverable balance</span>
+            <span className="text-[11px] text-text-muted">{language === 'ar' ? 'رصيد قابل للتحصيل' : 'Recoverable balance'}</span>
           </div>
         </GlassCard>
 
@@ -203,9 +203,9 @@ export function SalaryAdjustmentsFeature() {
             <Clock className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-text-muted font-medium">Pending Approvals</span>
-            <div className="text-lg font-bold text-text mt-0.5">{pendingCount} Requests</div>
-            <span className="text-[11px] text-amber-500 font-semibold">Awaiting Manager Signoff</span>
+            <span className="text-xs text-text-muted font-medium">{language === 'ar' ? 'طلبات بانتظار الاعتماد' : 'Pending Approvals'}</span>
+            <div className="text-lg font-bold text-text mt-0.5">{pendingCount} {language === 'ar' ? 'طلب' : 'Requests'}</div>
+            <span className="text-[11px] text-amber-500 font-semibold">{language === 'ar' ? 'بانتظار توقيع المدير' : 'Awaiting Manager Signoff'}</span>
           </div>
         </GlassCard>
       </div>
@@ -235,7 +235,6 @@ export function SalaryAdjustmentsFeature() {
           {/* Status Filter */}
           <div className="min-w-[160px]">
             <Select
-              data-i18n-skip="true"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               placeholder={language === 'ar' ? 'جميع الحالات' : 'All Statuses'}

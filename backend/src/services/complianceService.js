@@ -414,6 +414,7 @@ export class ComplianceService {
         employee_name: doc.employee?.name,
         employee_name_ar: doc.employee?.arabic_name,
         department_name: doc.employee?.contracts?.[0]?.department?.name,
+        department_name_ar: doc.employee?.contracts?.[0]?.department?.name_ar,
         doc_type: doc.doc_type,
         doc_number: doc.doc_number,
         issue_date: doc.issue_date,

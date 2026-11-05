@@ -289,24 +289,24 @@ export default function AuditFeature() {
                             second: '2-digit',
                           })}
                         </td>
-                        <td className="py-3 px-4 font-medium text-slate-900 dark:text-white">
+                        <td className="py-3 px-4 font-medium text-slate-900 dark:text-white" data-i18n-skip>
                           <div>{log.user?.name || log.user?.email || 'SYSTEM'}</div>
                           {log.user?.email && log.user?.name && (
                             <div className="text-xs text-slate-400">{log.user.email}</div>
                           )}
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getActionBadgeColor(log.action)}`}>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getActionBadgeColor(log.action)}`} data-i18n-skip>
                             {log.action}
                           </span>
                         </td>
-                        <td className="py-3 px-4 font-mono text-xs text-slate-700 dark:text-slate-300">
+                        <td className="py-3 px-4 font-mono text-xs text-slate-700 dark:text-slate-300" data-i18n-skip>
                           {log.table_name}
                         </td>
-                        <td className="py-3 px-4 font-mono text-xs text-slate-400">
+                        <td className="py-3 px-4 font-mono text-xs text-slate-400" data-i18n-skip>
                           {log.record_id ? log.record_id.slice(0, 13) + '...' : '—'}
                         </td>
-                        <td className="py-3 px-4 text-xs font-mono text-slate-500 dark:text-slate-400">
+                        <td className="py-3 px-4 text-xs font-mono text-slate-500 dark:text-slate-400" data-i18n-skip>
                           {log.ip_address || '—'}
                         </td>
                       </tr>

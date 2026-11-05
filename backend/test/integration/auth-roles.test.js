@@ -698,5 +698,26 @@ describe('Phase 2: Authentication, Roles, Permissions Matrix & Approval Engine T
       assert.equal(res.status, 401);
       assert.ok(res.body.code === 'ACCOUNT_DISABLED' || res.body.code === 'SESSION_REVOKED');
     });
+
+    it('strictly forbids authentication bypass via path tricks (Section 1 security verification)', async () => {
+      // 1. GET /api/v1/employees?x=/auth/me without token -> 401
+      const res1 = await request(app).get('/api/v1/employees?x=/auth/me');
+      assert.equal(res1.status, 401);
+
+      // 2. GET /api/v1/me/payslips?r=/auth/me without token -> 401
+      const res2 = await request(app).get('/api/v1/me/payslips?r=/auth/me');
+      assert.equal(res2.status, 401);
+
+      // 3. GET /api/v1/payroll/runs with X-Original-URL: /auth/me without token -> 401
+      const res3 = await request(app)
+        .get('/api/v1/payroll/runs')
+        .set('X-Original-URL', '/auth/me');
+      assert.equal(res3.status, 401);
+
+      // 4. GET /api/v1/auth/me without token -> 200 with { user: null }
+      const res4 = await request(app).get('/api/v1/auth/me');
+      assert.equal(res4.status, 200);
+      assert.equal(res4.body.user, null);
+    });
   });
 });

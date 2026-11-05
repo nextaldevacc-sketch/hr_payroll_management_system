@@ -16,6 +16,22 @@ export function AuthProvider({ children }) {
 
   // Load session from server truth on mount (/api/v1/auth/me)
   const refreshUser = useCallback(async () => {
+    // Skip /auth/me on public auth pages when no session cookie exists
+    if (typeof window !== 'undefined') {
+      const p = window.location.pathname;
+      const isAuthPage =
+        p.startsWith('/login') ||
+        p.startsWith('/forgot-password') ||
+        p.startsWith('/reset-password') ||
+        p.startsWith('/accept-invite');
+      const hasCookie = document.cookie.includes('nextal_token');
+      if (isAuthPage && !hasCookie) {
+        setUser(null);
+        setStatus('unauthenticated');
+        return null;
+      }
+    }
+
     try {
       const res = await fetch(`${API_BASE}/auth/me`, {
         method: 'GET',

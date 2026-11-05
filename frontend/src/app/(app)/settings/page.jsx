@@ -539,7 +539,9 @@ export default function SettingsPage() {
             </span>
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-text">
-                {user?.roleNameEn || currentRole}
+                {language === 'ar'
+                  ? ({ COMPANY_ADMIN: 'مسؤول الشركة', HR_MANAGER: 'مدير الموارد البشرية', EMPLOYEE: 'موظف', FINANCE: 'المالية', GM: 'المدير العام', PAYROLL_OFFICER: 'مسؤول الرواتب' }[currentRole] || currentRole)
+                  : (user?.roleNameEn || currentRole)}
               </span>
               {isHrOrAdmin && (
                 <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">

@@ -322,7 +322,16 @@
       "assignedVisa": "التأشيرة المرتبطة",
       "active": "نشط",
       "inactive": "غير نشط",
-      "employeeCount": "الموظفون"
+      "employeeCount": "الموظفون النشطون",
+      "emirates": {
+        "Abu Dhabi": "أبو ظبي",
+        "Dubai": "دبي",
+        "Sharjah": "الشارقة",
+        "Ajman": "عجمان",
+        "Umm Al Quwain": "أم القيوين",
+        "Ras Al Khaimah": "رأس الخيمة",
+        "Fujairah": "الفجيرة"
+      }
     }
   }
 }

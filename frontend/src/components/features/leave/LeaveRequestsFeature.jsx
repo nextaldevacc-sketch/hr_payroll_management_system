@@ -297,17 +297,22 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
               </thead>
               <tbody className="divide-y divide-border/40 font-mono">
                 {filteredRequests.map((req) => {
-                  const startStr = new Date(req.start_date).toLocaleDateString(isAr ? 'ar-AE' : 'en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    timeZone: 'Asia/Dubai',
-                  });
-                  const endStr = new Date(req.end_date).toLocaleDateString(isAr ? 'ar-AE' : 'en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    timeZone: 'Asia/Dubai',
-                  });
+                  const isValidDate = (d) => d && !isNaN(new Date(d).getTime());
+                  const startStr = isValidDate(req.start_date)
+                    ? new Date(req.start_date).toLocaleDateString(isAr ? 'ar-AE' : 'en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        timeZone: 'Asia/Dubai',
+                      })
+                    : '—';
+                  const endStr = isValidDate(req.end_date)
+                    ? new Date(req.end_date).toLocaleDateString(isAr ? 'ar-AE' : 'en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        timeZone: 'Asia/Dubai',
+                      })
+                    : '—';
 
                   const isPending = req.status === 'Pending';
                   const isHalf = req.is_half_day;
@@ -315,8 +320,8 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
                   return (
                     <tr key={req.id} className="hover:bg-surface/30 transition-colors">
                       <td className="p-3.5 font-sans">
-                        <div className="font-semibold text-text">{req.employee?.name}</div>
-                        <div className="text-[11px] text-text-muted">{req.employee?.employee_number}</div>
+                        <div className="font-semibold text-text" data-i18n-skip>{req.employee?.name}</div>
+                        <div className="text-[11px] text-text-muted" data-i18n-skip>{req.employee?.employee_number}</div>
                       </td>
                       <td className="p-3.5 font-sans">
                         <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-surface border border-border text-text">
@@ -324,11 +329,11 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
                         </span>
                         {isHalf && (
                           <span className="text-[10px] text-amber-400 block font-bold mt-0.5">
-                            Half Day ({req.half_day})
+                            {isAr ? `نصف يوم (${req.half_day})` : `Half Day (${req.half_day})`}
                           </span>
                         )}
                       </td>
-                      <td className="p-3.5 font-sans text-text">
+                      <td className="p-3.5 font-sans text-text" data-i18n-skip>
                         {isHalf ? startStr : `${startStr} → ${endStr}`}
                       </td>
                       <td className="p-3.5 text-center font-bold text-primary">

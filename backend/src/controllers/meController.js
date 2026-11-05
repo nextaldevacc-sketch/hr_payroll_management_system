@@ -533,7 +533,7 @@ export async function getMyPayslipById(req, res, next) {
         pay_run: true,
         lines: {
           include: { salary_rule: true },
-          orderBy: { created_at: 'asc' },
+          orderBy: [{ salary_rule: { sequence: 'asc' } }, { created_at: 'asc' }],
         },
         contract: {
           include: { job: true, department: true },

@@ -121,80 +121,142 @@ export default function MyPayslipsPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-start border-collapse min-w-[600px]">
-              <thead>
-                <tr className="border-b border-border bg-black/[0.02] dark:bg-white/[0.02]">
-                  <th className="py-3 px-4 font-bold text-text-muted uppercase text-start">
-                    {language === 'ar' ? 'الشهر / الفترة' : 'Month / Period'}
-                  </th>
-                  <th className="py-3 px-4 font-bold text-text-muted uppercase text-start">
-                    {language === 'ar' ? 'الراتب الإجمالي' : 'Gross Pay'}
-                  </th>
-                  <th className="py-3 px-4 font-bold text-text-muted uppercase text-start">
-                    {language === 'ar' ? 'الاستقطاعات' : 'Deductions'}
-                  </th>
-                  <th className="py-3 px-4 font-bold text-text-muted uppercase text-start">
-                    {language === 'ar' ? 'صافي الراتب المحول' : 'Net Salary'}
-                  </th>
-                  <th className="py-3 px-4 font-bold text-text-muted uppercase text-start">
-                    {language === 'ar' ? 'الحالة' : 'Status'}
-                  </th>
-                  <th className="py-3 px-4 font-bold text-text-muted uppercase text-end">
-                    {language === 'ar' ? 'الإجراءات' : 'Actions'}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {payslips.map((ps) => (
-                  <tr key={ps.id} className="hover:bg-primary-wash/30 transition-colors">
-                    <td className="py-3 px-4 font-bold text-text">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-primary" />
-                        <span>{ps.period_month}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-text font-semibold tabular-nums">
-                      {formatCurrency(ps.gross, 'AED', language)}
-                    </td>
-                    <td className="py-3 px-4 text-rose-500 font-semibold tabular-nums">
-                      -{formatCurrency(ps.total_deductions, 'AED', language)}
-                    </td>
-                    <td className="py-3 px-4 font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                      {formatCurrency(ps.net, 'AED', language)}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold">
-                        <CheckCircle2 className="w-3 h-3" />
-                        {language === 'ar' ? 'تم الصرف (Paid)' : 'Paid'}
+          <>
+            {/* Mobile Cards View (< 640px) */}
+            <div className="block sm:hidden divide-y divide-border/40 p-3 space-y-3">
+              {payslips.map((ps) => (
+                <div key={ps.id} className="pt-3 first:pt-0 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 font-bold text-text text-sm">
+                      <Calendar className="w-4 h-4 text-primary" />
+                      <span>{ps.period_month}</span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {language === 'ar' ? 'تم الصرف' : 'Paid'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 bg-black/[0.02] dark:bg-white/[0.02] p-2.5 rounded-xl text-xs">
+                    <div>
+                      <span className="text-[10px] text-text-muted block">{language === 'ar' ? 'الراتب الإجمالي' : 'Gross'}</span>
+                      <span className="font-semibold text-text tabular-nums text-[11px]">
+                        {formatCurrency(ps.gross, 'AED', language)}
                       </span>
-                    </td>
-                    <td className="py-3 px-4 text-end">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="xs"
-                          variant="outline"
-                          icon={<Eye className="w-3 h-3" />}
-                          onClick={() => handleOpenBreakdown(ps.id)}
-                        >
-                          {language === 'ar' ? 'التفاصيل' : 'Breakdown'}
-                        </Button>
-                        <Button
-                          size="xs"
-                          variant="primary"
-                          icon={<Download className="w-3 h-3" />}
-                          loading={downloadingId === ps.id}
-                          onClick={() => handleDownloadPdf(ps.id)}
-                        >
-                          {language === 'ar' ? 'تحميل PDF' : 'PDF'}
-                        </Button>
-                      </div>
-                    </td>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-text-muted block">{language === 'ar' ? 'الاستقطاعات' : 'Deductions'}</span>
+                      <span className="font-semibold text-rose-500 tabular-nums text-[11px]">
+                        {Number(ps.total_deductions) > 0 ? '-' : ''}{formatCurrency(ps.total_deductions, 'AED', language)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-text-muted block">{language === 'ar' ? 'صافي الراتب' : 'Net'}</span>
+                      <span className="font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums text-[11px]">
+                        {formatCurrency(ps.net, 'AED', language)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      icon={<Eye className="w-3 h-3" />}
+                      onClick={() => handleOpenBreakdown(ps.id)}
+                    >
+                      {language === 'ar' ? 'التفاصيل' : 'Breakdown'}
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="primary"
+                      icon={<Download className="w-3 h-3" />}
+                      loading={downloadingId === ps.id}
+                      onClick={() => handleDownloadPdf(ps.id)}
+                    >
+                      {language === 'ar' ? 'تحميل PDF' : 'PDF'}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= 640px) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-xs text-start border-collapse min-w-[600px]">
+                <thead>
+                  <tr className="border-b border-border bg-black/[0.02] dark:bg-white/[0.02]">
+                    <th className="py-3 px-4 font-bold text-text-muted uppercase text-start">
+                      {language === 'ar' ? 'الشهر / الفترة' : 'Month / Period'}
+                    </th>
+                    <th className="py-3 px-4 font-bold text-text-muted uppercase text-start">
+                      {language === 'ar' ? 'الراتب الإجمالي' : 'Gross Pay'}
+                    </th>
+                    <th className="py-3 px-4 font-bold text-text-muted uppercase text-start">
+                      {language === 'ar' ? 'الاستقطاعات' : 'Deductions'}
+                    </th>
+                    <th className="py-3 px-4 font-bold text-text-muted uppercase text-start">
+                      {language === 'ar' ? 'صافي الراتب المحول' : 'Net Salary'}
+                    </th>
+                    <th className="py-3 px-4 font-bold text-text-muted uppercase text-start">
+                      {language === 'ar' ? 'الحالة' : 'Status'}
+                    </th>
+                    <th className="py-3 px-4 font-bold text-text-muted uppercase text-end">
+                      {language === 'ar' ? 'الإجراءات' : 'Actions'}
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {payslips.map((ps) => (
+                    <tr key={ps.id} className="hover:bg-primary-wash/30 transition-colors">
+                      <td className="py-3 px-4 font-bold text-text">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-3.5 h-3.5 text-primary" />
+                          <span>{ps.period_month}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-text font-semibold tabular-nums">
+                        {formatCurrency(ps.gross, 'AED', language)}
+                      </td>
+                      <td className="py-3 px-4 text-rose-500 font-semibold tabular-nums">
+                        {Number(ps.total_deductions) > 0 ? '-' : ''}{formatCurrency(ps.total_deductions, 'AED', language)}
+                      </td>
+                      <td className="py-3 px-4 font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                        {formatCurrency(ps.net, 'AED', language)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold">
+                          <CheckCircle2 className="w-3 h-3" />
+                          {language === 'ar' ? 'تم الصرف' : 'Paid'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-end">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            icon={<Eye className="w-3 h-3" />}
+                            onClick={() => handleOpenBreakdown(ps.id)}
+                          >
+                            {language === 'ar' ? 'التفاصيل' : 'Breakdown'}
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="primary"
+                            icon={<Download className="w-3 h-3" />}
+                            loading={downloadingId === ps.id}
+                            onClick={() => handleDownloadPdf(ps.id)}
+                          >
+                            {language === 'ar' ? 'تحميل PDF' : 'PDF'}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -239,7 +301,7 @@ export default function MyPayslipsPage() {
                         <span className="text-[10px] text-text-muted block">{l.code}</span>
                       </div>
                       <span className={`font-bold tabular-nums ${isDeduction ? 'text-rose-500' : 'text-text'}`}>
-                        {isDeduction ? '-' : ''}{formatCurrency(Math.abs(Number(l.amount)), 'AED', language)}
+                        {isDeduction && Number(l.amount) !== 0 ? '-' : ''}{formatCurrency(Math.abs(Number(l.amount)), 'AED', language)}
                       </span>
                     </div>
                   );

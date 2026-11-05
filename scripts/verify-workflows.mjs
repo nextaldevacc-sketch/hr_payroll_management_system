@@ -178,6 +178,7 @@ async function runStepRunner() {
       DATABASE_URL_TEST: TEST_DB_URL,
       NODE_ENV: 'development',
       FEATURE_PLATFORM_ADMIN: 'false',
+      RATE_LIMIT_MAX: '10000',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -1261,6 +1262,7 @@ async function runStepRunner() {
         await safeGoto(page, `http://localhost:${WEB_PORT}/attendance`);
         await page.waitForTimeout(1500);
 
+        await page.waitForSelector('#tab-biometric-import', { state: 'visible', timeout: 15000 });
         await page.click('#tab-biometric-import');
         await page.waitForTimeout(1000);
 
@@ -1293,6 +1295,7 @@ async function runStepRunner() {
         await safeGoto(page, `http://localhost:${WEB_PORT}/attendance`);
         await page.waitForTimeout(1500);
 
+        await page.waitForSelector('#tab-biometric-import', { state: 'visible', timeout: 15000 });
         await page.click('#tab-biometric-import');
         await page.waitForTimeout(1000);
 

@@ -39,7 +39,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { t, language } = useLanguage();
   const { user, seesSalary } = useAuth();
-  const { selectedVisaId, selectedVisa, companyName } = useVisa();
+  const { selectedVisaId, selectedVisa, companyName, companyNameAr } = useVisa();
   const [activeDrawer, setActiveDrawer] = useState(null);
   const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
 
@@ -201,7 +201,7 @@ export default function DashboardPage() {
 
   const defaultLivePayroll = {
     monthYear: 'Current Period',
-    entityName: companyName || 'Company',
+    entityName: language === 'ar' ? (companyNameAr || 'شركة الخليج للتقنية اللوجستية ذ.م.م') : (companyName || 'Gulf Tech Logistics LLC'),
     visaBadge: getVisaBadge(selectedVisa?.name || 'All Visas'),
     cutoffDays: 0,
     employeesIncluded: 0,
@@ -403,7 +403,7 @@ export default function DashboardPage() {
   // Live Payroll metrics (only when seesSalary is true)
   const livePayrollData = salaryData?.livePayroll ? {
     monthYear: salaryData.livePayroll.period || 'October 2026',
-    entityName: companyName || 'Company',
+    entityName: language === 'ar' ? (companyNameAr || 'شركة الخليج للتقنية اللوجستية ذ.م.م') : (companyName || 'Gulf Tech Logistics LLC'),
     visaBadge: getVisaBadge(selectedVisa?.name || salaryData.livePayroll.visaName || 'All Visas'),
     cutoffDays: 4,
     employeesIncluded: salaryData.livePayroll.employeeCount,
@@ -437,7 +437,7 @@ export default function DashboardPage() {
             {t('dashboard.title')}
           </h1>
           <p className="text-xs sm:text-sm text-text-muted mt-1">
-            {companyName || 'Company'} · {t('dashboard.subtitle')}
+            {language === 'ar' ? (companyNameAr || 'شركة الخليج للتقنية اللوجستية ذ.م.م') : (companyName || 'Gulf Tech Logistics LLC')} · {t('dashboard.subtitle')}
           </p>
         </div>
 

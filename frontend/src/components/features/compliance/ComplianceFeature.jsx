@@ -397,11 +397,11 @@ export default function ComplianceFeature() {
                   return (
                     <tr key={doc.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
                       <td className="py-3 px-4 font-medium text-slate-900 dark:text-white">
-                        <div>{isAr ? doc.employee_name_ar || doc.employee_name : doc.employee_name}</div>
-                        <div className="text-xs text-slate-400 font-mono">{doc.employee_code}</div>
+                        <div data-i18n-skip>{isAr ? doc.employee_name_ar || doc.employee_name : doc.employee_name}</div>
+                        <div className="text-xs text-slate-400 font-mono" data-i18n-skip>{doc.employee_code}</div>
                       </td>
                       <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
-                        {doc.department_name || (isAr ? 'عام' : 'General')}
+                        {(isAr ? doc.department_name_ar || doc.department_name : doc.department_name) || (isAr ? 'عام' : 'General')}
                       </td>
                       <td className="py-3 px-4">
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200">

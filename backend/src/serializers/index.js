@@ -297,6 +297,7 @@ export function serializeEmployee(emp, viewer, { maskIbanInList = false } = {}) 
       ? {
           id: emp.contracts[0].department.id,
           name: emp.contracts[0].department.name,
+          name_ar: emp.contracts[0].department.name_ar,
         }
       : null,
     job_id: emp.contracts?.[0]?.job_id || emp.job_id || null,
@@ -317,6 +318,7 @@ export function serializeEmployee(emp, viewer, { maskIbanInList = false } = {}) 
       ? {
           id: emp.branch.id,
           name: emp.branch.name,
+          name_ar: emp.branch.name_ar,
           emirate: emp.branch.emirate,
         }
       : null,

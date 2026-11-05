@@ -213,7 +213,7 @@ export class EmployeeService {
         where,
         include: {
           company_visa: { select: { id: true, name: true, emirate: true } },
-          branch: { select: { id: true, name: true, emirate: true } },
+          branch: { select: { id: true, name: true, name_ar: true, emirate: true } },
           manager: { select: { id: true, name: true, employee_code: true } },
           contracts: {
             orderBy: [{ effective_date: 'desc' }, { version_no: 'desc' }],

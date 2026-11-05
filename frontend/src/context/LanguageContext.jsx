@@ -4,6 +4,9 @@ import React, { createContext, useContext, useState, useTransition } from 'react
 import { useRouter } from 'next/navigation';
 import enTranslations from '../i18n/en.json';
 import arTranslations from '../i18n/ar.json';
+import { translate } from '../i18n/translator.js';
+
+export { translate };
 
 const LanguageContext = createContext({
   language: 'en',
@@ -51,29 +54,8 @@ export function LanguageProvider({ children, initialLocale = 'en' }) {
 
   const isRTL = language === 'ar';
 
-  const t = (key) => {
-    const keys = key.split('.');
-    let curr = translations[language] || translations.en;
-    for (const k of keys) {
-      if (curr && curr[k] !== undefined) {
-        curr = curr[k];
-      } else {
-        // Fallback to English
-        let fallback = translations.en;
-        for (const fbKey of keys) {
-          if (fallback && fallback[fbKey] !== undefined) {
-            fallback = fallback[fbKey];
-          } else {
-            if (process.env.NODE_ENV !== 'production') {
-              console.warn(`[i18n] Missing translation key: "${key}"`);
-            }
-            return key;
-          }
-        }
-        return fallback;
-      }
-    }
-    return curr;
+  const t = (key, paramsOrFallback, maybeParams) => {
+    return translate(translations, language, key, paramsOrFallback, maybeParams);
   };
 
   return (

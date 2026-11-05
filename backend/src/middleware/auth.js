@@ -129,10 +129,6 @@ export async function authenticate(req, res, next) {
   const token = extractToken(req);
 
   if (!token) {
-    if (req.path === '/me' || req.originalUrl?.includes('/auth/me')) {
-      req.user = null;
-      return next();
-    }
     return res.status(401).json({
       status: 'error',
       code: 'UNAUTHORIZED',
@@ -190,7 +186,64 @@ export async function authenticate(req, res, next) {
 
 /**
  * Optional Authentication Middleware
- * Populates req.user if present, but does not block if not logged in
+ * Populates req.user if present, but does not block if not logged in.
+ * Use ONLY on GET /auth/me so the frontend can check session state without a 401.
+ */
+export async function optionalAuthenticate(req, res, next) {
+  const token = extractToken(req);
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    clearAuthCookie(req, res);
+    return res.status(401).json({
+      status: 'error',
+      code: 'UNAUTHORIZED',
+      message: 'Authentication session has expired or is invalid. Please sign in again.',
+    });
+  }
+
+  // Re-check live user & company state (with 60-second TTL cache)
+  const validation = await validateUserSessionState(decoded.userId, decoded.tokenVersion);
+  if (!validation.valid) {
+    clearAuthCookie(req, res);
+    return res.status(validation.httpStatus).json({
+      status: 'error',
+      code: validation.code,
+      message: validation.message,
+    });
+  }
+
+  req.user = decoded;
+  req.user.id = decoded.userId;
+
+  const companyId = decoded.isPlatformAdmin
+    ? req.headers['x-company-id'] || decoded.companyId || null
+    : decoded.companyId;
+
+  req.companyId = companyId;
+  req.isPlatformAdmin = Boolean(decoded.isPlatformAdmin);
+
+  companyStorage.run(
+    {
+      companyId,
+      isPlatformAdmin: decoded.isPlatformAdmin,
+      userId: decoded.userId,
+      seesSalary: decoded.seesSalary,
+    },
+    () => {
+      next();
+    }
+  );
+}
+
+/**
+ * @deprecated Use optionalAuthenticate instead
  */
 export async function optionalAuth(req, res, next) {
   const token = extractToken(req);

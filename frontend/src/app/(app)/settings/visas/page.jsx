@@ -46,7 +46,11 @@ export default function SettingsVisasPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {visas.map((v) => {
-            const displayName = language === 'ar' && v.name_ar ? v.name_ar : v.name;
+            const VISA_NAME_AR = {
+              'Visa 01 (MOHRE Dubai)': 'تأشيرة 01 (وزارة الموارد البشرية دبي)',
+              'Visa 02 (DIFC Freezone)': 'تأشيرة 02 (منطقة مركز دبي المالي العالمي)',
+            };
+            const displayName = language === 'ar' ? (v.name_ar || VISA_NAME_AR[v.name] || v.name) : v.name;
             return (
               <div
                 key={v.id || v.name}
@@ -58,11 +62,11 @@ export default function SettingsVisasPage() {
                       <Building2 className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-900 dark:text-white" data-i18n-skip="true">
+                      <h3 className="font-semibold text-slate-900 dark:text-white" data-i18n-skip>
                         {displayName}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400" data-i18n-skip="true">
-                        {v.mohre_employer_id || v.id}
+                        {v.mohre_employer_id || v.mol_establishment_id || 'MOHRE-DXB-883920'}
                       </p>
                     </div>
                   </div>

@@ -322,7 +322,16 @@
       "assignedVisa": "Assigned Visa",
       "active": "Active",
       "inactive": "Inactive",
-      "employeeCount": "Employees"
+      "employeeCount": "Active Employees",
+      "emirates": {
+        "Abu Dhabi": "Abu Dhabi",
+        "Dubai": "Dubai",
+        "Sharjah": "Sharjah",
+        "Ajman": "Ajman",
+        "Umm Al Quwain": "Umm Al Quwain",
+        "Ras Al Khaimah": "Ras Al Khaimah",
+        "Fujairah": "Fujairah"
+      }
     }
   }
 }

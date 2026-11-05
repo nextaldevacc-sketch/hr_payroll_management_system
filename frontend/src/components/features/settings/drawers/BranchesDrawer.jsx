@@ -25,7 +25,7 @@ export function BranchesDrawer({
   onSave,
   onDeleteBranch,
 }) {
-  const { isRTL, language } = useLanguage();
+  const { isRTL, language, t } = useLanguage();
   const [branchList, setBranchList] = useState(branches);
   React.useEffect(() => {
     setBranchList(branches || []);
@@ -106,7 +106,15 @@ export function BranchesDrawer({
                       {language === 'ar' ? branch.name_ar || branch.name : branch.name}
                     </span>
                     <span className="text-[11px] text-text-muted">
-                      {branch.emirate} · {branch.company_visa_name || 'Visa 01'}
+                      {language === 'ar' ? t(`settings.branches.emirates.${branch.emirate}`, branch.emirate) : branch.emirate} · {
+                        (() => {
+                          const vName = language === 'ar'
+                            ? (branch.company_visa_name_ar || branch.company_visa?.name_ar || branch.company_visa_name || branch.company_visa?.name || 'Visa 01')
+                            : (branch.company_visa_name || branch.company_visa?.name || 'Visa 01');
+                          const est = branch.mol_establishment_id || branch.company_visa?.mol_establishment_id;
+                          return est ? `${vName} (${est})` : vName;
+                        })()
+                      }
                     </span>
                   </div>
                 </div>

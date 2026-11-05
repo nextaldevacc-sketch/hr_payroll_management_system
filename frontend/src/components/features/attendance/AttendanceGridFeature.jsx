@@ -303,10 +303,10 @@ export default function AttendanceGridFeature() {
                             {row.employee.name.charAt(0)}
                           </div>
                           <div className="truncate">
-                            <span className="font-semibold text-text block truncate leading-tight">
+                            <span className="font-semibold text-text block truncate leading-tight" data-i18n-skip>
                               {row.employee.name}
                             </span>
-                            <span className="text-[11px] font-mono text-text-muted">
+                            <span className="text-[11px] font-mono text-text-muted" data-i18n-skip>
                               {row.employee.employee_number}
                             </span>
                           </div>

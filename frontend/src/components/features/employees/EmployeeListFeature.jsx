@@ -341,7 +341,10 @@ export function EmployeeListFeature() {
                 placeholder={t('employees.allDepartments', 'All Departments')}
                 options={[
                   { value: '', label: t('employees.allDepartments', 'All Departments') },
-                  ...(metaOptions?.departments?.map((d) => ({ value: d.id, label: d.name })) || []),
+                  ...(metaOptions?.departments?.map((d) => ({
+                    value: d.id,
+                    label: language === 'ar' && d.name_ar ? d.name_ar : d.name,
+                  })) || []),
                 ]}
               />
             </div>
@@ -355,7 +358,10 @@ export function EmployeeListFeature() {
                 placeholder={t('employees.allBranches', 'All Branches')}
                 options={[
                   { value: '', label: t('employees.allBranches', 'All Branches') },
-                  ...(metaOptions?.branches?.map((b) => ({ value: b.id, label: b.name })) || []),
+                  ...(metaOptions?.branches?.map((b) => ({
+                    value: b.id,
+                    label: language === 'ar' && b.name_ar ? b.name_ar : b.name,
+                  })) || []),
                 ]}
               />
             </div>
@@ -369,7 +375,10 @@ export function EmployeeListFeature() {
                 placeholder={t('employees.allVisas', 'All Visa Entities')}
                 options={[
                   { value: '', label: t('employees.allVisas', 'All Visa Entities') },
-                  ...(metaOptions?.visas?.map((v) => ({ value: v.id, label: v.visa_entity_name })) || []),
+                  ...(metaOptions?.visas?.map((v) => ({
+                    value: v.id,
+                    label: language === 'ar' && (v.name_ar || v.visa_entity_name_ar) ? (v.name_ar || v.visa_entity_name_ar) : (v.name || v.visa_entity_name),
+                  })) || []),
                 ]}
               />
             </div>
@@ -415,25 +424,25 @@ export function EmployeeListFeature() {
 
       {/* 4. Employees Data Table */}
       <GlassCard className="p-0 border border-border overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-start text-xs border-collapse">
+        <div className="overflow-x-auto w-full">
+          <table className="min-w-[1150px] w-full text-start text-xs border-collapse">
             <thead>
-              <tr className="border-b border-border bg-surface-raised/40 dark:bg-white/[0.02] text-text-muted font-semibold uppercase tracking-wider text-[11px]">
-                <th className="py-3 px-2.5 text-start">{t('employees.code', 'Code')}</th>
-                <th className="py-3 px-2.5 text-start">{t('employees.employee', 'Employee')}</th>
-                <th className="py-3 px-2.5 text-start">{t('employees.department', 'Department')}</th>
-                <th className="py-3 px-2.5 text-start">{t('employees.branch', 'Branch')}</th>
-                <th className="py-3 px-2.5 text-start">{t('employees.jobTitle', 'Job Title')}</th>
-                <th className="py-3 px-2.5 text-start">{t('employees.status', 'Status')}</th>
-                <th className="py-3 px-2.5 text-start">{t('employees.documentStatus', 'UAE Docs')}</th>
-                <th className="py-3 px-2.5 text-start">{t('employees.bankAccount', 'Bank Account')}</th>
+              <tr className="border-b border-border bg-surface-raised/40 dark:bg-white/[0.02] text-text-muted font-semibold uppercase tracking-wider text-[11px] whitespace-nowrap">
+                <th className="py-3 px-2.5 text-start whitespace-nowrap">{t('employees.code', 'Code')}</th>
+                <th className="py-3 px-2.5 text-start whitespace-nowrap">{t('employees.employee', 'Employee')}</th>
+                <th className="py-3 px-2.5 text-start whitespace-nowrap">{t('employees.department', 'Department')}</th>
+                <th className="py-3 px-2.5 text-start whitespace-nowrap">{t('employees.branch', 'Branch')}</th>
+                <th className="py-3 px-2.5 text-start whitespace-nowrap">{t('employees.jobTitle', 'Job Title')}</th>
+                <th className="py-3 px-2.5 text-start whitespace-nowrap">{t('employees.status', 'Status')}</th>
+                <th className="py-3 px-2.5 text-start whitespace-nowrap">{t('employees.documentStatus', 'UAE Docs')}</th>
+                <th className="py-3 px-2.5 text-start whitespace-nowrap">{t('employees.bankAccount', 'Bank Account')}</th>
                 {canSeeSalary && (
                   <>
-                    <th className="py-3 px-2.5 text-end">{t('employees.basicSalary', 'Basic (AED)')}</th>
-                    <th className="py-3 px-2.5 text-end">{t('employees.contractGross', 'Gross (AED)')}</th>
+                    <th className="py-3 px-2.5 text-end whitespace-nowrap">{t('employees.basicSalary', 'Basic (AED)')}</th>
+                    <th className="py-3 px-2.5 text-end whitespace-nowrap">{t('employees.contractGross', 'Gross (AED)')}</th>
                   </>
                 )}
-                <th className="py-3 px-2.5 text-center">{t('employees.actions', 'Action')}</th>
+                <th className="py-3 px-2.5 text-center whitespace-nowrap">{t('employees.actions', 'Action')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -492,10 +501,11 @@ export function EmployeeListFeature() {
                             <Link
                               href={`/employees/${emp.id}`}
                               className="font-semibold text-text hover:text-primary transition-colors block text-xs leading-tight"
+                              data-i18n-skip
                             >
                               {isRTL && emp.arabic_name ? emp.arabic_name : emp.name}
                             </Link>
-                            <span className="text-[10px] text-text-muted block leading-tight mt-0.5">
+                            <span className="text-[10px] text-text-muted block leading-tight mt-0.5" data-i18n-skip>
                               {emp.work_email || emp.nationality || 'Expat'}
                             </span>
                           </div>
@@ -503,13 +513,17 @@ export function EmployeeListFeature() {
                       </td>
 
                       {/* Department */}
-                      <td className="py-2.5 px-2.5 text-text-muted whitespace-nowrap" data-i18n-skip>
-                        {emp.department?.name || activeContract?.department?.name || '—'}
+                      <td className="py-2.5 px-2.5 text-text-muted whitespace-nowrap">
+                        {(language === 'ar'
+                          ? (emp.department?.name_ar || activeContract?.department?.name_ar || emp.department?.name || activeContract?.department?.name)
+                          : (emp.department?.name || activeContract?.department?.name)) || '—'}
                       </td>
 
                       {/* Branch */}
-                      <td className="py-2.5 px-2.5 text-text-muted whitespace-nowrap" data-i18n-skip>
-                        {emp.branch?.name || activeContract?.branch?.name || '—'}
+                      <td className="py-2.5 px-2.5 text-text-muted whitespace-nowrap">
+                        {(language === 'ar'
+                          ? (emp.branch?.name_ar || activeContract?.branch?.name_ar || emp.branch?.name || activeContract?.branch?.name)
+                          : (emp.branch?.name || activeContract?.branch?.name)) || '—'}
                       </td>
 
                       {/* Job Title */}

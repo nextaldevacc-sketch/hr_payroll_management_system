@@ -229,7 +229,7 @@ export class PayrollService {
           },
           lines: {
             include: { salary_rule: true },
-            orderBy: { salary_rule: { sequence: 'asc' } },
+            orderBy: [{ salary_rule: { sequence: 'asc' } }, { created_at: 'asc' }],
           },
         },
         orderBy: { employee: { employee_code: 'asc' } },
@@ -1225,7 +1225,7 @@ export class PayrollService {
         },
         lines: {
           include: { salary_rule: true },
-          orderBy: { salary_rule: { sequence: 'asc' } },
+          orderBy: [{ salary_rule: { sequence: 'asc' } }, { created_at: 'asc' }],
         },
       },
     });

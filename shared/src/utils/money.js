@@ -32,8 +32,17 @@ export function roundToCurrency(val) {
  * @returns {string}
  */
 export function formatCurrency(amount, currency = 'AED', locale = 'en') {
-  const dec = toDecimal(amount);
-  const rounded = dec.toFixed(2);
+  if (amount === null || amount === undefined || amount === '' || Number(amount) === 0 || Object.is(Number(amount), -0)) {
+    return locale === 'ar' ? '0.00 د.إ' : `${currency} 0.00`;
+  }
+  let dec = toDecimal(amount);
+  if (dec.isZero()) {
+    return locale === 'ar' ? '0.00 د.إ' : `${currency} 0.00`;
+  }
+  let rounded = dec.toFixed(2);
+  if (rounded === '-0.00' || rounded === '0.00' || rounded === '-0.0') {
+    return locale === 'ar' ? '0.00 د.إ' : `${currency} 0.00`;
+  }
   const parts = rounded.split('.');
   parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   const formatted = parts.join('.');

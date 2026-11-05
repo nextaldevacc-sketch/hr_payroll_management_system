@@ -195,8 +195,8 @@ export default function MissingPunchQueueFeature({ onResolved }) {
                   return (
                     <tr key={item.id} className="hover:bg-surface/30">
                       <td className="p-3.5 font-sans">
-                        <div className="font-semibold text-text">{item.employee?.name}</div>
-                        <div className="text-[11px] text-text-muted">{item.employee?.employee_number}</div>
+                        <div className="font-semibold text-text" data-i18n-skip>{item.employee?.name}</div>
+                        <div className="text-[11px] text-text-muted" data-i18n-skip>{item.employee?.employee_number}</div>
                       </td>
                       <td className="p-3.5 font-sans text-text">{dateStr}</td>
                       <td className="p-3.5 font-sans">

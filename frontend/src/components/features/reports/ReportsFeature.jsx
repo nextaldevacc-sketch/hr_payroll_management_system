@@ -163,13 +163,12 @@ export default function ReportsFeature() {
             <div className="min-w-[240px]">
               <Select
                 label={isAr ? 'دورة الرواتب' : 'Pay Run'}
-                data-i18n-skip="true"
                 value={selectedPayRunId}
                 onChange={(e) => setSelectedPayRunId(e.target.value)}
                 options={payRuns.map((r) => ({
                   value: r.id,
                   label: `${r.company_visa?.visa_name_ar || r.company_visa?.visa_name || (isAr ? 'التأشيرة' : 'Visa')} — ${r.period_month?.slice(0, 7)}`,
-                  chip: isAr ? (r.status === 'PAID' ? 'تم الصرف' : r.status === 'CALCULATED' ? 'تم الحساب' : r.status) : r.status,
+                  chip: isAr ? ({ Paid: 'تم الصرف', Locked: 'مقفل', Validated: 'تم التدقيق', Calculated: 'تم الحساب', Draft: 'مسودة' }[r.status] || r.status) : r.status,
                 }))}
               />
             </div>
@@ -225,7 +224,7 @@ export default function ReportsFeature() {
                 <Clock className="w-5 h-5" />
               </div>
               <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                Excel (.xlsx)
+                {isAr ? 'إكسل (.xlsx)' : 'Excel (.xlsx)'}
               </span>
             </div>
             <h3 className="font-semibold text-slate-900 dark:text-white text-base">
@@ -258,7 +257,7 @@ export default function ReportsFeature() {
                 <Calendar className="w-5 h-5" />
               </div>
               <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                Excel (.xlsx)
+                {isAr ? 'إكسل (.xlsx)' : 'Excel (.xlsx)'}
               </span>
             </div>
             <h3 className="font-semibold text-slate-900 dark:text-white text-base">
@@ -329,7 +328,7 @@ export default function ReportsFeature() {
                   <DollarSign className="w-5 h-5" />
                 </div>
                 <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                  Excel (.xlsx)
+                  {isAr ? 'إكسل (.xlsx)' : 'Excel (.xlsx)'}
                 </span>
               </div>
               <h3 className="font-semibold text-slate-900 dark:text-white text-base">
@@ -366,7 +365,7 @@ export default function ReportsFeature() {
                   <TrendingUp className="w-5 h-5" />
                 </div>
                 <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                  Excel (.xlsx)
+                  {isAr ? 'إكسل (.xlsx)' : 'Excel (.xlsx)'}
                 </span>
               </div>
               <h3 className="font-semibold text-slate-900 dark:text-white text-base">

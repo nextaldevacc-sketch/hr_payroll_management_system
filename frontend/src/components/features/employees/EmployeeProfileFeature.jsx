@@ -283,7 +283,7 @@ export function EmployeeProfileFeature({ id } = {}) {
             className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-[var(--on-primary)] font-semibold text-xs"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Return to Employee Directory</span>
+            <span>{isRTL ? 'العودة إلى دليل الموظفين' : 'Return to Employee Directory'}</span>
           </Link>
         </GlassCard>
       </div>
@@ -320,7 +320,7 @@ export function EmployeeProfileFeature({ id } = {}) {
           id="link-back-directory"
         >
           {isRTL ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
-          <span>Back to Employee Directory</span>
+          <span>{isRTL ? 'العودة إلى دليل الموظفين' : 'Back to Employee Directory'}</span>
         </Link>
       </div>
 

@@ -37,7 +37,7 @@ import { canAccessNavArea } from '@nextal/shared';
 export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { t, locale } = useLanguage();
+  const { t, locale, language } = useLanguage();
   const { user, seesSalary, logout } = useAuth();
 
   // Section 5.3 Permissions Matrix Filter for Sidebar Navigation
@@ -161,7 +161,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
                 NEXTAL
               </span>
               <span className="text-[10px] uppercase tracking-widest text-text-muted font-medium block">
-                HR & Payroll UAE
+                {language === 'ar' ? 'الموارد البشرية والرواتب - الإمارات' : 'HR & Payroll UAE'}
               </span>
             </div>
           </Link>
@@ -254,7 +254,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
       </div>
 
       {/* User Session Profile in Footer */}
-      <div className="p-2 xl:p-3 border-t border-border/50 dark:border-border space-y-2" data-i18n-skip="true">
+      <div className="p-2 xl:p-3 border-t border-border/50 dark:border-border space-y-2">
         <div className="p-2 xl:p-2.5 rounded-xl border flex items-center justify-between text-start"
           style={{
             background: 'var(--bg-well)',
@@ -272,7 +272,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
               {initials}
             </div>
             <div className="truncate hidden xl:block">
-              <span className="text-xs font-bold block truncate leading-tight text-text">
+              <span className="text-xs font-bold block truncate leading-tight text-text" data-i18n-skip="true">
                 {displayName}
               </span>
               <span className="text-[10px] block truncate font-medium text-amber-500">

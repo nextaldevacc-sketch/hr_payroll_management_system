@@ -287,7 +287,7 @@ export function UsersAndRolesFeature() {
                   border: '1px solid var(--glass-border)',
                 }}
               >
-                Company Administration · Section 5.1–5.4
+                {locale === 'ar' ? 'إدارة الشركة · المواد 5.1–5.4' : 'Company Administration · Section 5.1–5.4'}
               </span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight gold-heading">

@@ -97,7 +97,7 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
             <div className="w-1 h-1 rounded-full bg-border" />
             <div className="flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-secondary-text" />
-              <span>{t('dashboard.livePayroll.employeesIncluded', '{{count}} employees included', { count: data.employeesIncluded })}</span>
+              <span>{t('dashboard.livePayroll.employeesIncluded', { count: data.employeesIncluded })}</span>
             </div>
           </div>
 
@@ -150,35 +150,35 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
           <div className="flex flex-col">
             <span className="text-secondary-text text-[11px]">+ {t('dashboard.livePayroll.overtime')}</span>
             <bdi className="tabular-nums font-semibold text-secondary-text mt-0.5">
-              {seesSalary ? `+${formatCurrency(figures.overtime, 'AED', language)}` : '+••••••'}
+              {seesSalary ? `${Number(figures.overtime) > 0 ? '+' : ''}${formatCurrency(figures.overtime, 'AED', language)}` : '+••••••'}
             </bdi>
           </div>
 
           <div className="flex flex-col">
             <span className="text-danger-text text-[11px]">− {t('dashboard.livePayroll.absence')}</span>
             <bdi className="tabular-nums font-semibold text-danger-text mt-0.5">
-              {seesSalary ? `−${formatCurrency(figures.absence, 'AED', language)}` : '−••••••'}
+              {seesSalary ? `${Number(figures.absence) > 0 ? '−' : ''}${formatCurrency(figures.absence, 'AED', language)}` : '−••••••'}
             </bdi>
           </div>
 
           <div className="flex flex-col">
             <span className="text-warning-text text-[11px]">− {t('dashboard.livePayroll.loans')}</span>
             <bdi className="tabular-nums font-semibold text-warning-text mt-0.5">
-              {seesSalary ? `−${formatCurrency(figures.loans, 'AED', language)}` : '−••••••'}
+              {seesSalary ? `${Number(figures.loans) > 0 ? '−' : ''}${formatCurrency(figures.loans, 'AED', language)}` : '−••••••'}
             </bdi>
           </div>
 
           <div className="flex flex-col">
             <span className="text-warning-text text-[11px]">− {t('dashboard.livePayroll.latePenalties', 'Late Penalties')}</span>
             <bdi className="tabular-nums font-semibold text-warning-text mt-0.5">
-              {seesSalary ? `−${formatCurrency(figures.latePenalties, 'AED', language)}` : '−••••••'}
+              {seesSalary ? `${Number(figures.latePenalties) > 0 ? '−' : ''}${formatCurrency(figures.latePenalties, 'AED', language)}` : '−••••••'}
             </bdi>
           </div>
 
           <div className="flex flex-col">
             <span className="text-danger-text text-[11px]">− {t('dashboard.livePayroll.otherDeductions', 'Other Deductions')}</span>
             <bdi className="tabular-nums font-semibold text-danger-text mt-0.5">
-              {seesSalary ? `−${formatCurrency(figures.otherDeductions, 'AED', language)}` : '−••••••'}
+              {seesSalary ? `${Number(figures.otherDeductions) > 0 ? '−' : ''}${formatCurrency(figures.otherDeductions, 'AED', language)}` : '−••••••'}
             </bdi>
           </div>
         </InsetBox>
@@ -192,7 +192,7 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                <span className="text-text-muted truncate text-[11px]" data-i18n-skip>{v.name} ({v.count})</span>
+                <span className="text-text-muted truncate text-[11px]">{language === 'ar' ? (v.name_ar || v.name) : v.name} ({v.count})</span>
               </div>
               <bdi className="tabular-nums font-semibold text-text ms-2" data-i18n-skip>
                 {seesSalary ? formatCurrency(v.net, 'AED', language) : '••••••'}

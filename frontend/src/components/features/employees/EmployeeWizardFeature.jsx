@@ -260,7 +260,7 @@ export function EmployeeWizardFeature() {
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-muted hover:text-text transition-colors mb-2"
           >
             {isRTL ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
-            <span>Back to Employee Directory</span>
+            <span>{isRTL ? 'العودة إلى دليل الموظفين' : 'Back to Employee Directory'}</span>
           </Link>
           <h1 className="text-2xl font-bold tracking-tight text-text">
             {t('employees.wizard.title', 'New Employee Onboarding')}
@@ -453,7 +453,6 @@ export function EmployeeWizardFeature() {
                 <Select
                   id="wizard-select-visa"
                   name="company_visa_id"
-                  data-i18n-skip="true"
                   label={language === 'ar' ? 'جهة التأشيرة للشركة' : 'Company Visa Entity'}
                   required
                   value={personalForm.company_visa_id || (metaOptions?.visas?.[0]?.id ?? '')}
@@ -466,7 +465,9 @@ export function EmployeeWizardFeature() {
                   }
                   options={(metaOptions?.visas || []).map((v) => {
                     const molId = v.mol_establishment_id || '';
-                    const vName = v.visa_entity_name || v.name || 'Visa';
+                    const vName = language === 'ar' && (v.name_ar || v.visa_entity_name_ar)
+                      ? (v.name_ar || v.visa_entity_name_ar)
+                      : (v.visa_entity_name || v.name || 'Visa');
                     return {
                       value: v.id,
                       label: molId ? `${vName} · ${molId}` : vName,
@@ -481,7 +482,6 @@ export function EmployeeWizardFeature() {
                 <Select
                   id="wizard-select-branch"
                   name="branch_id"
-                  data-i18n-skip="true"
                   label={language === 'ar' ? 'الفرع / الموقع' : 'Branch / Location'}
                   required
                   value={personalForm.branch_id || (filteredBranches?.[0]?.id ?? '')}
@@ -495,8 +495,8 @@ export function EmployeeWizardFeature() {
                   emptyText="No branches assigned to selected visa entity"
                   options={filteredBranches.map((b) => ({
                     value: b.id,
-                    label: b.name,
-                    chip: b.emirate || b.city || undefined,
+                    label: language === 'ar' && b.name_ar ? b.name_ar : b.name,
+                    chip: language === 'ar' ? (t(`settings.branches.emirates.${b.emirate}`, b.emirate) || b.emirate) : (b.emirate || b.city || undefined),
                   }))}
                 />
               </div>

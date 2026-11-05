@@ -346,8 +346,8 @@ export default function OvertimeRequestsFeature() {
                         </td>
                       )}
                       <td className="p-3.5 font-sans">
-                        <div className="font-semibold text-text">{req.employee?.name}</div>
-                        <div className="text-[11px] text-text-muted">{req.employee?.employee_number}</div>
+                        <div className="font-semibold text-text" data-i18n-skip>{req.employee?.name}</div>
+                        <div className="text-[11px] text-text-muted" data-i18n-skip>{req.employee?.employee_number}</div>
                       </td>
                       <td className="p-3.5 font-sans text-text">{dateStr}</td>
                       <td className="p-3.5 text-center font-bold text-primary">

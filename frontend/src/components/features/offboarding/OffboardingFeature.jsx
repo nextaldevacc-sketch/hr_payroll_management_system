@@ -563,11 +563,11 @@ export function OffboardingFeature() {
                         onClick={() => handleSelectSeparation(sep, 'clearance')}
                       >
                         <td className="py-3.5 px-4">
-                          <div className="font-semibold text-slate-900 dark:text-white">
+                          <div className="font-semibold text-slate-900 dark:text-white" data-i18n-skip>
                             {sep.employee?.name}
                           </div>
                           <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                            <span className="font-mono">{sep.employee?.employee_code}</span>
+                            <span className="font-mono" data-i18n-skip>{sep.employee?.employee_code}</span>
                             {sep.employee?.arabic_name && (
                               <span className="font-arabic">· {sep.employee?.arabic_name}</span>
                             )}

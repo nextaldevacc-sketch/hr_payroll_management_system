@@ -24,6 +24,21 @@ import { useAuth } from '@/context/AuthContext';
 import { getMyHome } from '@/services/meApi';
 import { formatCurrency } from '@nextal/shared';
 
+const AR_MONTHS = {
+  January: 'يناير', February: 'فبراير', March: 'مارس', April: 'أبريل',
+  May: 'مايو', June: 'يونيو', July: 'يوليو', August: 'أغسطس',
+  September: 'سبتمبر', October: 'أكتوبر', November: 'نوفمبر', December: 'ديسمبر',
+};
+
+function formatMonthYear(str, lang) {
+  if (!str || lang !== 'ar') return str;
+  let res = str;
+  for (const [en, ar] of Object.entries(AR_MONTHS)) {
+    res = res.replace(en, ar);
+  }
+  return res;
+}
+
 export default function MyHomePage() {
   const router = useRouter();
   const { t, language } = useLanguage();
@@ -143,7 +158,7 @@ export default function MyHomePage() {
               </span>
             </div>
             <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold block mt-1">
-              {payday.lastPayMonth ? `${language === 'ar' ? 'مسير شهر' : 'Released for'} ${payday.lastPayMonth}` : 'No paid runs yet'}
+              {payday.lastPayMonth ? `${language === 'ar' ? 'مسير شهر' : 'Released for'} ${formatMonthYear(payday.lastPayMonth, language)}` : 'No paid runs yet'}
             </span>
             <div className="mt-3 p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border/50 text-xs flex justify-between items-center">
               <span className="text-text-muted">{language === 'ar' ? 'يوم الصرف القادم:' : 'Next Expected Payday:'}</span>

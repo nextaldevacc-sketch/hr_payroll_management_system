@@ -14,7 +14,7 @@ export function VisaProvider({ children }) {
   }, [user?.visas]);
 
   const companyName = user?.company_name || 'Gulf Tech Logistics LLC';
-  const companyNameAr = user?.company_name_ar || null;
+  const companyNameAr = user?.company_name_ar || 'شركة الخليج للتقنية اللوجستية ذ.م.م';
 
   // Check if role is single-visa scoped or employee-only
   const isEmployeeOnly = useMemo(() => {

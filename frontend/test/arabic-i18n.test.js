@@ -116,5 +116,51 @@ describe('Arabic I18n & RTL UI Translations Integrity', () => {
       `Found untranslated English parentheticals in Arabic conditional code in: ${matched.join(', ')}`
     );
   });
+
+  it('supports t() token interpolation, plurals (_one / _other), and fallbacks', async () => {
+    const { translate } = await import('../src/i18n/translator.js');
+
+    const mockTranslations = {
+      en: {
+        greeting: 'Hello, {{name}}!',
+        items_one: '{{count}} item found',
+        items_other: '{{count}} items found',
+        onlyEn: 'English only {{info}}',
+      },
+      ar: {
+        greeting: 'مرحباً، {{name}}!',
+        items_one: 'تم العثور على عنصر واحد',
+        items_other: 'تم العثور على {{count}} عناصر',
+      },
+    };
+
+    // 1. Interpolation
+    const enGreeting = translate(mockTranslations, 'en', 'greeting', { name: 'Ahmed' });
+    assert.equal(enGreeting, 'Hello, Ahmed!');
+
+    const arGreeting = translate(mockTranslations, 'ar', 'greeting', { name: 'أحمد' });
+    assert.equal(arGreeting, 'مرحباً، أحمد!');
+
+    // 2. Plural selection (one vs other)
+    const enOne = translate(mockTranslations, 'en', 'items', { count: 1 });
+    assert.equal(enOne, '1 item found');
+
+    const enOther = translate(mockTranslations, 'en', 'items', { count: 5 });
+    assert.equal(enOther, '5 items found');
+
+    const arOne = translate(mockTranslations, 'ar', 'items', { count: 1 });
+    assert.equal(arOne, 'تم العثور على عنصر واحد');
+
+    const arOther = translate(mockTranslations, 'ar', 'items', { count: 7 });
+    assert.equal(arOther, 'تم العثور على 7 عناصر');
+
+    // 3. Fallback to English when Arabic key missing
+    const arFallback = translate(mockTranslations, 'ar', 'onlyEn', { info: 'detail' });
+    assert.equal(arFallback, 'English only detail');
+
+    // 4. Fallback to key when both missing
+    const missing = translate(mockTranslations, 'ar', 'missing.key', { test: 123 });
+    assert.equal(missing, 'missing.key');
+  });
 });
 

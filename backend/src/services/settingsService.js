@@ -377,14 +377,29 @@ class SettingsService {
    * 3. Branches
    */
   async getBranches(companyId) {
-    return prisma.$base().branches.findMany({
+    const list = await prisma.$base().branches.findMany({
       where: { company_id: companyId },
       include: {
         company_visa: { select: { id: true, name: true, mol_establishment_id: true } },
-        _count: { select: { employees: true } },
+        _count: {
+          select: {
+            employees: {
+              where: { status: 'Active' },
+            },
+          },
+        },
       },
       orderBy: { name: 'asc' },
     });
+
+    return list.map((b) => ({
+      ...b,
+      company_visa_name: b.company_visa?.name || 'Visa 01',
+      company_visa_name_ar: b.company_visa?.name_ar || b.company_visa?.name || 'تأشيرة 01',
+      mol_establishment_id: b.company_visa?.mol_establishment_id || '',
+      employee_count: b._count?.employees ?? 0,
+      active_employee_count: b._count?.employees ?? 0,
+    }));
   }
 
   async createBranch({ companyId, data, userId }) {

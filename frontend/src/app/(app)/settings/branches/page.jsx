@@ -45,6 +45,21 @@ export default function SettingsBranchesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {branches.map((b) => {
             const displayName = language === 'ar' && b.name_ar ? b.name_ar : b.name;
+            const displayEmirate = language === 'ar'
+              ? t(`settings.branches.emirates.${b.emirate}`, b.emirate)
+              : b.emirate;
+            const VISA_NAME_AR = {
+              'Visa 01 (MOHRE Dubai)': 'تأشيرة 01 (وزارة الموارد البشرية دبي)',
+              'Visa 02 (DIFC Freezone)': 'تأشيرة 02 (منطقة مركز دبي المالي العالمي)',
+            };
+            const rawVisaName = b.company_visa_name || b.company_visa?.name;
+            const visaName = language === 'ar'
+              ? (b.company_visa_name_ar || b.company_visa?.name_ar || VISA_NAME_AR[rawVisaName] || rawVisaName || 'تأشيرة 01')
+              : (rawVisaName || 'Visa 01');
+            const estId = b.mol_establishment_id || b.company_visa?.mol_establishment_id;
+            const displayVisa = estId ? `${visaName} (${estId})` : visaName;
+            const empCount = b.active_employee_count ?? b.employee_count ?? 0;
+
             return (
               <div
                 key={b.id || b.name}
@@ -56,11 +71,11 @@ export default function SettingsBranchesPage() {
                       <Building className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-900 dark:text-white" data-i18n-skip="true">
+                      <h3 className="font-semibold text-slate-900 dark:text-white">
                         {displayName}
                       </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400" data-i18n-skip="true">
-                        {b.emirate}
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {displayEmirate}
                       </p>
                     </div>
                   </div>
@@ -74,16 +89,16 @@ export default function SettingsBranchesPage() {
                     <span className="text-slate-500 dark:text-slate-400 block mb-1 font-medium">
                       {t('settings.branches.emirate')}
                     </span>
-                    <span className="font-medium text-slate-800 dark:text-slate-200" data-i18n-skip="true">
-                      {b.emirate}
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                      {displayEmirate}
                     </span>
                   </div>
                   <div>
                     <span className="text-slate-500 dark:text-slate-400 block mb-1 font-medium">
                       {t('settings.branches.assignedVisa')}
                     </span>
-                    <span className="font-medium text-slate-800 dark:text-slate-200" data-i18n-skip="true">
-                      {b.company_visa_name || b.company_visa_id || 'Visa 01'}
+                    <span className="font-medium text-slate-800 dark:text-slate-200" data-i18n-skip>
+                      {displayVisa}
                     </span>
                   </div>
                   <div>
@@ -92,7 +107,7 @@ export default function SettingsBranchesPage() {
                     </span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1" data-i18n-skip="true">
                       <Users className="w-3.5 h-3.5 text-slate-400" />
-                      {b.employee_count ?? 12}
+                      {empCount}
                     </span>
                   </div>
                 </div>

@@ -112,8 +112,8 @@ function getRoleForPage(pagePath) {
 
 const ALLOWLIST = [
   'NEXTAL', 'EN', 'AED', 'IBAN', 'WPS', 'SIF', 'MOHRE', 'DIFC',
-  'GPSSA', 'LLC', 'PDF', 'CSV', 'API', 'UUID', 'ID', 'DXB', 'AUH', 'SHJ',
-  'KBD', 'CMD',
+  'GPSSA', 'ADPF', 'LLC', 'PDF', 'CSV', 'XLSX', 'API', 'UUID', 'ID', 'DXB', 'AUH', 'SHJ',
+  'KBD', 'CMD', 'MOL', 'EID', 'VAT', 'OTP', 'UTC', 'UAE',
 ];
 
 function flattenKeys(obj, prefix = '') {
@@ -173,7 +173,7 @@ async function createAuthenticatedContext(browser, variant, roleKey) {
   const user = USERS[roleKey];
 
   // 1. Log in via UI
-  await page.goto(`http://127.0.0.1:${WEB_PORT}/login`);
+  await page.goto(`http://localhost:${WEB_PORT}/login`);
   await page.waitForSelector('button[type="submit"]:not([disabled])', { timeout: 15000 });
   await page.fill('input[type="email"]', user.email);
   await page.fill('input[type="password"]', user.password);
@@ -184,20 +184,29 @@ async function createAuthenticatedContext(browser, variant, roleKey) {
   await page.waitForLoadState('networkidle');
 
   // 2. Set language via real topbar button click
-  await page.waitForSelector('#btn-language-toggle', { timeout: 15000 });
+  try {
+    await page.waitForSelector('#btn-language-toggle', { timeout: 30000 });
+  } catch (err) {
+    const curUrl = page.url();
+    const title = await page.title();
+    const body = await page.innerText('body').catch(() => '');
+    console.error(`FAILED waiting for #btn-language-toggle! URL: ${curUrl}, title: ${title}, body: ${body.slice(0, 300)}`);
+    await page.screenshot({ path: path.join(shotsDir, 'DEBUG-LOGIN-FAIL.png') });
+    throw err;
+  }
   const currentLang = await page.getAttribute('html', 'lang');
   if (currentLang !== variant.lang) {
     await page.click('#btn-language-toggle');
     await page.waitForFunction(
       (expectedLang) => document.documentElement.getAttribute('lang') === expectedLang,
       variant.lang,
-      { timeout: 10000 }
+      { timeout: 15000 }
     );
     await page.waitForTimeout(500);
   }
 
   // 3. Set theme via real topbar button click
-  await page.waitForSelector('#btn-theme-toggle', { timeout: 15000 });
+  await page.waitForSelector('#btn-theme-toggle', { timeout: 30000 });
   const isDarkNow = await page.evaluate(
     () => document.documentElement.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark'
   );
@@ -254,6 +263,7 @@ async function main() {
         DATABASE_URL_TEST: 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public',
         NODE_ENV: 'development',
         FEATURE_PLATFORM_ADMIN: 'false',
+        RATE_LIMIT_MAX: '10000',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -268,7 +278,7 @@ async function main() {
     await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 30000);
   }
 
-  let webUp = await checkHttp(`http://127.0.0.1:${WEB_PORT}/login`);
+  let webUp = await checkHttp(`http://localhost:${WEB_PORT}/login`);
   if (!webUp) {
     killPort(WEB_PORT);
     console.log(`Starting Web server on port ${WEB_PORT}...`);
@@ -291,7 +301,7 @@ async function main() {
       const s = d.toString();
       if (!s.includes('ExperimentalWarning')) console.error(`  [WEB ERR] ${s.trim()}`);
     });
-    await waitForHttp(`http://127.0.0.1:${WEB_PORT}/login`, 45000);
+    await waitForHttp(`http://localhost:${WEB_PORT}/login`, 45000);
   }
 
   console.log('API and Web servers verified responding.');
@@ -340,6 +350,9 @@ async function main() {
     { name: 'NaN', regex: /\bNaN\b/ },
     { name: 'Invalid request payload', regex: /Invalid request payload/i },
     { name: '()', regex: /\(\s*\)/ },
+    { name: 'Uninterpolated i18n token', regex: /\{\{|\}\}/ },
+    { name: 'Raw UUID visible', regex: /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i },
+    { name: 'Negative zero', regex: /[-−]0\.00/ },
   ];
 
   try {
@@ -390,7 +403,7 @@ async function main() {
         let navigationError = null;
 
         try {
-          const resp = await page.goto(`http://127.0.0.1:${WEB_PORT}${pageDef.path}`, {
+          const resp = await page.goto(`http://localhost:${WEB_PORT}${pageDef.path}`, {
             timeout: 30000,
           });
           mainStatus = resp ? resp.status() : 0;
@@ -459,21 +472,26 @@ async function main() {
           return [...new Set(hits)];
         }, allFlattenedKeys);
 
-        // 6. Arabic English-word Check
+        // 6. Arabic English-word Check (all visible leaf text nodes)
         let arabicViolations = [];
         if (variant.lang === 'ar') {
           arabicViolations = await page.evaluate((allowlist) => {
             const allowSet = new Set(allowlist.map((w) => w.toUpperCase()));
             const hits = [];
-            const selectors = 'button, th, label, h1, h2, h3, h4, nav a, [class*="title"], [class*="Title"]';
+            const selectors = 'button, th, td, label, h1, h2, h3, h4, nav a, p, span, small, a, div';
             const elements = document.querySelectorAll(selectors);
 
             for (const el of elements) {
               if (el.closest('[data-i18n-skip]')) continue;
+              const hasTextChild = Array.from(el.children).some((c) => (c.innerText || c.textContent || '').trim().length > 0);
+              if (hasTextChild) continue;
+
               const rect = el.getBoundingClientRect();
               if (rect.width === 0 || rect.height === 0) continue;
 
-              const text = el.innerText || '';
+              const text = (el.innerText || el.textContent || '').trim();
+              if (!text) continue;
+
               const words = text.match(/[A-Za-z]{3,}/g) || [];
               for (const w of words) {
                 const upper = w.toUpperCase();
@@ -486,6 +504,38 @@ async function main() {
             return [...new Set(hits)];
           }, ALLOWLIST);
         }
+
+        // 7. Table Clipping Check
+        const tableClippingViolations = await page.evaluate(() => {
+          const tables = document.querySelectorAll('table, [role="table"]');
+          const violations = [];
+          for (const table of tables) {
+            let parent = table.parentElement;
+            let clippingAncestor = null;
+            while (parent && parent !== document.body && parent !== document.documentElement) {
+              const style = window.getComputedStyle(parent);
+              const ox = style.overflowX;
+              const o = style.overflow;
+              if (ox === 'auto' || ox === 'scroll') {
+                clippingAncestor = null;
+                break;
+              }
+              if (ox === 'hidden' || o === 'hidden' || ox === 'clip') {
+                clippingAncestor = parent;
+                break;
+              }
+              parent = parent.parentElement;
+            }
+
+            if (clippingAncestor) {
+              const diff = table.scrollWidth - clippingAncestor.clientWidth;
+              if (diff > 2) {
+                violations.push(`Table clipped (scrollWidth: ${table.scrollWidth}px > clientWidth: ${clippingAncestor.clientWidth}px)`);
+              }
+            }
+          }
+          return violations;
+        });
 
         // Remove listeners
         page.off('console', onConsole);
@@ -506,6 +556,7 @@ async function main() {
         if (forbiddenHits.length > 0) failureReasons.push(`Forbidden tokens: ${forbiddenHits.join(', ')}`);
         if (rawKeyHits.length > 0) failureReasons.push(`Raw i18n keys: ${rawKeyHits.join(', ')}`);
         if (arabicViolations.length > 0) failureReasons.push(`English in Arabic: ${arabicViolations.slice(0, 3).join(', ')}`);
+        if (tableClippingViolations.length > 0) failureReasons.push(`table clipped: ${tableClippingViolations.join('; ')}`);
 
         const isPassed = failureReasons.length === 0;
 

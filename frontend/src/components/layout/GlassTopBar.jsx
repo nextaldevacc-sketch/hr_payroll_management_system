@@ -393,7 +393,6 @@ export function GlassTopBar({ onToggleMobileNav }) {
         <div className="relative">
           <button
             type="button"
-            data-i18n-skip="true"
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
             className="flex items-center gap-2.5 ps-2 border-s border-border/60 dark:border-border hover:opacity-85 transition-opacity"
           >
@@ -407,7 +406,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
               {initials}
             </div>
             <div className="hidden sm:block text-start">
-              <span className="text-xs font-bold text-text block leading-tight">
+              <span className="text-xs font-bold text-text block leading-tight" data-i18n-skip="true">
                 {userDisplayName}
               </span>
               <span className="text-[10px] text-amber-500 font-semibold block leading-tight">
@@ -427,7 +426,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
               />
               <div className="absolute end-0 mt-2 w-56 p-2 rounded-2xl border shadow-xl z-50 bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-800 space-y-2">
                 <div className="p-2 border-b border-slate-100 dark:border-slate-800">
-                  <p className="text-xs font-bold text-text truncate leading-tight">
+                  <p className="text-xs font-bold text-text truncate leading-tight" data-i18n-skip>
                     {userDisplayName}
                   </p>
                   <p className="text-[10px] text-text-muted font-mono truncate mt-0.5">
