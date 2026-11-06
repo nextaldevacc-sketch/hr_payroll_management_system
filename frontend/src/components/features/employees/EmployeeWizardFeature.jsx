@@ -36,6 +36,7 @@ import {
 import { GlassCard } from '../../primitives/GlassCard';
 import { Stepper } from '../../primitives/Stepper';
 import { Select } from '../../primitives/form/Select';
+import { getVisaNameAr } from '../../../i18n/enums';
 
 export function EmployeeWizardFeature() {
   const router = useRouter();
@@ -323,7 +324,9 @@ export function EmployeeWizardFeature() {
               {language === 'ar' ? 'الخطوة 1: البيانات الشخصية والهوية' : 'Step 1: Personal & Identity Details'}
             </h2>
             <p className="text-xs text-text-muted">
-              Creates employee in &apos;Pre-Joined&apos; state. Status will be locked pending HR verification.
+              {language === 'ar'
+                ? 'إنشاء موظف جديد في حالة "ما قبل الالتحاق" لتدقيق الموارد البشرية والتحقق المزدوج.'
+                : "Creates employee in 'Pre-Joined' state. Status will be locked pending HR verification."}
             </p>
           </div>
 
@@ -477,8 +480,8 @@ export function EmployeeWizardFeature() {
                   }
                   options={(metaOptions?.visas || []).map((v) => {
                     const molId = v.mol_establishment_id || '';
-                    const vName = language === 'ar' && (v.name_ar || v.visa_entity_name_ar)
-                      ? (v.name_ar || v.visa_entity_name_ar)
+                    const vName = language === 'ar'
+                      ? (v.name_ar || v.visa_entity_name_ar || getVisaNameAr(v.name))
                       : (v.visa_entity_name || v.name || 'Visa');
                     return {
                       value: v.id,

@@ -143,7 +143,7 @@ export class AuthService {
           oldValues: { failed_logins: user.failed_logins, status: user.status },
           newValues: { failed_logins: newFailedAttempts, locked_until: lockedUntil, status: newStatus },
           ipAddress,
-        }).catch(() => {});
+        });
       }
 
       if (willLock) {
@@ -249,7 +249,7 @@ export class AuthService {
         recordId: user.id,
         newValues: { last_login_at: now, ip: ipAddress },
         ipAddress,
-      }).catch(() => {});
+      });
     }
 
     return {
@@ -333,7 +333,7 @@ export class AuthService {
       subject: '[Nextal HR] Welcome! Set your account password',
       html: `<p>Welcome to Nextal HR. Please click the link below to set your account password:</p><p><a href="${inviteUrl}">${inviteUrl}</a></p>`,
       text: `Welcome to Nextal HR. Please visit the link below to set your account password:\n${inviteUrl}`,
-    }).catch(() => {});
+    }).catch((err) => console.warn('[AuthService] Failed to send invite email:', err.message));
 
     return rawToken;
   }
@@ -411,7 +411,7 @@ export class AuthService {
         tableName: 'users',
         recordId: updatedUser.id,
         newValues: { status: 'Active' },
-      }).catch(() => {});
+      });
     }
 
     return {
@@ -458,7 +458,7 @@ export class AuthService {
       subject: '[Nextal HR] Password Reset Request',
       html: `<p>A password reset was requested for your Nextal HR account. Click the link below to set a new password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link expires in 1 hour.</p>`,
       text: `A password reset was requested for your Nextal HR account. Visit the link below to set a new password:\n${resetUrl}\n\nThis link expires in 1 hour.`,
-    }).catch(() => {});
+    }).catch((err) => console.warn('[AuthService] Failed to send reset email:', err.message));
 
     return {
       status: 'success',
@@ -541,7 +541,7 @@ export class AuthService {
         tableName: 'users',
         recordId: updatedUser.id,
         newValues: { status: 'Active' },
-      }).catch(() => {});
+      });
     }
 
     return {

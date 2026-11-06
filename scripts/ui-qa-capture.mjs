@@ -561,7 +561,15 @@ async function main() {
         page.off('response', onResponse);
 
         // Screenshot
-        await page.screenshot({ path: shotPath, fullPage: false });
+        for (let shotAttempt = 1; shotAttempt <= 3; shotAttempt++) {
+          try {
+            await page.screenshot({ path: shotPath, fullPage: false });
+            break;
+          } catch (shotErr) {
+            if (shotAttempt === 3) throw shotErr;
+            await new Promise((r) => setTimeout(r, 600));
+          }
+        }
 
         // Pass/Fail evaluation
         const failureReasons = [];

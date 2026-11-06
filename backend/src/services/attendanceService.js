@@ -546,7 +546,7 @@ class AttendanceService {
                   hours: new Decimal(split.nightHours),
                   rate: new Decimal((hourlyRate * 1.5).toFixed(4)),
                 },
-              }).catch(() => {});
+              });
             }
 
             if (split.normalHours > 0) {
@@ -568,7 +568,7 @@ class AttendanceService {
                   hours: new Decimal(split.normalHours),
                   rate: new Decimal((hourlyRate * 1.25).toFixed(4)),
                 },
-              }).catch(() => {});
+              });
             }
           }
         }

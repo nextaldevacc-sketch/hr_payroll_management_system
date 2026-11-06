@@ -1467,8 +1467,17 @@ class SettingsService {
   }
 
   async createPublicHoliday({ companyId, data, userId }) {
-    const holDate = new Date(data.holiday_date);
+    const rawDate = data.holiday_date || data.date;
+    const holDate = new Date(rawDate);
     const year = holDate.getFullYear();
+
+    let targetBranchId = data.branch_id || null;
+    if (!targetBranchId && data.branch_scope && data.branch_scope !== 'ALL') {
+      const bMatch = await prisma.$base().branches.findFirst({
+        where: { company_id: companyId, OR: [{ id: data.branch_scope }, { name: data.branch_scope }] },
+      });
+      if (bMatch) targetBranchId = bMatch.id;
+    }
 
     // Rule F: Overlapping holiday validation for same branch or company-wide
     const conflict = await prisma.$base().public_holidays.findFirst({
@@ -1477,15 +1486,15 @@ class SettingsService {
         holiday_date: holDate,
         OR: [
           { branch_id: null },
-          { branch_id: data.branch_id || null },
-          ...(data.branch_id ? [{ branch_id: null }] : []),
+          { branch_id: targetBranchId },
+          ...(targetBranchId ? [{ branch_id: null }] : []),
         ],
       },
     });
 
     if (conflict) {
       const err = new Error(
-        `Holiday conflict: A public holiday ('${conflict.name}') is already scheduled for date ${data.holiday_date}.`
+        `Holiday conflict: A public holiday ('${conflict.name}') is already scheduled for date ${rawDate}.`
       );
       err.status = 400;
       err.code = 'HOLIDAY_DATE_CONFLICT';
@@ -1495,7 +1504,7 @@ class SettingsService {
     const holiday = await prisma.$base().public_holidays.create({
       data: {
         company_id: companyId,
-        branch_id: data.branch_id || null,
+        branch_id: targetBranchId,
         name: data.name,
         name_ar: data.name_ar,
         holiday_date: holDate,

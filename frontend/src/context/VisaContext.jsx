@@ -47,7 +47,15 @@ export function VisaProvider({ children }) {
 
   // Initialize selected visa from localStorage per user ID
   const storageKey = user?.id ? `nextal_selected_visa_${user.id}` : 'nextal_selected_visa';
-  const [selectedVisaId, setSelectedVisaIdState] = useState('all');
+  const [selectedVisaId, setSelectedVisaIdState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('nextal_selected_visa');
+        if (saved) return saved;
+      } catch {}
+    }
+    return 'all';
+  });
 
   useEffect(() => {
     if (scopedVisaIds?.length === 1) {
@@ -55,25 +63,30 @@ export function VisaProvider({ children }) {
     } else if (visas.length === 1) {
       setSelectedVisaIdState(visas[0].id);
     } else if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(storageKey);
-      if (saved && (saved === 'all' && allowAllVisas)) {
-        setSelectedVisaIdState('all');
-      } else if (saved && visas.some((v) => v.id === saved)) {
-        setSelectedVisaIdState(saved);
-      } else {
-        setSelectedVisaIdState(allowAllVisas ? 'all' : (visas[0]?.id || 'all'));
-      }
+      try {
+        const saved = (user?.id ? localStorage.getItem(storageKey) : null) || localStorage.getItem('nextal_selected_visa');
+        if (saved && (saved === 'all' && allowAllVisas)) {
+          setSelectedVisaIdState('all');
+        } else if (saved && visas.some((v) => v.id === saved)) {
+          setSelectedVisaIdState(saved);
+        } else if (!saved) {
+          setSelectedVisaIdState(allowAllVisas ? 'all' : (visas[0]?.id || 'all'));
+        }
+      } catch {}
     }
-  }, [scopedVisaIds, visas, storageKey, allowAllVisas]);
+  }, [scopedVisaIds, visas, storageKey, allowAllVisas, user?.id]);
 
   const setSelectedVisaId = useCallback(
     (id) => {
       setSelectedVisaIdState(id);
       if (typeof window !== 'undefined') {
-        localStorage.setItem(storageKey, id);
+        try {
+          if (user?.id) localStorage.setItem(storageKey, id);
+          localStorage.setItem('nextal_selected_visa', id);
+        } catch {}
       }
     },
-    [storageKey]
+    [storageKey, user?.id]
   );
 
   const selectedVisa = useMemo(() => {

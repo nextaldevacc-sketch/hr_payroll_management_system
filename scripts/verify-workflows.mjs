@@ -922,15 +922,16 @@ async function runStepRunner() {
         const createdBranch = await prisma.$base().branches.findFirst({
           where: { name: { contains: `DIFC Innovation Lab ${ts.slice(-4)}` } },
         });
-        if (createdBranch) {
-          const deleteBranchBtn = await page.waitForSelector(`#btn-delete-branch-${createdBranch.id}`, { timeout: 5000 });
-          await deleteBranchBtn.click();
-          await page.waitForTimeout(1500);
-
-          // Assert branch removed from DB
-          const checkBranch = await prisma.$base().branches.findUnique({ where: { id: createdBranch.id } });
-          if (checkBranch) throw new Error('Empty branch was not deleted from database');
+        if (!createdBranch) {
+          throw new Error(`Empty branch 'DIFC Innovation Lab ${ts.slice(-4)}' was not found in database to delete`);
         }
+        const deleteBranchBtn = await page.waitForSelector(`#btn-delete-branch-${createdBranch.id}`, { timeout: 5000 });
+        await deleteBranchBtn.click();
+        await page.waitForTimeout(1500);
+
+        // Assert branch removed from DB
+        const checkBranch = await prisma.$base().branches.findUnique({ where: { id: createdBranch.id } });
+        if (checkBranch) throw new Error('Empty branch was not deleted from database');
 
         await page.keyboard.press('Escape');
         await page.waitForTimeout(500);
@@ -1079,17 +1080,68 @@ async function runStepRunner() {
         await page.waitForTimeout(1000);
 
         // Verify employees belong to DIFC FinTech Hub and Ahmed (EMP-DXB-043) is not present
-        const tableText = await page.textContent('table tbody');
-        if (tableText.includes('EMP-DXB-043')) {
-          throw new Error('Table contains Visa 01 employee EMP-DXB-043 when Visa 02 is selected');
+        const empTableText = await page.textContent('table tbody');
+        if (empTableText.includes('EMP-DXB-043')) {
+          throw new Error('Employees table contains Visa 01 employee EMP-DXB-043 when Visa 02 is selected');
         }
+
+        // Verify /attendance under Visa 02
+        await safeGoto(page, `http://localhost:${WEB_PORT}/attendance`);
+        await page.waitForResponse((res) => res.url().includes('/attendance/grid') && res.status() === 200).catch(() => {});
+        await page.waitForTimeout(1000);
+        await page.waitForSelector('table tbody tr', { timeout: 15000 });
+        const attTableText = await page.textContent('table tbody');
+        if (attTableText.includes('EMP-DXB-043')) {
+          throw new Error('Attendance table contains Visa 01 employee EMP-DXB-043 when Visa 02 is selected');
+        }
+
+        // Verify /leave under Visa 02
+        await safeGoto(page, `http://localhost:${WEB_PORT}/leave`);
+        await page.waitForTimeout(1500);
+
+        // Verify /payroll under Visa 02
+        await safeGoto(page, `http://localhost:${WEB_PORT}/payroll`);
+        await page.waitForSelector('table tbody tr', { timeout: 15000 });
+        const payrollTableText = await page.textContent('table tbody');
+        if (payrollTableText.includes('Visa 01') || payrollTableText.includes('Mainland Tech Logistics')) {
+          throw new Error('Payroll table contains Visa 01 runs when Visa 02 is selected');
+        }
+
+        // Verify dashboard headcount tile under Visa 02
+        await safeGoto(page, `http://localhost:${WEB_PORT}/`);
+        await page.waitForSelector('#headcount-tile', { timeout: 15000 });
+        const visa02HeadcountText = await page.textContent('#headcount-tile');
+        const visa02CountMatch = visa02HeadcountText.match(/(\d+)/);
+        const visa02Count = visa02CountMatch ? parseInt(visa02CountMatch[1], 10) : 0;
 
         // 2. Select All Company Visas
         const reSwitcherBtn = await page.waitForSelector('#btn-company-visa-switcher', { timeout: 10000 });
         await reSwitcherBtn.click();
         const allOption = await page.waitForSelector('#company-visa-dropdown-panel #btn-select-visa-all', { timeout: 5000 });
         await allOption.click();
+        await page.waitForTimeout(1500);
+
+        // Assert dashboard headcount tile changes to total
+        const allHeadcountText = await page.textContent('#headcount-tile');
+        const allCountMatch = allHeadcountText.match(/(\d+)/);
+        const allCount = allCountMatch ? parseInt(allCountMatch[1], 10) : 0;
+        if (allCount <= visa02Count) {
+          throw new Error(`Expected All Visas headcount (${allCount}) to be greater than Visa 02 headcount (${visa02Count})`);
+        }
+
+        // Verify Ahmed (EMP-DXB-043) is restored on /employees
+        await safeGoto(page, `http://localhost:${WEB_PORT}/employees`);
+        await page.waitForSelector('table tbody tr', { timeout: 15000 });
+        await page.fill('#employee-search-input', 'EMP-DXB-043');
+        await page.waitForResponse((res) => res.url().includes('/employees') && res.status() === 200).catch(() => {});
         await page.waitForTimeout(1000);
+        await page.waitForSelector('table tbody tr', { timeout: 15000 });
+        const restoredTableText = await page.textContent('table tbody');
+        if (!restoredTableText.includes('EMP-DXB-043')) {
+          throw new Error('Ahmed EMP-DXB-043 was not restored when All Company Visas selected');
+        }
+        await page.fill('#employee-search-input', '');
+        await page.waitForTimeout(500);
 
         // 3. Reload page and assert All Company Visas persisted
         await page.reload();
@@ -1099,7 +1151,7 @@ async function runStepRunner() {
           throw new Error(`Expected visa selection to persist after reload, got: ${persistedText}`);
         }
 
-        return 'Top bar Visa 02 filtered to DIFC; All restored Ahmed; selection persisted across reload';
+        return 'Top bar Visa 02 filtered employees, attendance, payroll and dashboard; All restored Ahmed; selection persisted across reload';
       },
     });
 
@@ -1116,11 +1168,15 @@ async function runStepRunner() {
         await safeGoto(page, `http://localhost:${WEB_PORT}/employees`);
         await page.waitForSelector('table tbody tr', { timeout: 15000 });
 
-        // Assert selector is locked (badge exists, but no dropdown button or dropdown has only 1 option)
+        // Assert selector is locked (static badge exists with Visa 02 name, and no switcher button)
+        const staticBadge = await page.waitForSelector('#static-company-visa-badge', { timeout: 10000 });
+        const badgeText = await staticBadge.textContent();
+        if (!badgeText.includes('Visa 02')) {
+          throw new Error(`Expected static badge to display Visa 02, got: ${badgeText}`);
+        }
         const switcherBtn = await page.$('#btn-company-visa-switcher');
         if (switcherBtn) {
-          const panel = await page.$('#company-visa-dropdown-panel');
-          if (panel) throw new Error('Visa dropdown panel should not open for scoped user');
+          throw new Error('Visa switcher button must NOT exist for single-visa scoped user');
         }
 
         // Assert Ahmed (EMP-DXB-043, Visa 01) is not in table
@@ -1167,38 +1223,36 @@ async function runStepRunner() {
           where: { company_id: gt.id, name: { contains: 'Dubai Headquarters' } },
         });
 
-        // 1. Seed DIFC-only holiday on 2026-11-18
-        const holidayDate = new Date('2026-11-18T00:00:00.000Z');
-        const existingHol = await prisma.$base().public_holidays.findFirst({
-          where: { company_id: gt.id, holiday_date: holidayDate, branch_id: difcBranch.id },
-        });
-        if (!existingHol) {
-          await prisma.$base().public_holidays.create({
-            data: {
-              company_id: gt.id,
-              name: 'DIFC FinTech Holiday',
-              name_ar: 'عطلة مركز دبي المالي',
-              holiday_date: holidayDate,
-              branch_id: difcBranch.id,
-              year: 2026,
-            },
-          });
-        }
-
-        // 2. Log in and open /settings -> Public Holidays drawer
+        // 1. Log in and open /settings -> Public Holidays drawer
         await login(page, 'hr.mgr@gulftech.ae');
         await safeGoto(page, `http://localhost:${WEB_PORT}/settings`);
         await page.waitForSelector('#settings-tile-holidays', { timeout: 15000 });
         await page.click('#settings-tile-holidays');
         await page.waitForSelector('#drawer-panel', { timeout: 10000 });
 
-        // Assert holiday is listed with DIFC branch badge
-        const drawerText = await page.textContent('#drawer-panel');
-        if (!drawerText.includes('DIFC FinTech Holiday')) {
-          throw new Error('DIFC FinTech Holiday not visible in Public Holidays drawer');
+        // Check if holiday already exists in drawer, else create via UI
+        const drawerInitialText = await page.textContent('#drawer-panel');
+        if (!drawerInitialText.includes('DIFC FinTech Holiday')) {
+          await page.click('#btn-add-holiday-open');
+          await page.waitForSelector('#new-holiday-name', { timeout: 5000 });
+          await page.fill('#new-holiday-name', 'DIFC FinTech Holiday');
+          await page.fill('#new-holiday-name-ar', 'عطلة مركز دبي المالي');
+          await page.fill('#new-holiday-date', '2026-11-18');
+          await page.selectOption('#new-holiday-branch', difcBranch.id);
+          await page.click('#btn-submit-holiday');
+          await page.waitForTimeout(500);
+
+          // Assert holiday is listed in drawer
+          const drawerText = await page.textContent('#drawer-panel');
+          if (!drawerText.includes('DIFC FinTech Holiday')) {
+            throw new Error('DIFC FinTech Holiday not visible in Public Holidays drawer');
+          }
+
+          await page.click('#btn-save-holidays');
+          await page.waitForTimeout(2000);
         }
 
-        // 3. Verify leave service rule V10:
+        // 2. Verify leave service rule V10:
         const difcEmp = await prisma.$base().employees.findFirst({
           where: { company_id: gt.id, branch_id: difcBranch.id },
         });
@@ -1260,14 +1314,17 @@ async function runStepRunner() {
           }
         }
 
-        // 2. Fetch SIF file for payRun02
-        const cookies = await page.context().cookies();
-        const sessionCookie = cookies.find((c) => c.name === 'nextal_token')?.value;
+        // 2. Open Visa 02 run in UI and click Download SIF
+        await safeGoto(page, `http://localhost:${WEB_PORT}/payroll/${payRun02.id}`);
+        await page.waitForSelector('#btn-download-sif', { timeout: 15000 });
 
-        const sifRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/payroll/runs/${payRun02.id}/sif`, {
-          headers: { Cookie: `nextal_token=${sessionCookie}` },
-        });
-        const sifText = await sifRes.text();
+        const [download] = await Promise.all([
+          page.waitForEvent('download'),
+          page.click('#btn-download-sif'),
+        ]);
+        const downloadPath = await download.path();
+        const fs = await import('fs');
+        const sifText = fs.readFileSync(downloadPath, 'utf8');
 
         // Assert SCR line contains DIFC-892-4410 and FAB002
         const scrLine = sifText.split('\n').find((l) => l.startsWith('SCR,') || l.startsWith('SCR '));
@@ -1275,26 +1332,27 @@ async function runStepRunner() {
           throw new Error(`SIF SCR line missing expected MOHRE ID or routing code: ${scrLine}`);
         }
 
-        // 3. Attempt duplicate Regular pay run for Visa 02 in 2026-10
-        const dupRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/payroll/runs`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Cookie: `nextal_token=${sessionCookie}`,
-          },
-          body: JSON.stringify({
-            period_month: '2026-10-01',
-            run_type: 'Regular',
-            company_visa_id: visa02.id,
-          }),
-        });
+        // 3. Attempt duplicate Regular pay run for Visa 02 in 2026-10 via UI
+        await safeGoto(page, `http://localhost:${WEB_PORT}/payroll`);
+        await page.waitForSelector('#btn-open-create-pay-run', { timeout: 15000 });
+        await page.click('#btn-open-create-pay-run');
+        await page.waitForSelector('#create-pay-run-visa', { timeout: 5000 });
 
-        const dupData = await dupRes.json();
-        if (dupRes.status !== 409 || dupData.code !== 'PAY_RUN_EXISTS') {
-          throw new Error(`Expected HTTP 409 PAY_RUN_EXISTS for duplicate run, got ${dupRes.status} ${JSON.stringify(dupData)}`);
+        await page.selectOption('#create-pay-run-visa', visa02.id);
+        await page.fill('#create-pay-run-period', '2026-10-01');
+        await page.fill('#create-pay-run-cutoff', '2026-10-25');
+        await page.selectOption('#create-pay-run-type', 'Regular');
+        await page.click('#btn-submit-pay-run');
+
+        const errorEl = await page.waitForSelector('#pay-run-create-error', { timeout: 5000 });
+        const errorText = await errorEl.textContent();
+        if (!errorText.includes('already exists') && !errorText.includes('PAY_RUN_EXISTS') && !errorText.includes('موجود بالفعل')) {
+          throw new Error(`Expected HTTP 409 PAY_RUN_EXISTS error in UI, got: ${errorText}`);
         }
 
-        return `Pay run isolated to Visa 02; SIF SCR line has DIFC-892-4410 & FAB002; duplicate run rejected with 409 PAY_RUN_EXISTS`;
+        await page.keyboard.press('Escape');
+
+        return `Pay run isolated to Visa 02; SIF downloaded from UI has DIFC-892-4410 & FAB002; duplicate run UI rejected with PAY_RUN_EXISTS`;
       },
     });
 
@@ -1307,10 +1365,6 @@ async function runStepRunner() {
       action: 'Branch move same visa with effective date -> approved, audit row; visa change on employee with pay history -> VISA_TRANSFER_NOT_SUPPORTED',
       expect: 'Same-visa branch move requires effective date & approval; cross-visa transfer with pay history returns 400 VISA_TRANSFER_NOT_SUPPORTED',
       runFn: async (page, shotPath) => {
-        await login(page, 'hr.mgr@gulftech.ae');
-        await safeGoto(page, `http://localhost:${WEB_PORT}/employees`);
-        await page.waitForSelector('table tbody tr', { timeout: 15000 });
-
         const gt = await prisma.$base().companies.findFirst({ where: { name: 'Gulf Tech Logistics LLC' } });
         const dubaiBranch = await prisma.$base().branches.findFirst({
           where: { company_id: gt.id, name: { contains: 'Dubai Headquarters' } },
@@ -1328,58 +1382,47 @@ async function runStepRunner() {
         });
         if (!targetEmp) throw new Error('Target employee not found for branch transfer');
 
-        // 1. HR Officer requests branch change via API (Dual-control segregation of duties)
+        // 1. HR Officer requests branch change via UI
         await login(page, 'hr.officer@gulftech.ae');
-        const officerCookies = await page.context().cookies();
-        const officerToken = officerCookies.find((c) => c.name === 'nextal_token')?.value;
+        await safeGoto(page, `http://localhost:${WEB_PORT}/employees/${targetEmp.id}`);
+        await page.waitForSelector('#btn-open-change-branch', { timeout: 15000 });
+        await page.click('#btn-open-change-branch');
+        await page.waitForSelector('#select-target-branch', { timeout: 5000 });
 
-        // Request branch change via API
-        const branchReqRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/employees/${targetEmp.id}/branch-change`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Cookie: `nextal_token=${officerToken}`,
-          },
-          body: JSON.stringify({
-            target_branch_id: adBranch.id,
-            effective_date: '2026-12-01',
-            reason: 'Operational transfer to Abu Dhabi location',
-          }),
-        });
+        await page.selectOption('#select-target-branch', adBranch.id, { force: true });
+        const todayStr = new Date().toISOString().split('T')[0];
+        await page.fill('#input-branch-effective-date', todayStr);
+        await page.fill('#textarea-branch-reason', 'Operational relocation to Abu Dhabi branch');
+        await page.click('#btn-submit-branch-change');
+        await page.waitForTimeout(1500);
 
-        const branchReqData = await branchReqRes.json();
-        if (!branchReqRes.ok || !branchReqData.data?.id) {
-          throw new Error(`Failed to request branch change: ${JSON.stringify(branchReqData)}`);
-        }
+        // Assert pending banner is shown on profile
+        await page.waitForSelector('#banner-pending-branch-change', { timeout: 10000 });
 
-        // 2. HR Manager logs in and approves the branch change request
+        // 2. HR Manager logs in and approves the branch change request via Approvals Inbox UI
         await login(page, 'hr.mgr@gulftech.ae');
-        const mgrCookies = await page.context().cookies();
-        const mgrToken = mgrCookies.find((c) => c.name === 'nextal_token')?.value;
+        await safeGoto(page, `http://localhost:${WEB_PORT}/approvals`);
+        await page.waitForSelector('table tbody tr', { timeout: 15000 });
 
-        const approveRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/approvals/requests/${branchReqData.data.id}/action`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Cookie: `nextal_token=${mgrToken}`,
-          },
-          body: JSON.stringify({
-            action: 'APPROVE',
-            comment: 'Approved branch transfer for operational coverage',
-          }),
-        });
-        if (!approveRes.ok) throw new Error(`Failed to approve branch transfer: ${approveRes.status}`);
+        const approveBtn = await page.waitForSelector('#btn-verify-approve', { timeout: 10000 });
+        await approveBtn.click();
+        await page.waitForTimeout(2000);
 
-        // Assert employee branch updated in database
-        const updatedEmp = await prisma.$base().employees.findUnique({ where: { id: targetEmp.id } });
-        if (updatedEmp.branch_id !== adBranch.id) {
-          throw new Error(`Employee branch was not updated to ${adBranch.id}`);
+        // Assert employee profile displays the updated branch
+        await safeGoto(page, `http://localhost:${WEB_PORT}/employees/${targetEmp.id}`);
+        await page.waitForSelector('h1', { timeout: 15000 });
+        const profileText = await page.textContent('body');
+        if (!profileText.includes('Abu Dhabi Corniche Branch') && !profileText.includes('فرع كورنيش أبوظبي')) {
+          throw new Error('Employee profile does not display the updated branch name');
         }
 
-        // 3. Now attempt visa transfer on Ahmed (EMP-DXB-043) who has payslip history (using HR Manager session)
+        // 3. Forged API check: attempt visa transfer on Ahmed (EMP-DXB-043) who has payslip history (using HR Manager session)
         const ahmed = await prisma.$base().employees.findFirst({
           where: { employee_code: 'EMP-DXB-043' },
         });
+        const cookies = await page.context().cookies();
+        const mgrToken = cookies.find((c) => c.name === 'nextal_token')?.value;
+
         const transferRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/employees/${ahmed.id}`, {
           method: 'PUT',
           headers: {
@@ -1396,7 +1439,7 @@ async function runStepRunner() {
           throw new Error(`Expected HTTP 400 VISA_TRANSFER_NOT_SUPPORTED, got ${transferRes.status} ${JSON.stringify(transferData)}`);
         }
 
-        return 'Same-visa branch transfer approved and applied; cross-visa transfer strictly blocked with 400 VISA_TRANSFER_NOT_SUPPORTED';
+        return 'Same-visa branch transfer requested & approved via UI; profile updated; cross-visa transfer blocked with 400 VISA_TRANSFER_NOT_SUPPORTED';
       },
     });
 

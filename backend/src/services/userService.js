@@ -182,7 +182,7 @@ export class UserService {
         employeeId,
         roles: roleAssignments.map((r) => r.roleCode),
       },
-    }).catch(() => {});
+    });
 
     return {
       user: {
@@ -267,7 +267,7 @@ export class UserService {
       tableName: 'user_roles',
       recordId: userId,
       newValues: { roles: roleAssignments },
-    }).catch(() => {});
+    });
 
     return newAssigned;
   }
@@ -344,7 +344,7 @@ export class UserService {
             company_id: companyId,
             user_id: newUser.id,
             role_id: employeeRole.id,
-            scope_type: 'Company',
+            scope_type: 'Self',
             created_by: createdBy,
           },
         });
@@ -370,7 +370,7 @@ export class UserService {
       tableName: 'users',
       recordId: companyId,
       newValues: { created_count: createdUsers.length, error_count: errors.length },
-    }).catch(() => {});
+    });
 
     return {
       status: 'success',
@@ -422,7 +422,7 @@ export class UserService {
       recordId: userId,
       oldValues: { status: user.status },
       newValues: { status },
-    }).catch(() => {});
+    });
 
     return updated;
   }
@@ -462,7 +462,7 @@ export class UserService {
       recordId: userId,
       oldValues: { failed_logins: user.failed_logins, locked_until: user.locked_until, status: user.status },
       newValues: { failed_logins: 0, locked_until: null, status: 'Active' },
-    }).catch(() => {});
+    });
 
     return updated;
   }

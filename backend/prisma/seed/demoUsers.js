@@ -92,7 +92,7 @@ export async function seedDemoUsers(prisma, { company1, company2, depts1, visas1
     },
   });
   await prisma.user_roles.create({
-    data: { company_id: company2.id, user_id: userAdmin2.id, role_id: rolesMap['COMPANY_ADMIN'].id },
+    data: { company_id: company2.id, user_id: userAdmin2.id, role_id: rolesMap['COMPANY_ADMIN'].id, scope_type: 'Company' },
   });
 
   const userHR2 = await prisma.users.create({
@@ -104,7 +104,7 @@ export async function seedDemoUsers(prisma, { company1, company2, depts1, visas1
     },
   });
   await prisma.user_roles.create({
-    data: { company_id: company2.id, user_id: userHR2.id, role_id: rolesMap['HR_MANAGER'].id },
+    data: { company_id: company2.id, user_id: userHR2.id, role_id: rolesMap['HR_MANAGER'].id, scope_type: 'Company' },
   });
 
   return {

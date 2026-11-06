@@ -32,7 +32,7 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
     }, 500);
   };
 
-  const figures = data.figures;
+  const figures = data?.figures || {};
 
   // 6-month sparkline data
   const sparkline = Array.isArray(data.sparkline) ? data.sparkline : [];

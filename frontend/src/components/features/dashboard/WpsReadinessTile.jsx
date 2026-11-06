@@ -74,10 +74,12 @@ export function WpsReadinessTile({ data, onClick, onFilterMissing }) {
           <div>
             <div className="flex items-baseline gap-1.5">
               <span className="text-xl font-extrabold text-text tabular-nums">{ready} / {total}</span>
-              <span className="text-xs font-semibold text-secondary-text">ready</span>
+              <span className="text-xs font-semibold text-secondary-text">{language === 'ar' ? 'جاهز' : 'ready'}</span>
             </div>
             <p className="text-[11px] text-text-muted mt-0.5">
-              {total - ready} blocking items before SIF download
+              {language === 'ar'
+                ? `${total - ready} متطلبات متبقية قبل تحميل ملف حماية الأجور (SIF)`
+                : `${total - ready} blocking items before SIF download`}
             </p>
           </div>
         </div>

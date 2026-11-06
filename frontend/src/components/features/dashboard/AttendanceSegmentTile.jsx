@@ -22,7 +22,7 @@ export function AttendanceSegmentTile({ data, onClick }) {
         </IconWell>
       }
       title={t('dashboard.attendance.title')}
-      subtitle="Biometric shift capture"
+      subtitle={language === 'ar' ? 'سجل الحضور بالبصمة البيومترية' : 'Biometric shift capture'}
     >
       <div className="space-y-2.5">
         {/* 4 Flat attendance status boxes */}
@@ -89,7 +89,9 @@ export function AttendanceSegmentTile({ data, onClick }) {
 
         {/* 7-Day Mini Trend Underneath */}
         <div className="pt-2 border-t border-border/40 flex items-end justify-between gap-1">
-          <span className="text-[10px] text-text-muted mb-1 flex-shrink-0">7-day:</span>
+          <span className="text-[10px] text-text-muted mb-1 flex-shrink-0">
+            {language === 'ar' ? '٧ أيام:' : '7-day:'}
+          </span>
           <div className="flex items-end justify-between gap-1 flex-1">
             {miniTrend.map((tDay, idx) => {
               const totalPunches = tDay.present + tDay.late + tDay.absent;

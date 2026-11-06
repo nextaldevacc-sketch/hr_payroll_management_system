@@ -24,7 +24,7 @@ export function DocumentsExpiryTile({ data, onClick }) {
         </IconWell>
       }
       title={t('dashboard.expiringDocs.title')}
-      subtitle="Visa, Emirates ID, Labour Card"
+      subtitle={language === 'ar' ? 'التأشيرة، الهوية الإماراتية، بطاقة العمل' : 'Visa, Emirates ID, Labour Card'}
       badge={
         <span className="text-xs text-text-muted flex items-center gap-1 group-hover:text-primary transition-colors">
           {t('common.viewAll')}
@@ -37,7 +37,9 @@ export function DocumentsExpiryTile({ data, onClick }) {
         <div className="space-y-2">
           <div className="flex items-baseline justify-between">
             <StatNumber value={data.total} size="md" />
-            <span className="text-xs text-text-muted">Total expiring</span>
+            <span className="text-xs text-text-muted">
+              {language === 'ar' ? 'إجمالي الوثائق المقاربة للانتهاء' : 'Total expiring'}
+            </span>
           </div>
 
           {/* Single Stacked Bar */}
@@ -87,7 +89,9 @@ export function DocumentsExpiryTile({ data, onClick }) {
                     : 'bg-warning-wash text-warning-text'
                 }`}
               >
-                {item.daysLeft < 0 ? 'EXPIRED' : `${item.daysLeft}d left`}
+                {item.daysLeft < 0
+                  ? (language === 'ar' ? 'منتهية الصلاحية' : 'EXPIRED')
+                  : (language === 'ar' ? `متبقي ${item.daysLeft} يوم` : `${item.daysLeft}d left`)}
               </span>
             </InsetBox>
           ))}

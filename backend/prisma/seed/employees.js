@@ -555,7 +555,7 @@ export async function seedEmployees(prisma, {
             company_id: emp.company_id,
             user_id: user.id,
             role_id: employeeRole.id,
-            scope_type: 'Company',
+            scope_type: 'Self',
           },
         });
       }

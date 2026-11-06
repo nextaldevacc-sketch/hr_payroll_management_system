@@ -46,7 +46,7 @@ import { StatusPill } from '../../primitives/StatusPill';
 import { Stepper } from '../../primitives/Stepper';
 import { PayslipModal } from './PayslipModal';
 import { useLanguage } from '../../../context/LanguageContext';
-import { getEnumLabel } from '../../../i18n/enums';
+import { getEnumLabel, getVisaNameAr } from '../../../i18n/enums';
 
 export function PayRunDetailFeature() {
   const params = useParams();
@@ -300,6 +300,7 @@ export function PayRunDetailFeature() {
             {/* Export Dropdown / Buttons */}
             <div className="flex items-center gap-2">
               <button
+                id="btn-download-sif"
                 onClick={() => downloadWpsSif(payRun.id, `wps-${payRun.company_visa?.mol_establishment_id || 'sif'}.sif`)}
                 disabled={!isLockedOrPaid}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${
@@ -413,33 +414,49 @@ export function PayRunDetailFeature() {
           {/* Bento Headline Figures */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <GlassCard className="p-5">
-              <span className="text-xs uppercase tracking-wider text-text-muted font-bold">Total Headcount</span>
+              <span className="text-xs uppercase tracking-wider text-text-muted font-bold">
+                {language === 'ar' ? 'إجمالي عدد الموظفين' : 'Total Headcount'}
+              </span>
               <div className="text-3xl font-black text-text mt-2">{payRun.employee_count || 0}</div>
-              <span className="text-[11px] text-text-muted mt-1 block">Active under establishment</span>
+              <span className="text-[11px] text-text-muted mt-1 block">
+                {language === 'ar' ? 'نشط تحت المنشأة' : 'Active under establishment'}
+              </span>
             </GlassCard>
 
             <GlassCard className="p-5">
-              <span className="text-xs uppercase tracking-wider text-text-muted font-bold">Total Gross Earnings</span>
+              <span className="text-xs uppercase tracking-wider text-text-muted font-bold">
+                {language === 'ar' ? 'إجمالي المستحقات الإجمالية' : 'Total Gross Earnings'}
+              </span>
               <div className="text-3xl font-black text-secondary mt-2">
                 AED {Number(payRun.total_gross || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
-              <span className="text-[11px] text-text-muted mt-1 block">Basic + HRA + Transport + OT</span>
+              <span className="text-[11px] text-text-muted mt-1 block">
+                {language === 'ar' ? 'الأساسي + السكن + النقل + الإضافي' : 'Basic + HRA + Transport + OT'}
+              </span>
             </GlassCard>
 
             <GlassCard className="p-5">
-              <span className="text-xs uppercase tracking-wider text-text-muted font-bold">Total Deductions</span>
+              <span className="text-xs uppercase tracking-wider text-text-muted font-bold">
+                {language === 'ar' ? 'إجمالي الاستقطاعات' : 'Total Deductions'}
+              </span>
               <div className="text-3xl font-black text-red-500 mt-2">
                 AED {Number(payRun.total_deductions || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
-              <span className="text-[11px] text-text-muted mt-1 block">Loans, Advances & Pension</span>
+              <span className="text-[11px] text-text-muted mt-1 block">
+                {language === 'ar' ? 'القروض والسلف والتقاعد' : 'Loans, Advances & Pension'}
+              </span>
             </GlassCard>
 
             <GlassCard className="p-5 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/30">
-              <span className="text-xs uppercase tracking-wider text-primary font-bold">Net WPS Disbursement</span>
+              <span className="text-xs uppercase tracking-wider text-primary font-bold">
+                {language === 'ar' ? 'صافي صرف حماية الأجور (WPS)' : 'Net WPS Disbursement'}
+              </span>
               <div className="text-3xl font-black text-text dark:text-gold mt-2">
                 AED {Number(payRun.total_net || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
-              <span className="text-[11px] text-primary/80 mt-1 block font-semibold">Strict SIF Checksum Parity</span>
+              <span className="text-[11px] text-primary/80 mt-1 block font-semibold">
+                {language === 'ar' ? 'تطابق صارم مع تدقيق ملف SIF' : 'Strict SIF Checksum Parity'}
+              </span>
             </GlassCard>
           </div>
 
@@ -450,18 +467,20 @@ export function PayRunDetailFeature() {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-text flex items-center gap-1.5">
                   <AlertCircle className={`w-4 h-4 ${blockingIssues.length > 0 ? 'text-red-500' : 'text-secondary'}`} />
-                  Pre-Run Validation
+                  {language === 'ar' ? 'تدقيق ما قبل التشغيل' : 'Pre-Run Validation'}
                 </span>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                   blockingIssues.length > 0 ? 'bg-red-500/10 text-red-500' : 'bg-secondary/10 text-secondary'
                 }`}>
-                  {blockingIssues.length > 0 ? `${blockingIssues.length} Blocking` : 'Passed'}
+                  {blockingIssues.length > 0
+                    ? (language === 'ar' ? `${blockingIssues.length} معطلة` : `${blockingIssues.length} Blocking`)
+                    : (language === 'ar' ? 'ناجح' : 'Passed')}
                 </span>
               </div>
               <p className="text-xs text-text-muted">
                 {blockingIssues.length > 0
-                  ? 'There are critical errors (missing IBANs or negative salaries) preventing this run from locking.'
-                  : 'All employee bank accounts and salary inputs satisfy statutory requirements.'}
+                  ? (language === 'ar' ? 'توجد أخطاء حرجة (حسابات بنكية مفقودة أو رواتب سالبة) تمنع قفل مسير الرواتب.' : 'There are critical errors (missing IBANs or negative salaries) preventing this run from locking.')
+                  : (language === 'ar' ? 'كافة الحسابات المصرفية وبيانات الرواتب متوافقة تماماً مع المتطلبات القانونية.' : 'All employee bank accounts and salary inputs satisfy statutory requirements.')}
               </p>
               <button
                 onClick={() => setActiveTab('validation')}
@@ -476,18 +495,20 @@ export function PayRunDetailFeature() {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-text flex items-center gap-1.5">
                   <AlertTriangle className={`w-4 h-4 ${payRun.pending_variance_count > 0 ? 'text-amber-500' : 'text-secondary'}`} />
-                  Variance Threshold (10%)
+                  {language === 'ar' ? 'حد الفروقات (10%)' : 'Variance Threshold (10%)'}
                 </span>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                   payRun.pending_variance_count > 0 ? 'bg-amber-500/10 text-amber-500' : 'bg-secondary/10 text-secondary'
                 }`}>
-                  {payRun.pending_variance_count > 0 ? `${payRun.pending_variance_count} Unjustified` : 'Clear'}
+                  {payRun.pending_variance_count > 0
+                    ? (language === 'ar' ? `${payRun.pending_variance_count} غير مبررة` : `${payRun.pending_variance_count} Unjustified`)
+                    : (language === 'ar' ? 'سليم' : 'Clear')}
                 </span>
               </div>
               <p className="text-xs text-text-muted">
                 {payRun.pending_variance_count > 0
-                  ? 'Employees with net salary variance > 10% vs last month require justification notes before validation.'
-                  : 'All salary changes are either within threshold or have documented explanations.'}
+                  ? (language === 'ar' ? 'الموظفون الذين تتجاوز فروقات رواتبهم 10% يتطلبون تبريراً موثقاً قبل التدقيق.' : 'Employees with net salary variance > 10% vs last month require justification notes before validation.')
+                  : (language === 'ar' ? 'كافة تغيرات الرواتب ضمن النطاق المقبول أو تم تقديم أسبابها الموثقة.' : 'All salary changes are either within threshold or have documented explanations.')}
               </p>
               <button
                 onClick={() => setActiveTab('variances')}
@@ -502,14 +523,16 @@ export function PayRunDetailFeature() {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-text flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-primary" />
-                  MOHRE WPS Compliance
+                  {language === 'ar' ? 'الامتثال لنظام حماية الأجور (WPS)' : 'MOHRE WPS Compliance'}
                 </span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
-                  Dual-Currency Ready
+                  {language === 'ar' ? 'جاهزية المعايير' : 'Dual-Currency Ready'}
                 </span>
               </div>
               <p className="text-xs text-text-muted">
-                WPS SIF generator strictly verifies <code className="text-primary font-mono text-[11px]">SCR.totalSalaries === sum(EDR.net)</code> and formats 13-digit fixed widths.
+                {language === 'ar'
+                  ? 'يتحقق محرك حماية الأجور (WPS) بدقة من تطابق إجمالي المسير مع مجموع صافي التحويلات.'
+                  : 'WPS SIF generator strictly verifies SCR.totalSalaries === sum(EDR.net) and formats 13-digit fixed widths.'}
               </p>
               <button
                 onClick={() => isLockedOrPaid && downloadWpsSif(payRun.id)}
@@ -535,7 +558,9 @@ export function PayRunDetailFeature() {
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs">
             <p className="text-text-muted">
-              Pre-run validation identifies missing bank details, unconfirmed attendance holds, and negative salary conditions.
+              {language === 'ar'
+                ? 'يحدد التدقيق المسبق الحسابات المصرفية المفقودة، وسجلات الحضور المعلقة، وشروط الرواتب السالبة.'
+                : 'Pre-run validation identifies missing bank details, unconfirmed attendance holds, and negative salary conditions.'}
             </p>
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-red-500/10 text-red-500 border border-red-500/20">
@@ -563,8 +588,8 @@ export function PayRunDetailFeature() {
                   <tr>
                     <td colSpan={5} className="py-12 text-center text-text-muted">
                       <CheckCircle2 className="w-8 h-8 text-secondary mx-auto mb-2" />
-                      <p className="font-bold text-text">No validation issues found</p>
-                      <p className="text-[11px]">All employee inputs are complete and ready for sign-off.</p>
+                      <p className="font-bold text-text">{language === 'ar' ? 'لا توجد ملاحظات تدقيق' : 'No validation issues found'}</p>
+                      <p className="text-[11px]">{language === 'ar' ? 'جميع مدخلات الموظفين مكتملة وجاهزة للاعتماد.' : 'All employee inputs are complete and ready for sign-off.'}</p>
                     </td>
                   </tr>
                 ) : (
@@ -880,16 +905,20 @@ export function PayRunDetailFeature() {
           <GlassCard className="p-6">
             <h3 className="text-sm font-bold text-text dark:gold-heading mb-4 flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-primary" />
-              Pay Run Execution & Signoff Log
+              {language === 'ar' ? 'سجل اعتماد وتنفيذ مسير الرواتب' : 'Pay Run Execution & Signoff Log'}
             </h3>
 
             <div className="space-y-4 text-xs">
               <div className="flex items-start gap-3 p-3 rounded-xl bg-surface-raised/40 border border-border/40">
                 <Calendar className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold text-text">Draft Initialization</p>
-                  <p className="text-text-muted mt-0.5">Pay run created for period {periodName} under visa {payRun.company_visa?.name}.</p>
-                  <span className="text-[10px] text-text-muted font-mono">{new Date(payRun.created_at).toLocaleString('en-GB')}</span>
+                  <p className="font-bold text-text">{language === 'ar' ? 'إنشاء مسودة المسير' : 'Draft Initialization'}</p>
+                  <p className="text-text-muted mt-0.5">
+                    {language === 'ar'
+                      ? `تم إنشاء مسير الرواتب لدورة ${periodName} تحت ${payRun.company_visa?.name_ar || getVisaNameAr(payRun.company_visa?.name)}.`
+                      : `Pay run created for period ${periodName} under visa ${payRun.company_visa?.name}.`}
+                  </p>
+                  <span className="text-[10px] text-text-muted font-mono" data-i18n-skip>{new Date(payRun.created_at).toLocaleString(language === 'ar' ? 'ar-AE' : 'en-GB')}</span>
                 </div>
               </div>
 
@@ -897,9 +926,13 @@ export function PayRunDetailFeature() {
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-surface-raised/40 border border-border/40">
                   <Calculator className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-bold text-text">Payroll Engine Calculated</p>
-                    <p className="text-text-muted mt-0.5">Evaluated all 17 statutory salary rules, biometric attendance, and overtime inputs.</p>
-                    <span className="text-[10px] text-text-muted font-mono">{new Date(payRun.calculated_at).toLocaleString('en-GB')}</span>
+                    <p className="font-bold text-text">{language === 'ar' ? 'احتساب محرك الرواتب' : 'Payroll Engine Calculated'}</p>
+                    <p className="text-text-muted mt-0.5">
+                      {language === 'ar'
+                        ? 'تم تقييم كافة قواعد الرواتب القانونية الـ 17 وسجلات البصمة والعمل الإضافي.'
+                        : 'Evaluated all 17 statutory salary rules, biometric attendance, and overtime inputs.'}
+                    </p>
+                    <span className="text-[10px] text-text-muted font-mono" data-i18n-skip>{new Date(payRun.calculated_at).toLocaleString(language === 'ar' ? 'ar-AE' : 'en-GB')}</span>
                   </div>
                 </div>
               )}
@@ -908,9 +941,13 @@ export function PayRunDetailFeature() {
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-surface-raised/40 border border-border/40">
                   <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-bold text-text">Pre-Run Validation Completed</p>
-                    <p className="text-text-muted mt-0.5">Validated by {payRun.validator?.employee?.name || payRun.validator?.email || 'HR Manager'}.</p>
-                    <span className="text-[10px] text-text-muted font-mono">{new Date(payRun.validated_at).toLocaleString('en-GB')}</span>
+                    <p className="font-bold text-text">{language === 'ar' ? 'اكتمال التدقيق المبدئي' : 'Pre-Run Validation Completed'}</p>
+                    <p className="text-text-muted mt-0.5">
+                      {language === 'ar'
+                        ? `تم التدقيق والتحقق بواسطة ${payRun.validator?.employee?.name || payRun.validator?.email || 'مدير الموارد البشرية'}.`
+                        : `Validated by ${payRun.validator?.employee?.name || payRun.validator?.email || 'HR Manager'}.`}
+                    </p>
+                    <span className="text-[10px] text-text-muted font-mono" data-i18n-skip>{new Date(payRun.validated_at).toLocaleString(language === 'ar' ? 'ar-AE' : 'en-GB')}</span>
                   </div>
                 </div>
               )}
@@ -919,9 +956,13 @@ export function PayRunDetailFeature() {
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-surface-raised/40 border border-border/40">
                   <Lock className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-bold text-text">Pay Run Locked (PostgreSQL Trigger Protected)</p>
-                    <p className="text-text-muted mt-0.5">Locked by {payRun.locker?.employee?.name || payRun.locker?.email || 'Finance Manager'}. Modifications blocked.</p>
-                    <span className="text-[10px] text-text-muted font-mono">{new Date(payRun.locked_at).toLocaleString('en-GB')}</span>
+                    <p className="font-bold text-text">{language === 'ar' ? 'قفل مسير الرواتب (محمي بمشغل قاعدة البيانات)' : 'Pay Run Locked (PostgreSQL Trigger Protected)'}</p>
+                    <p className="text-text-muted mt-0.5">
+                      {language === 'ar'
+                        ? `تم القفل بواسطة ${payRun.locker?.employee?.name || payRun.locker?.email || 'المدير المالي'}. التعديل محظور برمجياً.`
+                        : `Locked by ${payRun.locker?.employee?.name || payRun.locker?.email || 'Finance Manager'}. Modifications blocked.`}
+                    </p>
+                    <span className="text-[10px] text-text-muted font-mono" data-i18n-skip>{new Date(payRun.locked_at).toLocaleString(language === 'ar' ? 'ar-AE' : 'en-GB')}</span>
                   </div>
                 </div>
               )}
@@ -930,9 +971,13 @@ export function PayRunDetailFeature() {
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-surface-raised/40 border border-border/40">
                   <DollarSign className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-bold text-text">WPS Disbursement Dispatched</p>
-                    <p className="text-text-muted mt-0.5">Final payment dispatched to central bank via WPS routing code {payRun.company_visa?.bank_routing_code}.</p>
-                    <span className="text-[10px] text-text-muted font-mono">{new Date(payRun.paid_at).toLocaleString('en-GB')}</span>
+                    <p className="font-bold text-text">{language === 'ar' ? 'إرسال صرف حماية الأجور (WPS)' : 'WPS Disbursement Dispatched'}</p>
+                    <p className="text-text-muted mt-0.5">
+                      {language === 'ar'
+                        ? `تم إرسال الدفعة إلى المصرف المركزي برمز توجيه حماية الأجور ${payRun.company_visa?.bank_routing_code}.`
+                        : `Final payment dispatched to central bank via WPS routing code ${payRun.company_visa?.bank_routing_code}.`}
+                    </p>
+                    <span className="text-[10px] text-text-muted font-mono" data-i18n-skip>{new Date(payRun.paid_at).toLocaleString(language === 'ar' ? 'ar-AE' : 'en-GB')}</span>
                   </div>
                 </div>
               )}

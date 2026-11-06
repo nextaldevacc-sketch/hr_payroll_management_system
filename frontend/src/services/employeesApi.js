@@ -232,6 +232,16 @@ export async function downloadEmployeeDocument(id, docId, filename = 'document')
   window.URL.revokeObjectURL(url);
 }
 
+export async function requestBranchChange(id, { target_branch_id, effective_date, reason }) {
+  const res = await fetch(`${API_BASE}/${id}/branch-change`, {
+    method: 'POST',
+    headers: getHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ target_branch_id, effective_date, reason }),
+  });
+  return handleResponse(res);
+}
+
 export async function fetchEmployeeAuditHistory(id) {
   const res = await fetch(`${API_BASE}/${id}/history`, {
     method: 'GET',

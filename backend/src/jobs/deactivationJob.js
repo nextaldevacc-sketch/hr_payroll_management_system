@@ -126,7 +126,7 @@ export async function runDeactivationJob(targetDate = new Date()) {
       recordId: employee.id,
       oldValues: { status: employee.status },
       newValues: { status: 'Archived', access_deactivated_at: now.toISOString() },
-    }).catch(() => {});
+    }).catch((err) => console.warn(`[DeactivationJob] Failed to log audit for employee ${employee.id}:`, err.message));
 
     deactivatedList.push({
       employee_id: employee.id,

@@ -30,7 +30,7 @@ import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
 import { Select } from '../../primitives/form/Select';
 import { useLanguage } from '../../../context/LanguageContext';
-import { getEnumLabel } from '../../../i18n/enums';
+import { getEnumLabel, formatMonthYear } from '../../../i18n/enums';
 
 export function SalaryAdjustmentsFeature() {
   const queryClient = useQueryClient();
@@ -291,9 +291,7 @@ export function SalaryAdjustmentsFeature() {
               ) : (
                 adjustments.map((adj) => {
                   const emp = adj.employee || {};
-                  const startMonthStr = adj.start_month
-                    ? new Date(adj.start_month).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
-                    : '---';
+                  const startMonthStr = formatMonthYear(adj.start_month, language);
 
                   return (
                     <tr key={adj.id} className="hover:bg-surface-raised/30 transition-colors">
@@ -338,21 +336,21 @@ export function SalaryAdjustmentsFeature() {
                               disabled={approveMutation.isPending}
                               className="px-2 py-1 rounded-lg text-[11px] font-bold bg-secondary text-white hover:opacity-90 transition-all shadow-sm"
                             >
-                              Approve
+                              {language === 'ar' ? 'اعتماد' : 'Approve'}
                             </button>
                             <button
                               onClick={() => {
-                                const r = prompt('Enter rejection reason:');
+                                const r = prompt(language === 'ar' ? 'سبب الرفض:' : 'Enter rejection reason:');
                                 if (r) rejectMutation.mutate({ id: adj.id, reason: r });
                               }}
                               disabled={rejectMutation.isPending}
                               className="px-2 py-1 rounded-lg text-[11px] font-bold bg-surface-raised border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white transition-all"
                             >
-                              Reject
+                              {language === 'ar' ? 'رفض' : 'Reject'}
                             </button>
                           </div>
                         ) : (
-                          <span className="text-[11px] text-text-muted italic">Locked</span>
+                          <span className="text-[11px] text-text-muted italic">{getEnumLabel('pay_run_status', 'Locked', language)}</span>
                         )}
                       </td>
                     </tr>

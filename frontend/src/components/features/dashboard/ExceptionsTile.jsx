@@ -8,7 +8,7 @@ import { InsetBox } from '../../primitives/InsetBox';
 import { useLanguage } from '../../../context/LanguageContext';
 
 export function ExceptionsTile({ data = [], onSelectException }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const getIcon = (id) => {
     switch (id) {
@@ -39,10 +39,10 @@ export function ExceptionsTile({ data = [], onSelectException }) {
         </IconWell>
       }
       title={t('dashboard.exceptions.title')}
-      subtitle="Payroll blocking items"
+      subtitle={language === 'ar' ? 'ملاحظات تدقيق الرواتب' : 'Payroll blocking items'}
       badge={
         <span className="text-xs font-bold px-2 py-0.5 rounded-pill bg-danger-wash text-danger-text">
-          {totalExceptions} issues
+          {language === 'ar' ? `${totalExceptions} ملاحظات` : `${totalExceptions} issues`}
         </span>
       }
     >
@@ -86,8 +86,12 @@ export function ExceptionsTile({ data = [], onSelectException }) {
 
         {/* Footer line: 1px divider only */}
         <div className="pt-2 border-t border-border/40 dark:border-border text-[11px] text-text-muted flex items-center justify-between">
-          <span className="font-semibold text-warning-text">Must be cleared before cut-off in 4 days</span>
-          <span className="text-[10px]">Strict WPS policy</span>
+          <span className="font-semibold text-warning-text">
+            {language === 'ar' ? 'يجب تسويتها قبل موعد الإقفال خلال 4 أيام' : 'Must be cleared before cut-off in 4 days'}
+          </span>
+          <span className="text-[10px]">
+            {language === 'ar' ? 'سياسة حماية الأجور الصارمة (WPS)' : 'Strict WPS policy'}
+          </span>
         </div>
       </div>
     </BentoTile>

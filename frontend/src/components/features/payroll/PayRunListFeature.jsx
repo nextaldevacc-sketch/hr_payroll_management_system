@@ -26,6 +26,7 @@ import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
 import { Select } from '../../primitives/form/Select';
+import { formatMonthYear, getVisaNameAr } from '../../../i18n/enums';
 
 export function PayRunListFeature() {
   const router = useRouter();
@@ -134,6 +135,7 @@ export function PayRunListFeature() {
             <span>{language === 'ar' ? 'تعديلات الرواتب' : 'Salary Adjustments'}</span>
           </Link>
           <button
+            id="btn-open-create-pay-run"
             onClick={() => {
               const defaultVisaId = (selectedVisaId && selectedVisaId !== 'all')
                 ? selectedVisaId
@@ -193,9 +195,17 @@ export function PayRunListFeature() {
             <AlertCircle className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-text-muted font-medium">Validation Issues</span>
-            <div className="text-lg font-bold text-text mt-0.5">{pendingIssuesTotal} Flags</div>
-            <span className="text-[11px] text-amber-500 font-semibold">Missing IBANs & Holds</span>
+            <span className="text-xs text-text-muted font-medium">
+              {language === 'ar' ? 'ملاحظات التدقيق' : 'Validation Issues'}
+            </span>
+            <div className="text-lg font-bold text-text mt-0.5">
+              {language === 'ar'
+                ? (pendingIssuesTotal === 1 ? 'تنبيه واحد' : pendingIssuesTotal === 2 ? 'تنبيهان' : (pendingIssuesTotal >= 3 && pendingIssuesTotal <= 10) ? `${pendingIssuesTotal} تنبيهات` : `${pendingIssuesTotal} تنبيهاً`)
+                : `${pendingIssuesTotal} Flags`}
+            </div>
+            <span className="text-[11px] text-amber-500 font-semibold">
+              {language === 'ar' ? 'نقص الآيبان والحجوزات' : 'Missing IBANs & Holds'}
+            </span>
           </div>
         </GlassCard>
       </div>
@@ -285,8 +295,12 @@ export function PayRunListFeature() {
               ) : (
                 payRuns.map((run) => {
                   const monthName = run.period_month
-                    ? new Date(run.period_month).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+                    ? formatMonthYear(run.period_month, language)
                     : '---';
+
+                  const visaDisplayName = language === 'ar'
+                    ? (run.company_visa?.name_ar || getVisaNameAr(run.company_visa?.name) || 'تأشيرة 01')
+                    : (run.company_visa?.name || 'Visa 01');
 
                   return (
                     <tr
@@ -299,12 +313,12 @@ export function PayRunListFeature() {
                         {monthName}
                       </td>
                       <td className="py-3.5 px-4 text-text-muted">
-                        <span className="font-semibold text-text">{run.company_visa?.name || 'Visa 01'}</span>
+                        <span className="font-semibold text-text">{visaDisplayName}</span>
                         <span className="block text-[10px] text-text-muted font-mono">{run.company_visa?.mol_establishment_id}</span>
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-surface-raised border border-border/60 text-text">
-                          {run.run_type || 'Regular'}
+                          {language === 'ar' ? (run.run_type === 'OffCycle' ? 'دورة استثنائية' : 'دورية') : (run.run_type || 'Regular')}
                         </span>
                       </td>
                       <td className="py-3.5 px-4">
@@ -330,7 +344,7 @@ export function PayRunListFeature() {
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-[11px] text-secondary">
-                            <FileCheck2 className="w-3.5 h-3.5" /> Ready
+                            <FileCheck2 className="w-3.5 h-3.5" /> {language === 'ar' ? 'جاهز' : 'Ready'}
                           </span>
                         )}
                       </td>
@@ -340,8 +354,8 @@ export function PayRunListFeature() {
                           onClick={(e) => e.stopPropagation()}
                           className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-black transition-all"
                         >
-                          View Run
-                          <ArrowRight className="w-3 h-3" />
+                          {language === 'ar' ? 'عرض المسير' : 'View Run'}
+                          <ArrowRight className="w-3 h-3 rtl:-scale-x-100" />
                         </Link>
                       </td>
                     </tr>
@@ -363,7 +377,7 @@ export function PayRunListFeature() {
       >
         <form onSubmit={handleCreateSubmit} className="space-y-4">
           {createError && (
-            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-semibold flex items-center gap-2">
+            <div id="pay-run-create-error" className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-semibold flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{createError}</span>
             </div>
@@ -371,6 +385,7 @@ export function PayRunListFeature() {
 
           <div>
             <Select
+              id="create-pay-run-visa"
               label="Visa Establishment / المنشأة"
               required
               placeholder="Select Visa Establishment..."
@@ -391,6 +406,7 @@ export function PayRunListFeature() {
               </label>
               <input
                 type="date"
+                id="create-pay-run-period"
                 required
                 value={createForm.period_month}
                 onChange={(e) => setCreateForm({ ...createForm, period_month: e.target.value })}
@@ -403,6 +419,7 @@ export function PayRunListFeature() {
               </label>
               <input
                 type="date"
+                id="create-pay-run-cutoff"
                 required
                 value={createForm.cutoff_date}
                 onChange={(e) => setCreateForm({ ...createForm, cutoff_date: e.target.value })}
@@ -413,6 +430,7 @@ export function PayRunListFeature() {
 
           <div>
             <Select
+              id="create-pay-run-type"
               label="Run Type / نوع المسير"
               value={createForm.run_type}
               onChange={(e) => setCreateForm({ ...createForm, run_type: e.target.value })}
@@ -434,6 +452,7 @@ export function PayRunListFeature() {
             </button>
             <button
               type="submit"
+              id="btn-submit-pay-run"
               disabled={createMutation.isPending}
               className="px-5 py-2 rounded-xl text-xs font-bold bg-primary text-black hover:opacity-95 transition-all shadow-md disabled:opacity-50"
             >

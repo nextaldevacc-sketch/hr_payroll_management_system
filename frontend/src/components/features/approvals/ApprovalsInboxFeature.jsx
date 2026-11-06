@@ -251,12 +251,35 @@ export function ApprovalsInboxFeature() {
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
                           {item.request_type === 'EMPLOYEE_VERIFICATION'
                             ? (isAr ? 'اعتماد موظف جديد' : 'Employee Verification')
+                            : item.request_type === 'EMPLOYEE_BRANCH_CHANGE'
+                            ? (isAr ? 'تغيير الفرع' : 'Branch Change')
                             : item.request_type}
                         </span>
                       </td>
 
                       <td className="py-3.5 px-4">
-                        {emp ? (
+                        {item.request_type === 'EMPLOYEE_BRANCH_CHANGE' ? (
+                          <div>
+                            <div className="font-semibold text-text flex items-center gap-1.5">
+                              <span>{emp?.name || item.record_id}</span>
+                              {emp?.code && (
+                                <span className="font-mono text-[11px] text-primary font-bold">
+                                  ({emp.code})
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[12px] font-bold text-amber-500 dark:text-amber-400 mt-1">
+                              {isAr
+                                ? `تغيير الفرع: ${emp?.current_branch_ar || emp?.current_branch || '—'} ← ${emp?.target_branch_ar || emp?.target_branch || '—'}، يسري من ${emp?.effective_date?.slice(0, 10)}`
+                                : `Branch change: ${emp?.current_branch || '—'} → ${emp?.target_branch || '—'}, effective ${emp?.effective_date?.slice(0, 10)}`}
+                            </div>
+                            {emp?.reason && (
+                              <div className="text-[11px] text-text-muted mt-0.5">
+                                <span className="font-medium text-text">{isAr ? 'السبب:' : 'Reason:'}</span> {emp.reason}
+                              </div>
+                            )}
+                          </div>
+                        ) : emp ? (
                           <div>
                             <div className="font-semibold text-text flex items-center gap-1.5">
                               <span>{emp.name}</span>
@@ -289,21 +312,27 @@ export function ApprovalsInboxFeature() {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             id="btn-verify-approve"
+                            data-testid={`btn-approve-${item.id}`}
                             onClick={() => handleApprove(item)}
                             disabled={actionLoading}
                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-all"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
-                            {isAr ? 'اعتماد' : 'Verify'}
+                            {item.request_type === 'EMPLOYEE_BRANCH_CHANGE'
+                              ? (isAr ? 'اعتماد' : 'Approve')
+                              : (isAr ? 'اعتماد' : 'Verify')}
                           </button>
                           <button
                             id="btn-verify-sendback"
+                            data-testid={`btn-reject-${item.id}`}
                             onClick={() => openRejectModal(item)}
                             disabled={actionLoading}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 transition-all"
                           >
                             <X className="w-3.5 h-3.5" />
-                            {isAr ? 'إعادة للمراجعة' : 'Send Back'}
+                            {item.request_type === 'EMPLOYEE_BRANCH_CHANGE'
+                              ? (isAr ? 'رفض' : 'Reject')
+                              : (isAr ? 'إعادة للمراجعة' : 'Send Back')}
                           </button>
                         </div>
                       </td>

@@ -40,7 +40,7 @@ router.post('/:name/run', async (req, res, next) => {
       tableName: 'system_jobs',
       recordId: companyId,
       newValues: { jobName, result: result.result, durationMs: result.durationMs },
-    }).catch(() => {});
+    });
 
     res.json({
       status: 'success',

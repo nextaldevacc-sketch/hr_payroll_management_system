@@ -78,10 +78,13 @@
       "joiners": "المنضمون حديثاً",
       "leavers": "المغادرون",
       "netChange": "+2 صافي التغير هذا الشهر",
-      "netCount": "+{{count}} صافي هذا الشهر"
+      "netCount": "+{{count}} صافي هذا الشهر",
+      "uaeNationalMix": "مواطنون: {{count}} ({{gpssa}} هيئة المعاشات)",
+      "expatMix": "وافدون: {{count}}"
     },
     "pendingApprovals": {
       "title": "الموافقات المعلقة",
+      "subtitle": "قائمة تدفقات العمل متعددة المراحل",
       "total": "12",
       "leave": "إجازات",
       "overtime": "إضافي",

@@ -65,7 +65,7 @@ export default function AttendanceGridFeature() {
   const [savingEdit, setSavingEdit] = useState(false);
 
   // Load Grid
-  const loadGrid = async () => {
+  const loadGrid = async (activeRef = { current: true }) => {
     setLoading(true);
     setError(null);
     try {
@@ -80,21 +80,29 @@ export default function AttendanceGridFeature() {
         )
       );
 
-      if (res) {
+      if (activeRef.current && res) {
         setGridData(res.grid || []);
         setDepartments(res.departments || []);
         setDaysHeader(res.days || []);
       }
     } catch (err) {
       console.error('Failed to load attendance grid:', err);
-      setError(err.message || 'Failed to load grid');
+      if (activeRef.current) {
+        setError(err.message || 'Failed to load grid');
+      }
     } finally {
-      setLoading(false);
+      if (activeRef.current) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    loadGrid();
+    const activeRef = { current: true };
+    loadGrid(activeRef);
+    return () => {
+      activeRef.current = false;
+    };
   }, [periodFrom, periodTo, selectedDept, selectedVisaId]);
 
   // Open Edit Modal for a cell

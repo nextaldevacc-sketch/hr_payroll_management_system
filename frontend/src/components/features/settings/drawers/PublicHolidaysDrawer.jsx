@@ -40,13 +40,17 @@ export function PublicHolidaysDrawer({
   const handleAddHoliday = (e) => {
     e.preventDefault();
     if (!newHoliday.name || !newHoliday.date) return;
+    const selectedB = branches.find((b) => b.id === newHoliday.branch_scope || b.name === newHoliday.branch_scope);
     const created = {
       id: `h-custom-${Date.now()}`,
       name: newHoliday.name,
       name_ar: newHoliday.name_ar || newHoliday.name,
       date: newHoliday.date,
+      holiday_date: newHoliday.date,
       days: Number(newHoliday.days),
-      branch_scope: newHoliday.branch_scope,
+      branch_id: selectedB ? selectedB.id : null,
+      branch_scope: selectedB ? selectedB.name : 'ALL',
+      branch: selectedB ? { id: selectedB.id, name: selectedB.name } : null,
     };
     setHolidayList([...holidayList, created]);
     setNewHoliday({ name: '', name_ar: '', date: '2026-07-01', days: 1, branch_scope: 'ALL' });
@@ -146,6 +150,7 @@ export function PublicHolidaysDrawer({
         {canEdit && !isAdding && (
           <button
             type="button"
+            id="btn-add-holiday-open"
             onClick={() => setIsAdding(true)}
             className="w-full py-2.5 rounded-xl border border-dashed border-border hover:border-primary/50 text-xs font-bold text-text-muted hover:text-primary transition-colors flex items-center justify-center gap-2"
           >
@@ -163,6 +168,7 @@ export function PublicHolidaysDrawer({
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="text"
+                id="new-holiday-name"
                 placeholder="Holiday Name (English)"
                 required
                 value={newHoliday.name}
@@ -171,6 +177,7 @@ export function PublicHolidaysDrawer({
               />
               <input
                 type="text"
+                id="new-holiday-name-ar"
                 dir="rtl"
                 placeholder="اسم العطلة بالعربية"
                 value={newHoliday.name_ar}
@@ -184,6 +191,7 @@ export function PublicHolidaysDrawer({
                 <label className="block text-[10px] text-text-muted mb-1">{language === 'ar' ? 'التاريخ' : 'Date'}</label>
                 <input
                   type="date"
+                  id="new-holiday-date"
                   required
                   value={newHoliday.date}
                   onChange={(e) => setNewHoliday({ ...newHoliday, date: e.target.value })}
@@ -203,12 +211,13 @@ export function PublicHolidaysDrawer({
               </div>
               <div>
                 <Select
+                  id="new-holiday-branch"
                   label={language === 'ar' ? 'نطاق التطبيق' : 'Branch Scope'}
                   value={newHoliday.branch_scope}
                   onChange={(e) => setNewHoliday({ ...newHoliday, branch_scope: e.target.value })}
                   options={[
                     { value: 'ALL', label: 'All Branches' },
-                    ...branches.map((b) => ({ value: b.name, label: b.name })),
+                    ...branches.map((b) => ({ value: b.id, label: b.name })),
                   ]}
                 />
               </div>
@@ -224,6 +233,7 @@ export function PublicHolidaysDrawer({
               </button>
               <button
                 type="submit"
+                id="btn-submit-holiday"
                 className="px-3 py-1 rounded-lg text-xs font-bold bg-primary text-on-primary"
               >
                 {language === 'ar' ? 'حفظ العطلة' : 'Save Holiday'}
@@ -248,6 +258,7 @@ export function PublicHolidaysDrawer({
             {canEdit && (
               <button
                 type="button"
+                id="btn-save-holidays"
                 onClick={handleSave}
                 className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition-transform active:scale-95"
                 style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}

@@ -8,6 +8,13 @@ import { InsetBox } from '../../primitives/InsetBox';
 import { StatNumber } from '../../primitives/StatNumber';
 import { useLanguage } from '../../../context/LanguageContext';
 
+const APPROVAL_TYPE_LABELS = {
+  'Leave Requests': { en: 'Leave Requests', ar: 'طلبات الإجازة' },
+  'Overtime Hours': { en: 'Overtime Hours', ar: 'ساعات الإضافي' },
+  'Salary Adjustments': { en: 'Salary Adjustments', ar: 'تعديلات الرواتب' },
+  'Final Settlements': { en: 'Final Settlements', ar: 'مستحقات نهاية الخدمة' },
+};
+
 export function PendingApprovalsTile({ data, onClick, onApproveItem, onOpenItem }) {
   const { t, language } = useLanguage();
   const oldestItems = data.oldestItems || [];
@@ -23,7 +30,7 @@ export function PendingApprovalsTile({ data, onClick, onApproveItem, onOpenItem 
         </IconWell>
       }
       title={t('dashboard.pendingApprovals.title')}
-      subtitle="Multi-step workflow queue"
+      subtitle={t('dashboard.pendingApprovals.subtitle')}
       badge={
         <span className="text-xs text-text-muted flex items-center gap-1 group-hover:text-primary transition-colors">
           {t('common.viewAll')}
@@ -36,12 +43,14 @@ export function PendingApprovalsTile({ data, onClick, onApproveItem, onOpenItem 
         <div className="flex items-center gap-3">
           <StatNumber value={data.total} size="md" />
           <div className="grid grid-cols-2 gap-1.5 flex-1 text-[11px]">
-            {data.items.slice(0, 4).map((item) => (
+            {(data?.items || []).slice(0, 4).map((item) => (
               <InsetBox
                 key={item.type}
                 className="flex items-center justify-between px-2.5 py-1.5"
               >
-                <span className="text-text-muted truncate pe-1">{item.type}</span>
+                <span className="text-text-muted truncate pe-1">
+                  {language === 'ar' ? (APPROVAL_TYPE_LABELS[item.type]?.ar || item.type) : item.type}
+                </span>
                 <bdi className="font-bold tabular-nums text-text">{item.count}</bdi>
               </InsetBox>
             ))}

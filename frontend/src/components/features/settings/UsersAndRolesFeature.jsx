@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AppShell } from '../../layout/AppShell';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { getEnumLabel } from '../../../i18n/enums';
@@ -222,18 +221,17 @@ export function UsersAndRolesFeature() {
 
   const filteredUsers = users.filter((u) => {
     const matchesSearch =
-      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.name.toLowerCase().includes(searchQuery.toLowerCase());
+      (u.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.name || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesRole =
-      roleFilter === 'ALL' || u.roles.some((r) => r.code === roleFilter);
+      roleFilter === 'ALL' || (Array.isArray(u.roles) && u.roles.some((r) => (r.code || r) === roleFilter));
 
     return matchesSearch && matchesRole;
   });
 
   return (
-    <AppShell>
-      <div className="p-4 md:p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6">
         {/* Banner Alert */}
         {alertMessage && (
           <div
@@ -705,7 +703,6 @@ export function UsersAndRolesFeature() {
           </div>
         )}
       </div>
-    </AppShell>
   );
 }
 

@@ -357,6 +357,7 @@ model approval_requests {
   flow_id             String                @db.Uuid
   request_type        String                @db.VarChar(30)
   record_id           String                @db.Uuid
+  payload             Json?                 @db.JsonB
   current_step        Int                   @default(1) @db.SmallInt
   status              String                @default("Pending") @db.VarChar(20)
   requested_by        String                @db.Uuid

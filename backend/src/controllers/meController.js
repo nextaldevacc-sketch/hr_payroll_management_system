@@ -582,7 +582,7 @@ export async function getMyPayslipPdf(req, res, next) {
       tableName: 'payslips',
       recordId: payslip.id,
       newValues: { employeeId: payslip.employee_id, payRunId: payslip.pay_run_id },
-    }).catch(() => {});
+    });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="payslip-${payslip.id.slice(0, 8)}.pdf"`);

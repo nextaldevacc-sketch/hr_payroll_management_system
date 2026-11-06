@@ -23,7 +23,7 @@ function authorizeSettings(section = 'general', action = 'view') {
 
     // Read/View access
     if (action === 'view') {
-      if (roles.includes('PAYROLL_OFFICER') || roles.includes('FINANCE')) {
+      if (roles.includes('PAYROLL_OFFICER') || roles.includes('FINANCE') || roles.includes('HR_OFFICER')) {
         return next();
       }
       return res.status(403).json({

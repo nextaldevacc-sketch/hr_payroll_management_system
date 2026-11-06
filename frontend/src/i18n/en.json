@@ -78,10 +78,13 @@
       "joiners": "Joiners",
       "leavers": "Leavers",
       "netChange": "+2 net this month",
-      "netCount": "+{{count}} net this month"
+      "netCount": "+{{count}} net this month",
+      "uaeNationalMix": "UAE National: {{count}} ({{gpssa}} GPSSA)",
+      "expatMix": "Expat: {{count}}"
     },
     "pendingApprovals": {
       "title": "Pending Approvals",
+      "subtitle": "Multi-step workflow queue",
       "total": "12",
       "leave": "Leave",
       "overtime": "Overtime",

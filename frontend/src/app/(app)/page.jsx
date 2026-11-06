@@ -239,9 +239,9 @@ export default function DashboardPage() {
   };
 
   const defaultDepartmentHeadcount = [
-    { name: 'Operations', count: 0, percentage: 0 },
-    { name: 'Logistics', count: 0, percentage: 0 },
-    { name: 'Management', count: 0, percentage: 0 },
+    { name: 'Operations', nameAr: 'العمليات التشغيلية', count: 0, percentage: 0 },
+    { name: 'Logistics', nameAr: 'اللوجستيات', count: 0, percentage: 0 },
+    { name: 'Management', nameAr: 'الإدارة', count: 0, percentage: 0 },
   ];
 
   const defaultFinanceLiabilities = {
@@ -292,19 +292,19 @@ export default function DashboardPage() {
   } : defaultHeadcount;
 
   const pendingApprovalsData = overviewData?.pendingApprovals ? {
-    total: overviewData.pendingApprovals.count,
+    total: overviewData.pendingApprovals.count || 0,
     items: [
-      { type: 'Leave Requests', count: overviewData.pendingApprovals.items.filter(i => i.type === 'Leave').length, code: 'leave' },
-      { type: 'Overtime Hours', count: overviewData.pendingApprovals.items.filter(i => i.type === 'Overtime').length, code: 'ot' },
+      { type: 'Leave Requests', count: (overviewData.pendingApprovals.items || []).filter(i => i.type === 'Leave').length, code: 'leave' },
+      { type: 'Overtime Hours', count: (overviewData.pendingApprovals.items || []).filter(i => i.type === 'Overtime').length, code: 'ot' },
       { type: 'Salary Adjustments', count: 0, code: 'adj' },
       { type: 'Final Settlements', count: 0, code: 'settlement' },
     ],
-    oldestItems: overviewData.pendingApprovals.items.map((i) => ({
+    oldestItems: (overviewData.pendingApprovals.items || []).map((i) => ({
       id: i.id,
       type: i.type,
-      employee: i.requester,
-      employeeAr: i.requester,
-      avatar: i.requester.slice(0, 2).toUpperCase(),
+      employee: i.requester || 'Employee',
+      employeeAr: i.requester || 'Employee',
+      avatar: (i.requester || 'EM').slice(0, 2).toUpperCase(),
       age: 'Pending',
       isOwn: false,
     })),
@@ -417,15 +417,15 @@ export default function DashboardPage() {
       tab: 'validation',
     },
     figures: {
-      gross: Number(salaryData.livePayroll.figures.gross),
+      gross: Number(salaryData.livePayroll?.figures?.gross || 0),
       overtime: 0,
       absence: 0,
       loans: 0,
       latePenalties: 0,
-      otherDeductions: Number(salaryData.livePayroll.figures.deductions),
-      netToWps: Number(salaryData.livePayroll.figures.net),
+      otherDeductions: Number(salaryData.livePayroll?.figures?.deductions || 0),
+      netToWps: Number(salaryData.livePayroll?.figures?.net || 0),
     },
-    sparkline: salaryData.livePayroll.sparkline.length > 0 ? salaryData.livePayroll.sparkline : [0, 0, 0, 0, 0, 0],
+    sparkline: salaryData.livePayroll?.sparkline?.length > 0 ? salaryData.livePayroll.sparkline : [0, 0, 0, 0, 0, 0],
   } : defaultLivePayroll;
 
   return (

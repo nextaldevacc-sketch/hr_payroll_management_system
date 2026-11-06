@@ -459,7 +459,7 @@ export function OffboardingFeature() {
                         : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
                     }`}
                   >
-                    {settlement.status}
+                    {getEnumLabel('settlement_status', settlement.status, language)}
                   </span>
                 )}
               </button>
@@ -616,10 +616,12 @@ export function OffboardingFeature() {
                                   : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
                               }`}
                             >
-                              {sep.final_settlement.status}
+                              {getEnumLabel('settlement_status', sep.final_settlement.status, language)}
                             </span>
                           ) : (
-                            <span className="text-xs text-slate-400">Not Prepared</span>
+                            <span className="text-xs text-slate-400">
+                              {getEnumLabel('settlement_status', 'Not Prepared', language)}
+                            </span>
                           )}
                         </td>
 
@@ -682,7 +684,7 @@ export function OffboardingFeature() {
                       : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
                   }`}
                 >
-                  {selectedSeparation.status}
+                  {getEnumLabel('separation_status', selectedSeparation.status, language)}
                 </span>
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-3 flex-wrap">
@@ -957,16 +959,18 @@ export function OffboardingFeature() {
             <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-800">
               <DollarSign className="w-10 h-10 text-slate-400 mx-auto mb-2" />
               <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">
-                No Final Settlement Prepared
+                {language === 'ar' ? 'لم يتم إعداد تسوية نهائية' : 'No Final Settlement Prepared'}
               </h3>
               <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-4">
-                Calculate pro-rated salary to last day, Article 51 gratuity, and leave encashment by clicking Prepare Settlement.
+                {language === 'ar'
+                  ? 'احتساب الراتب النسبي حتى آخر يوم عمل، مكافأة المادة 51، وبدل الإجازات بالضغط على إعداد التسوية.'
+                  : 'Calculate pro-rated salary to last day, Article 51 gratuity, and leave encashment by clicking Prepare Settlement.'}
               </p>
               <button
                 onClick={handlePrepareSettlement}
                 className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary hover:bg-primary/90 text-white"
               >
-                Prepare Settlement Now
+                {language === 'ar' ? 'إعداد التسوية الآن' : 'Prepare Settlement Now'}
               </button>
             </div>
           ) : (

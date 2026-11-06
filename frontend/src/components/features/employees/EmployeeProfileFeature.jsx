@@ -49,9 +49,14 @@ import {
   activateEmployee,
   verifyEmployee,
   approveContractVersion,
+  requestBranchChange,
+  fetchEmployeeMetaOptions,
 } from '../../../services/employeesApi';
+import { fetchBranches } from '../../../services/settingsApi';
 import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
+import { Drawer } from '../../primitives/Drawer';
+import { getEnumLabel, getVisaNameAr } from '../../../i18n/enums';
 
 export function EmployeeProfileFeature({ id } = {}) {
   const params = useParams();
@@ -88,6 +93,31 @@ export function EmployeeProfileFeature({ id } = {}) {
     bank_name: 'Emirates NBD',
     iban: '',
     routing_code: 'ENBD001',
+  });
+
+  // Branch Change Drawer state
+  const [showBranchDrawer, setShowBranchDrawer] = useState(false);
+  const [targetBranchId, setTargetBranchId] = useState('');
+  const [branchEffectiveDate, setBranchEffectiveDate] = useState(new Date().toISOString().split('T')[0]);
+  const [branchReason, setBranchReason] = useState('');
+  const [branchError, setBranchError] = useState(null);
+  const [branchLoading, setBranchLoading] = useState(false);
+
+  // Fetch branches for branch change
+  const { data: allBranches = [] } = useQuery({
+    queryKey: ['settings', 'branches'],
+    queryFn: async () => {
+      try {
+        const res = await fetchBranches();
+        if (Array.isArray(res) && res.length > 0) return res;
+      } catch {}
+      try {
+        const meta = await fetchEmployeeMetaOptions();
+        return meta.branches || [];
+      } catch {
+        return [];
+      }
+    },
   });
 
   // Fetch full employee profile
@@ -260,6 +290,40 @@ export function EmployeeProfileFeature({ id } = {}) {
     uploadDocMutation.mutate(formData);
   };
 
+  const handleBranchChangeSubmit = async (e) => {
+    e.preventDefault();
+    setBranchError(null);
+    if (!targetBranchId) {
+      setBranchError(isRTL ? 'يرجى اختيار الفرع المستهدف' : 'Please select target branch');
+      return;
+    }
+    if (!branchReason || branchReason.trim().length < 5) {
+      setBranchError(isRTL ? 'يرجى كتابة سبب النقل (5 أحرف على الأقل)' : 'Reason must be at least 5 characters');
+      return;
+    }
+    setBranchLoading(true);
+    try {
+      await requestBranchChange(employeeId, {
+        target_branch_id: targetBranchId,
+        effective_date: branchEffectiveDate,
+        reason: branchReason.trim(),
+      });
+      setActionSuccess(
+        isRTL
+          ? 'تم تقديم طلب تغيير الفرع بنجاح بانتظار اعتماد مدير الموارد البشرية'
+          : 'Branch change request submitted successfully for HR Manager approval'
+      );
+      setShowBranchDrawer(false);
+      setBranchReason('');
+      setTargetBranchId('');
+      refetchProfile();
+    } catch (err) {
+      setBranchError(err.message || 'Branch change request failed');
+    } finally {
+      setBranchLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-[500px] flex items-center justify-center p-8 text-text-muted">
@@ -293,6 +357,10 @@ export function EmployeeProfileFeature({ id } = {}) {
   const initial = employee.name ? employee.name.charAt(0).toUpperCase() : '?';
   const activeContract = employee.current_contract || (employee.contracts && employee.contracts[0]);
   const docAlertCount = employee.doc_alert_count || 0;
+
+  const sameVisaBranches = (allBranches || []).filter(
+    (b) => b.company_visa_id === employee.company_visa_id && b.id !== employee.branch_id
+  );
 
   // 7 Tabs per specification:
   // Salary History and Bank & WPS are NEVER rendered for non-salary roles
@@ -391,6 +459,25 @@ export function EmployeeProfileFeature({ id } = {}) {
               <span className="text-[10px] text-text-muted block mt-0.5">Pending stages 2–4</span>
             </div>
           </div>
+        </GlassCard>
+      )}
+
+      {/* Pending Branch Change Banner */}
+      {employee.pending_branch_change && (
+        <GlassCard id="banner-pending-branch-change" className="p-4 border border-amber-500/40 bg-amber-500/10 space-y-1">
+          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-xs">
+            <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+            <span>
+              {isRTL
+                ? `طلب تغيير فرع معلق: تم طلب النقل إلى "${employee.pending_branch_change.payload?.target_branch_name_ar || employee.pending_branch_change.payload?.target_branch_name || 'الفرع الجديد'}" يسري من ${employee.pending_branch_change.payload?.effective_date} (بانتظار اعتماد مدير الموارد البشرية)`
+                : `Pending Branch Change: Requested move to "${employee.pending_branch_change.payload?.target_branch_name || 'Target Branch'}" effective ${employee.pending_branch_change.payload?.effective_date}. Awaiting HR Manager approval.`}
+            </span>
+          </div>
+          {employee.pending_branch_change.payload?.reason && (
+            <p className="text-[11px] text-text-muted ps-6">
+              <span className="font-semibold text-text">{isRTL ? 'السبب:' : 'Reason:'}</span> {employee.pending_branch_change.payload.reason}
+            </p>
+          )}
         </GlassCard>
       )}
 
@@ -511,6 +598,25 @@ export function EmployeeProfileFeature({ id } = {}) {
 
           {/* Alert Badge & Quick Actions */}
           <div className="flex items-center gap-3 self-end md:self-auto">
+            {isHrOrAdmin && (
+              <button
+                id="btn-open-change-branch"
+                type="button"
+                onClick={() => {
+                  setBranchError(null);
+                  if (sameVisaBranches.length > 0 && !targetBranchId) {
+                    setTargetBranchId(sameVisaBranches[0].id);
+                  }
+                  setShowBranchDrawer(true);
+                }}
+                disabled={Boolean(employee.pending_branch_change)}
+                title={employee.pending_branch_change ? (isRTL ? 'يوجد طلب تغيير فرع معلق بالفعل' : 'A branch change request is already pending') : ''}
+                className="px-3.5 py-1.5 rounded-xl bg-surface border border-border hover:border-primary/50 text-text hover:text-primary text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Building2 className="w-4 h-4" />
+                <span>{isRTL ? 'تغيير الفرع' : 'Change branch'}</span>
+              </button>
+            )}
             {isHrOrAdmin && employee.status !== 'Active' && employee.status !== 'Archived' && (
               <button
                 id="btn-activate-employee-profile"
@@ -531,7 +637,7 @@ export function EmployeeProfileFeature({ id } = {}) {
             ) : (
               <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Compliance Complete</span>
+                <span>{isRTL ? 'مكتمل الامتثال' : 'Compliance Complete'}</span>
               </div>
             )}
           </div>
@@ -654,19 +760,25 @@ export function EmployeeProfileFeature({ id } = {}) {
                   </span>
                 </div>
                 <div>
-                  <span className="text-text-muted block mb-1">Company Visa Entity</span>
+                  <span className="text-text-muted block mb-1">{isRTL ? 'كيان تأشيرة المنشأة' : 'Company Visa Entity'}</span>
                   <span className="font-semibold text-text">
-                    {employee.company_visa?.visa_entity_name || employee.company?.name || 'Company'}
+                    {isRTL
+                      ? (employee.company_visa?.visa_entity_name_ar || employee.company?.name_ar || getVisaNameAr(employee.company_visa?.name) || 'المنشأة')
+                      : (employee.company_visa?.visa_entity_name || employee.company?.name || 'Company')}
                   </span>
                 </div>
                 <div>
-                  <span className="text-text-muted block mb-1">Contract Type</span>
-                  <span className="font-semibold text-text">{activeContract?.contract_type || 'Limited (UAE Law)'}</span>
+                  <span className="text-text-muted block mb-1">{isRTL ? 'نوع العقد' : 'Contract Type'}</span>
+                  <span className="font-semibold text-text">
+                    {isRTL
+                      ? (activeContract?.contract_type_ar || getEnumLabel('contract_type', activeContract?.contract_type, 'ar') || 'محدد المدة (قانون العمل)')
+                      : (activeContract?.contract_type || 'Limited (UAE Law)')}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-text-muted block mb-1">Contract Version</span>
+                  <span className="text-text-muted block mb-1">{isRTL ? 'نسخة العقد' : 'Contract Version'}</span>
                   <span className="font-mono font-bold text-primary">
-                    Version {activeContract?.version_no || 1}
+                    {isRTL ? `الإصدار ${activeContract?.version_no || 1}` : `Version ${activeContract?.version_no || 1}`}
                   </span>
                 </div>
               </div>
@@ -1205,6 +1317,105 @@ export function EmployeeProfileFeature({ id } = {}) {
           </GlassCard>
         </div>
       )}
+
+      {/* Branch Change Drawer */}
+      <Drawer
+        isOpen={showBranchDrawer}
+        onClose={() => setShowBranchDrawer(false)}
+        title={isRTL ? 'طلب تغيير فرع الموظف' : 'Change Employee Branch'}
+        subtitle={
+          isRTL
+            ? 'نقل الموظف إلى فرع آخر يتبع لنفس تأشيرة المنشأة (يتطلب اعتماد مدير الموارد البشرية)'
+            : 'Move employee to another branch under the same company visa (requires HR Manager approval)'
+        }
+        width="max-w-md"
+      >
+        <form onSubmit={handleBranchChangeSubmit} className="space-y-4 pt-2">
+          {branchError && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{branchError}</span>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-text mb-1">
+              {isRTL ? 'الفرع الحالي' : 'Current Branch'}
+            </label>
+            <div className="p-2.5 rounded-xl bg-surface-raised border border-border text-xs text-text-muted font-medium">
+              {isRTL ? (employee.branch?.name_ar || employee.branch?.name) : employee.branch?.name}
+            </div>
+          </div>
+
+          <div>
+            <Select
+              id="select-target-branch"
+              label={isRTL ? 'الفرع المستهدف (نفس التأشيرة)' : 'Target Branch (Same Visa)'}
+              required
+              value={targetBranchId}
+              onChange={(e) => setTargetBranchId(e.target.value)}
+              options={
+                sameVisaBranches.length > 0
+                  ? sameVisaBranches.map((b) => ({
+                      value: b.id,
+                      label: isRTL ? (b.name_ar || b.name) : b.name,
+                    }))
+                  : [{ value: '', label: isRTL ? 'لا توجد فروع أخرى لنفس التأشيرة' : 'No other branches under this visa' }]
+              }
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-text mb-1">
+              {isRTL ? 'تاريخ السريان' : 'Effective Date'} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="input-branch-effective-date"
+              type="date"
+              required
+              min={new Date().toISOString().split('T')[0]}
+              value={branchEffectiveDate}
+              onChange={(e) => setBranchEffectiveDate(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl bg-surface-raised border border-border text-xs text-text font-mono focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-text mb-1">
+              {isRTL ? 'سبب النقل' : 'Reason for Branch Change'} <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              id="textarea-branch-reason"
+              required
+              rows={3}
+              value={branchReason}
+              onChange={(e) => setBranchReason(e.target.value)}
+              placeholder={isRTL ? 'يرجى توضيح سبب نقل الموظف لهذا الفرع...' : 'State the operational or organizational reason for moving the employee...'}
+              className="w-full px-3 py-2 rounded-xl bg-surface-raised border border-border text-xs text-text focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+          </div>
+
+          <div className="pt-3 border-t border-border flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setShowBranchDrawer(false)}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-surface border border-border text-text hover:bg-surface-raised"
+            >
+              {isRTL ? 'إلغاء' : 'Cancel'}
+            </button>
+            <button
+              id="btn-submit-branch-change"
+              type="submit"
+              disabled={branchLoading || sameVisaBranches.length === 0}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-black hover:opacity-90 transition-all shadow-md active:scale-95 disabled:opacity-50"
+            >
+              {branchLoading
+                ? (isRTL ? 'جاري الإرسال...' : 'Submitting...')
+                : (isRTL ? 'إرسال للاعتماد' : 'Submit for Approval')}
+            </button>
+          </div>
+        </form>
+      </Drawer>
     </div>
   );
 }

@@ -8,6 +8,14 @@ import { formatCurrency } from '@nextal/shared';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useAuth } from '../../../context/AuthContext';
 
+const OT_NAME_MAP = {
+  'Normal ×1.25': { en: 'Normal ×1.25', ar: 'عادي ×١.٢٥' },
+  'Night ×1.5': { en: 'Night ×1.5', ar: 'ليلي ×١.٥' },
+  'Holiday/Rest ×1.5': { en: 'Holiday/Rest ×1.5', ar: 'عطلة/راحة ×١.٥' },
+  'Rest day ×1.5': { en: 'Rest day ×1.5', ar: 'يوم راحة ×١.٥' },
+  'Holiday ×1.5': { en: 'Holiday ×1.5', ar: 'عطلة رسمية ×١.٥' },
+};
+
 export function OvertimeTile({ data, onClick }) {
   const { language, t } = useLanguage();
   const { seesSalary } = useAuth();
@@ -22,9 +30,9 @@ export function OvertimeTile({ data, onClick }) {
   const totalHours = data?.totalHours ?? 196;
   const showAmount = Boolean(seesSalary && data?.totalAmount != null);
 
-  const subtitle = showAmount
-    ? `${totalHours}h approved · ${formatCurrency(data.totalAmount, 'AED', language)}`
-    : `${totalHours}h approved`;
+  const subtitle = language === 'ar'
+    ? (showAmount ? `${totalHours} س معتمدة · ${formatCurrency(data.totalAmount, 'AED', language)}` : `${totalHours} س معتمدة`)
+    : (showAmount ? `${totalHours}h approved · ${formatCurrency(data.totalAmount, 'AED', language)}` : `${totalHours}h approved`);
 
   return (
     <BentoTile
@@ -45,9 +53,13 @@ export function OvertimeTile({ data, onClick }) {
           {types.map((ot) => (
             <div key={ot.name} className="space-y-0.5 text-xs">
               <div className="flex justify-between items-center text-text-muted">
-                <span className="font-semibold text-text text-[11px]">{ot.name}</span>
+                <span className="font-semibold text-text text-[11px]">
+                  {language === 'ar' ? (OT_NAME_MAP[ot.name]?.ar || ot.name) : (OT_NAME_MAP[ot.name]?.en || ot.name)}
+                </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] tabular-nums font-semibold">{ot.hours}h</span>
+                  <span className="text-[11px] tabular-nums font-semibold">
+                    {ot.hours}{language === 'ar' ? ' س' : 'h'}
+                  </span>
                   {seesSalary && ot.amount != null && (
                     <bdi className="font-bold tabular-nums text-text text-[11px]">
                       {formatCurrency(ot.amount, 'AED', language)}

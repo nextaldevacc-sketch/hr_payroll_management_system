@@ -366,4 +366,253 @@ describe('Visa & Branch Scope Enforcement & Settings Rules (Sections A & B)', { 
       assert.equal(res.body.code, 'PAY_RUN_EXISTS');
     });
   });
+
+  describe('Follow-up 5: Fail-Closed Scope & Branch Change Workflow (Sections 1 & 2)', () => {
+    it('1.1: resolveDataScope(undefined) and resolveDataScope(null) fail closed', async () => {
+      const { resolveDataScope } = await import('../../src/services/scopeService.js');
+      const empty1 = resolveDataScope(undefined);
+      assert.deepEqual(empty1, { all: false, visaIds: [], branchIds: [], departmentIds: [] });
+      const empty2 = resolveDataScope(null);
+      assert.deepEqual(empty2, { all: false, visaIds: [], branchIds: [], departmentIds: [] });
+    });
+
+    it('1.2: user with only EMPLOYEE role -> /employees 403 and resolveDataScope returns empty', async () => {
+      const { resolveDataScope } = await import('../../src/services/scopeService.js');
+      const empUser = await db.users.findFirst({ where: { email: 'employee@gulftech.ae' } });
+      assert(empUser, 'employee user must exist');
+      const empToken = await loginAs('employee@gulftech.ae');
+
+      const res = await request(app)
+        .get('/api/v1/employees')
+        .set('Authorization', `Bearer ${empToken}`);
+      assert.equal(res.status, 403, 'Employee should not have permission to view employee list');
+
+      // resolveDataScope for employee user
+      const empRoles = await db.user_roles.findMany({
+        where: { user_id: empUser.id },
+        include: { role: true },
+      });
+      const scope = resolveDataScope({ user_roles: empRoles });
+      assert.deepEqual(scope, { all: false, visaIds: [], branchIds: [], departmentIds: [] });
+    });
+
+    it('1.3: hr.difc ALSO given an EMPLOYEE role linked to a Visa 02 employee -> still only Visa 02 data', async () => {
+      const hrDifcUser = await db.users.findFirst({ where: { email: 'hr.difc@gulftech.ae' } });
+      const empRole = await db.roles.findFirst({ where: { code: 'EMPLOYEE' } });
+      
+      let hrDifcEmp = await db.employees.findFirst({ where: { employee_code: 'EMP-DIFC-HR' } });
+      if (!hrDifcEmp) {
+        hrDifcEmp = await db.employees.create({
+          data: {
+            company_id: company.id,
+            company_visa_id: visa02.id,
+            branch_id: branchDifc.id,
+            employee_code: 'EMP-DIFC-HR',
+            name: 'HR DIFC Employee',
+            work_email: 'hr.difc.staff@gulftech.ae',
+            joining_date: new Date('2026-01-01'),
+            status: 'Active',
+            residency_type: 'NonResident',
+            nationality: 'AE',
+            gender: 'Male',
+          },
+        });
+      }
+
+      // Assign EMPLOYEE role to hr.difc linked to DIFC employee
+      await db.users.update({
+        where: { id: hrDifcUser.id },
+        data: { employee_id: hrDifcEmp.id },
+      });
+      const existingEmpRole = await db.user_roles.findFirst({
+        where: { user_id: hrDifcUser.id, role_id: empRole.id },
+      });
+      if (!existingEmpRole) {
+        await db.user_roles.create({
+          data: {
+            company_id: company.id,
+            user_id: hrDifcUser.id,
+            role_id: empRole.id,
+            scope_type: 'Self',
+          },
+        });
+      }
+
+      // Login fresh to get updated JWT
+      const newHrDifcToken = await loginAs('hr.difc@gulftech.ae');
+
+      // List employees: must only see Visa 02 employees
+      const res = await request(app)
+        .get('/api/v1/employees')
+        .set('Authorization', `Bearer ${newHrDifcToken}`);
+      assert.equal(res.status, 200);
+      const employees = res.body.data?.employees || res.body.data || [];
+      assert(employees.length > 0, 'Should find Visa 02 employees');
+      for (const emp of employees) {
+        assert.equal(emp.company_visa_id, visa02.id, 'Every returned employee must be under Visa 02');
+        assert.notEqual(emp.employee_code, 'EMP-DXB-043', 'Ahmed (Visa 01) must NOT be visible');
+      }
+
+      // Direct URL to Ahmed returns 404
+      const ahmedRes = await request(app)
+        .get(`/api/v1/employees/${ahmedEmp.id}`)
+        .set('Authorization', `Bearer ${newHrDifcToken}`);
+      assert.equal(ahmedRes.status, 404, 'Ahmed should return 404 for hr.difc');
+    });
+
+    it('2.1 (V8): branch change target with forged cross-visa branch returns 400 BRANCH_VISA_MISMATCH', async () => {
+      // Ensure no leftover pending branch change for Ahmed
+      const oldReqs = await db.approval_requests.findMany({
+        where: { request_type: 'EMPLOYEE_BRANCH_CHANGE', record_id: ahmedEmp.id },
+      });
+      for (const r of oldReqs) {
+        await db.approval_actions.deleteMany({ where: { approval_request_id: r.id } });
+        await db.approval_requests.delete({ where: { id: r.id } });
+      }
+
+      // Ahmed is under Visa 01 (Dubai branches). Attempt to change to branchDifc (Visa 02)
+      const res = await request(app)
+        .post(`/api/v1/employees/${ahmedEmp.id}/branch-change`)
+        .set('Authorization', `Bearer ${hrMgrToken}`)
+        .send({
+          target_branch_id: branchDifc.id,
+          effective_date: '2026-11-20',
+          reason: 'Attempt transfer to DIFC branch',
+        });
+      assert.equal(res.status, 400);
+      assert.equal(res.body.code, 'BRANCH_VISA_MISMATCH');
+    });
+
+    it('2.2 (V8): branch change with past effective date returns 400 INVALID_EFFECTIVE_DATE', async () => {
+      const res = await request(app)
+        .post(`/api/v1/employees/${ahmedEmp.id}/branch-change`)
+        .set('Authorization', `Bearer ${hrMgrToken}`)
+        .send({
+          target_branch_id: branchDxb.id,
+          effective_date: '2020-01-01',
+          reason: 'Past date change',
+        });
+      assert.equal(res.status, 400);
+      assert.equal(res.body.code, 'INVALID_EFFECTIVE_DATE');
+    });
+
+    it('2.3 (V8): self-approval of branch change returns 403 SELF_APPROVAL_FORBIDDEN', async () => {
+      // Clean any existing pending branch change for Ahmed
+      const oldReqs = await db.approval_requests.findMany({
+        where: { request_type: 'EMPLOYEE_BRANCH_CHANGE', record_id: ahmedEmp.id },
+      });
+      for (const r of oldReqs) {
+        await db.approval_actions.deleteMany({ where: { approval_request_id: r.id } });
+        await db.approval_requests.delete({ where: { id: r.id } });
+      }
+
+      const branchAbuDhabi = await db.branches.findFirst({
+        where: { company_id: company.id, name: { contains: 'Abu Dhabi' } },
+      });
+      assert(branchAbuDhabi, 'Abu Dhabi branch must exist');
+
+      const submitRes = await request(app)
+        .post(`/api/v1/employees/${ahmedEmp.id}/branch-change`)
+        .set('Authorization', `Bearer ${hrMgrToken}`)
+        .send({
+          target_branch_id: branchAbuDhabi.id,
+          effective_date: '2026-11-25',
+          reason: 'Relocating to Abu Dhabi branch',
+        });
+      assert.equal(submitRes.status, 200);
+      const reqId = submitRes.body.data.id;
+
+      // Duplicate pending request returns 409 BRANCH_CHANGE_PENDING
+      const dupRes = await request(app)
+        .post(`/api/v1/employees/${ahmedEmp.id}/branch-change`)
+        .set('Authorization', `Bearer ${hrMgrToken}`)
+        .send({
+          target_branch_id: branchAbuDhabi.id,
+          effective_date: '2026-11-25',
+          reason: 'Duplicate request',
+        });
+      assert.equal(dupRes.status, 409);
+      assert.equal(dupRes.body.code, 'BRANCH_CHANGE_PENDING');
+
+      // HR Manager attempts to self-approve own request -> 403 SELF_APPROVAL_FORBIDDEN
+      const approveRes = await request(app)
+        .post(`/api/v1/approvals/${reqId}/action`)
+        .set('Authorization', `Bearer ${hrMgrToken}`)
+        .send({
+          action: 'Approve',
+          comment: 'Self approving',
+        });
+      assert.equal(approveRes.status, 403);
+      assert.equal(approveRes.body.code, 'SELF_APPROVAL_FORBIDDEN');
+
+      // Clean up the pending request
+      await db.approval_actions.deleteMany({ where: { approval_request_id: reqId } });
+      await db.approval_requests.delete({ where: { id: reqId } });
+    });
+
+    it('2.4 (V8): future-dated branch change stays on old branch until 01:30 job runs on that date', async () => {
+      // Ensure no leftover pending request for Ahmed
+      const oldReqs = await db.approval_requests.findMany({
+        where: { request_type: 'EMPLOYEE_BRANCH_CHANGE', record_id: ahmedEmp.id },
+      });
+      for (const r of oldReqs) {
+        await db.approval_actions.deleteMany({ where: { approval_request_id: r.id } });
+        await db.approval_requests.delete({ where: { id: r.id } });
+      }
+
+      const branchAbuDhabi = await db.branches.findFirst({
+        where: { company_id: company.id, name: { contains: 'Abu Dhabi' } },
+      });
+      const hrOfficerToken = await loginAs('hr.officer@gulftech.ae');
+      const submitRes = await request(app)
+        .post(`/api/v1/employees/${ahmedEmp.id}/branch-change`)
+        .set('Authorization', `Bearer ${hrOfficerToken}`)
+        .send({
+          target_branch_id: branchAbuDhabi.id,
+          effective_date: '2026-12-01',
+          reason: 'Future relocation for project kickoff',
+        });
+      assert.equal(submitRes.status, 200);
+      const reqId = submitRes.body.data.id;
+
+      // HR Manager approves
+      const approveRes = await request(app)
+        .post(`/api/v1/approvals/${reqId}/action`)
+        .set('Authorization', `Bearer ${hrMgrToken}`)
+        .send({
+          action: 'Approve',
+          comment: 'Approved future transfer',
+        });
+      assert.equal(approveRes.status, 200);
+
+      // Check Ahmed's branch in DB: still branchDxb
+      const empBefore = await db.employees.findUnique({ where: { id: ahmedEmp.id } });
+      assert.equal(empBefore.branch_id, branchDxb.id, 'Ahmed must still be on Dubai branch before effective date');
+
+      // Run scheduler job with today's date (before 2026-12-01) -> should NOT apply
+      const { applyPendingBranchChanges } = await import('../../src/jobs/scheduler.js');
+      await applyPendingBranchChanges(new Date('2026-11-15'));
+      const empStillBefore = await db.employees.findUnique({ where: { id: ahmedEmp.id } });
+      assert.equal(empStillBefore.branch_id, branchDxb.id, 'Ahmed must still be on Dubai branch before effective date');
+
+      // Run scheduler job as of 2026-12-01 -> applies change!
+      const jobResult = await applyPendingBranchChanges(new Date('2026-12-01'));
+      assert(jobResult.applied >= 1, 'Job should have applied the pending change');
+
+      const empAfter = await db.employees.findUnique({ where: { id: ahmedEmp.id } });
+      assert.equal(empAfter.branch_id, branchAbuDhabi.id, 'Ahmed must now be on Abu Dhabi branch');
+
+      // Re-run scheduler job -> idempotent
+      const rerun = await applyPendingBranchChanges(new Date('2026-12-01'));
+      assert.equal(rerun.applied, 0, 'Subsequent job execution must be idempotent');
+
+      // Restore Ahmed back to Dubai branch
+      await db.employees.update({
+        where: { id: ahmedEmp.id },
+        data: { branch_id: branchDxb.id },
+      });
+      await db.approval_actions.deleteMany({ where: { approval_request_id: reqId } });
+      await db.approval_requests.delete({ where: { id: reqId } });
+    });
+  });
 });

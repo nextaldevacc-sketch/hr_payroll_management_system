@@ -7,8 +7,119 @@ import { IconWell } from '../../primitives/IconWell';
 import { ListDivided } from '../../primitives/ListDivided';
 import { useLanguage } from '../../../context/LanguageContext';
 
+const ROLE_MAP_AR = {
+  Audit: 'تدقيق',
+  User: 'مستخدم',
+  Admin: 'مسؤول',
+  HR: 'موارد بشرية',
+  Manager: 'مدير',
+  Employee: 'موظف',
+  Finance: 'مالية',
+  System: 'النظام',
+};
+
+const ACTION_MAP_AR = {
+  LOGIN: 'تسجيل دخول',
+  LOGOUT: 'تسجيل خروج',
+  LOGIN_FAILED: 'فشل تسجيل الدخول',
+  CREATE: 'إنشاء',
+  UPDATE: 'تحديث',
+  DELETE: 'حذف',
+  APPROVE: 'موافقة',
+  REJECT: 'رفض',
+  LOCK: 'إقفال',
+  CALCULATE: 'احتساب',
+  VALIDATE: 'تدقيق',
+  PAY: 'صرف',
+  RESET: 'إعادة تعيين',
+  INVITE: 'دعوة',
+  SUBMIT: 'تقديم',
+  DOCUMENT_VIEW: 'عرض الوثيقة',
+  DOCUMENT_DOWNLOAD: 'تحميل الوثيقة',
+  DOCUMENT_UPLOAD: 'رفع الوثيقة',
+  DOCUMENT: 'وثيقة',
+  VIEW: 'عرض',
+  DOWNLOAD: 'تحميل',
+  UPLOAD: 'رفع',
+  PASSWORD_CHANGE: 'تغيير كلمة المرور',
+  PASSWORD_RESET: 'إعادة تعيين كلمة المرور',
+  SIGN_OFF: 'اعتماد',
+  PUNCH: 'بصمة',
+  BRANCH_CHANGE: 'تغيير الفرع',
+  STATUS_CHANGE: 'تغيير الحالة',
+  ROLE_ASSIGN: 'تعيين دور',
+  ROLE_REVOKE: 'إلغاء دور',
+  EXPORT: 'تصدير',
+  IMPORT: 'استيراد',
+};
+
+const TARGET_MAP_AR = {
+  users: 'المستخدمين',
+  user: 'المستخدم',
+  employees: 'الموظفين',
+  employee: 'الموظف',
+  contracts: 'العقود',
+  contract: 'العقد',
+  pay_runs: 'مسيرات الرواتب',
+  pay_run: 'مسير الرواتب',
+  company_visas: 'التأشيرات',
+  visas: 'التأشيرات',
+  visa: 'التأشيرة',
+  branches: 'الفروع',
+  branch: 'الفرع',
+  departments: 'الأقسام',
+  department: 'القسم',
+  shifts: 'المناوبات',
+  shift: 'المناوبة',
+  attendance_days: 'سجلات الحضور',
+  attendance: 'الحضور',
+  punches: 'البصمات',
+  punch: 'البصمة',
+  overtime_requests: 'طلبات العمل الإضافي',
+  overtime: 'العمل الإضافي',
+  leave_requests: 'طلبات الإجازة',
+  leave: 'الإجازات',
+  final_settlements: 'مستحقات نهاية الخدمة',
+  settlements: 'المستحقات',
+  settlement: 'المستحقات',
+  separations: 'إنهاء الخدمة',
+  separation: 'إنهاء الخدمة',
+  roles: 'الأدوار',
+  role: 'الدور',
+  settings: 'الإعدادات',
+  companies: 'الشركات',
+  company: 'الشركة',
+  bank_accounts: 'الحسابات المصرفية',
+  documents: 'الوثائق',
+  employee_documents: 'وثائق الموظف',
+};
+
+function translateRole(r, lang) {
+  if (lang !== 'ar' || !r) return r;
+  return ROLE_MAP_AR[r] || ROLE_MAP_AR[r.charAt(0).toUpperCase() + r.slice(1).toLowerCase()] || r;
+}
+
+function translateAction(act, lang) {
+  if (lang !== 'ar' || !act) return act;
+  const upper = String(act).toUpperCase().replace(/[\s-]+/g, '_');
+  if (ACTION_MAP_AR[upper]) return ACTION_MAP_AR[upper];
+  if (ACTION_MAP_AR[act]) return ACTION_MAP_AR[act];
+  const parts = upper.split('_');
+  const translatedParts = parts.map((w) => ACTION_MAP_AR[w] || w);
+  if (translatedParts.some((p, i) => p !== parts[i])) {
+    return translatedParts.join(' ');
+  }
+  return act;
+}
+
+function translateTarget(tgt, lang) {
+  if (lang !== 'ar' || !tgt) return tgt;
+  const lower = String(tgt).toLowerCase().replace(/-/g, '_');
+  return TARGET_MAP_AR[lower] || TARGET_MAP_AR[tgt] || tgt;
+}
+
 export function RecentActivityTile({ data = [], onClick }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const items = Array.isArray(data) ? data : data?.items || [];
 
   return (
@@ -22,7 +133,7 @@ export function RecentActivityTile({ data = [], onClick }) {
         </IconWell>
       }
       title={t('dashboard.activity.title')}
-      subtitle="Immutable audit log · tamper-evident timestamps"
+      subtitle={language === 'ar' ? 'سجل تدقيق غير قابل للتعديل · طوابع زمنية موثقة' : 'Immutable audit log · tamper-evident timestamps'}
       badge={
         <span className="text-xs text-text-muted flex items-center gap-1 group-hover:text-primary transition-colors">
           {t('dashboard.activity.viewAudit')}
@@ -45,12 +156,22 @@ export function RecentActivityTile({ data = [], onClick }) {
 
               {/* Actor, Role, Action, Target */}
               <div className="truncate min-w-0">
-                <strong className="text-text font-semibold">{item.actor || item.user}</strong>
-                <span className="text-text-muted mx-1">({item.role || 'User'})</span>
-                <span className="text-text">{item.action}</span>
-                <span className="text-text-muted text-[11px] ms-1">
-                  — {item.target}
+                <strong className="text-text font-semibold">
+                  {language === 'ar' && (item.actor === 'System' || item.user === 'System')
+                    ? 'النظام'
+                    : (item.actor || item.user)}
+                </strong>
+                <span className="text-text-muted mx-1">
+                  ({translateRole(item.role || 'User', language)})
                 </span>
+                <span className="text-text">
+                  {translateAction(item.action, language)}
+                </span>
+                {item.target && (
+                  <span className="text-text-muted text-[11px] ms-1">
+                    — {translateTarget(item.target, language)}
+                  </span>
+                )}
               </div>
             </div>
 

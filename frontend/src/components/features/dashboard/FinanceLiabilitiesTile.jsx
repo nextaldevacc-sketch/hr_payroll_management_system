@@ -35,7 +35,7 @@ export function FinanceLiabilitiesTile({ data, onClick }) {
         </IconWell>
       }
       title={t('dashboard.liabilities.title')}
-      subtitle="Accrued balance sheet provisions"
+      subtitle={language === 'ar' ? 'مخصصات الميزانية المستحقة' : 'Accrued balance sheet provisions'}
     >
       <div className="space-y-2.5">
         {/* KPI 1: Gratuity Provision */}
@@ -52,7 +52,7 @@ export function FinanceLiabilitiesTile({ data, onClick }) {
               {formatCurrency(gratuity.totalAccrued, 'AED', language)}
             </bdi>
             <span className="text-[10px] text-text-muted">
-              +{formatCurrency(gratuity.monthDelta, 'AED', language)} this mo
+              +{formatCurrency(gratuity.monthDelta, 'AED', language)} {language === 'ar' ? 'هذا الشهر' : 'this mo'}
             </span>
           </div>
         </InsetBox>
@@ -60,9 +60,9 @@ export function FinanceLiabilitiesTile({ data, onClick }) {
         {/* KPI 2: Leave Liability */}
         <InsetBox className="p-2.5 text-xs">
           <div className="flex items-center justify-between text-text-muted mb-0.5">
-            <span className="font-semibold text-text text-[11px]">Annual Leave Liability</span>
+            <span className="font-semibold text-text text-[11px]">{t('dashboard.liabilities.leave')}</span>
             <div className="flex items-center text-[10px] text-secondary-text font-bold">
-              <ArrowUpRight className="w-3 h-3" />
+              <ArrowUpRight className="w-3.5 h-3.5" />
               <span>{leaveLiability.deltaPercent}</span>
             </div>
           </div>
@@ -71,7 +71,7 @@ export function FinanceLiabilitiesTile({ data, onClick }) {
               {formatCurrency(leaveLiability.totalAccrued, 'AED', language)}
             </bdi>
             <span className="text-[10px] text-text-muted">
-              +{formatCurrency(leaveLiability.monthDelta, 'AED', language)} this mo
+              +{formatCurrency(leaveLiability.monthDelta, 'AED', language)} {language === 'ar' ? 'هذا الشهر' : 'this mo'}
             </span>
           </div>
         </InsetBox>

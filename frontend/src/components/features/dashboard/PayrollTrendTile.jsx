@@ -36,7 +36,7 @@ export function PayrollTrendTile({ data, onClick }) {
           <div className="flex items-center justify-between gap-4">
             <span className="flex items-center gap-1.5 text-primary">
               <span className="w-2 h-2 rounded-full bg-primary" />
-              Gross:
+              {language === 'ar' ? 'الإجمالي:' : 'Gross:'}
             </span>
             <bdi className="font-bold tabular-nums">
               {formatCurrency(payload[0]?.value, 'AED', language)}
@@ -45,7 +45,7 @@ export function PayrollTrendTile({ data, onClick }) {
           <div className="flex items-center justify-between gap-4">
             <span className="flex items-center gap-1.5 text-info">
               <span className="w-2 h-2 rounded-full bg-info" />
-              Net (WPS):
+              {language === 'ar' ? 'الصافي (حماية الأجور):' : 'Net (WPS):'}
             </span>
             <bdi className="font-bold tabular-nums">
               {formatCurrency(payload[1]?.value, 'AED', language)}
@@ -141,15 +141,19 @@ export function PayrollTrendTile({ data, onClick }) {
         <div className="flex items-center justify-center gap-6 text-xs text-text-muted pt-1 border-t border-border/40 dark:border-border">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-primary" />
-            <span className="font-semibold text-text">Series 1: Gross Salary</span>
+            <span className="font-semibold text-text">
+              {language === 'ar' ? 'السلسلة ١: إجمالي الراتب' : 'Series 1: Gross Salary'}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-info" />
-            <span className="font-semibold text-text">Series 2: Net (WPS)</span>
+            <span className="font-semibold text-text">
+              {language === 'ar' ? 'السلسلة ٢: الصافي (حماية الأجور)' : 'Series 2: Net (WPS)'}
+            </span>
           </div>
           <div className="flex items-center gap-1.5 text-[11px]">
             <span className="w-2 h-2 rounded bg-tint-primary border border-primary/40 dark:border-transparent" />
-            <span>±5% Threshold Band</span>
+            <span>{language === 'ar' ? 'نطاق التفاوت ±٥٪' : '±5% Threshold Band'}</span>
           </div>
         </div>
       </div>

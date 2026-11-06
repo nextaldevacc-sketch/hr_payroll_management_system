@@ -328,7 +328,7 @@ export class SettlementService {
         status: settlement.status,
         net_payable: settlement.net_payable,
       },
-    }).catch(() => {});
+    });
 
     return settlement;
   }
@@ -399,7 +399,7 @@ export class SettlementService {
       recordId: settlementId,
       oldValues: { status: settlement.status },
       newValues: { status: 'Validated' },
-    }).catch(() => {});
+    });
 
     return updated;
   }
@@ -469,7 +469,7 @@ export class SettlementService {
       recordId: settlementId,
       oldValues: { status: settlement.status },
       newValues: { status: 'Approved' },
-    }).catch(() => {});
+    });
 
     return approved;
   }
@@ -521,7 +521,7 @@ export class SettlementService {
       recordId: settlementId,
       oldValues: { status: 'Approved' },
       newValues: { status: 'Paid' },
-    }).catch(() => {});
+    });
 
     return paid;
   }

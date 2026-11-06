@@ -58,11 +58,11 @@ export function HeadcountTile({ data, onClick }) {
           <div className="flex justify-between items-center text-[11px]">
             <span className="text-text font-semibold flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-primary" />
-              UAE National: {natMix.uaeNationals} ({natMix.gpssaEligible} GPSSA)
+              {t('dashboard.headcount.uaeNationalMix', { count: natMix.uaeNationals, gpssa: natMix.gpssaEligible })}
             </span>
             <span className="text-text-muted flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-slate-400" />
-              Expat: {natMix.expats}
+              {t('dashboard.headcount.expatMix', { count: natMix.expats })}
             </span>
           </div>
 

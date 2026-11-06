@@ -23,14 +23,14 @@ export class ScopeService {
    */
   resolveDataScope(viewer) {
     if (!viewer) {
-      return { all: true };
+      return { all: false, visaIds: [], branchIds: [], departmentIds: [] };
     }
 
     if (viewer.isPlatformAdmin || viewer.roles?.includes('PLATFORM_ADMIN')) {
       return { all: true };
     }
 
-    const scopes =
+    const rawScopes =
       viewer.scopes ||
       (viewer.user_roles
         ? viewer.user_roles.map((ur) => ({
@@ -40,21 +40,37 @@ export class ScopeService {
           }))
         : []);
 
-    if (scopes.length === 0) {
-      return { all: true };
+    // Spec 5.3: Compute scope ONLY from data-access roles (everything except EMPLOYEE).
+    // EMPLOYEE role gives self-service access only, never org scope.
+    const dataScopes = rawScopes.filter((s) => {
+      const roleCode = s.role?.code || s.role;
+      return roleCode !== 'EMPLOYEE';
+    });
+
+    if (dataScopes.length === 0) {
+      return { all: false, visaIds: [], branchIds: [], departmentIds: [] };
     }
 
-    // Any role with scope_type === 'Company' grants company-wide access
-    const hasCompanyScope = scopes.some(
-      (s) => !s.scope_type || s.scope_type === 'Company'
-    );
+    // Integrity check: if any data-access role has null/undefined scope_type, throw 500 error
+    for (const s of dataScopes) {
+      if (!s.scope_type) {
+        const roleName = s.role?.code || s.role || 'Unknown';
+        const err = new Error(`Integrity error: data-access role '${roleName}' has null scope_type`);
+        err.status = 500;
+        err.code = 'INVALID_SCOPE_CONFIGURATION';
+        throw err;
+      }
+    }
+
+    // Only non-EMPLOYEE roles with explicit scope_type === 'Company' get company-wide access
+    const hasCompanyScope = dataScopes.some((s) => s.scope_type === 'Company');
     if (hasCompanyScope) {
       return { all: true };
     }
 
     const visaIds = [
       ...new Set(
-        scopes
+        dataScopes
           .filter((s) => s.scope_type === 'CompanyVisa' && s.scope_id)
           .map((s) => s.scope_id)
       ),
@@ -62,7 +78,7 @@ export class ScopeService {
 
     const branchIds = [
       ...new Set(
-        scopes
+        dataScopes
           .filter((s) => s.scope_type === 'Branch' && s.scope_id)
           .map((s) => s.scope_id)
       ),
@@ -70,7 +86,7 @@ export class ScopeService {
 
     const departmentIds = [
       ...new Set(
-        scopes
+        dataScopes
           .filter((s) => s.scope_type === 'Department' && s.scope_id)
           .map((s) => s.scope_id)
       ),

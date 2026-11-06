@@ -477,10 +477,27 @@ export class EmployeeService {
       return status === 'Expired' || status === 'Expiring Soon';
     }).length;
 
+    const pendingBranchChange = await this.prisma.$base().approval_requests.findFirst({
+      where: {
+        company_id: companyId,
+        request_type: 'EMPLOYEE_BRANCH_CHANGE',
+        record_id: employeeId,
+        status: 'Pending',
+      },
+      select: {
+        id: true,
+        status: true,
+        payload: true,
+        requested_at: true,
+        requester: { select: { id: true, email: true } },
+      },
+    });
+
     const serialized = serializeEmployee(employee, viewer, { maskIbanInList: false });
 
     return {
       ...serialized,
+      pending_branch_change: pendingBranchChange || null,
       bento_header: {
         name: employee.name,
         arabic_name: employee.arabic_name,
@@ -851,7 +868,7 @@ export class EmployeeService {
           status: 'Approved',
           completed_at: new Date(),
         },
-      }).catch(() => {});
+      });
 
       return serializeEmployee(updated, viewer);
     } else if (action === 'SEND_BACK') {
@@ -877,7 +894,7 @@ export class EmployeeService {
           status: 'Rejected',
           completed_at: new Date(),
         },
-      }).catch(() => {});
+      });
 
       if (employee.created_by) {
         await this.prisma.$base().notifications.create({
@@ -892,7 +909,7 @@ export class EmployeeService {
             link: `/employees/${employee.id}`,
             is_read: false,
           },
-        }).catch(() => {});
+        });
       }
 
       return serializeEmployee(employee, viewer);
@@ -1066,6 +1083,7 @@ export class EmployeeService {
                 company_id: companyId,
                 user_id: user.id,
                 role_id: empRole.id,
+                scope_type: 'Self',
               },
             });
           }
@@ -1547,7 +1565,7 @@ export class EmployeeService {
       tableName: 'employee_documents',
       recordId: employeeId,
       newValues: { count: docs.length },
-    }).catch(() => {});
+    });
 
     return docs.map((d) => serializeDocument(d, viewer, employeeId));
   }
@@ -1767,7 +1785,7 @@ export class EmployeeService {
 
   /**
    * Request branch change within same visa (Workflow V8)
-   * Requires effective date + reason, submits for HR Manager approval
+   * Requires effective date (>= today) + reason, submits for HR Manager approval
    */
   async requestBranchChange({ companyId, employeeId, targetBranchId, effectiveDate, reason, requestedBy }) {
     const employee = await this.prisma.employees.findUnique({
@@ -1788,6 +1806,32 @@ export class EmployeeService {
       throw err;
     }
 
+    // Effective date >= today check
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const effDateStr = String(effectiveDate).slice(0, 10);
+    if (effDateStr < todayStr) {
+      const err = new Error('Effective date cannot be in the past');
+      err.status = 400;
+      err.code = 'INVALID_EFFECTIVE_DATE';
+      throw err;
+    }
+
+    // Only one pending branch change request per employee
+    const existingPending = await this.prisma.approval_requests.findFirst({
+      where: {
+        company_id: companyId,
+        request_type: 'EMPLOYEE_BRANCH_CHANGE',
+        record_id: employeeId,
+        status: 'Pending',
+      },
+    });
+    if (existingPending) {
+      const err = new Error('A branch change request is already pending for this employee');
+      err.status = 409;
+      err.code = 'BRANCH_CHANGE_PENDING';
+      throw err;
+    }
+
     const branch = await this.prisma.branches.findUnique({
       where: { id: targetBranchId },
     });
@@ -1805,19 +1849,25 @@ export class EmployeeService {
       throw err;
     }
 
-    const payload = JSON.stringify({
+    // Store structured data in payload jsonb, comment stays human readable comment
+    const payload = {
+      from_branch_id: employee.branch_id,
+      from_branch_name: employee.branch?.name,
+      from_branch_name_ar: employee.branch?.name_ar,
       target_branch_id: targetBranchId,
       target_branch_name: branch.name,
-      effective_date: effectiveDate,
-      reason,
-    });
+      target_branch_name_ar: branch.name_ar,
+      effective_date: effDateStr,
+      reason: String(reason).trim(),
+    };
 
     const approvalReq = await approvalService.createRequest({
       companyId,
       requestType: 'EMPLOYEE_BRANCH_CHANGE',
       recordId: employeeId,
       requestedBy,
-      comment: payload,
+      comment: String(reason).trim(),
+      payload,
     });
 
     return approvalReq;

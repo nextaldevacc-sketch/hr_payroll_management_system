@@ -129,23 +129,54 @@ export const ENUMS = {
     'HR & Admin': { en: 'HR & Admin', ar: 'الموارد البشرية والإدارة' },
   },
 
+  contract_type: {
+    Limited: { en: 'Limited (UAE Law)', ar: 'محدد المدة (قانون العمل)' },
+    Unlimited: { en: 'Unlimited', ar: 'غير محدد المدة' },
+    Permanent: { en: 'Permanent', ar: 'دائم' },
+    Temporary: { en: 'Temporary', ar: 'مؤقت' },
+    PartTime: { en: 'Part-Time', ar: 'دوام جزئي' },
+  },
+
   scope_type: {
     Company: { en: 'Company-Wide', ar: 'الشركة بالكامل' },
     CompanyVisa: { en: 'Company Visa', ar: 'تأشيرة المنشأة' },
     Branch: { en: 'Branch', ar: 'الفرع' },
     Department: { en: 'Department', ar: 'القسم' },
+    Self: { en: 'Self (Employee Only)', ar: 'ذاتي (الموظف فقط)' },
   },
 
   audit_action: {
+    CREATE: { en: 'Create Record', ar: 'إنشاء سجل' },
+    Create: { en: 'Create Record', ar: 'إنشاء سجل' },
+    UPDATE: { en: 'Update Record', ar: 'تحديث سجل' },
+    Update: { en: 'Update Record', ar: 'تحديث سجل' },
+    DELETE: { en: 'Delete Record', ar: 'حذف سجل' },
+    Delete: { en: 'Delete Record', ar: 'حذف سجل' },
+    LOGIN: { en: 'User Login', ar: 'تسجيل دخول' },
+    USER_LOGIN: { en: 'User Login', ar: 'تسجيل دخول مستخدم' },
+    LOGOUT: { en: 'User Logout', ar: 'تسجيل خروج' },
+    USER_LOGOUT: { en: 'User Logout', ar: 'تسجيل خروج مستخدم' },
     DOCUMENT_VIEW: { en: 'Document View', ar: 'عرض مستند' },
     DOCUMENT_UPLOAD: { en: 'Document Upload', ar: 'رفع مستند' },
     DOCUMENT_DELETE: { en: 'Document Delete', ar: 'حذف مستند' },
     DOCUMENT_RENEW: { en: 'Document Renew', ar: 'تجديد مستند' },
+    RenewDocument: { en: 'Renew Document', ar: 'تجديد وثيقة' },
+    VerifyDocument: { en: 'Verify Document', ar: 'تدقيق وثيقة' },
+    UploadDocument: { en: 'Upload Document', ar: 'رفع وثيقة' },
+    DownloadDocument: { en: 'Download Document', ar: 'تنزيل وثيقة' },
     PAYROLL_CALCULATE: { en: 'Calculate Payroll', ar: 'حساب مسير الرواتب' },
+    CALCULATE_PAY_RUN: { en: 'Calculate Pay Run', ar: 'احتساب مسير الرواتب' },
     PAYROLL_VALIDATE: { en: 'Validate Payroll', ar: 'تدقيق مسير الرواتب' },
+    VALIDATE_PAY_RUN: { en: 'Validate Pay Run', ar: 'تدقيق مسير الرواتب' },
     PAYROLL_LOCK: { en: 'Lock Payroll', ar: 'إقفال مسير الرواتب' },
+    LOCK_PAY_RUN: { en: 'Lock Pay Run', ar: 'إقفال مسير الرواتب' },
     PAYROLL_APPROVE: { en: 'Approve Payroll', ar: 'اعتماد مسير الرواتب' },
     PAYROLL_PAY: { en: 'Disburse Payroll', ar: 'صرف الرواتب' },
+    PAY_PAY_RUN: { en: 'Disburse Pay Run', ar: 'صرف مسير الرواتب' },
+    CREATE_PAY_RUN: { en: 'Create Pay Run', ar: 'إنشاء مسير رواتب' },
+    UPDATE_VARIANCE_REASON: { en: 'Update Variance Reason', ar: 'تحديث سبب الفروقات' },
+    UPDATE_VARIANCE_REAS: { en: 'Update Variance Reason', ar: 'تحديث سبب الفروقات' },
+    PAYSLIP_PDF_DOWNLOAD: { en: 'Download Payslip PDF', ar: 'تنزيل قسيمة الراتب PDF' },
     PAYROLL_EXPORT_SIF: { en: 'Export SIF File', ar: 'تصدير ملف حماية الأجور (SIF)' },
     PAYROLL_EXPORT_JOURNAL: { en: 'Export Journal', ar: 'تصدير قيود اليومية' },
     EMPLOYEE_CREATE: { en: 'Create Employee', ar: 'إنشاء ملف موظف' },
@@ -154,22 +185,69 @@ export const ENUMS = {
     EMPLOYEE_ACTIVATE: { en: 'Activate Employee', ar: 'تفعيل ملف موظف' },
     EMPLOYEE_STATUS_CHANGE: { en: 'Change Employee Status', ar: 'تغيير حالة الموظف' },
     EMPLOYEE_TERMINATE: { en: 'Terminate Employee', ar: 'إنهاء خدمات موظف' },
+    StatusChange: { en: 'Status Change', ar: 'تغيير الحالة' },
+    Verify: { en: 'Verify Employee', ar: 'تدقيق بيانات موظف' },
+    SendBack: { en: 'Send Back for Review', ar: 'إعادة للمراجعة' },
+    Activate: { en: 'Activate Employee', ar: 'تفعيل ملف موظف' },
+    Approve: { en: 'Approve', ar: 'اعتماد' },
     LEAVE_REQUEST: { en: 'Submit Leave Request', ar: 'تقديم طلب إجازة' },
     LEAVE_APPROVE: { en: 'Approve Leave', ar: 'الموافقة على الإجازة' },
     LEAVE_REJECT: { en: 'Reject Leave', ar: 'رفض الإجازة' },
     OVERTIME_REQUEST: { en: 'Submit Overtime Request', ar: 'تقديم طلب عمل إضافي' },
     OVERTIME_APPROVE: { en: 'Approve Overtime', ar: 'اعتماد عمل إضافي' },
-    USER_LOGIN: { en: 'User Login', ar: 'تسجيل دخول مستخدم' },
-    USER_LOGOUT: { en: 'User Logout', ar: 'تسجيل خروج مستخدم' },
     BRANCH_CREATE: { en: 'Create Branch', ar: 'إنشاء فرع' },
     BRANCH_UPDATE: { en: 'Update Branch', ar: 'تعديل فرع' },
     BRANCH_DELETE: { en: 'Delete Branch', ar: 'حذف فرع' },
+    BRANCH_CHANGE: { en: 'Branch Change', ar: 'تغيير الفرع' },
+    EMPLOYEE_BRANCH_CHANGE: { en: 'Branch Change Request', ar: 'طلب تغيير الفرع' },
     VISA_CREATE: { en: 'Create Visa', ar: 'إنشاء تأشيرة منشأة' },
     VISA_UPDATE: { en: 'Update Visa', ar: 'تعديل تأشيرة منشأة' },
     VISA_DELETE: { en: 'Delete Visa', ar: 'حذف تأشيرة منشأة' },
     COMPANY_UPDATE: { en: 'Update Company', ar: 'تعديل بيانات الشركة' },
+    CREATE_COMPANY: { en: 'Create Company', ar: 'إنشاء شركة' },
     CONTRACT_CREATE: { en: 'Create Contract', ar: 'إنشاء عقد عمل' },
+    CreateContract: { en: 'Create Contract', ar: 'إنشاء عقد عمل' },
+    ApproveContract: { en: 'Approve Contract', ar: 'اعتماد عقد عمل' },
+    RejectContract: { en: 'Reject Contract', ar: 'رفض عقد عمل' },
     SETTINGS_UPDATE: { en: 'Update Settings', ar: 'تعديل الإعدادات' },
+    ADJUSTMENT_CREATE: { en: 'Create Salary Adjustment', ar: 'إنشاء تسوية / سلفة راتب' },
+    ADJUSTMENT_APPROVE: { en: 'Approve Salary Adjustment', ar: 'اعتماد تسوية / سلفة راتب' },
+    ADJUSTMENT_REJECT: { en: 'Reject Salary Adjustment', ar: 'رفض تسوية / سلفة راتب' },
+    CREATE_SEPARATION: { en: 'Create Separation', ar: 'إنشاء طلب إنهاء خدمة' },
+    UPDATE_CLEARANCE_ITEM: { en: 'Update Clearance Item', ar: 'تحديث بند براءة الذمة' },
+    UPDATE_SEP_TASK: { en: 'Update Separation Task', ar: 'تحديث مهمة إنهاء الخدمة' },
+    DEACTIVATE_OFFBOARDED_EMPLOYEE: { en: 'Deactivate Offboarded Employee', ar: 'إلغاء تفعيل موظف منهية خدماته' },
+    PREPARE_FINAL_SETTLEMENT: { en: 'Prepare Final Settlement', ar: 'إعداد التسوية النهائية' },
+    VALIDATE_FINAL_SETTLEMENT: { en: 'Validate Final Settlement', ar: 'تدقيق التسوية النهائية' },
+    APPROVE_FINAL_SETTLEMENT: { en: 'Approve Final Settlement', ar: 'اعتماد التسوية النهائية' },
+    PAY_FINAL_SETTLEMENT: { en: 'Pay Final Settlement', ar: 'صرف التسوية النهائية' },
+    INVITE_USER: { en: 'Invite User', ar: 'دعوة مستخدم' },
+    UPDATE_ROLES: { en: 'Update User Roles', ar: 'تحديث أدوار المستخدم' },
+    BULK_CREATE_LOGINS: { en: 'Bulk Create Logins', ar: 'إنشاء حسابات دخول مجمعة' },
+    UNLOCK_USER: { en: 'Unlock User', ar: 'إلغاء قفل المستخدم' },
+    SET_PASSWORD_INVITE: { en: 'Set Password from Invite', ar: 'تعيين كلمة المرور من الدعوة' },
+    RESET_PASSWORD: { en: 'Reset Password', ar: 'إعادة تعيين كلمة المرور' },
+    GRANT_SUPPORT_ACCESS: { en: 'Grant Support Access', ar: 'منح صلاحية الدعم الفني' },
+    REVOKE_SUPPORT_ACCESS: { en: 'Revoke Support Access', ar: 'إلغاء صلاحية الدعم الفني' },
+    SUBMIT: { en: 'Submit for Approval', ar: 'إرسال للاعتماد' },
+    SUBMIT_APPROVAL: { en: 'Submit Approval Request', ar: 'إرسال طلب اعتماد' },
+    REOPEN: { en: 'Reopen Attendance Day', ar: 'إعادة فتح يوم الحضور' },
+    RUN_JOB: { en: 'Execute Scheduled Job', ar: 'تشغيل مهمة مجدولة' },
+  },
+
+  settlement_status: {
+    Draft: { en: 'Draft', ar: 'مسودة' },
+    Prepared: { en: 'Prepared', ar: 'مُعَد' },
+    Approved: { en: 'Approved', ar: 'معتمد' },
+    Paid: { en: 'Paid', ar: 'تم الصرف' },
+    'Not Prepared': { en: 'Not Prepared', ar: 'غير مُعَد' },
+  },
+
+  separation_status: {
+    Pending: { en: 'Pending', ar: 'قيد الانتظار' },
+    Approved: { en: 'Approved', ar: 'معتمد' },
+    Rejected: { en: 'Rejected', ar: 'مرفوض' },
+    Completed: { en: 'Completed', ar: 'مكتمل' },
   },
 
   report_export: {
@@ -199,6 +277,20 @@ export const ENUMS = {
 };
 
 /**
+ * Shared Month-Year Formatter using Intl.DateTimeFormat
+ * e.g., 'Aug 2026' -> 'أغسطس 2026' or 'August 2026'
+ */
+export function formatMonthYear(dateInput, lang = 'en') {
+  if (!dateInput) return '---';
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return String(dateInput);
+  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-AE' : 'en-AE', {
+    month: 'long',
+    year: 'numeric',
+  }).format(d);
+}
+
+/**
  * Translate an enumeration or status value
  * @param {string|null} category - e.g. 'employee_status', 'document_type', or null for auto-search
  * @param {string} value - The raw code or English label
@@ -208,24 +300,50 @@ export const ENUMS = {
 export function getEnumLabel(category, value, lang = 'en') {
   if (!value) return '';
   const isAr = lang === 'ar';
+  const strVal = String(value).trim();
 
   // 1. Direct category lookup
   if (category && ENUMS[category]) {
-    const item = ENUMS[category][value];
+    const item = ENUMS[category][strVal];
     if (item) {
       return isAr ? (item.ar || item.en) : item.en;
+    }
+    // Case-insensitive lookup in category
+    const catEntry = Object.entries(ENUMS[category]).find(
+      ([k]) => k.toLowerCase() === strVal.toLowerCase()
+    );
+    if (catEntry) {
+      return isAr ? (catEntry[1].ar || catEntry[1].en) : catEntry[1].en;
     }
   }
 
   // 2. Global search across all categories if category is omitted or value not found
   for (const cat of Object.values(ENUMS)) {
-    if (cat[value]) {
-      return isAr ? (cat[value].ar || cat[value].en) : cat[value].en;
+    if (cat[strVal]) {
+      return isAr ? (cat[strVal].ar || cat[strVal].en) : cat[strVal].en;
+    }
+    const match = Object.entries(cat).find(
+      ([k]) => k.toLowerCase() === strVal.toLowerCase()
+    );
+    if (match) {
+      return isAr ? (match[1].ar || match[1].en) : match[1].en;
     }
   }
 
   // 3. Fallback to raw value
-  return String(value);
+  return strVal;
+}
+
+export function getVisaNameAr(name) {
+  if (!name) return '';
+  const str = String(name);
+  if (str.includes('Visa 01') || str.includes('Mainland') || str.includes('MOHRE')) {
+    return 'تأشيرة 01 (وزارة الموارد البشرية دبي)';
+  }
+  if (str.includes('Visa 02') || str.includes('DIFC')) {
+    return 'تأشيرة 02 (مركز دبي المالي العالمي)';
+  }
+  return str;
 }
 
 export default getEnumLabel;

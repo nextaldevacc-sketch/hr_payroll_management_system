@@ -407,7 +407,7 @@ export default function ReportsFeature() {
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                  Finance Excel
+                  {isAr ? 'ملف إكسل للمالية' : 'Finance Excel'}
                 </span>
               </div>
               <h3 className="font-semibold text-slate-900 dark:text-white text-base">
@@ -420,7 +420,7 @@ export default function ReportsFeature() {
               </p>
             </div>
             <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-mono">Article 51</span>
+              <span className="text-xs text-slate-400 font-mono">{isAr ? 'المادة 51' : 'Article 51'}</span>
               <button
                 onClick={() => handleDownload('gratuity', () => reportsApi.downloadGratuityProvision())}
                 disabled={downloadingId === 'gratuity'}
@@ -442,7 +442,7 @@ export default function ReportsFeature() {
                   <Layers className="w-5 h-5" />
                 </div>
                 <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                  Finance Excel
+                  {isAr ? 'ملف إكسل للمالية' : 'Finance Excel'}
                 </span>
               </div>
               <h3 className="font-semibold text-slate-900 dark:text-white text-base">
@@ -455,7 +455,7 @@ export default function ReportsFeature() {
               </p>
             </div>
             <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-mono">Unused × Daily Basic</span>
+              <span className="text-xs text-slate-400 font-mono">{isAr ? 'الرصيد × الراتب الأساسي اليومي' : 'Unused × Daily Basic'}</span>
               <button
                 onClick={() => handleDownload('liability', () => reportsApi.downloadLeaveLiability())}
                 disabled={downloadingId === 'liability'}

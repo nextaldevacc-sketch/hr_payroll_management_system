@@ -26,7 +26,86 @@ export const REGISTERED_JOBS = {
     cronExpression: '0 2 1 * *', // 02:00 on the 1st of each month
     runner: async () => await runMonthlyAccrualJob(),
   },
+  branch_change: {
+    name: 'branch_change',
+    description: 'Apply approved branch changes reaching effective date (Workflow V8)',
+    cronExpression: '30 1 * * *', // 01:30 daily
+    runner: async () => await applyPendingBranchChanges(),
+  },
 };
+
+export async function applyPendingBranchChanges(asOfDate = new Date()) {
+  const todayStr = (asOfDate instanceof Date ? asOfDate : new Date(asOfDate)).toISOString().slice(0, 10);
+  const pendingRequests = await prisma.$base().approval_requests.findMany({
+    where: {
+      request_type: 'EMPLOYEE_BRANCH_CHANGE',
+      status: 'Approved',
+    },
+  });
+
+  const applied = [];
+  for (const req of pendingRequests) {
+    let payload = req.payload;
+    if (!payload && req.comment) {
+      try { payload = JSON.parse(req.comment); } catch {}
+    }
+    if (!payload || payload.applied === true) continue;
+
+    const effDateStr = String(payload.effective_date).slice(0, 10);
+    if (effDateStr <= todayStr) {
+      await prisma.$base().$transaction(async (tx) => {
+        const emp = await tx.employees.findUnique({
+          where: { id: req.record_id },
+        });
+        if (!emp) return;
+
+        const targetBranch = await tx.branches.findUnique({
+          where: { id: payload.target_branch_id },
+        });
+        if (!targetBranch || targetBranch.company_visa_id !== emp.company_visa_id) {
+          console.warn(`[BranchChangeJob] Target branch visa mismatch for request ${req.id}`);
+          return;
+        }
+
+        await tx.employees.update({
+          where: { id: emp.id },
+          data: { branch_id: targetBranch.id },
+        });
+
+        const updatedPayload = {
+          ...payload,
+          applied: true,
+          applied_at: new Date().toISOString(),
+        };
+
+        await tx.approval_requests.update({
+          where: { id: req.id },
+          data: { payload: updatedPayload },
+        });
+
+        await auditService.log({
+          companyId: req.company_id,
+          userId: req.requested_by,
+          action: 'UPDATE',
+          tableName: 'employees',
+          recordId: emp.id,
+          oldValues: { branch_id: emp.branch_id },
+          newValues: {
+            branch_id: targetBranch.id,
+            effective_date: effDateStr,
+            reason: payload.reason,
+            applied_by: 'SCHEDULER_BRANCH_CHANGE_JOB',
+          },
+          tx,
+        });
+
+        applied.push({ requestId: req.id, employeeId: emp.id, newBranchId: targetBranch.id });
+      });
+    }
+  }
+
+  return { processed: pendingRequests.length, applied: applied.length, details: applied };
+}
 
 export async function executeJob(jobKey, triggeredBy = 'CRON') {
   const jobDef = REGISTERED_JOBS[jobKey];
@@ -67,7 +146,7 @@ export async function executeJob(jobKey, triggeredBy = 'CRON') {
           status: 'SUCCESS',
           result: typeof result === 'object' ? result : { output: String(result) },
         },
-      }).catch(() => {});
+      }).catch((err) => console.warn(`[Scheduler] Failed to log audit for job ${jobDef.name}:`, err.message));
     }
 
     return {

@@ -143,7 +143,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
             </div>
           </div>
         ) : (isEmployeeOnly || isSingleVisaScope) ? (
-          <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-control text-start">
+          <div id="static-company-visa-badge" className="flex items-center gap-2.5 px-3 py-1.5 rounded-control text-start">
             <IconWell size="sm" shape="square" color="primary">
               <Building2 className="w-3.5 h-3.5" />
             </IconWell>

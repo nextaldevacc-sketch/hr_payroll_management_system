@@ -67,10 +67,7 @@ export const rawPrisma = new PrismaClient(
  * Creates a company-isolated Prisma Client instance
  */
 export function createScopedPrismaClient(explicitCompanyId = null, options = {}) {
-  const activeUrl = getActiveDbUrl();
-  const baseClient = new PrismaClient(
-    activeUrl ? { datasources: { db: { url: activeUrl } } } : undefined
-  );
+  const baseClient = rawPrisma;
 
   return baseClient.$extends({
     name: 'companyIsolation',

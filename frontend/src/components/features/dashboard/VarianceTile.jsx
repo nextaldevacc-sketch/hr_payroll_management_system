@@ -9,13 +9,29 @@ import { StatNumber } from '../../primitives/StatNumber';
 import { formatCurrency } from '@nextal/shared';
 import { useLanguage } from '../../../context/LanguageContext';
 
+const REASON_MAP_AR = {
+  'New hire': 'تعيين جديد',
+  'Approved OT': 'عمل إضافي معتمد',
+  'Unpaid leave': 'إجازة غير مدفوعة',
+  'Salary increase': 'زيادة راتب',
+  'Loan deduction': 'خصم سلفة',
+  'Late penalty': 'خصم تأخير',
+};
+
 export function VarianceTile({ data, onClick }) {
   const { t, language } = useLanguage();
-  const topChanges = data?.topChanges || [
-    { employee: 'Elena Rostova', diff: '+8,500.00', reason: 'New hire', warning: false },
-    { employee: 'Ahmed Mansoor', diff: '+2,120.00', reason: 'Approved OT', warning: false },
-    { employee: 'Zayed Al-Ameri', diff: '-1,450.00', reason: 'Unpaid leave', warning: false },
-  ];
+  const rawTopChanges = (data?.topChanges && data.topChanges.length > 0)
+    ? data.topChanges
+    : [
+        { employee: 'Elena Rostova', employeeAr: 'إيلينا روستوفا', diff: '+8,500.00', reason: 'New hire', reasonAr: 'تعيين جديد', warning: false },
+        { employee: 'Ahmed Mansoor', employeeAr: 'أحمد منصور', diff: '+2,120.00', reason: 'Approved OT', reasonAr: 'عمل إضافي معتمد', warning: false },
+        { employee: 'Zayed Al-Ameri', employeeAr: 'زايد العامري', diff: '-1,450.00', reason: 'Unpaid leave', reasonAr: 'إجازة غير مدفوعة', warning: false },
+      ];
+
+  const topChanges = rawTopChanges.map((item) => ({
+    ...item,
+    reasonLabel: language === 'ar' ? (item.reasonAr || REASON_MAP_AR[item.reason] || item.reason) : item.reason,
+  }));
 
   return (
     <BentoTile
@@ -36,13 +52,15 @@ export function VarianceTile({ data, onClick }) {
         </IconWell>
       }
       title={t('dashboard.variance.title')}
-      subtitle="October vs September 2026"
+      subtitle={language === 'ar' ? 'أكتوبر مقابل سبتمبر ٢٠٢٦' : 'October vs September 2026'}
     >
       <div className="space-y-2.5">
         {/* Net this month vs last with AED and % difference */}
         <div className="flex items-baseline justify-between">
           <div>
-            <span className="text-[10px] text-text-muted block">This Month Net</span>
+            <span className="text-[10px] text-text-muted block">
+              {language === 'ar' ? 'صافي هذا الشهر' : 'This Month Net'}
+            </span>
             <StatNumber
               value={data.currentMonthNet}
               isCurrency={true}
@@ -51,7 +69,9 @@ export function VarianceTile({ data, onClick }) {
           </div>
 
           <div className="flex flex-col items-end">
-            <span className="text-[10px] text-text-muted block">Net Difference</span>
+            <span className="text-[10px] text-text-muted block">
+              {language === 'ar' ? 'الفارق الصافي' : 'Net Difference'}
+            </span>
             <div
               className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
                 data.isPositive
@@ -71,7 +91,7 @@ export function VarianceTile({ data, onClick }) {
         {/* Top 3 Employees with largest change and reasons */}
         <div className="space-y-1.5 pt-1 border-t border-border/40 text-xs">
           <span className="text-[10px] uppercase font-bold text-text-muted block">
-            Top Variance Drivers
+            {language === 'ar' ? 'أبرز أسباب الفروقات' : 'Top Variance Drivers'}
           </span>
           {topChanges.map((item, idx) => (
             <InsetBox
@@ -86,7 +106,7 @@ export function VarianceTile({ data, onClick }) {
                   {language === 'ar' ? (item.employeeAr || item.employee) : item.employee}
                 </span>
                 <span className="text-[10px] text-text-muted truncate">
-                  · {language === 'ar' ? (item.reasonAr || item.reason) : item.reason}
+                  · {item.reasonLabel}
                 </span>
               </div>
               <bdi

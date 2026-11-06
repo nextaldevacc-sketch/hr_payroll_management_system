@@ -6,8 +6,21 @@ import { BentoTile } from '../../primitives/BentoTile';
 import { IconWell } from '../../primitives/IconWell';
 import { useLanguage } from '../../../context/LanguageContext';
 
+const DEPT_NAMES_AR = {
+  Operations: 'العمليات التشغيلية',
+  Logistics: 'اللوجستيات',
+  Management: 'الإدارة',
+  'Fleet & Operations': 'الأسطول والعمليات',
+  'Logistics Operations': 'العمليات اللوجستية',
+  'Finance & Accounting': 'المالية والمحاسبة',
+  'Human Resources': 'الموارد البشرية',
+  'Executive Management': 'الإدارة التنفيذية',
+  'Customer Support': 'خدمة العملاء',
+  'IT & Systems': 'تقنية المعلومات',
+};
+
 export function DepartmentChartTile({ data = [], onClick }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   // Single gold ramp: 100%, 80%, 62%, 46%, 32% ranked by department size
   const goldRampOpacities = [1.0, 0.80, 0.62, 0.46, 0.32];
@@ -24,7 +37,7 @@ export function DepartmentChartTile({ data = [], onClick }) {
         </IconWell>
       }
       title={t('dashboard.deptHeadcount.title')}
-      subtitle="42 employees in 5 units"
+      subtitle={language === 'ar' ? '٤٢ موظفاً عبر ٥ أقسام' : '42 employees in 5 units'}
     >
       {/* Dense layout, no empty bottom space */}
       <div className="space-y-2">
@@ -33,7 +46,9 @@ export function DepartmentChartTile({ data = [], onClick }) {
           return (
             <div key={dept.name} className="flex flex-col gap-1 text-xs">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-text truncate">{dept.name}</span>
+                <span className="font-semibold text-text truncate">
+                  {language === 'ar' ? (dept.nameAr || dept.name_ar || DEPT_NAMES_AR[dept.name] || dept.name) : dept.name}
+                </span>
                 <div className="flex items-center gap-1.5 flex-shrink-0 ms-2 text-[11px] text-text-muted">
                   <bdi className="font-bold text-text tabular-nums">{dept.count}</bdi>
                   <span>({dept.percentage}%)</span>

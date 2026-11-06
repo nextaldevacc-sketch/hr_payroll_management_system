@@ -117,7 +117,7 @@ export class SeparationService {
         notice_shortfall_days: noticeShortfallDays,
         status: separation.status,
       },
-    }).catch(() => {});
+    });
 
     if (auto_approve) {
       await this._createDefaultClearanceItems(companyId, separation.id, userId);
@@ -185,7 +185,7 @@ export class SeparationService {
       recordId: separationId,
       oldValues: { status: separation.status },
       newValues: { status: newStatus, reason },
-    }).catch(() => {});
+    });
 
     if (action === 'Approve') {
       await this._createDefaultClearanceItems(companyId, separationId, userId);
@@ -196,7 +196,9 @@ export class SeparationService {
         requestId: separationId,
         actorUserId: userId,
         description: `Separation approved for ${separation.employee.name}. Clearance checklist opened.`,
-      }).catch(() => {});
+      }).catch((err) => {
+        console.warn('Failed to notify approvers waiting:', err.message);
+      });
     }
 
     return this.getSeparationById(companyId, separationId);
@@ -589,7 +591,7 @@ export class SeparationService {
       recordId: itemId,
       oldValues: { status: item.status, amount_due: item.amount_due },
       newValues: { status: updated.status, amount_due: updated.amount_due, note },
-    }).catch(() => {});
+    });
 
     return updated;
   }
@@ -677,7 +679,7 @@ export class SeparationService {
       recordId: taskId,
       oldValues: { status: task.status, reference_number: task.reference_number },
       newValues: { status: updated.status, reference_number: updated.reference_number, note: updated.note },
-    }).catch(() => {});
+    });
 
     return updated;
   }

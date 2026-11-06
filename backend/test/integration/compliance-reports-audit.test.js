@@ -60,6 +60,7 @@ describe('Phase 9: Compliance, Reports & Audit Integration Tests', () => {
 
     companyAdminAUser = await prisma.$base().users.findFirst({
       where: { company_id: companyA.id, email: 'admin@gulftech.ae' },
+      include: { user_roles: { include: { role: true } } },
     });
 
     // 3. Locate a locked or paid pay run for report testing
@@ -116,7 +117,7 @@ describe('Phase 9: Compliance, Reports & Audit Integration Tests', () => {
       });
 
       // Fetch via listComplianceDocuments service
-      const res = await complianceService.listComplianceDocuments(companyA.id, { search: 'P-EXPIRED-2D' });
+      const res = await complianceService.listComplianceDocuments(companyA.id, { search: 'P-EXPIRED-2D' }, companyAdminAUser);
       const found = res.items.find((d) => d.id === expiredDoc.id);
       assert.ok(found, 'Document must be found in list');
       assert.equal(found.status, 'Expired', 'Document expiring 2 days ago must dynamically compute status as Expired on read');

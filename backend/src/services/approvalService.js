@@ -10,7 +10,7 @@ export class ApprovalService {
   /**
    * Submit a new approval request
    */
-  async createRequest({ companyId, requestType, recordId, requestedBy, comment = null, tx = null }) {
+  async createRequest({ companyId, requestType, recordId, requestedBy, comment = null, payload = null, tx = null }) {
     if (!companyId || !requestType || !recordId || !requestedBy) {
       const err = new Error('companyId, requestType, recordId, and requestedBy are required');
       err.status = 400;
@@ -80,7 +80,7 @@ export class ApprovalService {
 
     // Self-approval check: If the requester holds the role of the initial step,
     // advance the step to the next approver tier (e.g. HR Manager's own request advances to GM / Step 2)
-    // EXCEPTION: EMPLOYEE_VERIFICATION is strictly evaluated against the creator at action time (FR-EM4/FR-WF2).
+    // EXCEPTION: EMPLOYEE_VERIFICATION & EMPLOYEE_BRANCH_CHANGE are strictly evaluated against the creator at action time (FR-EM4/FR-WF2).
     const requesterUserRoles = await client.user_roles.findMany({
       where: { company_id: companyId, user_id: requestedBy },
       include: { role: true },
@@ -88,7 +88,7 @@ export class ApprovalService {
     const requesterRoleCodes = requesterUserRoles.map((ur) => ur.role.code);
 
     let initialStep = 1;
-    if (requestType !== 'EMPLOYEE_VERIFICATION') {
+    if (requestType !== 'EMPLOYEE_VERIFICATION' && requestType !== 'EMPLOYEE_BRANCH_CHANGE') {
       const sortedSteps = [...flow.steps].sort((a, b) => a.step_no - b.step_no);
       while (initialStep < sortedSteps.length) {
         const stepDef = sortedSteps.find((s) => s.step_no === initialStep);
@@ -109,6 +109,7 @@ export class ApprovalService {
         current_step: initialStep,
         status: 'Pending',
         requested_by: requestedBy,
+        payload: payload || undefined,
       },
       include: {
         flow: {
@@ -134,7 +135,7 @@ export class ApprovalService {
           action: 'SUBMIT',
           comment,
         },
-      }).catch(() => {});
+      });
     }
 
     await auditService.log({
@@ -151,7 +152,7 @@ export class ApprovalService {
         comment,
       },
       tx,
-    }).catch(() => {});
+    });
 
     // Notify approver(s) for Step 1
     try {
@@ -314,19 +315,6 @@ export class ApprovalService {
 
     const now = new Date();
 
-    // 1. Record the action in approval_actions
-    const approvalAction = await this.prisma.$base().approval_actions.create({
-      data: {
-        company_id: companyId,
-        approval_request_id: request.id,
-        step_no: request.current_step,
-        acted_by: actorId,
-        action: normalizedAction,
-        comment: decisionComment,
-        acted_at: now,
-      },
-    });
-
     let newStatus = request.status;
     let nextStep = request.current_step;
     let completedAt = null;
@@ -344,71 +332,135 @@ export class ApprovalService {
       }
     }
 
-    const updatedRequest = await this.prisma.$base().approval_requests.update({
-      where: { id: request.id },
-      data: {
-        current_step: nextStep,
-        status: newStatus,
-        completed_at: completedAt,
-      },
-      include: {
-        actions: {
-          orderBy: { step_no: 'asc' },
-          include: { actor: { select: { id: true, email: true } } },
+    const { updatedRequest, approvalAction } = await this.prisma.$base().$transaction(async (tx) => {
+      // 1. Record the action in approval_actions
+      const actionRecord = await tx.approval_actions.create({
+        data: {
+          company_id: companyId,
+          approval_request_id: request.id,
+          step_no: request.current_step,
+          acted_by: actorId,
+          action: normalizedAction,
+          comment: decisionComment,
+          acted_at: now,
         },
-      },
-    });
+      });
 
-    await auditService.log({
-      companyId,
-      userId: actorId,
-      action: `APPROVAL_${action.toUpperCase()}`,
-      tableName: 'approval_requests',
-      recordId: request.id,
-      oldValues: { status: request.status, current_step: request.current_step },
-      newValues: { status: newStatus, current_step: nextStep, comment },
-    }).catch(() => {});
-
-    // Apply branch update if EMPLOYEE_BRANCH_CHANGE approved
-    if (newStatus === 'Approved' && request.request_type === 'EMPLOYEE_BRANCH_CHANGE') {
-      try {
-        let rawComment = request.comment;
-        if (!rawComment) {
-          const submitAction = await this.prisma.$base().approval_actions.findFirst({
-            where: { approval_request_id: request.id, action: 'SUBMIT' },
-            orderBy: { step_no: 'asc' },
-          });
-          rawComment = submitAction?.comment;
+      let branchPayload = request.payload;
+      if (!branchPayload && request.comment) {
+        try {
+          branchPayload = JSON.parse(request.comment);
+        } catch {
+          branchPayload = null;
         }
-        const changeData = rawComment ? JSON.parse(rawComment) : null;
-        if (changeData && changeData.target_branch_id) {
-          const emp = await this.prisma.$base().employees.findUnique({
-            where: { id: request.record_id },
-          });
-          if (emp) {
-            await this.prisma.$base().employees.update({
-              where: { id: emp.id },
-              data: { branch_id: changeData.target_branch_id },
-            });
-            await auditService.log({
-              companyId,
-              userId: actorId,
-              action: 'UPDATE',
-              tableName: 'employees',
-              recordId: emp.id,
-              oldValues: { branch_id: emp.branch_id },
-              newValues: {
-                branch_id: changeData.target_branch_id,
-                effective_date: changeData.effective_date,
-                reason: changeData.reason,
-              },
-            }).catch(() => {});
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to apply approved branch change:', err.message);
       }
-    }
+
+      // Apply branch update if EMPLOYEE_BRANCH_CHANGE approved
+      if (newStatus === 'Approved' && request.request_type === 'EMPLOYEE_BRANCH_CHANGE') {
+        if (!branchPayload || !branchPayload.target_branch_id) {
+          const err = new Error('Branch change request is missing target branch payload');
+          err.status = 400;
+          err.code = 'INVALID_PAYLOAD';
+          throw err;
+        }
+
+        const emp = await tx.employees.findUnique({
+          where: { id: request.record_id },
+        });
+        if (!emp) {
+          const err = new Error('Employee not found');
+          err.status = 404;
+          err.code = 'NOT_FOUND';
+          throw err;
+        }
+
+        const targetBranch = await tx.branches.findUnique({
+          where: { id: branchPayload.target_branch_id },
+        });
+        if (!targetBranch) {
+          const err = new Error('Target branch not found');
+          err.status = 400;
+          err.code = 'INVALID_BRANCH';
+          throw err;
+        }
+
+        // Section 2.3: re-check the target branch's visa
+        if (targetBranch.company_visa_id !== emp.company_visa_id) {
+          const err = new Error('Selected branch does not belong to the selected company visa');
+          err.status = 400;
+          err.code = 'BRANCH_VISA_MISMATCH';
+          throw err;
+        }
+
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const effDateStr = String(branchPayload.effective_date).slice(0, 10);
+
+        if (effDateStr <= todayStr) {
+          // Apply now
+          await tx.employees.update({
+            where: { id: emp.id },
+            data: { branch_id: targetBranch.id },
+          });
+
+          branchPayload = {
+            ...branchPayload,
+            applied: true,
+            applied_at: new Date().toISOString(),
+          };
+
+          await auditService.log({
+            companyId,
+            userId: actorId,
+            action: 'UPDATE',
+            tableName: 'employees',
+            recordId: emp.id,
+            oldValues: { branch_id: emp.branch_id },
+            newValues: {
+              branch_id: targetBranch.id,
+              effective_date: effDateStr,
+              reason: branchPayload.reason,
+            },
+            tx,
+          });
+        } else {
+          // Future-dated: leave as Approved-pending for 01:30 nightly job
+          branchPayload = {
+            ...branchPayload,
+            applied: false,
+          };
+        }
+      }
+
+      const res = await tx.approval_requests.update({
+        where: { id: request.id },
+        data: {
+          current_step: nextStep,
+          status: newStatus,
+          completed_at: completedAt,
+          payload: branchPayload !== undefined ? branchPayload : undefined,
+        },
+        include: {
+          actions: {
+            orderBy: { step_no: 'asc' },
+            include: { actor: { select: { id: true, email: true } } },
+          },
+        },
+      });
+
+      // Audit row in the same transaction
+      await auditService.log({
+        companyId,
+        userId: actorId,
+        action: `APPROVAL_${action.toUpperCase()}`,
+        tableName: 'approval_requests',
+        recordId: request.id,
+        oldValues: { status: request.status, current_step: request.current_step },
+        newValues: { status: newStatus, current_step: nextStep, comment },
+        tx,
+      });
+
+      return { updatedRequest: res, approvalAction: actionRecord };
+    });
 
     // Notify requester of decision
     try {
@@ -528,13 +580,22 @@ export class ApprovalService {
             where: { id: req.record_id },
             include: {
               company_visa: { select: { id: true, name: true } },
-              branch: { select: { id: true, name: true } },
+              branch: { select: { id: true, name: true, name_ar: true } },
             },
           });
-          let details = null;
-          try {
-            details = JSON.parse(req.comment);
-          } catch {}
+          let details = req.payload;
+          if (!details && req.comment) {
+            try {
+              details = JSON.parse(req.comment);
+            } catch {}
+          }
+          const targetBranch = details?.target_branch_id
+            ? await this.prisma.$base().branches.findUnique({
+                where: { id: details.target_branch_id },
+                select: { id: true, name: true, name_ar: true },
+              })
+            : null;
+
           return {
             ...req,
             employee: emp
@@ -544,9 +605,13 @@ export class ApprovalService {
                   arabic_name: emp.arabic_name,
                   code: emp.employee_code,
                   current_branch: emp.branch?.name,
-                  target_branch: details?.target_branch_name,
+                  current_branch_ar: emp.branch?.name_ar,
+                  target_branch: targetBranch?.name || details?.target_branch_name,
+                  target_branch_ar: targetBranch?.name_ar || details?.target_branch_name_ar,
                   effective_date: details?.effective_date,
                   reason: details?.reason,
+                  visa: emp.company_visa?.name,
+                  visa_ar: emp.company_visa?.name_ar,
                 }
               : null,
           };

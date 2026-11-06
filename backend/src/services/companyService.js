@@ -387,7 +387,7 @@ export class CompanyService {
       tableName: 'companies',
       recordId: company.id,
       newValues: { name, trade_license_no, admin_email: cleanEmail },
-    }).catch(() => {});
+    });
 
     return {
       company,
@@ -438,7 +438,7 @@ export class CompanyService {
       recordId: companyId,
       oldValues: { status: company.status },
       newValues: { status },
-    }).catch(() => {});
+    });
 
     return updated;
   }
@@ -510,7 +510,7 @@ export class CompanyService {
       tableName: 'support_access_grants',
       recordId: grant.id,
       newValues: { platformUserId, durationHours, endsAt, reason },
-    }).catch(() => {});
+    });
 
     return grant;
   }
@@ -542,7 +542,7 @@ export class CompanyService {
       tableName: 'support_access_grants',
       recordId: grant.id,
       newValues: { revoked_at: updated.revoked_at },
-    }).catch(() => {});
+    });
 
     return updated;
   }

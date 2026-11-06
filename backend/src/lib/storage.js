@@ -191,7 +191,7 @@ export class StorageService {
     const safePath = path.basename(storagePath);
     const fullPath = path.join(this.storageDir, safePath);
     if (fs.existsSync(fullPath)) {
-      await fs.promises.unlink(fullPath).catch(() => {});
+      await fs.promises.unlink(fullPath).catch((err) => console.warn(`[Storage] Failed to unlink file ${fullPath}:`, err.message));
     }
   }
 }

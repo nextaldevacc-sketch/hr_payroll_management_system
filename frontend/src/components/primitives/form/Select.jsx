@@ -249,7 +249,7 @@ export function Select({
         required={required}
         tabIndex={-1}
         aria-hidden="true"
-        className="sr-only pointer-events-none"
+        className="sr-only"
       >
         {placeholder && (
           <option value="" disabled={required}>
