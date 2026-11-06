@@ -2,6 +2,7 @@ import Decimal from 'decimal.js';
 import prisma from '../lib/prisma.js';
 import { toDubaiDateString } from '@nextal/shared';
 import { validateAndResolveVisa } from './visaValidator.js';
+import scopeService from './scopeService.js';
 
 export class DashboardService {
   constructor(client = prisma) {
@@ -13,9 +14,20 @@ export class DashboardService {
    */
   async getOverviewMetrics(companyId, user, options = {}) {
     const visaParam = options.companyVisaId || options.company_visa_id;
+    const scope = scopeService.resolveDataScope(user);
+    const scopeWhere = scopeService.buildEmployeeWhere(scope, visaParam);
+
     let validVisa = null;
     if (visaParam) {
       validVisa = await validateAndResolveVisa({ companyId, companyVisaId: visaParam });
+    }
+
+    const visaWhere = { company_id: companyId };
+    if (!scope.all && scope.visaIds && scope.visaIds.length > 0) {
+      visaWhere.id = { in: scope.visaIds };
+    }
+    if (validVisa) {
+      visaWhere.id = validVisa;
     }
 
     const now = new Date();
@@ -29,15 +41,12 @@ export class DashboardService {
         where: {
           company_id: companyId,
           status: 'Active',
-          ...(validVisa ? { company_visa_id: validVisa } : {}),
+          ...(scopeWhere || {}),
         },
         select: { id: true, company_visa_id: true, joining_date: true },
       }),
       this.prisma.$base().company_visas.findMany({
-        where: {
-          company_id: companyId,
-          ...(validVisa ? { id: validVisa } : {}),
-        },
+        where: visaWhere,
         select: { id: true, name: true },
       }),
     ]);
@@ -156,7 +165,9 @@ export class DashboardService {
       where: {
         company_id: companyId,
         work_date: new Date(todayDubai),
-        ...(validVisa ? { employee: { company_visa_id: validVisa } } : {}),
+        ...(scopeWhere && Object.keys(scopeWhere).length > 0
+          ? { employee: scopeWhere }
+          : (validVisa ? { employee: { company_visa_id: validVisa } } : {})),
       },
     });
 
@@ -171,7 +182,9 @@ export class DashboardService {
         company_id: companyId,
         status: 'Approved',
         work_date: { gte: startOfMonth, lte: endOfMonth },
-        ...(validVisa ? { employee: { company_visa_id: validVisa } } : {}),
+        ...(scopeWhere && Object.keys(scopeWhere).length > 0
+          ? { employee: scopeWhere }
+          : (validVisa ? { employee: { company_visa_id: validVisa } } : {})),
       },
       select: {
         hours: true,
@@ -198,7 +211,9 @@ export class DashboardService {
         status: 'Approved',
         date_from: { lte: next7d },
         date_to: { gte: now },
-        ...(validVisa ? { employee: { company_visa_id: validVisa } } : {}),
+        ...(scopeWhere && Object.keys(scopeWhere).length > 0
+          ? { employee: scopeWhere }
+          : (validVisa ? { employee: { company_visa_id: validVisa } } : {})),
       },
       include: {
         employee: { select: { name: true } },
@@ -272,18 +287,28 @@ export class DashboardService {
   /**
    * Salary-specific metrics: Strictly restricted to roles with salary:view permission.
    */
-  async getSalaryMetrics(companyId, options = {}) {
+  async getSalaryMetrics(companyId, options = {}, user = null) {
     const visaParam = options.companyVisaId || options.company_visa_id;
+    const scope = scopeService.resolveDataScope(user);
+    scopeService.validateVisaScope(scope, visaParam);
+
     let validVisa = null;
     if (visaParam) {
       validVisa = await validateAndResolveVisa({ companyId, companyVisaId: visaParam });
     }
 
+    const payRunWhere = {
+      company_id: companyId,
+    };
+    if (!scope.all && scope.visaIds && scope.visaIds.length > 0) {
+      payRunWhere.company_visa_id = { in: scope.visaIds };
+    }
+    if (validVisa) {
+      payRunWhere.company_visa_id = validVisa;
+    }
+
     const payRuns = await this.prisma.$base().pay_runs.findMany({
-      where: {
-        company_id: companyId,
-        ...(validVisa ? { company_visa_id: validVisa } : {}),
-      },
+      where: payRunWhere,
       include: {
         company_visa: true,
         payslips: true,

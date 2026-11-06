@@ -61,6 +61,7 @@ All demo accounts belong to **Gulf Technologies LLC** (Primary Demo Company) wit
 | **Company Admin** | Tariq Al-Hashemi | `admin@gulftech.ae` | **Yes** | Full company setup: users & roles, departments, shifts, company visas, salary rules. |
 | **HR Manager** | Maryam Al-Nuaimi | `hr.mgr@gulftech.ae` | **Yes** | Full HR lifecycle, contracts, attendance sign-off, leave approvals, pay run validation. |
 | **HR Officer** | Saeed Al-Ketbi | `hr.officer@gulftech.ae` | **No** | Employee documents & attendance. **Salary fields strictly masked from API & UI.** |
+| **HR Officer (DIFC Scoped)** | Saeed Al-Ketbi (DIFC) | `hr.difc@gulftech.ae` | **No** | Scoped to Visa 02 (DIFC Freezone) only. Sees only DIFC employees and records. |
 | **Payroll Officer** | Zaid Al-Marzooqi | `payroll@gulftech.ae` | **Yes** | Pay run calculation, variable inputs, variance documentation, PDF payslip generation. |
 | **Dept Manager** | Fatima Al-Zaabi | `dept.mgr@gulftech.ae` | **No** | Engineering team attendance, overtime review, 1st leave approval. **Salary numbers hidden.** |
 | **General Manager** | Rashid Al-Falasi | `gm@gulftech.ae` | **Yes** | Final executive approval on pay runs, final settlements, and extended leaves (> 5 days). |

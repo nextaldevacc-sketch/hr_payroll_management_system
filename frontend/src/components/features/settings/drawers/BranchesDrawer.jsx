@@ -5,6 +5,7 @@ import { Drawer } from '../../../primitives/Drawer';
 import { Select } from '../../../primitives/form/Select';
 import { MapPin, Building, Plus, Trash2, PowerOff, Check } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
+import { createBranch, deleteBranch } from '../../../../services/settingsApi';
 
 const UAE_EMIRATES = [
   'Abu Dhabi',
@@ -38,35 +39,49 @@ export function BranchesDrawer({
     company_visa_id: visas[0]?.id || '',
   });
 
-  const handleAddBranch = (e) => {
+  const handleAddBranch = async (e) => {
     e.preventDefault();
-    if (!newBranch.name) return;
+    if (!newBranch.name || !newBranch.name_ar) return;
     const selectedVisa = visas.find((v) => v.id === newBranch.company_visa_id) || visas[0];
-    const created = {
-      id: `b-custom-${Date.now()}`,
-      name: newBranch.name,
-      name_ar: newBranch.name_ar || newBranch.name,
-      emirate: newBranch.emirate,
-      company_visa_id: selectedVisa?.id || '',
-      company_visa_name: selectedVisa?.name || 'Visa 01',
-      employee_count: 0,
-      is_active: true,
-      last_changed_by: 'Current User',
-      last_changed_at: new Date().toISOString(),
-    };
-    setBranchList([...branchList, created]);
-    setNewBranch({ name: '', name_ar: '', emirate: 'Dubai', company_visa_id: visas[0]?.id || '' });
-    setIsAdding(false);
+    try {
+      const created = await createBranch({
+        name: newBranch.name,
+        name_ar: newBranch.name_ar,
+        emirate: newBranch.emirate,
+        company_visa_id: selectedVisa?.id || '',
+      });
+      setBranchList([
+        ...branchList,
+        {
+          ...created,
+          company_visa_name: selectedVisa?.name,
+          company_visa_name_ar: selectedVisa?.name_ar,
+        },
+      ]);
+      setNewBranch({ name: '', name_ar: '', emirate: 'Dubai', company_visa_id: visas[0]?.id || '' });
+      setIsAdding(false);
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
-  const handleDelete = (branch) => {
+  const handleDelete = async (branch) => {
     if (branch.employee_count > 0) {
       if (onDeleteBranch) {
         onDeleteBranch(branch, `Cannot delete branch '${branch.name}': Assigned to ${branch.employee_count} active employees. Deactivate instead.`);
       }
       return;
     }
-    setBranchList(branchList.filter((b) => b.id !== branch.id));
+    try {
+      await deleteBranch(branch.id);
+      setBranchList(branchList.filter((b) => b.id !== branch.id));
+    } catch (err) {
+      if (onDeleteBranch) {
+        onDeleteBranch(branch, err.message);
+      } else {
+        alert(err.message);
+      }
+    }
   };
 
   const handleSave = () => {
@@ -126,6 +141,7 @@ export function BranchesDrawer({
                   {canEdit && (
                     <button
                       type="button"
+                      id={`btn-delete-branch-${branch.id}`}
                       onClick={() => handleDelete(branch)}
                       title={language === 'ar' ? 'حذف / إلغاء تفعيل' : 'Delete / Deactivate'}
                       className="p-1 rounded-lg text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
@@ -156,43 +172,57 @@ export function BranchesDrawer({
               {language === 'ar' ? 'بيانات الفرع الجديد' : 'New Branch Details'}
             </span>
 
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="text"
-                placeholder="Branch Name (English)"
-                required
-                value={newBranch.name}
-                onChange={(e) => setNewBranch({ ...newBranch, name: e.target.value })}
-                className="w-full px-3 py-1.5 rounded-lg text-xs bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
-              />
-              <input
-                type="text"
-                dir="rtl"
-                placeholder="اسم الفرع بالعربية"
-                value={newBranch.name_ar}
-                onChange={(e) => setNewBranch({ ...newBranch, name_ar: e.target.value })}
-                className="w-full px-3 py-1.5 rounded-lg text-xs bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
+            {/* Spec: Visa chosen FIRST */}
+            <div>
+              <Select
+                id="new-branch-visa"
+                label={language === 'ar' ? 'التأشيرة التابعة (اختر أولاً)' : 'Associated Company Visa (Choose First)'}
+                value={newBranch.company_visa_id}
+                onChange={(e) => setNewBranch({ ...newBranch, company_visa_id: e.target.value })}
+                options={visas.map((v) => ({ value: v.id, label: v.name }))}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Select
-                  label={language === 'ar' ? 'الإمارة' : 'Emirate'}
-                  value={newBranch.emirate}
-                  onChange={(e) => setNewBranch({ ...newBranch, emirate: e.target.value })}
-                  options={UAE_EMIRATES.map((em) => ({ value: em, label: em }))}
+                <label className="text-[11px] text-text-muted block mb-1">
+                  {language === 'ar' ? 'اسم الفرع (بالإنجليزية)' : 'Branch Name (English)'}
+                </label>
+                <input
+                  type="text"
+                  id="new-branch-name"
+                  placeholder="Branch Name"
+                  required
+                  value={newBranch.name}
+                  onChange={(e) => setNewBranch({ ...newBranch, name: e.target.value })}
+                  className="w-full px-3 py-1.5 rounded-lg text-xs bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
                 />
               </div>
-
               <div>
-                <Select
-                  label={language === 'ar' ? 'التأشيرة التابعة' : 'Associated Visa'}
-                  value={newBranch.company_visa_id}
-                  onChange={(e) => setNewBranch({ ...newBranch, company_visa_id: e.target.value })}
-                  options={visas.map((v) => ({ value: v.id, label: v.name }))}
+                <label className="text-[11px] text-text-muted block mb-1">
+                  {language === 'ar' ? 'اسم الفرع (بالعربية)' : 'Branch Name (Arabic)'}
+                </label>
+                <input
+                  type="text"
+                  id="new-branch-name-ar"
+                  dir="rtl"
+                  placeholder="اسم الفرع بالعربية"
+                  required
+                  value={newBranch.name_ar}
+                  onChange={(e) => setNewBranch({ ...newBranch, name_ar: e.target.value })}
+                  className="w-full px-3 py-1.5 rounded-lg text-xs bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
                 />
               </div>
+            </div>
+
+            <div>
+              <Select
+                id="new-branch-emirate"
+                label={language === 'ar' ? 'الإمارة' : 'Emirate'}
+                value={newBranch.emirate}
+                onChange={(e) => setNewBranch({ ...newBranch, emirate: e.target.value })}
+                options={UAE_EMIRATES.map((em) => ({ value: em, label: em }))}
+              />
             </div>
 
             <div className="flex justify-end gap-2 pt-1">
@@ -205,6 +235,7 @@ export function BranchesDrawer({
               </button>
               <button
                 type="submit"
+                id="btn-submit-branch"
                 className="px-3 py-1 rounded-lg text-xs font-bold bg-primary text-on-primary"
               >
                 {language === 'ar' ? 'حفظ الفرع' : 'Save Branch'}

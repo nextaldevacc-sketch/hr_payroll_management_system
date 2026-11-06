@@ -8,6 +8,7 @@ import { generatePayrollRegisterExcel, generateVarianceReportExcel } from '../li
 import notificationService from './notificationService.js';
 import mailer from '../lib/mailer.js';
 import { validateAndResolveVisa } from './visaValidator.js';
+import { scopeService, resolveDataScope } from './scopeService.js';
 
 Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_UP });
 
@@ -33,9 +34,29 @@ export class PayrollService {
   /**
    * List pay runs with filtering and summary metrics
    */
-  async listPayRuns(companyId, { companyVisaId, periodMonth, status, limit = 50, offset = 0 } = {}) {
+  async listPayRuns(companyId, { companyVisaId, periodMonth, status, limit = 50, offset = 0 } = {}, viewer = null) {
     const where = { company_id: companyId };
-    if (companyVisaId) {
+
+    // Apply role-based data scoping
+    if (viewer) {
+      const scope = resolveDataScope(viewer);
+      scopeService.validateVisaScope(scope, companyVisaId);
+
+      if (!scope.all) {
+        if (scope.visaIds?.length > 0) {
+          where.company_visa_id = { in: scope.visaIds };
+        } else if (scope.branchIds?.length > 0) {
+          const branches = await this.prisma.$base().branches.findMany({
+            where: { id: { in: scope.branchIds } },
+            select: { company_visa_id: true },
+          });
+          const bVisaIds = [...new Set(branches.map((b) => b.company_visa_id))];
+          where.company_visa_id = { in: bVisaIds };
+        }
+      }
+    }
+
+    if (companyVisaId && companyVisaId !== 'all') {
       const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
       if (validVisa) where.company_visa_id = validVisa;
     }
@@ -100,7 +121,7 @@ export class PayrollService {
   /**
    * Get single pay run details, totals, and approval status
    */
-  async getPayRun(companyId, payRunId) {
+  async getPayRun(companyId, payRunId, viewer = null) {
     const payRun = await this.prisma.$base().pay_runs.findFirst({
       where: { id: payRunId, company_id: companyId },
       include: {
@@ -130,6 +151,31 @@ export class PayrollService {
       err.status = 404;
       err.code = 'NOT_FOUND';
       throw err;
+    }
+
+    if (viewer) {
+      const scope = resolveDataScope(viewer);
+      if (!scope.all) {
+        if (scope.visaIds?.length > 0 && !scope.visaIds.includes(payRun.company_visa_id)) {
+          const err = new Error('Pay run not found');
+          err.status = 404;
+          err.code = 'NOT_FOUND';
+          throw err;
+        }
+        if (scope.branchIds?.length > 0) {
+          const branches = await this.prisma.$base().branches.findMany({
+            where: { id: { in: scope.branchIds } },
+            select: { company_visa_id: true },
+          });
+          const bVisaIds = [...new Set(branches.map((b) => b.company_visa_id))];
+          if (!bVisaIds.includes(payRun.company_visa_id)) {
+            const err = new Error('Pay run not found');
+            err.status = 404;
+            err.code = 'NOT_FOUND';
+            throw err;
+          }
+        }
+      }
     }
 
     // Aggregate totals from payslips
@@ -181,14 +227,26 @@ export class PayrollService {
   /**
    * List payslips for a specific pay run with filtering
    */
-  async listPayRunPayslips(companyId, payRunId, { search, hasVariance, limit = 100, offset = 0 } = {}) {
+  async listPayRunPayslips(companyId, payRunId, { search, hasVariance, limit = 100, offset = 0 } = {}, viewer = null) {
+    await this.getPayRun(companyId, payRunId, viewer);
+
     const where = {
       company_id: companyId,
       pay_run_id: payRunId,
     };
 
+    if (viewer) {
+      const scope = resolveDataScope(viewer);
+      if (!scope.all && scope.branchIds?.length > 0) {
+        where.employee = {
+          branch_id: { in: scope.branchIds },
+        };
+      }
+    }
+
     if (search) {
       where.employee = {
+        ...(where.employee || {}),
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
           { employee_code: { contains: search, mode: 'insensitive' } },
@@ -330,7 +388,7 @@ export class PayrollService {
     });
     if (existing) {
       const err = new Error(`A pay run already exists for visa '${visa.name}' for period ${startMonth.toISOString().slice(0, 7)}`);
-      err.status = 400;
+      err.status = 409;
       err.code = 'PAY_RUN_EXISTS';
       throw err;
     }
@@ -348,17 +406,28 @@ export class PayrollService {
       finalCutoff = new Date(Date.UTC(pm.getUTCFullYear(), pm.getUTCMonth(), cutoffDay));
     }
 
-    const payRun = await this.prisma.$base().pay_runs.create({
-      data: {
-        company_id: companyId,
-        company_visa_id,
-        period_month: startMonth,
-        cutoff_date: finalCutoff,
-        run_type,
-        status: 'Draft',
-        created_by: toUuidOrNull(userId),
-      },
-    });
+    let payRun;
+    try {
+      payRun = await this.prisma.$base().pay_runs.create({
+        data: {
+          company_id: companyId,
+          company_visa_id,
+          period_month: startMonth,
+          cutoff_date: finalCutoff,
+          run_type,
+          status: 'Draft',
+          created_by: toUuidOrNull(userId),
+        },
+      });
+    } catch (createErr) {
+      if (createErr.code === 'P2002') {
+        const err = new Error(`A pay run already exists for visa '${visa.name}' for period ${startMonth.toISOString().slice(0, 7)}`);
+        err.status = 409;
+        err.code = 'PAY_RUN_EXISTS';
+        throw err;
+      }
+      throw createErr;
+    }
 
     await auditService.log({
       companyId,
@@ -1030,12 +1099,19 @@ export class PayrollService {
         });
       }
 
+      // Snapshot visa's establishment id and bank routing code at lock time
+      const visa = await tx.company_visas.findUnique({
+        where: { id: payRun.company_visa_id },
+      });
+
       await tx.pay_runs.update({
         where: { id: payRunId },
         data: {
           status: 'Locked',
           locked_by: toUuidOrNull(userId),
           locked_at: new Date(),
+          mol_establishment_id: visa?.mol_establishment_id || null,
+          bank_routing_code: visa?.bank_routing_code || null,
         },
       });
     }, { timeout: 60000, maxWait: 10000 });
@@ -1208,7 +1284,7 @@ export class PayrollService {
   /**
    * Get single payslip details
    */
-  async getPayslip(companyId, payslipId) {
+  async getPayslip(companyId, payslipId, viewer = null) {
     const payslip = await this.prisma.$base().payslips.findFirst({
       where: { id: payslipId, company_id: companyId },
       include: {
@@ -1237,6 +1313,11 @@ export class PayrollService {
       throw err;
     }
 
+    if (viewer) {
+      const scope = scopeService.resolveDataScope(viewer);
+      scopeService.assertEmployeeInScope(payslip.employee, scope);
+    }
+
     const primaryBank = payslip.employee?.bank_accounts?.find((b) => b.is_primary) || payslip.employee?.bank_accounts?.[0] || null;
 
     return {
@@ -1255,7 +1336,7 @@ export class PayrollService {
   /**
    * Export WPS SIF file (Restricted to Locked or Paid pay runs)
    */
-  async getPayRunSif(companyId, payRunId) {
+  async getPayRunSif(companyId, payRunId, viewer = null) {
     const payRun = await this.prisma.$base().pay_runs.findFirst({
       where: { id: payRunId, company_id: companyId },
       include: {
@@ -1279,6 +1360,18 @@ export class PayrollService {
       throw err;
     }
 
+    if (viewer) {
+      const scope = scopeService.resolveDataScope(viewer);
+      if (!scope.all && scope.visaIds && scope.visaIds.length > 0) {
+        if (!scope.visaIds.includes(payRun.company_visa_id)) {
+          const err = new Error('Pay run not found');
+          err.status = 404;
+          err.code = 'NOT_FOUND';
+          throw err;
+        }
+      }
+    }
+
     return generateWpsSif({
       payRun,
       company: payRun.company,
@@ -1290,8 +1383,8 @@ export class PayrollService {
   /**
    * Generate Payslip PDF Buffer
    */
-  async getPayslipPdf(companyId, payslipId) {
-    const payslip = await this.getPayslip(companyId, payslipId);
+  async getPayslipPdf(companyId, payslipId, viewer = null) {
+    const payslip = await this.getPayslip(companyId, payslipId, viewer);
     const company = await this.prisma.$base().companies.findUnique({
       where: { id: companyId },
     });
@@ -1307,7 +1400,7 @@ export class PayrollService {
   /**
    * Generate Payroll Register Excel report
    */
-  async getPayrollRegisterExcel(companyId, payRunId) {
+  async getPayrollRegisterExcel(companyId, payRunId, viewer = null) {
     const payRun = await this.prisma.$base().pay_runs.findFirst({
       where: { id: payRunId, company_id: companyId },
       include: {
@@ -1335,18 +1428,36 @@ export class PayrollService {
       throw err;
     }
 
+    let payslipsToInclude = payRun.payslips;
+    if (viewer) {
+      const scope = scopeService.resolveDataScope(viewer);
+      if (!scope.all && scope.visaIds && scope.visaIds.length > 0) {
+        if (!scope.visaIds.includes(payRun.company_visa_id)) {
+          const err = new Error('Pay run not found');
+          err.status = 404;
+          err.code = 'NOT_FOUND';
+          throw err;
+        }
+      }
+      if (!scope.all && scope.branchIds && scope.branchIds.length > 0) {
+        payslipsToInclude = payslipsToInclude.filter((ps) =>
+          scope.branchIds.includes(ps.employee.branch_id)
+        );
+      }
+    }
+
     return await generatePayrollRegisterExcel({
       payRun,
       company: payRun.company,
       companyVisa: payRun.company_visa,
-      payslips: payRun.payslips,
+      payslips: payslipsToInclude,
     });
   }
 
   /**
    * Generate Payroll Variance Excel report
    */
-  async getVarianceReportExcel(companyId, payRunId) {
+  async getVarianceReportExcel(companyId, payRunId, viewer = null) {
     const payRun = await this.prisma.$base().pay_runs.findFirst({
       where: { id: payRunId, company_id: companyId },
       include: {
@@ -1366,6 +1477,18 @@ export class PayrollService {
       err.status = 404;
       err.code = 'NOT_FOUND';
       throw err;
+    }
+
+    if (viewer) {
+      const scope = scopeService.resolveDataScope(viewer);
+      if (!scope.all && scope.visaIds && scope.visaIds.length > 0) {
+        if (!scope.visaIds.includes(payRun.company_visa_id)) {
+          const err = new Error('Pay run not found');
+          err.status = 404;
+          err.code = 'NOT_FOUND';
+          throw err;
+        }
+      }
     }
 
     const threshold = Number(payRun.company?.variance_threshold_pct || 10.0);

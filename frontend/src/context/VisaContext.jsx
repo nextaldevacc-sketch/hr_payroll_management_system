@@ -8,45 +8,63 @@ const VisaContext = createContext(null);
 export function VisaProvider({ children }) {
   const { user } = useAuth();
 
-  // Extract visas from authenticated user (supplied by /api/v1/auth/me)
-  const visas = useMemo(() => {
-    return Array.isArray(user?.visas) ? user.visas : [];
-  }, [user?.visas]);
+  const companyName = user?.company_name || '';
+  const companyNameAr = user?.company_name_ar || null;
 
-  const companyName = user?.company_name || 'Gulf Tech Logistics LLC';
-  const companyNameAr = user?.company_name_ar || 'شركة الخليج للتقنية اللوجستية ذ.م.م';
-
-  // Check if role is single-visa scoped or employee-only
+  // Check if role is employee-only
   const isEmployeeOnly = useMemo(() => {
     const roles = user?.roles || [];
     return roles.length === 1 && roles[0] === 'EMPLOYEE';
   }, [user?.roles]);
 
-  const scopedVisaId = useMemo(() => {
-    const visaScope = user?.scopes?.find((s) => s.scope_type === 'VISA');
-    return visaScope?.scope_id || null;
+  // Any Company-scoped role grants company-wide access across all visas
+  const isCompanyScoped = useMemo(() => {
+    if (!user?.scopes || user.scopes.length === 0) return true;
+    return user.scopes.some((s) => !s.scope_type || s.scope_type === 'Company');
   }, [user?.scopes]);
 
-  const isSingleVisaScope = Boolean(scopedVisaId || visas.length === 1);
+  // Extract scoped visa IDs if restricted by CompanyVisa scope
+  const scopedVisaIds = useMemo(() => {
+    if (isCompanyScoped) return null;
+    const ids = (user?.scopes || [])
+      .filter((s) => s.scope_type === 'CompanyVisa' && s.scope_id)
+      .map((s) => s.scope_id);
+    return ids.length > 0 ? ids : null;
+  }, [user?.scopes, isCompanyScoped]);
+
+  // Extract visas from authenticated user, filtered to viewer's scope
+  const visas = useMemo(() => {
+    const rawVisas = Array.isArray(user?.visas) ? user.visas : [];
+    if (!scopedVisaIds) return rawVisas;
+    return rawVisas.filter((v) => scopedVisaIds.includes(v.id));
+  }, [user?.visas, scopedVisaIds]);
+
+  const isSingleVisaScope = Boolean(
+    scopedVisaIds?.length === 1 || (!isCompanyScoped && visas.length <= 1) || (isCompanyScoped && visas.length === 1)
+  );
+
+  const allowAllVisas = Boolean(isCompanyScoped && visas.length > 1);
 
   // Initialize selected visa from localStorage per user ID
   const storageKey = user?.id ? `nextal_selected_visa_${user.id}` : 'nextal_selected_visa';
   const [selectedVisaId, setSelectedVisaIdState] = useState('all');
 
   useEffect(() => {
-    if (scopedVisaId) {
-      setSelectedVisaIdState(scopedVisaId);
+    if (scopedVisaIds?.length === 1) {
+      setSelectedVisaIdState(scopedVisaIds[0]);
     } else if (visas.length === 1) {
       setSelectedVisaIdState(visas[0].id);
     } else if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(storageKey);
-      if (saved && (saved === 'all' || visas.some((v) => v.id === saved))) {
+      if (saved && (saved === 'all' && allowAllVisas)) {
+        setSelectedVisaIdState('all');
+      } else if (saved && visas.some((v) => v.id === saved)) {
         setSelectedVisaIdState(saved);
       } else {
-        setSelectedVisaIdState('all');
+        setSelectedVisaIdState(allowAllVisas ? 'all' : (visas[0]?.id || 'all'));
       }
     }
-  }, [scopedVisaId, visas, storageKey]);
+  }, [scopedVisaIds, visas, storageKey, allowAllVisas]);
 
   const setSelectedVisaId = useCallback(
     (id) => {
@@ -72,6 +90,7 @@ export function VisaProvider({ children }) {
       companyName,
       companyNameAr,
       isSingleVisaScope,
+      allowAllVisas,
       isEmployeeOnly,
     }),
     [
@@ -82,6 +101,7 @@ export function VisaProvider({ children }) {
       companyName,
       companyNameAr,
       isSingleVisaScope,
+      allowAllVisas,
       isEmployeeOnly,
     ]
   );
@@ -97,9 +117,10 @@ export function useVisa() {
       selectedVisa: null,
       visas: [],
       setSelectedVisaId: () => {},
-      companyName: 'Gulf Tech Logistics LLC',
+      companyName: '',
       companyNameAr: null,
       isSingleVisaScope: false,
+      allowAllVisas: false,
       isEmployeeOnly: false,
     };
   }

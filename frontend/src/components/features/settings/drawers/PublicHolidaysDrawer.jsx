@@ -17,6 +17,9 @@ export function PublicHolidaysDrawer({
 }) {
   const { isRTL, language } = useLanguage();
   const [holidayList, setHolidayList] = useState(holidays);
+  React.useEffect(() => {
+    setHolidayList(holidays || []);
+  }, [holidays]);
   const [selectedBranch, setSelectedBranch] = useState('ALL');
   const [isAdding, setIsAdding] = useState(false);
   const [newHoliday, setNewHoliday] = useState({
@@ -29,7 +32,10 @@ export function PublicHolidaysDrawer({
 
   const filteredHolidays = selectedBranch === 'ALL'
     ? holidayList
-    : holidayList.filter((h) => h.branch_scope === 'ALL' || h.branch_scope === selectedBranch);
+    : holidayList.filter((h) => {
+        const bName = h.branch?.name || h.branch_scope;
+        return !bName || bName === 'ALL' || bName === selectedBranch;
+      });
 
   const handleAddHoliday = (e) => {
     e.preventDefault();
@@ -103,10 +109,10 @@ export function PublicHolidaysDrawer({
                   style={{ background: 'var(--primary-wash)', borderColor: 'var(--glass-border)', color: 'var(--primary)' }}
                 >
                   <span className="text-[10px] uppercase font-bold leading-none">
-                    {new Date(holiday.date).toLocaleDateString('en-US', { month: 'short' })}
+                    {new Date(holiday.date || holiday.holiday_date).toLocaleDateString('en-US', { month: 'short' })}
                   </span>
                   <span className="text-sm font-extrabold leading-none mt-0.5">
-                    {new Date(holiday.date).getDate()}
+                    {new Date(holiday.date || holiday.holiday_date).getDate()}
                   </span>
                 </div>
 
@@ -115,12 +121,12 @@ export function PublicHolidaysDrawer({
                     {language === 'ar' ? holiday.name_ar || holiday.name : holiday.name}
                   </span>
                   <div className="flex items-center gap-2 text-[11px] text-text-muted mt-0.5">
-                    <span className="font-mono">{holiday.date}</span>
+                    <span className="font-mono">{holiday.date || (holiday.holiday_date ? new Date(holiday.holiday_date).toISOString().split('T')[0] : '')}</span>
                     <span>·</span>
-                    <span>{holiday.days} {holiday.days === 1 ? (language === 'ar' ? 'يوم' : 'day') : (language === 'ar' ? 'أيام' : 'days')}</span>
+                    <span>{holiday.days || 1} {(holiday.days || 1) === 1 ? (language === 'ar' ? 'يوم' : 'day') : (language === 'ar' ? 'أيام' : 'days')}</span>
                     <span>·</span>
                     <span className="px-1.5 py-0.2 rounded bg-surface border border-border text-[10px]">
-                      {holiday.branch_scope === 'ALL' ? (language === 'ar' ? 'جميع الفروع' : 'All Branches') : holiday.branch_scope}
+                      {holiday.branch?.name || (holiday.branch_scope && holiday.branch_scope !== 'ALL' ? holiday.branch_scope : (language === 'ar' ? 'جميع الفروع' : 'All Branches'))}
                     </span>
                   </div>
                 </div>

@@ -18,7 +18,7 @@ export function PayrollAlertsDrawer({
     variance_threshold_percent: settings?.variance_threshold_percent || settings?.variance_threshold_pct || 10.0,
     variance_threshold_aed: settings?.variance_threshold_aed || 1000.0,
     alert_days: settings?.alert_days || [90, 60, 30],
-    digest_recipients: settings?.digest_recipients || settings?.document_digest_recipients || ['hr.mgr@gulftech.ae', 'payroll@gulftech.ae', 'admin@gulftech.ae'],
+    digest_recipients: settings?.digest_recipients || settings?.document_digest_recipients || [],
   });
 
   React.useEffect(() => {
@@ -28,7 +28,7 @@ export function PayrollAlertsDrawer({
         variance_threshold_percent: settings.variance_threshold_percent || settings.variance_threshold_pct || 10.0,
         variance_threshold_aed: settings.variance_threshold_aed || 1000.0,
         alert_days: settings.alert_days || [90, 60, 30],
-        digest_recipients: settings.digest_recipients || settings.document_digest_recipients || ['hr.mgr@gulftech.ae', 'payroll@gulftech.ae', 'admin@gulftech.ae'],
+        digest_recipients: settings.digest_recipients || settings.document_digest_recipients || [],
       });
     }
   }, [settings]);

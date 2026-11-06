@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { Drawer } from '../../../primitives/Drawer';
 import { Select } from '../../../primitives/form/Select';
-import { Building2, FileText, CreditCard, ShieldCheck, Plus, Check, Globe, Upload, AlertTriangle, Coins } from 'lucide-react';
+import { Building2, FileText, CreditCard, ShieldCheck, Plus, Check, Globe, Upload, AlertTriangle, Coins, Trash2 } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
+import { createCompanyVisa, deleteCompanyVisa } from '../../../../services/settingsApi';
 
 export function CompanyProfileDrawer({
   isOpen,
@@ -13,6 +14,7 @@ export function CompanyProfileDrawer({
   companyProfile,
   canEdit = true,
   onSave,
+  onDeleteBlocked,
 }) {
   const comp = company || companyProfile;
   const { isRTL, language } = useLanguage();
@@ -73,23 +75,37 @@ export function CompanyProfileDrawer({
     }
   }, [comp]);
 
-  const handleAddVisa = (e) => {
+  const [visaErrors, setVisaErrors] = useState({});
+
+  const handleAddVisa = async (e) => {
     e.preventDefault();
     if (!newVisa.name || !newVisa.mohre_employer_id || !newVisa.bank_routing_code) return;
-    const created = {
-      id: `v-custom-${Date.now()}`,
-      name: newVisa.name,
-      name_ar: newVisa.name_ar || newVisa.name,
-      mohre_employer_id: newVisa.mohre_employer_id,
-      bank_routing_code: newVisa.bank_routing_code,
-      pension_fund: newVisa.pension_fund || 'GPSSA',
-      wps_file_name: `SIF_${newVisa.mohre_employer_id.replace(/[^a-zA-Z0-9]/g, '')}_202610.sif`,
-      employee_count: 0,
-      is_active: true,
-    };
-    setVisas([...visas, created]);
-    setNewVisa({ name: '', name_ar: '', mohre_employer_id: '', bank_routing_code: '', pension_fund: 'GPSSA' });
-    setIsAddingVisa(false);
+    setVisaErrors({});
+    try {
+      const created = await createCompanyVisa({
+        name: newVisa.name,
+        name_ar: newVisa.name_ar || newVisa.name,
+        mohre_employer_id: newVisa.mohre_employer_id,
+        mol_establishment_id: newVisa.mohre_employer_id,
+        bank_routing_code: newVisa.bank_routing_code,
+        pension_fund: newVisa.pension_fund || 'GPSSA',
+      });
+      const normalized = {
+        ...created,
+        mohre_employer_id: created.mohre_employer_id || created.mol_establishment_id,
+        mol_establishment_id: created.mol_establishment_id || created.mohre_employer_id,
+      };
+      setVisas([...visas, normalized]);
+      setNewVisa({ name: '', name_ar: '', mohre_employer_id: '', bank_routing_code: '', pension_fund: 'GPSSA' });
+      setIsAddingVisa(false);
+    } catch (err) {
+      const field = err.field || (err.code === 'DUPLICATE_MOL_ID' ? 'mol_establishment_id' : null);
+      if (field) {
+        setVisaErrors({ [field]: err.message });
+      } else {
+        setVisaErrors({ general: err.message, mol_establishment_id: err.message });
+      }
+    }
   };
 
   const handleSave = () => {
@@ -127,6 +143,7 @@ export function CompanyProfileDrawer({
           </button>
           <button
             type="button"
+            id="drawer-tab-visas"
             onClick={() => setActiveTab('visas')}
             className={`pb-2.5 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 ${
               activeTab === 'visas'
@@ -276,13 +293,40 @@ export function CompanyProfileDrawer({
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-primary/10 text-primary border border-primary/20">
                         {v.employee_count ?? v._count?.employees ?? 0} {language === 'ar' ? 'موظف' : 'employees'}
                       </span>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          id={`btn-delete-visa-${v.id}`}
+                          onClick={() => {
+                            const empCount = v.employee_count ?? v._count?.employees ?? 0;
+                            const branchCount = v._count?.branches ?? 0;
+                            const payRunCount = v._count?.pay_runs ?? 0;
+                            if (empCount > 0 || branchCount > 0 || payRunCount > 0) {
+                              if (onDeleteBlocked) {
+                                onDeleteBlocked(
+                                  v,
+                                  `Cannot delete '${v.name}': Assigned to ${empCount} employees, ${branchCount} branches, ${payRunCount} pay runs.`
+                                );
+                              }
+                            } else {
+                              deleteCompanyVisa(v.id).then(() => {
+                                setVisas(visas.filter((item) => item.id !== v.id));
+                              });
+                            }
+                          }}
+                          title={language === 'ar' ? 'حذف التأشيرة' : 'Delete Visa'}
+                          className="p-1 rounded-lg text-text-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-border/40">
                     <div>
                       <span className="text-text-muted block">{language === 'ar' ? 'رقم المنشأة (MOHRE):' : 'MOHRE Employer ID:'}</span>
-                      <span className="font-mono font-semibold text-text">{v.mohre_employer_id}</span>
+                      <span className="font-mono font-semibold text-text">{v.mohre_employer_id || v.mol_establishment_id}</span>
                     </div>
                     <div>
                       <span className="text-text-muted block">{language === 'ar' ? 'كود التوجيه البنكي:' : 'Bank Routing Code:'}</span>
@@ -292,7 +336,7 @@ export function CompanyProfileDrawer({
 
                   <div className="text-[10px] font-mono text-text-muted flex items-center gap-1.5 pt-1">
                     <span className="text-primary font-bold">WPS Output:</span>
-                    <span className="truncate">{v.wps_file_name || `SIF_${v.mohre_employer_id}_202610.sif`}</span>
+                    <span className="truncate">{v.wps_file_name || `SIF_${v.mohre_employer_id || v.mol_establishment_id}_202610.sif`}</span>
                   </div>
                 </div>
               ))}
@@ -335,30 +379,48 @@ export function CompanyProfileDrawer({
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
-                  <input
-                    type="text"
-                    placeholder="MOHRE Employer ID"
-                    required
-                    value={newVisa.mohre_employer_id}
-                    onChange={(e) => setNewVisa({ ...newVisa, mohre_employer_id: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-lg text-xs font-mono bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Bank Routing Code"
-                    required
-                    value={newVisa.bank_routing_code}
-                    onChange={(e) => setNewVisa({ ...newVisa, bank_routing_code: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-lg text-xs font-mono bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
-                  />
-                  <Select
-                    value={newVisa.pension_fund}
-                    onChange={(e) => setNewVisa({ ...newVisa, pension_fund: e.target.value })}
-                    options={[
-                      { value: 'GPSSA', label: 'GPSSA (Federal / Dubai)' },
-                      { value: 'ADPF', label: 'ADPF (Abu Dhabi)' },
-                    ]}
-                  />
+                  <div>
+                    <input
+                      type="text"
+                      id="new-visa-mohre-id"
+                      placeholder="MOHRE Employer ID"
+                      required
+                      value={newVisa.mohre_employer_id}
+                      onChange={(e) => setNewVisa({ ...newVisa, mohre_employer_id: e.target.value })}
+                      className="w-full px-3 py-1.5 rounded-lg text-xs font-mono bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
+                    />
+                    {visaErrors.mol_establishment_id && (
+                      <p id="visa-mohre-error" className="text-[10px] text-rose-500 font-medium mt-1">
+                        {visaErrors.mol_establishment_id}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      id="new-visa-routing-code"
+                      placeholder="Bank Routing Code"
+                      required
+                      value={newVisa.bank_routing_code}
+                      onChange={(e) => setNewVisa({ ...newVisa, bank_routing_code: e.target.value })}
+                      className="w-full px-3 py-1.5 rounded-lg text-xs font-mono bg-surface border border-border text-text focus:ring-1 focus:ring-primary"
+                    />
+                    {visaErrors.bank_routing_code && (
+                      <p id="visa-routing-error" className="text-[10px] text-rose-500 font-medium mt-1">
+                        {visaErrors.bank_routing_code}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Select
+                      value={newVisa.pension_fund}
+                      onChange={(e) => setNewVisa({ ...newVisa, pension_fund: e.target.value })}
+                      options={[
+                        { value: 'GPSSA', label: 'GPSSA (Federal / Dubai)' },
+                        { value: 'ADPF', label: 'ADPF (Abu Dhabi)' },
+                      ]}
+                    />
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-1">
@@ -590,7 +652,7 @@ export function CompanyProfileDrawer({
         {/* Action Buttons */}
         <div className="pt-4 border-t border-border/60 flex items-center justify-between">
           <span className="text-[11px] text-text-muted">
-            {language === 'ar' ? 'آخر تعديل بواسطة: طارق الهاشمي' : 'Last modified by: Tariq Al-Hashemi'}
+            {comp?.updated_by ? (language === 'ar' ? `آخر تعديل بواسطة: ${comp.updated_by}` : `Last modified by: ${comp.updated_by}`) : ''}
           </span>
           <div className="flex items-center gap-2">
             <button

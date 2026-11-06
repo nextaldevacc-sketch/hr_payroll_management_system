@@ -113,7 +113,7 @@ function getRoleForPage(pagePath) {
 const ALLOWLIST = [
   'NEXTAL', 'EN', 'AED', 'IBAN', 'WPS', 'SIF', 'MOHRE', 'DIFC',
   'GPSSA', 'ADPF', 'LLC', 'PDF', 'CSV', 'XLSX', 'API', 'UUID', 'ID', 'DXB', 'AUH', 'SHJ',
-  'KBD', 'CMD', 'MOL', 'EID', 'VAT', 'OTP', 'UTC', 'UAE',
+  'KBD', 'CMD', 'MOL', 'EID', 'VAT', 'OTP', 'UTC', 'UAE', 'EMP',
 ];
 
 function flattenKeys(obj, prefix = '') {
@@ -247,10 +247,29 @@ async function main() {
   console.log(`NEXTAL HR & PAYROLL - HONEST UI QA CAPTURE & AUDIT SWEEP`);
   console.log(`===============================================================\n`);
 
+  const TEST_DB_URL = 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
+
+  // 1. Reset and seed test database so screenshots reflect demo seed only (Spec E.3)
+  console.log(`[setup] Resetting and seeding isolated test database: ${TEST_DB_URL}`);
+  execSync('npx prisma migrate reset --schema prisma/schema.prisma --force --skip-seed --skip-generate', {
+    cwd: apiDir,
+    env: { ...process.env, DATABASE_URL: TEST_DB_URL, NODE_ENV: 'test' },
+    stdio: 'inherit',
+  });
+  execSync('node prisma/seed/index.js', {
+    cwd: apiDir,
+    env: { ...process.env, DATABASE_URL: TEST_DB_URL, NODE_ENV: 'test' },
+    stdio: 'inherit',
+  });
+  console.log(`[setup] Test database initialized successfully.`);
+
+  // Kill existing ports to ensure clean connection to freshly reset DB
+  killPort(API_PORT);
+
   // Ensure servers are running
   let apiProc = null;
   let webProc = null;
-  let apiUp = await checkHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`);
+  let apiUp = false;
   if (!apiUp) {
     killPort(API_PORT);
     console.log(`Starting API server on port ${API_PORT}...`);

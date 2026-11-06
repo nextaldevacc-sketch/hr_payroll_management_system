@@ -3,6 +3,7 @@ import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
 import { toDubaiDateString, getDubaiDayBounds } from '@nextal/shared';
 import { validateAndResolveVisa } from './visaValidator.js';
+import scopeService from './scopeService.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function sanitizeUuid(val) {
@@ -13,7 +14,16 @@ class LeaveService {
   /**
    * 1. Get Leave Balances for an employee
    */
-  async getLeaveBalances({ companyId, employeeId, year, companyVisaId }) {
+  async getLeaveBalances({ companyId, employeeId, year, companyVisaId, viewer = null }) {
+    if (viewer) {
+      const scope = scopeService.resolveDataScope(viewer);
+      const emp = await prisma.$base().employees.findUnique({
+        where: { id: employeeId },
+        select: { id: true, company_visa_id: true, branch_id: true, contracts: { select: { department_id: true } } },
+      });
+      scopeService.assertEmployeeInScope(emp, scope);
+    }
+
     if (companyVisaId) {
       const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
       if (validVisa) {
@@ -142,6 +152,12 @@ class LeaveService {
     });
     const weeklyOffDays = contract?.shift?.weekly_off_days || [0, 6]; // Default Fri/Sat or Sun/Sat
 
+    // Load employee branch to support branch-specific public holidays (FR-TO7)
+    const empRecord = await prisma.$base().employees.findUnique({
+      where: { id: employeeId },
+      select: { branch_id: true },
+    });
+
     // Load public holidays in date range
     const publicHolidays = await prisma.$base().public_holidays.findMany({
       where: {
@@ -149,7 +165,8 @@ class LeaveService {
         holiday_date: { gte: fromDate, lte: toDate },
       },
     });
-    const holidayDateSet = new Set(publicHolidays.map((h) => toDubaiDateString(h.holiday_date)));
+    const applicableHolidays = publicHolidays.filter((h) => !h.branch_id || h.branch_id === empRecord?.branch_id);
+    const holidayDateSet = new Set(applicableHolidays.map((h) => toDubaiDateString(h.holiday_date)));
 
     // Calculate working days: exclude weekly off days and public holidays
     let workingDaysCount = 0;
@@ -439,14 +456,14 @@ class LeaveService {
     }
 
     const visaParam = query.company_visa_id || query.companyVisaId;
-    if (visaParam) {
-      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId: visaParam });
-      if (validVisa) {
-        where.employee = {
-          ...(where.employee || {}),
-          company_visa_id: validVisa,
-        };
-      }
+    const scope = scopeService.resolveDataScope(user);
+    const empScopeWhere = scopeService.buildEmployeeWhere(scope, visaParam);
+
+    if (empScopeWhere && Object.keys(empScopeWhere).length > 0) {
+      where.employee = {
+        ...(where.employee || {}),
+        ...empScopeWhere,
+      };
     }
 
     return prisma.$base().leave_requests.findMany({
@@ -470,6 +487,48 @@ class LeaveService {
       },
       orderBy: { date_from: 'desc' },
     });
+  }
+
+  async calculateWorkingDays(companyId, fromDateStr, toDateStr, employeeId) {
+    const fromDate = new Date(fromDateStr);
+    const toDate = new Date(toDateStr);
+
+    const contract = await prisma.$base().contracts.findFirst({
+      where: { company_id: companyId, employee_id: employeeId },
+      include: { shift: true },
+      orderBy: { effective_date: 'desc' },
+    });
+    const weeklyOffDays = contract?.shift?.weekly_off_days || [0, 6];
+
+    const empRecord = await prisma.$base().employees.findUnique({
+      where: { id: employeeId },
+      select: { branch_id: true },
+    });
+
+    const publicHolidays = await prisma.$base().public_holidays.findMany({
+      where: {
+        company_id: companyId,
+        holiday_date: { gte: fromDate, lte: toDate },
+      },
+    });
+    const applicableHolidays = publicHolidays.filter((h) => !h.branch_id || h.branch_id === empRecord?.branch_id);
+    const holidayDateSet = new Set(applicableHolidays.map((h) => toDubaiDateString(h.holiday_date)));
+
+    let workingDaysCount = 0;
+    const cur = new Date(fromDate);
+    while (cur <= toDate) {
+      const dateStr = toDubaiDateString(cur);
+      const dayOfWeek = new Date(cur.getTime() + 4 * 3600000).getUTCDay();
+
+      const isOff = weeklyOffDays.includes(dayOfWeek);
+      const isHoliday = holidayDateSet.has(dateStr);
+
+      if (!isOff && !isHoliday) {
+        workingDaysCount++;
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return workingDaysCount;
   }
 }
 

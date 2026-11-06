@@ -1061,6 +1061,8 @@ model pay_runs {
   approval_request_id String?              @db.Uuid
   locked_by           String?              @db.Uuid
   locked_at           DateTime?            @db.Timestamptz
+  mol_establishment_id String?             @db.VarChar(20)
+  bank_routing_code   String?              @db.VarChar(9)
   sif_file_url        String?              @db.Text
   payment_date        DateTime?            @db.Date
   paid_at             DateTime?            @db.Timestamptz

@@ -268,12 +268,44 @@ class SettingsService {
   }
 
   async createCompanyVisa({ companyId, data, userId }) {
+    const molId = data.mohre_employer_id || data.mol_establishment_id;
+    if (!molId) {
+      const err = new Error('MOHRE Establishment ID is required');
+      err.status = 400;
+      err.code = 'VALIDATION_ERROR';
+      err.field = 'mol_establishment_id';
+      throw err;
+    }
+
+    const existingVisa = await prisma.$base().company_visas.findFirst({
+      where: {
+        company_id: companyId,
+        mol_establishment_id: molId,
+      },
+    });
+    if (existingVisa) {
+      const err = new Error(`MOHRE Employer ID '${molId}' is already in use by another visa profile.`);
+      err.status = 400;
+      err.code = 'DUPLICATE_MOL_ID';
+      err.field = 'mol_establishment_id';
+      throw err;
+    }
+
+    const routing = data.bank_routing_code || data.routing_code;
+    if (routing && routing.trim().length !== 9) {
+      const err = new Error('Bank routing code must be exactly 9 characters.');
+      err.status = 400;
+      err.code = 'INVALID_ROUTING_CODE';
+      err.field = 'bank_routing_code';
+      throw err;
+    }
+
     const visa = await prisma.$base().company_visas.create({
       data: {
         company_id: companyId,
         name: data.name,
-        mol_establishment_id: data.mohre_employer_id || data.mol_establishment_id || `MOL-${Date.now()}`,
-        bank_routing_code: data.bank_routing_code || data.routing_code || 'ENBD001',
+        mol_establishment_id: molId,
+        bank_routing_code: routing || 'ENBD00101',
         emirate: data.emirate || 'Dubai',
         pension_fund: data.pension_fund || (data.emirate === 'Abu Dhabi' ? 'ADPF' : 'GPSSA'),
         created_by: userId,
@@ -301,22 +333,39 @@ class SettingsService {
       throw err;
     }
 
+    const molId = data.mohre_employer_id !== undefined ? data.mohre_employer_id : data.mol_establishment_id;
+    if (molId && molId !== old.mol_establishment_id) {
+      const duplicate = await prisma.$base().company_visas.findFirst({
+        where: {
+          company_id: companyId,
+          mol_establishment_id: molId,
+          id: { not: id },
+        },
+      });
+      if (duplicate) {
+        const err = new Error(`MOHRE Employer ID '${molId}' is already in use by another visa profile.`);
+        err.status = 400;
+        err.code = 'DUPLICATE_MOL_ID';
+        err.field = 'mol_establishment_id';
+        throw err;
+      }
+    }
+
+    const routing = data.bank_routing_code !== undefined ? data.bank_routing_code : data.routing_code;
+    if (routing && routing.trim().length !== 9) {
+      const err = new Error('Bank routing code must be exactly 9 characters.');
+      err.status = 400;
+      err.code = 'INVALID_ROUTING_CODE';
+      err.field = 'bank_routing_code';
+      throw err;
+    }
+
     const updated = await prisma.$base().company_visas.update({
       where: { id },
       data: {
         name: data.name !== undefined ? data.name : old.name,
-        mol_establishment_id:
-          data.mohre_employer_id !== undefined
-            ? data.mohre_employer_id
-            : data.mol_establishment_id !== undefined
-            ? data.mol_establishment_id
-            : old.mol_establishment_id,
-        bank_routing_code:
-          data.bank_routing_code !== undefined
-            ? data.bank_routing_code
-            : data.routing_code !== undefined
-            ? data.routing_code
-            : old.bank_routing_code,
+        mol_establishment_id: molId !== undefined ? molId : old.mol_establishment_id,
+        bank_routing_code: routing !== undefined ? routing : old.bank_routing_code,
         pension_fund: data.pension_fund !== undefined ? data.pension_fund : old.pension_fund,
         updated_by: userId,
       },
@@ -403,11 +452,29 @@ class SettingsService {
   }
 
   async createBranch({ companyId, data, userId }) {
+    if (!data.company_visa_id) {
+      const err = new Error('company_visa_id is required');
+      err.status = 400;
+      err.code = 'VALIDATION_ERROR';
+      throw err;
+    }
+
+    const visa = await prisma.$base().company_visas.findFirst({
+      where: { id: data.company_visa_id, company_id: companyId },
+    });
+    if (!visa) {
+      const err = new Error('Specified company visa does not belong to your company');
+      err.status = 400;
+      err.code = 'INVALID_VISA';
+      throw err;
+    }
+
     const branch = await prisma.$base().branches.create({
       data: {
         company_id: companyId,
         company_visa_id: data.company_visa_id,
         name: data.name,
+        name_ar: data.name_ar || null,
         emirate: data.emirate,
         created_by: userId,
         updated_by: userId,
@@ -435,10 +502,33 @@ class SettingsService {
       throw err;
     }
 
+    if (data.company_visa_id && data.company_visa_id !== old.company_visa_id) {
+      const targetVisa = await prisma.$base().company_visas.findFirst({
+        where: { id: data.company_visa_id, company_id: companyId },
+      });
+      if (!targetVisa) {
+        const err = new Error('Specified company visa does not belong to your company');
+        err.status = 400;
+        err.code = 'INVALID_VISA';
+        throw err;
+      }
+
+      const empCount = await prisma.$base().employees.count({
+        where: { company_id: companyId, branch_id: id },
+      });
+      if (empCount > 0) {
+        const err = new Error(`Cannot change branch visa: Branch has ${empCount} assigned employee(s). Move employees before changing visa.`);
+        err.status = 400;
+        err.code = 'BRANCH_HAS_EMPLOYEES';
+        throw err;
+      }
+    }
+
     const updated = await prisma.$base().branches.update({
       where: { id },
       data: {
         name: data.name !== undefined ? data.name : old.name,
+        name_ar: data.name_ar !== undefined ? data.name_ar : old.name_ar,
         emirate: data.emirate !== undefined ? data.emirate : old.emirate,
         company_visa_id: data.company_visa_id !== undefined ? data.company_visa_id : old.company_visa_id,
         updated_by: userId,
@@ -478,6 +568,19 @@ class SettingsService {
       );
       err.status = 400;
       err.code = 'DELETE_IN_USE_BLOCKED';
+      throw err;
+    }
+
+    // Block delete if branch has branch-only public holidays
+    const holidayCount = await prisma.$base().public_holidays.count({
+      where: { company_id: companyId, branch_id: id },
+    });
+    if (holidayCount > 0) {
+      const err = new Error(
+        `Cannot delete Branch '${branch.name}': It has ${holidayCount} branch-specific public holiday(s). Reassign or delete holidays first.`
+      );
+      err.status = 400;
+      err.code = 'BRANCH_HAS_HOLIDAYS';
       throw err;
     }
 
@@ -647,25 +750,41 @@ class SettingsService {
 
   async createJob({ companyId, data, userId }) {
     // Rule F: Unique job code validation
-    if (data.job_code) {
+    const code = data.job_code || data.code;
+    if (code) {
       const existing = await prisma.$base().jobs.findFirst({
-        where: { company_id: companyId, job_code: data.job_code },
+        where: { company_id: companyId, job_code: code },
       });
       if (existing) {
-        const err = new Error(`Job code '${data.job_code}' is already in use in this company.`);
+        const err = new Error(`Job code '${code}' is already in use in this company.`);
         err.status = 400;
         err.code = 'DUPLICATE_JOB_CODE';
         throw err;
       }
     }
 
+    let deptId = data.department_id;
+    if (!deptId && data.department) {
+      const dept = await prisma.$base().departments.findFirst({
+        where: { company_id: companyId, name: data.department },
+      });
+      if (dept) deptId = dept.id;
+    }
+    if (!deptId) {
+      const defaultDept = await prisma.$base().departments.findFirst({
+        where: { company_id: companyId },
+        orderBy: { created_at: 'asc' },
+      });
+      if (defaultDept) deptId = defaultDept.id;
+    }
+
     const job = await prisma.$base().jobs.create({
       data: {
         company_id: companyId,
-        department_id: data.department_id,
+        department_id: deptId,
         title: data.title,
-        title_ar: data.title_ar,
-        job_code: data.job_code || null,
+        title_ar: data.title_ar || data.title,
+        job_code: code || null,
         grade: data.grade || null,
         created_by: userId,
         updated_by: userId,

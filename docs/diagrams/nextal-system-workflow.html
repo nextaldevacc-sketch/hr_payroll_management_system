@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nextal HR & Payroll Enterprise System — Architecture Workflow</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #151e32;
+      --card-border: #233554;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --accent: #818cf8;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --lane-bg: rgba(30, 41, 59, 0.4);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding: 24px;
+      overflow-x: auto;
+    }
+    header {
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 16px;
+    }
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    p.subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+      max-width: 1000px;
+    }
+    .phases-banner {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .phase-pill {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+    .phase-pill h3 {
+      font-size: 0.85rem;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    .phase-pill p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .workflow-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 1600px;
+    }
+    .swimlane {
+      background: var(--lane-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      overflow: hidden;
+    }
+    .swimlane-header {
+      background: rgba(15, 23, 42, 0.8);
+      border-right: 1px solid var(--card-border);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .swimlane-header h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 4px;
+    }
+    .swimlane-header span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .swimlane-content {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      overflow-x: auto;
+    }
+    .node-card {
+      flex: 0 0 280px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 14px;
+      position: relative;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .node-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+    .node-type {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .type-client { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+    .type-security { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+    .type-middleware { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+    .type-process { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+    .type-decision { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+    .type-engine { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+    .type-milestone { background: rgba(244, 114, 182, 0.15); color: #f472b6; }
+    .type-storage { background: rgba(129, 140, 248, 0.15); color: #818cf8; }
+    .node-card h4 {
+      font-size: 0.9rem;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .node-card p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .cards-section {
+      margin-top: 32px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+      gap: 16px;
+    }
+    .compliance-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 18px 20px;
+    }
+    .compliance-card h3 {
+      font-size: 1rem;
+      color: var(--primary);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .compliance-card ul {
+      list-style-type: disc;
+      padding-left: 20px;
+    }
+    .compliance-card li {
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+    }
+    .edges-summary {
+      margin-top: 32px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .edges-summary h3 {
+      font-size: 1rem;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+    .edge-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 10px;
+    }
+    .edge-item {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 0.75rem;
+    }
+    .edge-item .flow {
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 4px;
+    }
+    .edge-item .label {
+      color: var(--primary);
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>
+      <span>Nextal HR & Payroll Enterprise Architecture Workflow</span>
+      <span class="badge">Archify v2 Specification</span>
+    </h1>
+    <p class="subtitle">
+      Comprehensive mapping of Nextal UAE HR & Payroll platform across Client UI, Middleware Gateway, HR Onboarding, Time & Attendance, Statutory Payroll, Offboarding, and PostgreSQL Invariant Enforcement layers.
+    </p>
+  </header>
+
+  <div class="phases-banner" id="phasesContainer"></div>
+
+  <div class="workflow-container" id="workflowContainer"></div>
+
+  <div class="cards-section" id="cardsContainer"></div>
+
+  <div class="edges-summary">
+    <h3>Data Flows & API Connectors (<span id="edgeCount"></span> Edges)</h3>
+    <div class="edge-grid" id="edgesGrid"></div>
+  </div>
+
+  <script>
+    fetch('nextal-system-workflow.json')
+      .then(res => res.json())
+      .then(spec => {
+        // Render Phases
+        const phasesEl = document.getElementById('phasesContainer');
+        spec.phases.forEach(p => {
+          const pill = document.createElement('div');
+          pill.className = 'phase-pill';
+          pill.innerHTML = `<h3>${p.label}</h3><p>${p.description}</p>`;
+          phasesEl.appendChild(pill);
+        });
+
+        // Group nodes by lane
+        const nodesByLane = {};
+        spec.lanes.forEach(l => nodesByLane[l.id] = []);
+        spec.nodes.forEach(n => {
+          if (nodesByLane[n.lane]) {
+            nodesByLane[n.lane].push(n);
+          }
+        });
+
+        // Render Lanes
+        const container = document.getElementById('workflowContainer');
+        spec.lanes.forEach(lane => {
+          const laneNodes = nodesByLane[lane.id] || [];
+          if (laneNodes.length === 0) return;
+
+          const laneEl = document.createElement('div');
+          laneEl.className = 'swimlane';
+          
+          const header = document.createElement('div');
+          header.className = 'swimlane-header';
+          header.innerHTML = `<h2>${lane.label}</h2><span>${lane.description}</span>`;
+          laneEl.appendChild(header);
+
+          const content = document.createElement('div');
+          content.className = 'swimlane-content';
+
+          laneNodes.sort((a, b) => a.col - b.col).forEach(node => {
+            const card = document.createElement('div');
+            card.className = 'node-card';
+            card.innerHTML = `
+              <span class="node-type type-${node.type}">${node.type}</span>
+              <h4>${node.label}</h4>
+              <p>${node.description}</p>
+            `;
+            content.appendChild(card);
+          });
+
+          laneEl.appendChild(content);
+          container.appendChild(laneEl);
+        });
+
+        // Render Compliance & Trigger Cards
+        const cardsEl = document.getElementById('cardsContainer');
+        spec.cards.forEach(card => {
+          const cardDiv = document.createElement('div');
+          cardDiv.className = 'compliance-card';
+          cardDiv.innerHTML = `
+            <h3>${card.title}</h3>
+            <ul>${card.points.map(pt => `<li>${pt}</li>`).join('')}</ul>
+          `;
+          cardsEl.appendChild(cardDiv);
+        });
+
+        // Render Edges
+        document.getElementById('edgeCount').textContent = spec.edges.length;
+        const edgesGrid = document.getElementById('edgesGrid');
+        spec.edges.forEach(edge => {
+          const item = document.createElement('div');
+          item.className = 'edge-item';
+          item.innerHTML = `
+            <div class="flow">${edge.from} ➔ ${edge.to}</div>
+            <div class="label">${edge.label} <span style="opacity:0.6;font-size:0.7rem">(${edge.type})</span></div>
+          `;
+          edgesGrid.appendChild(item);
+        });
+      })
+      .catch(err => {
+        console.error('Failed to load JSON spec', err);
+      });
+  </script>
+</body>
+</html>
+

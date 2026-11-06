@@ -6,7 +6,8 @@ export const complianceController = {
       const companyId = req.companyId;
       const stats = await complianceService.getComplianceOverview(
         companyId,
-        req.query.company_visa_id || req.query.companyVisaId
+        req.query.company_visa_id || req.query.companyVisaId,
+        req.user
       );
       res.json({ success: true, data: stats });
     } catch (err) {

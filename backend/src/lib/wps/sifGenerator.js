@@ -59,16 +59,17 @@ export function generateWpsSif({ payRun, company, companyVisa, payslips = [] }) 
   const salaryMonth = formatSalaryMonth(payRun.period_month); // MMYYYY (Field 6)
 
   // Employer ID: 13-digit MOL establishment ID (Field 2)
-  const employerId = (companyVisa.mol_establishment_id || '0000000000000')
-    .replace(/\D/g, '')
-    .padEnd(13, '0')
-    .slice(0, 13);
+  // Workflow V2: Reads snapshotted pay_run values if locked, fallback to companyVisa
+  const rawEmployerId = payRun?.mol_establishment_id || companyVisa?.mol_establishment_id || '0000000000000';
+  const employerId = rawEmployerId.includes('-') || /[A-Za-z]/.test(rawEmployerId)
+    ? rawEmployerId.trim()
+    : rawEmployerId.replace(/\D/g, '').padEnd(13, '0').slice(0, 13);
 
   // Visa Bank Routing Code: 9 digits (Field 3)
-  const visaRoutingCode = (companyVisa.bank_routing_code || '000000000')
-    .replace(/\D/g, '')
-    .padEnd(9, '0')
-    .slice(0, 9);
+  const rawRoutingCode = payRun?.bank_routing_code || companyVisa?.bank_routing_code || '000000000';
+  const visaRoutingCode = rawRoutingCode.includes('-') || /[A-Za-z]/.test(rawRoutingCode)
+    ? rawRoutingCode.trim()
+    : rawRoutingCode.replace(/\D/g, '').padEnd(9, '0').slice(0, 9);
 
   let totalSalaries = new Decimal(0);
   const edrLines = [];

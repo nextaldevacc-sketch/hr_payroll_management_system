@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import prisma, { companyStorage } from '../lib/prisma.js';
 import { validateAndResolveVisa } from './visaValidator.js';
+import { scopeService, resolveDataScope } from './scopeService.js';
 import {
   validateUAEIban,
   maskIban,
@@ -46,6 +47,13 @@ export class EmployeeService {
     const canSeeSalary = hasSalaryAccess(viewer);
     const where = { company_id: companyId };
 
+    // 0. Role-based scoping (Spec 5.3 & A.3.8)
+    const scope = resolveDataScope(viewer);
+    const requestedVisaId = query.company_visa_id || query.companyVisaId;
+    const scopeWhere = scopeService.buildEmployeeWhere(scope, requestedVisaId);
+    where.AND = where.AND || [];
+    where.AND.push(scopeWhere);
+
     // 1. Department Manager scoping (Spec 6: "Department Managers see only their own team")
     const isDeptManager = viewer.roles?.includes('DEPT_MANAGER') &&
       !viewer.roles?.includes('COMPANY_ADMIN') &&
@@ -87,9 +95,9 @@ export class EmployeeService {
       }
 
       if (conditions.length > 0) {
-        where.OR = conditions;
+        where.AND.push({ OR: conditions });
       } else {
-        where.id = viewer.employeeId || '00000000-0000-0000-0000-000000000000';
+        where.AND.push({ id: viewer.employeeId || '00000000-0000-0000-0000-000000000000' });
       }
     }
 
@@ -256,6 +264,25 @@ export class EmployeeService {
       serializeEmployee(emp, viewer, { maskIbanInList: true })
     );
 
+    // Calculate real status coverage and document alerts within scope
+    const activeCount = await this.prisma.employees.count({
+      where: {
+        ...where,
+        status: 'Active',
+      },
+    });
+    const statusCoverage = total > 0 ? `${Math.round((activeCount / total) * 100)}%` : '100%';
+
+    const ninetyDays = new Date();
+    ninetyDays.setDate(ninetyDays.getDate() + 90);
+    const documentAlerts = await this.prisma.employee_documents.count({
+      where: {
+        company_id: companyId,
+        expiry_date: { lte: ninetyDays },
+        employee: scopeWhere,
+      },
+    });
+
     return {
       data,
       meta: {
@@ -263,6 +290,10 @@ export class EmployeeService {
         page,
         limit,
         totalPages: Math.ceil(total / limit) || 1,
+        document_alerts: documentAlerts,
+        docAlerts: documentAlerts,
+        status_coverage: statusCoverage,
+        statusCoverage,
       },
     };
   }
@@ -401,6 +432,10 @@ export class EmployeeService {
       throw err;
     }
 
+    // Role-based scope guard (Spec 5.3 & A.3.8)
+    const scope = resolveDataScope(viewer);
+    scopeService.assertEmployeeInScope(employee, scope);
+
     // Verify Department Manager team access
     const isDeptManager = viewer.roles?.includes('DEPT_MANAGER') &&
       !viewer.roles?.includes('COMPANY_ADMIN') &&
@@ -429,9 +464,9 @@ export class EmployeeService {
       );
 
       if (!isDirectReport && !inManagedDept) {
-        const err = new Error('Access denied: You can only view employees in your team');
-        err.status = 403;
-        err.code = 'FORBIDDEN_TEAM_SCOPE';
+        const err = new Error('Employee not found');
+        err.status = 404;
+        err.code = 'NOT_FOUND';
         throw err;
       }
     }
@@ -651,6 +686,21 @@ export class EmployeeService {
         } else {
           updateData[field] = data[field];
         }
+      }
+    }
+
+    // Section B.5: Visa transfer protection (Spec 5.3 & Workflow V9)
+    if (updateData.company_visa_id && updateData.company_visa_id !== existing.company_visa_id) {
+      const payslipCount = await this.prisma.payslips.count({
+        where: { employee_id: employeeId },
+      });
+      if (payslipCount > 0) {
+        const err = new Error(
+          'Visa transfer is not supported for employees with payroll history. Open client decision.'
+        );
+        err.status = 400;
+        err.code = 'VISA_TRANSFER_NOT_SUPPORTED';
+        throw err;
       }
     }
 
@@ -1713,6 +1763,64 @@ export class EmployeeService {
     } catch {
       return [];
     }
+  }
+
+  /**
+   * Request branch change within same visa (Workflow V8)
+   * Requires effective date + reason, submits for HR Manager approval
+   */
+  async requestBranchChange({ companyId, employeeId, targetBranchId, effectiveDate, reason, requestedBy }) {
+    const employee = await this.prisma.employees.findUnique({
+      where: { id: employeeId },
+      include: { branch: true },
+    });
+    if (!employee || employee.company_id !== companyId) {
+      const err = new Error('Employee not found');
+      err.status = 404;
+      err.code = 'NOT_FOUND';
+      throw err;
+    }
+
+    if (!targetBranchId || !reason || !effectiveDate) {
+      const err = new Error('target_branch_id, effective_date, and reason are required');
+      err.status = 400;
+      err.code = 'VALIDATION_ERROR';
+      throw err;
+    }
+
+    const branch = await this.prisma.branches.findUnique({
+      where: { id: targetBranchId },
+    });
+    if (!branch || branch.company_id !== companyId) {
+      const err = new Error('Branch not found');
+      err.status = 400;
+      err.code = 'INVALID_BRANCH';
+      throw err;
+    }
+
+    if (branch.company_visa_id !== employee.company_visa_id) {
+      const err = new Error('Selected branch does not belong to the selected company visa');
+      err.status = 400;
+      err.code = 'BRANCH_VISA_MISMATCH';
+      throw err;
+    }
+
+    const payload = JSON.stringify({
+      target_branch_id: targetBranchId,
+      target_branch_name: branch.name,
+      effective_date: effectiveDate,
+      reason,
+    });
+
+    const approvalReq = await approvalService.createRequest({
+      companyId,
+      requestType: 'EMPLOYEE_BRANCH_CHANGE',
+      recordId: employeeId,
+      requestedBy,
+      comment: payload,
+    });
+
+    return approvalReq;
   }
 }
 

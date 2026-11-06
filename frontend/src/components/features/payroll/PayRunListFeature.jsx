@@ -31,7 +31,7 @@ export function PayRunListFeature() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { selectedVisaId, setSelectedVisaId } = useVisa();
-  const { language } = useLanguage();
+  const { language, isRTL } = useLanguage();
 
   const [visaFilter, setVisaFilter] = useState(
     selectedVisaId === 'all' || !selectedVisaId ? '' : selectedVisaId
@@ -180,9 +180,11 @@ export function PayRunListFeature() {
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-text-muted font-medium">Active Pay Runs</span>
-            <div className="text-lg font-bold text-text mt-0.5">{payRuns.length} Runs</div>
-            <span className="text-[11px] text-blue-400 font-semibold">{totalEmployees} Total Payslips</span>
+            <span className="text-xs text-text-muted font-medium">
+              {isRTL ? 'مسيرات الرواتب النشطة' : 'Active Pay Runs'}
+            </span>
+            <div className="text-lg font-bold text-text mt-0.5">{payRuns.length} {isRTL ? 'مسيرات' : 'Runs'}</div>
+            <span className="text-[11px] text-blue-400 font-semibold">{totalEmployees} {isRTL ? 'قسيمة راتب إجمالية' : 'Total Payslips'}</span>
           </div>
         </GlassCard>
 

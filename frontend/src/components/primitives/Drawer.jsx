@@ -32,18 +32,22 @@ export function Drawer({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div
+      className={clsx("fixed inset-0 z-50 flex overflow-hidden", side === 'end' ? "justify-end" : "justify-start")}
+      onClick={onClose}
+    >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
+        className="absolute inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity pointer-events-none"
+        aria-hidden="true"
       />
 
       {/* Slide-out Panel */}
       <div
+        id="drawer-panel"
+        onClick={(e) => e.stopPropagation()}
         className={clsx(
-          'glass-panel fixed top-0 bottom-0 z-10 w-full flex flex-col p-6 shadow-2xl transition-transform duration-300',
-          side === 'end' ? 'end-0' : 'start-0',
+          'glass-panel relative z-10 h-full w-full flex flex-col p-6 shadow-2xl transition-transform duration-300 pointer-events-auto',
           width,
           className
         )}

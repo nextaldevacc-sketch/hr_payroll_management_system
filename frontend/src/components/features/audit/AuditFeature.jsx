@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
+import { getEnumLabel } from '../../../i18n/enums';
 import {
   History,
   Search,
@@ -290,14 +291,14 @@ export default function AuditFeature() {
                           })}
                         </td>
                         <td className="py-3 px-4 font-medium text-slate-900 dark:text-white" data-i18n-skip>
-                          <div>{log.user?.name || log.user?.email || 'SYSTEM'}</div>
+                          <div>{log.user?.arabic_name && language === 'ar' ? log.user.arabic_name : (log.user?.name || log.user?.email || (language === 'ar' ? 'النظام' : 'SYSTEM'))}</div>
                           {log.user?.email && log.user?.name && (
                             <div className="text-xs text-slate-400">{log.user.email}</div>
                           )}
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getActionBadgeColor(log.action)}`} data-i18n-skip>
-                            {log.action}
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getActionBadgeColor(log.action)}`}>
+                            {getEnumLabel('audit_action', log.action, language)}
                           </span>
                         </td>
                         <td className="py-3 px-4 font-mono text-xs text-slate-700 dark:text-slate-300" data-i18n-skip>

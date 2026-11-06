@@ -35,6 +35,7 @@ export async function getAttendanceGrid(req, res, next) {
       branchId: req.query.branch_id,
       companyVisaId: req.query.company_visa_id || req.query.companyVisaId,
       search: req.query.search,
+      viewer: req.user,
     });
     res.json({ status: 'success', data });
   } catch (err) { next(err); }
@@ -58,6 +59,7 @@ export async function getMissingPunchQueue(req, res, next) {
       companyId: req.companyId,
       month: req.query.month,
       companyVisaId: req.query.company_visa_id || req.query.companyVisaId,
+      viewer: req.user,
     });
     res.json({ status: 'success', count: data.length, data });
   } catch (err) { next(err); }

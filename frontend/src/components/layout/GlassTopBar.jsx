@@ -45,6 +45,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
     companyName,
     companyNameAr,
     isSingleVisaScope,
+    allowAllVisas,
     isEmployeeOnly,
   } = useVisa();
 
@@ -187,27 +188,29 @@ export function GlassTopBar({ onToggleMobileNav }) {
                     {language === 'ar' ? 'تأشيرات الكيان وملفات WPS' : 'Company Visas & WPS Context'}
                   </span>
                   <div className="space-y-1 mt-1">
-                    <button
-                      type="button"
-                      id="btn-select-visa-all"
-                      onClick={() => {
-                        setSelectedVisaId('all');
-                        setIsCompanyDropdownOpen(false);
-                      }}
-                      className="w-full text-start px-2.5 py-2 rounded-lg text-xs hover:bg-primary-wash/50 dark:hover:bg-inset-hover transition-colors flex items-center justify-between"
-                    >
-                      <div>
-                        <p className="font-semibold text-text">
-                          {language === 'ar' ? 'جميع تأشيرات الكيان' : 'All Company Visas'}
-                        </p>
-                        <p className="text-[10px] text-text-muted">
-                          {language === 'ar' ? 'عرض شامل لكافة الفروع والموظفين' : 'Full organization-wide view'}
-                        </p>
-                      </div>
-                      {selectedVisaId === 'all' && (
-                        <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                      )}
-                    </button>
+                    {allowAllVisas && (
+                      <button
+                        type="button"
+                        id="btn-select-visa-all"
+                        onClick={() => {
+                          setSelectedVisaId('all');
+                          setIsCompanyDropdownOpen(false);
+                        }}
+                        className="w-full text-start px-2.5 py-2 rounded-lg text-xs hover:bg-primary-wash/50 dark:hover:bg-inset-hover transition-colors flex items-center justify-between"
+                      >
+                        <div>
+                          <p className="font-semibold text-text">
+                            {language === 'ar' ? 'جميع تأشيرات الكيان' : 'All Company Visas'}
+                          </p>
+                          <p className="text-[10px] text-text-muted">
+                            {language === 'ar' ? 'عرض شامل لكافة الفروع والموظفين' : 'Full organization-wide view'}
+                          </p>
+                        </div>
+                        {selectedVisaId === 'all' && (
+                          <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                        )}
+                      </button>
+                    )}
 
                     {visas.map((v) => (
                       <button

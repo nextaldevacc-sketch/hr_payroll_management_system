@@ -16,13 +16,21 @@ export function DepartmentsJobsDrawer({
 }) {
   const { isRTL, language } = useLanguage();
   const [activeTab, setActiveTab] = useState('departments'); // 'departments' | 'jobs'
-  const [deptList, setDeptList] = useState(departments);
-  const [jobList, setJobList] = useState(jobs);
+  const toArray = (val) => {
+    if (Array.isArray(val)) return val;
+    if (val?.flat && Array.isArray(val.flat)) return val.flat;
+    if (val?.departments && Array.isArray(val.departments)) return val.departments;
+    if (val?.jobs && Array.isArray(val.jobs)) return val.jobs;
+    return [];
+  };
+
+  const [deptList, setDeptList] = useState(() => toArray(departments));
+  const [jobList, setJobList] = useState(() => toArray(jobs));
   React.useEffect(() => {
-    setDeptList(departments || []);
+    setDeptList(toArray(departments));
   }, [departments]);
   React.useEffect(() => {
-    setJobList(jobs || []);
+    setJobList(toArray(jobs));
   }, [jobs]);
 
   const [isAddingJob, setIsAddingJob] = useState(false);
@@ -37,16 +45,19 @@ export function DepartmentsJobsDrawer({
   const handleAddJob = (e) => {
     e.preventDefault();
     if (!newJob.title || !newJob.code) return;
+    const selectedDept = deptList.find((d) => d.name === newJob.department) || deptList[0];
     const created = {
       id: `j-custom-${Date.now()}`,
+      job_code: newJob.code.toUpperCase(),
       code: newJob.code.toUpperCase(),
       title: newJob.title,
       title_ar: newJob.title_ar || newJob.title,
-      grade: newJob.grade,
-      department: newJob.department,
+      grade: newJob.grade || 'Standard',
+      department: selectedDept?.name || 'Operations',
+      department_id: selectedDept?.id || undefined,
     };
     setJobList([...jobList, created]);
-    setNewJob({ code: '', title: '', title_ar: '', grade: 'Mid', department: departments[0]?.name || 'Operations' });
+    setNewJob({ code: '', title: '', title_ar: '', grade: 'Mid', department: deptList[0]?.name || 'Operations' });
     setIsAddingJob(false);
   };
 
@@ -147,13 +158,13 @@ export function DepartmentsJobsDrawer({
                             <span className="text-primary font-semibold">
                               {language === 'ar' ? 'مدير القسم (المعتمد الأول):' : 'Approver 1 (Manager):'}
                             </span>
-                            <span>{dept.manager_name}</span>
+                            <span>{dept.manager?.name || dept.manager_name || (language === 'ar' ? 'غير معين' : 'Unassigned')}</span>
                           </span>
                         </div>
                       </div>
 
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-surface border border-border text-text">
-                        {dept.employee_count} {language === 'ar' ? 'موظف' : 'staff'}
+                        {dept._count?.contracts ?? dept.employee_count ?? 0} {language === 'ar' ? 'موظف' : 'staff'}
                       </span>
                     </div>
                   </div>
@@ -174,18 +185,20 @@ export function DepartmentsJobsDrawer({
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20 shrink-0">
-                      {job.code}
+                      {job.job_code || job.code || 'JOB'}
                     </span>
                     <div className="min-w-0">
                       <span className="text-xs font-bold text-text block truncate">
                         {language === 'ar' ? job.title_ar || job.title : job.title}
                       </span>
-                      <span className="text-[11px] text-text-muted block truncate">{job.department}</span>
+                      <span className="text-[11px] text-text-muted block truncate">
+                        {typeof job.department === 'string' ? job.department : (job.department?.name || 'Operations')}
+                      </span>
                     </div>
                   </div>
 
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-surface border border-border text-text shrink-0">
-                    {job.grade}
+                    {job.grade || 'Standard'}
                   </span>
                 </div>
               ))}

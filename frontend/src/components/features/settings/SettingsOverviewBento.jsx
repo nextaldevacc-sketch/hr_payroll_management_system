@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { BentoTile } from '../../primitives/BentoTile';
 import { useLanguage } from '../../../context/LanguageContext';
+import { getEnumLabel } from '../../../i18n/enums';
 
 export function SettingsOverviewBento({
   stats = {},
@@ -47,8 +48,8 @@ export function SettingsOverviewBento({
       descAr: 'الاسم القانوني، الرخصة التجارية، أرقام المنشأة وتأشيرات الكيان بملفات WPS المستقلة.',
       countBadge: stats.visasCount ? `${stats.visasCount} Company Visas` : '2 Company Visas',
       countBadgeAr: 'تأشيرتان للكيان (WPS)',
-      lastChanged: 'Last changed by Tariq Al-Hashemi · 2d ago',
-      lastChangedAr: 'آخر تعديل: طارق الهاشمي · منذ يومين',
+      lastChanged: 'Last updated recently',
+      lastChangedAr: 'آخر تحديث مؤخراً',
       editable: isHrOrAdmin,
       locked: !isHrOrAdmin,
       restrictedMsg: isPayrollOfficer ? 'Restricted to HR Manager / Admin' : 'View Only',
@@ -152,8 +153,8 @@ export function SettingsOverviewBento({
       descAr: 'سلسلة خطوات الاعتماد لكل طلب والشروط الاستثنائية للرفع للإدارة العليا.',
       countBadge: '6 Request Pipelines Configured',
       countBadgeAr: '6 مسارات اعتماد نشطة',
-      lastChanged: 'Last changed by Tariq Al-Hashemi · Oct 22',
-      lastChangedAr: 'آخر تعديل: طارق الهاشمي · 22 أكتوبر',
+      lastChanged: 'Last updated recently',
+      lastChangedAr: 'آخر تحديث مؤخراً',
       editable: isHrOrAdmin,
       locked: !isHrOrAdmin,
       restrictedMsg: isPayrollOfficer ? 'Restricted to HR Manager' : 'View Only',
@@ -226,14 +227,14 @@ export function SettingsOverviewBento({
 
               {tile.roleHighlight && (
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/20 text-primary shrink-0">
-                  {tile.roleHighlight}
+                  {language === 'ar' ? (tile.roleHighlightAr || getEnumLabel('permission_level', tile.roleHighlight, 'ar')) : tile.roleHighlight}
                 </span>
               )}
 
               {tile.locked && (
                 <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-surface border border-border text-text-muted shrink-0 flex items-center gap-1">
                   <Lock className="w-2.5 h-2.5" />
-                  <span>{tile.restrictedMsg}</span>
+                  <span>{language === 'ar' ? (tile.restrictedMsgAr || getEnumLabel('permission_level', tile.restrictedMsg, 'ar')) : tile.restrictedMsg}</span>
                 </span>
               )}
             </div>
@@ -278,6 +279,7 @@ export function SettingsOverviewBento({
           >
             <BentoTile
               id={`settings-tile-${tile.id}`}
+              onClick={() => onOpenDrawer(tile.id)}
               title={language === 'ar' ? tile.titleAr : tile.titleEn}
               iconWell={
                 <div

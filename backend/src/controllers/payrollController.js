@@ -11,7 +11,7 @@ export async function listPayRuns(req, res, next) {
       status,
       limit,
       offset,
-    });
+    }, req.user);
     res.json({ status: 'success', data: result.items, total: result.total });
   } catch (err) {
     next(err);
@@ -20,7 +20,7 @@ export async function listPayRuns(req, res, next) {
 
 export async function getPayRun(req, res, next) {
   try {
-    const payRun = await payrollService.getPayRun(req.companyId, req.params.id);
+    const payRun = await payrollService.getPayRun(req.companyId, req.params.id, req.user);
     res.json({ status: 'success', data: payRun });
   } catch (err) {
     next(err);
@@ -35,7 +35,7 @@ export async function listPayRunPayslips(req, res, next) {
       hasVariance,
       limit,
       offset,
-    });
+    }, req.user);
     res.json({ status: 'success', data: result.items, total: result.total });
   } catch (err) {
     next(err);
@@ -140,7 +140,7 @@ export async function updateVarianceReason(req, res, next) {
 
 export async function exportSif(req, res, next) {
   try {
-    const sifData = await payrollService.getPayRunSif(req.companyId, req.params.id);
+    const sifData = await payrollService.getPayRunSif(req.companyId, req.params.id, req.user);
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${sifData.filename}"`);
     res.send(sifData.content);
@@ -151,7 +151,7 @@ export async function exportSif(req, res, next) {
 
 export async function downloadPayslipPdf(req, res, next) {
   try {
-    const payslip = await payrollService.getPayslip(req.companyId, req.params.id);
+    const payslip = await payrollService.getPayslip(req.companyId, req.params.id, req.user);
 
     // Authorization check (P1)
     const roles = req.user?.roles || [];
@@ -167,7 +167,7 @@ export async function downloadPayslipPdf(req, res, next) {
       });
     }
 
-    const pdfBuffer = await payrollService.getPayslipPdf(req.companyId, req.params.id);
+    const pdfBuffer = await payrollService.getPayslipPdf(req.companyId, req.params.id, req.user);
 
     // Audit log payslip PDF download (P1)
     await auditService.log({
@@ -189,7 +189,7 @@ export async function downloadPayslipPdf(req, res, next) {
 
 export async function downloadPayrollRegisterExcel(req, res, next) {
   try {
-    const excelBuffer = await payrollService.getPayrollRegisterExcel(req.companyId, req.params.id);
+    const excelBuffer = await payrollService.getPayrollRegisterExcel(req.companyId, req.params.id, req.user);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="payroll-register-${req.params.id}.xlsx"`);
     res.send(excelBuffer);
@@ -200,7 +200,7 @@ export async function downloadPayrollRegisterExcel(req, res, next) {
 
 export async function downloadVarianceReportExcel(req, res, next) {
   try {
-    const excelBuffer = await payrollService.getVarianceReportExcel(req.companyId, req.params.id);
+    const excelBuffer = await payrollService.getVarianceReportExcel(req.companyId, req.params.id, req.user);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="payroll-variance-${req.params.id}.xlsx"`);
     res.send(excelBuffer);

@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 /**
  * Seed Module: Demo Users & Roles
  */
-export async function seedDemoUsers(prisma, { company1, company2, depts1 }) {
+export async function seedDemoUsers(prisma, { company1, company2, depts1, visas1 }) {
   console.log('Seeding roles catalog...');
   const roleDefs = [
     { code: 'EMPLOYEE', name: 'Employee', sees_salary: false },
@@ -45,6 +45,7 @@ export async function seedDemoUsers(prisma, { company1, company2, depts1 }) {
     { email: 'admin@gulftech.ae', roleCode: 'COMPANY_ADMIN', scopeType: 'Company' },
     { email: 'hr.mgr@gulftech.ae', roleCode: 'HR_MANAGER', scopeType: 'Company' },
     { email: 'hr.officer@gulftech.ae', roleCode: 'HR_OFFICER', scopeType: 'Company' },
+    { email: 'hr.difc@gulftech.ae', roleCode: 'HR_OFFICER', scopeType: 'CompanyVisa', visaId: visas1?.visa1_02?.id },
     { email: 'payroll@gulftech.ae', roleCode: 'PAYROLL_OFFICER', scopeType: 'Company' },
     { email: 'dept.mgr@gulftech.ae', roleCode: 'DEPT_MANAGER', scopeType: 'Department', deptName: 'Operations' },
     { email: 'gm@gulftech.ae', roleCode: 'GM', scopeType: 'Company' },
@@ -63,7 +64,12 @@ export async function seedDemoUsers(prisma, { company1, company2, depts1 }) {
     });
     demoUsersMap[acc.email] = user;
 
-    const targetDept = acc.deptName ? depts1[acc.deptName] : depts1['Operations'];
+    let targetScopeId = null;
+    if (acc.scopeType === 'Department') {
+      targetScopeId = acc.deptName ? depts1[acc.deptName]?.id : depts1['Operations']?.id;
+    } else if (acc.scopeType === 'CompanyVisa') {
+      targetScopeId = acc.visaId || visas1?.visa1_02?.id || null;
+    }
 
     await prisma.user_roles.create({
       data: {
@@ -71,7 +77,7 @@ export async function seedDemoUsers(prisma, { company1, company2, depts1 }) {
         user_id: user.id,
         role_id: rolesMap[acc.roleCode].id,
         scope_type: acc.scopeType,
-        scope_id: acc.scopeType === 'Department' ? targetDept.id : null,
+        scope_id: targetScopeId,
       },
     });
   }

@@ -311,7 +311,7 @@ export default function MyHomePage() {
                 <User className="w-4 h-4" />
               </IconWell>
             </div>
-            <p className="text-sm font-bold text-text truncate">{user?.name || 'Employee'}</p>
+            <p className="text-sm font-bold text-text truncate">{displayName}</p>
             <p className="text-xs text-text-muted mt-0.5">{user?.email}</p>
             <p className="text-[11px] text-text-muted mt-2">
               {language === 'ar'

@@ -35,20 +35,6 @@ import { ResetDefaultsModal } from '@/components/features/settings/modals/ResetD
 import { DeleteInUseModal } from '@/components/features/settings/modals/DeleteInUseModal';
 
 import {
-  INITIAL_COMPANY_PROFILE,
-  INITIAL_BRANCHES,
-  INITIAL_DEPARTMENTS,
-  INITIAL_JOBS,
-  INITIAL_SHIFTS,
-  INITIAL_ATTENDANCE_POLICY,
-  INITIAL_LEAVE_TYPES,
-  INITIAL_HOLIDAYS_2026,
-  INITIAL_SALARY_RULES,
-  INITIAL_APPROVAL_FLOWS,
-  INITIAL_PAYROLL_ALERTS,
-} from '@/components/features/settings/settingsData';
-
-import {
   fetchSettingsOverview,
   fetchCompanyProfile,
   updateCompanyProfile,
@@ -108,22 +94,22 @@ export default function SettingsPage() {
     queryFn: fetchSettingsOverview,
   });
 
-  const { data: companyProfile = INITIAL_COMPANY_PROFILE } = useQuery({
+  const { data: companyProfile = null } = useQuery({
     queryKey: ['settings', 'company'],
     queryFn: fetchCompanyProfile,
   });
 
-  const { data: branches = INITIAL_BRANCHES } = useQuery({
+  const { data: branches = [] } = useQuery({
     queryKey: ['settings', 'branches'],
     queryFn: fetchBranches,
   });
 
-  const { data: departments = INITIAL_DEPARTMENTS } = useQuery({
+  const { data: departments = [] } = useQuery({
     queryKey: ['settings', 'departments'],
     queryFn: fetchDepartments,
   });
 
-  const { data: jobs = INITIAL_JOBS } = useQuery({
+  const { data: jobs = [] } = useQuery({
     queryKey: ['settings', 'jobs'],
     queryFn: fetchJobs,
   });
@@ -133,32 +119,32 @@ export default function SettingsPage() {
     queryFn: fetchShifts,
   });
 
-  const { data: attendancePolicies = [INITIAL_ATTENDANCE_POLICY] } = useQuery({
+  const { data: attendancePolicies = [] } = useQuery({
     queryKey: ['settings', 'attendance-policies'],
     queryFn: fetchAttendancePolicies,
   });
 
-  const { data: leaveTypes = INITIAL_LEAVE_TYPES } = useQuery({
+  const { data: leaveTypes = [] } = useQuery({
     queryKey: ['settings', 'leave-types'],
     queryFn: fetchLeaveTypes,
   });
 
-  const { data: holidays = INITIAL_HOLIDAYS_2026 } = useQuery({
+  const { data: holidays = [] } = useQuery({
     queryKey: ['settings', 'holidays'],
     queryFn: () => fetchHolidays(2026),
   });
 
-  const { data: salaryRules = INITIAL_SALARY_RULES } = useQuery({
+  const { data: salaryRules = [] } = useQuery({
     queryKey: ['settings', 'salary-rules'],
     queryFn: fetchSalaryRules,
   });
 
-  const { data: approvalFlows = INITIAL_APPROVAL_FLOWS } = useQuery({
+  const { data: approvalFlows = [] } = useQuery({
     queryKey: ['settings', 'approval-flows'],
     queryFn: fetchApprovalFlows,
   });
 
-  const { data: payrollAlerts = INITIAL_PAYROLL_ALERTS } = useQuery({
+  const { data: payrollAlerts = null } = useQuery({
     queryKey: ['settings', 'payroll-alerts'],
     queryFn: fetchPayrollAlerts,
   });
@@ -581,6 +567,7 @@ export default function SettingsPage() {
         companyProfile={companyProfile}
         canEdit={isHrOrAdmin}
         onSave={handleSaveCompanyProfile}
+        onDeleteBlocked={handleDeleteBlocked}
       />
 
       {/* 2. Branches Drawer */}
@@ -588,7 +575,7 @@ export default function SettingsPage() {
         isOpen={activeDrawer === 'branches'}
         onClose={() => setActiveDrawer(null)}
         branches={branches}
-        visas={companyProfile.visas || companyProfile.company_visas}
+        visas={companyProfile?.visas || companyProfile?.company_visas || []}
         canEdit={isHrOrAdmin}
         onSave={handleSaveBranches}
         onDeleteBranch={handleDeleteBlocked}

@@ -14,6 +14,12 @@ const FORBIDDEN_TOKENS = [
   'switchDemoUser',
   'Switch Demo Persona',
   'Nextal@2026!',
+  'gulftech',
+  'Gulf Tech',
+  'الخليج للتقنية',
+  'Tariq Al-Hashemi',
+  'v1000000-',
+  'DEMO_PRESETS_DATA',
 ];
 
 function getFilesRecursively(dir, excludeDirs = []) {
@@ -90,6 +96,30 @@ describe('Zero Demo Code & Secrets Check (no-demo-code)', () => {
       violations,
       [],
       `Found forbidden demo tokens in .next-build:\n${JSON.stringify(violations, null, 2)}`
+    );
+  });
+
+  it('scans frontend/src for forbidden INITIAL_ imports and asserts zero occurrences', () => {
+    const srcDir = path.join(webDir, 'src');
+    const srcFiles = getFilesRecursively(srcDir);
+    const violations = [];
+
+    for (const file of srcFiles) {
+      if (!/\.(js|jsx|ts|tsx)$/.test(file)) continue;
+      const content = fs.readFileSync(file, 'utf8');
+      const matches = content.match(/import\s+[^;]*INITIAL_[^;]*from/g);
+      if (matches) {
+        violations.push({
+          file: path.relative(webDir, file),
+          matches,
+        });
+      }
+    }
+
+    assert.deepEqual(
+      violations,
+      [],
+      `Found forbidden INITIAL_ imports in frontend/src:\n${JSON.stringify(violations, null, 2)}`
     );
   });
 });

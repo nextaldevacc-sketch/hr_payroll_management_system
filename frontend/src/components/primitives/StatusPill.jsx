@@ -2,6 +2,8 @@
 
 import React from 'react';
 import clsx from 'clsx';
+import { useLanguage } from '../../context/LanguageContext';
+import { getEnumLabel } from '../../i18n/enums';
 
 /**
  * StatusPill Primitive
@@ -9,6 +11,8 @@ import clsx from 'clsx';
  * No busy colored outlines.
  */
 export function StatusPill({ status, size = 'sm', className = '' }) {
+  const { language } = useLanguage();
+
   const statusStyles = {
     // Pay run statuses
     Draft: 'bg-primary-wash text-primary font-semibold',
@@ -26,6 +30,9 @@ export function StatusPill({ status, size = 'sm', className = '' }) {
     Active: 'bg-secondary-wash text-secondary-text font-semibold',
     'Pre-Joined': 'bg-primary-wash text-primary font-semibold',
     'New Joined': 'bg-secondary-wash text-secondary-text font-semibold',
+    Probation: 'bg-warning-wash text-warning-text font-semibold',
+    Notice: 'bg-warning-wash text-warning-text font-semibold',
+    Separated: 'bg-white/[0.05] text-text-muted font-semibold',
     Suspended: 'bg-danger-wash text-danger-text font-semibold',
     Archived: 'bg-white/[0.05] text-text-muted font-semibold',
 
@@ -44,6 +51,8 @@ export function StatusPill({ status, size = 'sm', className = '' }) {
     md: 'text-sm px-3 py-1.5',
   };
 
+  const displayLabel = getEnumLabel(null, status, language);
+
   return (
     <span
       className={clsx(
@@ -54,7 +63,7 @@ export function StatusPill({ status, size = 'sm', className = '' }) {
       )}
     >
       <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
-      {status}
+      {displayLabel}
     </span>
   );
 }

@@ -16,6 +16,7 @@ export const reportController = {
         month,
         departmentId: department_id || null,
         companyVisaId: company_visa_id || companyVisaId || null,
+        viewer: req.user,
       });
 
       const filename = `attendance_report_${month || new Date().toISOString().slice(0, 7)}.xlsx`;
@@ -41,6 +42,7 @@ export const reportController = {
         departmentId: department_id || null,
         leaveTypeId: leave_type_id || null,
         companyVisaId: company_visa_id || companyVisaId || null,
+        viewer: req.user,
       });
 
       const targetYear = year || new Date().getUTCFullYear();
@@ -64,6 +66,7 @@ export const reportController = {
         companyId,
         year,
         companyVisaId: company_visa_id || companyVisaId || null,
+        viewer: req.user,
       });
       res.json({ success: true, data });
     } catch (err) {
@@ -80,6 +83,7 @@ export const reportController = {
         companyId,
         year,
         companyVisaId: company_visa_id || companyVisaId || null,
+        viewer: req.user,
       });
 
       const targetYear = year || new Date().getUTCFullYear();
@@ -110,6 +114,7 @@ export const reportController = {
       const exportResult = await reportService.generateAccountingExportCsv({
         companyId,
         payRunId,
+        viewer: req.user,
       });
 
       const filename = `accounting_export_${exportResult.period}_${payRunId.slice(0, 8)}.csv`;

@@ -23,6 +23,7 @@ import { fetchEmployees, fetchEmployeeMetaOptions } from '../../../services/empl
 import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Select } from '../../primitives/form/Select';
+import { getEnumLabel } from '../../../i18n/enums';
 
 export function EmployeeListFeature() {
   const { user } = useAuth();
@@ -144,16 +145,17 @@ export function EmployeeListFeature() {
 
   // Document alert status colors
   const getDocStatusPill = (st) => {
+    const label = getEnumLabel('document_status', st, isRTL ? 'ar' : 'en');
     switch (st) {
       case 'Valid':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">{st}</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">{label}</span>;
       case 'Expiring Soon':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">{st}</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">{label}</span>;
       case 'Expired':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">{st}</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">{label}</span>;
       case 'Missing Data':
       default:
-        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-500 border border-slate-500/20">{st || 'Missing'}</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-500 border border-slate-500/20">{label || (isRTL ? 'بيانات ناقصة' : 'Missing')}</span>;
     }
   };
 
@@ -207,7 +209,7 @@ export function EmployeeListFeature() {
           </div>
           <div className="mt-2 text-2xl font-black text-text" data-i18n-skip>{meta.total}</div>
           <div className="text-[11px] text-text-muted mt-1">
-            {user?.roles?.includes('DEPT_MANAGER') ? t('employees.bento.managedTeam', 'Your Managed Team') : t('employees.bento.workforce', 'Gulf Tech Workforce')}
+            {user?.roles?.includes('DEPT_MANAGER') ? t('employees.bento.managedTeam', 'Your Managed Team') : t('employees.bento.workforce', 'Workforce Directory')}
           </div>
         </GlassCard>
 
@@ -216,7 +218,7 @@ export function EmployeeListFeature() {
             <span className="text-xs font-medium text-text-muted">{t('employees.bento.statusCoverage', 'Status Coverage')}</span>
             <Building2 className="w-4 h-4 text-emerald-500" />
           </div>
-          <div className="mt-2 text-2xl font-black text-text" data-i18n-skip>100%</div>
+          <div className="mt-2 text-2xl font-black text-text" data-i18n-skip>{meta.status_coverage ?? '100%'}</div>
           <div className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">
             {t('employees.bento.compliantVisas', 'Compliant UAE Visas')}
           </div>
@@ -244,7 +246,7 @@ export function EmployeeListFeature() {
             <span className="text-xs font-medium text-text-muted">{t('employees.bento.docAlerts', 'Document Alerts')}</span>
             <AlertTriangle className="w-4 h-4 text-rose-500" />
           </div>
-          <div className="mt-2 text-2xl font-black text-rose-600 dark:text-rose-400" data-i18n-skip>10</div>
+          <div className="mt-2 text-2xl font-black text-rose-600 dark:text-rose-400" data-i18n-skip>{meta.document_alerts ?? 0}</div>
           <div className="text-[11px] text-text-muted mt-1">{t('employees.bento.daysToExpiry', '≤90 Days to Expiry')}</div>
         </GlassCard>
       </div>

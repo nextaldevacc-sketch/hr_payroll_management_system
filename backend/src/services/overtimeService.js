@@ -2,6 +2,7 @@ import Decimal from 'decimal.js';
 import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
 import { toDubaiDateString } from '@nextal/shared';
+import scopeService from './scopeService.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function sanitizeUuid(val) {
@@ -12,7 +13,7 @@ class OvertimeService {
   /**
    * List Overtime Requests with filtering
    */
-  async listOvertimeRequests({ companyId, month, status, departmentId, employeeId }) {
+  async listOvertimeRequests({ companyId, month, status, departmentId, employeeId, companyVisaId = null, viewer = null }) {
     const where = { company_id: companyId };
     if (status) where.status = status;
     if (employeeId) where.employee_id = employeeId;
@@ -26,6 +27,15 @@ class OvertimeService {
 
     if (departmentId) {
       where.employee = { contracts: { some: { department_id: departmentId } } };
+    }
+
+    const scope = scopeService.resolveDataScope(viewer);
+    const scopeWhere = scopeService.buildEmployeeWhere(scope, companyVisaId);
+    if (scopeWhere && Object.keys(scopeWhere).length > 0) {
+      where.employee = {
+        ...(where.employee || {}),
+        ...scopeWhere,
+      };
     }
 
     return prisma.$base().overtime_requests.findMany({

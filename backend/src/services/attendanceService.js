@@ -4,6 +4,7 @@ import Decimal from 'decimal.js';
 import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
 import { validateAndResolveVisa } from './visaValidator.js';
+import scopeService from './scopeService.js';
 import {
   toDubaiDateString,
   getDubaiDayBounds,
@@ -582,7 +583,7 @@ class AttendanceService {
   /**
    * 3. Daily Attendance Grid (employees x days)
    */
-  async getAttendanceGrid({ companyId, month, from, to, departmentId, branchId, search, companyVisaId }) {
+  async getAttendanceGrid({ companyId, month, from, to, departmentId, branchId, search, companyVisaId, viewer = null }) {
     let startDate;
     let endDate;
     let monthKey;
@@ -615,13 +616,16 @@ class AttendanceService {
       orderBy: { name: 'asc' },
     });
 
-    const whereEmp = { company_id: companyId, status: { in: ['Active', 'New Joined'] } };
+    const scope = scopeService.resolveDataScope(viewer);
+    const scopeWhere = scopeService.buildEmployeeWhere(scope, companyVisaId);
+
+    const whereEmp = {
+      company_id: companyId,
+      status: { in: ['Active', 'New Joined'] },
+      ...(scopeWhere || {}),
+    };
     if (departmentId) whereEmp.department_id = departmentId;
     if (branchId) whereEmp.branch_id = branchId;
-    if (companyVisaId) {
-      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
-      if (validVisa) whereEmp.company_visa_id = validVisa;
-    }
     if (search) {
       whereEmp.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -764,7 +768,10 @@ class AttendanceService {
   /**
    * 5. Missing Punch Queue
    */
-  async getMissingPunchQueue({ companyId, month, companyVisaId }) {
+  async getMissingPunchQueue({ companyId, month, companyVisaId, viewer = null }) {
+    const scope = scopeService.resolveDataScope(viewer);
+    const scopeWhere = scopeService.buildEmployeeWhere(scope, companyVisaId);
+
     const where = {
       company_id: companyId,
       exception_codes: { has: 'MISSING_PUNCH' },
@@ -777,11 +784,8 @@ class AttendanceService {
       where.work_date = { gte: startOfMonth, lte: endOfMonth };
     }
 
-    if (companyVisaId) {
-      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
-      if (validVisa) {
-        where.employee = { company_visa_id: validVisa };
-      }
+    if (scopeWhere && Object.keys(scopeWhere).length > 0) {
+      where.employee = scopeWhere;
     }
 
     return prisma.$base().attendance_days.findMany({

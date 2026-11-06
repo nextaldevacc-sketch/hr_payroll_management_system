@@ -77,7 +77,8 @@
       "active": "Active Staff",
       "joiners": "Joiners",
       "leavers": "Leavers",
-      "netChange": "+2 net this month"
+      "netChange": "+2 net this month",
+      "netCount": "+{{count}} net this month"
     },
     "pendingApprovals": {
       "title": "Pending Approvals",
@@ -165,7 +166,7 @@
     "active": "Active",
     "bento": {
       "totalFiltered": "Total Filtered",
-      "workforce": "Gulf Tech Workforce",
+      "workforce": "Company Workforce",
       "managedTeam": "Your Managed Team",
       "statusCoverage": "Status Coverage",
       "compliantVisas": "Compliant UAE Visas",

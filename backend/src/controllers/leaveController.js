@@ -22,6 +22,7 @@ export async function getLeaveBalances(req, res, next) {
       employeeId,
       year: req.query.year,
       companyVisaId: req.query.company_visa_id || req.query.companyVisaId,
+      viewer: req.user,
     });
     res.json({ status: 'success', data });
   } catch (err) { next(err); }

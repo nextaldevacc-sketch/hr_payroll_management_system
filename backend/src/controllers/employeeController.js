@@ -421,6 +421,23 @@ export async function getEmployeeHistory(req, res, next) {
   }
 }
 
+export async function requestBranchChange(req, res, next) {
+  try {
+    const { target_branch_id, effective_date, reason } = req.body;
+    const data = await employeeService.requestBranchChange({
+      companyId: req.companyId,
+      employeeId: req.params.id,
+      targetBranchId: target_branch_id,
+      effectiveDate: effective_date,
+      reason,
+      requestedBy: req.user.id,
+    });
+    res.json({ status: 'success', message: 'Branch change request submitted for HR approval', data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export default {
   listEmployees,
   createEmployee,
@@ -429,6 +446,7 @@ export default {
   getEmployeeById,
   updateEmployee,
   updateEmployeeStatus,
+  requestBranchChange,
   verifyEmployee,
   getActivationCheck,
   activateEmployee,

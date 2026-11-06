@@ -1,0 +1,462 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Nextal HR & Payroll Enterprise System — Complete Architecture & Workflow Specification",
+    "description": "Comprehensive mapping of Nextal UAE HR & Payroll platform across Client UI, Middleware Gateway, HR Onboarding, Time & Attendance, Statutory Payroll, Offboarding, and PostgreSQL Invariant Enforcement layers.",
+    "output": "docs/diagrams/nextal-system-workflow.html",
+    "theme": "dark",
+    "direction": "LR"
+  },
+  "lanes": [
+    {
+      "id": "lane-client",
+      "label": "Client Presentation & UI Layer",
+      "description": "Next.js 14 App Router, Dual LTR/RTL Language Context, React Query State Management & Mobile Responsive Shell"
+    },
+    {
+      "id": "lane-gateway",
+      "label": "API Gateway, Auth & Tenant Routing",
+      "description": "Express.js REST Gateway, JWT Session Lifecycle, AsyncLocalStorage Tenant Isolation & Dynamic Rate Limiting"
+    },
+    {
+      "id": "lane-onboarding",
+      "label": "Employee Lifecycle & Onboarding",
+      "description": "Sequential Code Provisioning, Creator Guard Dual-Control Verification, Versioned Contracts & Bank Validation (T27)"
+    },
+    {
+      "id": "lane-time-attendance",
+      "label": "Time, Attendance & Overtime Engine",
+      "description": "Biometric Punch Ingestion, SHA-256 Deduplication (T4), Asia/Dubai Day Bounds, Missing Punch Queue & Dual Signoff"
+    },
+    {
+      "id": "lane-payroll",
+      "label": "Statutory Payroll & WPS Engine",
+      "description": "17 Statutory Salary Rules, 5% Variance Detection, Ministry of Human Resources WPS SIF Generation & Final Settlement"
+    },
+    {
+      "id": "lane-offboarding",
+      "label": "Offboarding, Gratuity & Clearance",
+      "description": "UAE Labour Law Article 51/52 Gratuity Formulas, Multi-Department Clearance & Employee Archival (T36)"
+    },
+    {
+      "id": "lane-persistence",
+      "label": "Database, Audit & Triggers (PostgreSQL)",
+      "description": "Prisma ORM, PostgreSQL Immutability Triggers, Atomic Transactions & Chronological Audit Trail"
+    }
+  ],
+  "phases": [
+    {
+      "id": "phase-ingress",
+      "label": "1. Ingress & Identity",
+      "description": "User authentication, JWT issuance, tenant binding, and role-based route guard"
+    },
+    {
+      "id": "phase-onboarding",
+      "label": "2. Employee Provisioning",
+      "description": "Dual-control hiring, statutory document verification, and bank IBAN MOD-97 checks"
+    },
+    {
+      "id": "phase-timekeeping",
+      "label": "3. Biometric & Time Engine",
+      "description": "Biometric machine import, anomaly remediation, overtime classification, and monthly signoff"
+    },
+    {
+      "id": "phase-payroll-exec",
+      "label": "4. Payroll Calculation & WPS",
+      "description": "Statutory rule calculation, variance analysis, salary locking, and WPS SIF generation"
+    },
+    {
+      "id": "phase-settlement",
+      "label": "5. Offboarding & Audit",
+      "description": "Gratuity settlement calculation, asset clearance, account archival, and immutable audit logs"
+    }
+  ],
+  "groups": [
+    {
+      "id": "grp-auth",
+      "label": "Authentication & Session Security",
+      "phase": "phase-ingress"
+    },
+    {
+      "id": "grp-hire",
+      "label": "Dual-Control Hiring Flow",
+      "phase": "phase-onboarding"
+    },
+    {
+      "id": "grp-punch",
+      "label": "Biometric Ingestion & Deduplication",
+      "phase": "phase-timekeeping"
+    },
+    {
+      "id": "grp-payroll-calc",
+      "label": "Pay Run Execution State Machine",
+      "phase": "phase-payroll-exec"
+    },
+    {
+      "id": "grp-exit",
+      "label": "Exit Clearance & Settlement",
+      "phase": "phase-settlement"
+    }
+  ],
+  "mainPath": [
+    "ui-login",
+    "gw-auth",
+    "gw-tenant-isolation",
+    "onboard-wizard",
+    "onboard-dual-verify",
+    "onboard-contract-iban",
+    "onboard-activate",
+    "time-biometric-import",
+    "time-missing-punch",
+    "time-signoff",
+    "pay-calculate",
+    "pay-validate-variance",
+    "pay-lock",
+    "pay-wps-sif",
+    "pay-disburse",
+    "db-audit-persist"
+  ],
+  "nodes": [
+    {
+      "id": "ui-login",
+      "lane": "lane-client",
+      "col": 0,
+      "type": "client",
+      "label": "Auth & Self-Service Portal",
+      "description": "Responsive client shell with LanguageContext (ar/en, KaTeX/RTL), AuthContext (session watcher), and VisaContext"
+    },
+    {
+      "id": "gw-auth",
+      "lane": "lane-gateway",
+      "col": 1,
+      "type": "security",
+      "label": "JWT Auth & Session Verification",
+      "description": "Enforces 8-hour HTTP-only JWT session, token_version revocation, 5-attempt lockout, and guest optionalAuthenticate on /auth/me"
+    },
+    {
+      "id": "gw-tenant-isolation",
+      "lane": "lane-gateway",
+      "col": 2,
+      "type": "middleware",
+      "label": "AsyncLocalStorage Tenant Scope",
+      "description": "Guarantees complete multi-company data isolation via companyStorage, injecting company_id and visa scope to all Prisma queries"
+    },
+    {
+      "id": "onboard-wizard",
+      "lane": "lane-onboarding",
+      "col": 3,
+      "type": "process",
+      "label": "Onboarding Wizard (5 Steps)",
+      "description": "HR Officer enters identity details; generates sequential employee code (EMP-DXB-XXX) and assigns statutory visa entity"
+    },
+    {
+      "id": "onboard-dual-verify",
+      "lane": "lane-onboarding",
+      "col": 4,
+      "type": "decision",
+      "label": "Dual-Control HR Verification",
+      "description": "Enforces segregation of duties (Creator Guard): creator cannot approve own entry; advances status Pre-Joined -> New Joined"
+    },
+    {
+      "id": "onboard-contract-iban",
+      "lane": "lane-onboarding",
+      "col": 5,
+      "type": "process",
+      "label": "Contract v1 & Bank IBAN (T27)",
+      "description": "Payroll Officer inputs gross package with statutory basic/housing/transport split; validates ISO-7064 MOD-97 UAE IBAN"
+    },
+    {
+      "id": "onboard-activate",
+      "lane": "lane-onboarding",
+      "col": 6,
+      "type": "milestone",
+      "label": "Statutory Activation Guard",
+      "description": "Activation to Active blocked if bank account, contract, or compliance documents missing; triggers self-service invite"
+    },
+    {
+      "id": "time-biometric-import",
+      "lane": "lane-time-attendance",
+      "col": 7,
+      "type": "process",
+      "label": "Biometric Punch Ingestion (T4)",
+      "description": "Uploads CSV/XLSX machine punches; enforces SHA-256 duplicate file rejection; maps UNKNOWN-DEV-999 to device directory"
+    },
+    {
+      "id": "time-missing-punch",
+      "lane": "lane-time-attendance",
+      "col": 8,
+      "type": "process",
+      "label": "Attendance Anomaly Remediation",
+      "description": "31-day Asia/Dubai (UTC+4) grid; unresolved punches route to queue with mandatory justification; employee /me request flow"
+    },
+    {
+      "id": "time-overtime-engine",
+      "lane": "lane-time-attendance",
+      "col": 9,
+      "type": "process",
+      "label": "Statutory Overtime Engine (T10)",
+      "description": "Calculates Normal OT (1.25x), Night OT (1.50x), Holiday OT (1.50x), Substitute Days; unapproved OT rolls forward at cut-off"
+    },
+    {
+      "id": "time-signoff",
+      "lane": "lane-time-attendance",
+      "col": 10,
+      "type": "milestone",
+      "label": "Dual Monthly Attendance Sign-Off",
+      "description": "Stage 1: Dept Manager confirms team punches; Stage 2: HR Officer marks payroll-ready (HrConfirmed). Unconfirmed teams held (T34)"
+    },
+    {
+      "id": "pay-calculate",
+      "lane": "lane-payroll",
+      "col": 11,
+      "type": "engine",
+      "label": "Statutory Payroll Engine (17 Rules)",
+      "description": "Executes 17 statutory salary rules sequence-first: Basic, Housing, Transport, OT additions, Loan/Advance recovery, Absence deductions"
+    },
+    {
+      "id": "pay-validate-variance",
+      "lane": "lane-payroll",
+      "col": 12,
+      "type": "decision",
+      "label": "Variance Audit & 5% Guard",
+      "description": "Compares draft against previous paid cycle; flags variances > 5.00%; generates blocking issues requiring audit justification"
+    },
+    {
+      "id": "pay-lock",
+      "lane": "lane-payroll",
+      "col": 13,
+      "type": "security",
+      "label": "Pay Run Lock State Machine",
+      "description": "Advances Validated -> Locked; activates PostgreSQL trigger prevent_locked_pay_run_modification; locks all payslips & lines"
+    },
+    {
+      "id": "pay-wps-sif",
+      "lane": "lane-payroll",
+      "col": 14,
+      "type": "process",
+      "label": "MOHRE / CBUAE WPS SIF Generation",
+      "description": "Generates standard WPS SIF file with Salary Control Record (SCR) and Employee Detail Record (EDR) using employer establishment ID"
+    },
+    {
+      "id": "pay-disburse",
+      "lane": "lane-payroll",
+      "col": 15,
+      "type": "milestone",
+      "label": "Disbursement & Payslip Release",
+      "description": "Finance confirms bank transfer -> Status Paid; releases self-service payslips to /me/payslips with encrypted PDF download"
+    },
+    {
+      "id": "exit-clearance",
+      "lane": "lane-offboarding",
+      "col": 16,
+      "type": "process",
+      "label": "Offboarding Clearance Checklist",
+      "description": "Coordinates multi-department clearances (IT, Finance, Operations, HR); tracks company property return and handover tasks"
+    },
+    {
+      "id": "exit-gratuity",
+      "lane": "lane-offboarding",
+      "col": 17,
+      "type": "engine",
+      "label": "Article 51/52 UAE Gratuity Engine",
+      "description": "Calculates statutory End-of-Service Benefit based on contract type, separation reason (Resignation vs Termination), and exact service tenure"
+    },
+    {
+      "id": "exit-archive",
+      "lane": "lane-offboarding",
+      "col": 18,
+      "type": "milestone",
+      "label": "Account Archival Guard (T36)",
+      "description": "Final settlement approval locks gratuity in DB via trigger; archives employee and disables login credentials permanently"
+    },
+    {
+      "id": "db-audit-persist",
+      "lane": "lane-persistence",
+      "col": 19,
+      "type": "storage",
+      "label": "Immutable Audit Ledger & Triggers",
+      "description": "PostgreSQL database persisting immutable before/after diffs, user IDs, timestamps, and enforcing table-level data protection triggers"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-auth-req",
+      "from": "ui-login",
+      "to": "gw-auth",
+      "label": "POST /api/v1/auth/login",
+      "type": "http"
+    },
+    {
+      "id": "e-auth-tenant",
+      "from": "gw-auth",
+      "to": "gw-tenant-isolation",
+      "label": "JWT Claims & AsyncLocalStorage",
+      "type": "internal"
+    },
+    {
+      "id": "e-tenant-onboard",
+      "from": "gw-tenant-isolation",
+      "to": "onboard-wizard",
+      "label": "POST /api/v1/employees (Pre-Joined)",
+      "type": "http"
+    },
+    {
+      "id": "e-onboard-verify",
+      "from": "onboard-wizard",
+      "to": "onboard-dual-verify",
+      "label": "Creator Guard Check",
+      "type": "constraint"
+    },
+    {
+      "id": "e-verify-contract",
+      "from": "onboard-dual-verify",
+      "to": "onboard-contract-iban",
+      "label": "POST /api/v1/employees/:id/contracts",
+      "type": "http"
+    },
+    {
+      "id": "e-contract-activate",
+      "from": "onboard-contract-iban",
+      "to": "onboard-activate",
+      "label": "T27 Bank Check & POST /activate",
+      "type": "http"
+    },
+    {
+      "id": "e-activate-time",
+      "from": "onboard-activate",
+      "to": "time-biometric-import",
+      "label": "Device Mapping & Active Employee",
+      "type": "data"
+    },
+    {
+      "id": "e-biometric-anomalies",
+      "from": "time-biometric-import",
+      "to": "time-missing-punch",
+      "label": "Punches Ingested (SHA-256 Checked)",
+      "type": "data"
+    },
+    {
+      "id": "e-time-ot",
+      "from": "time-missing-punch",
+      "to": "time-overtime-engine",
+      "label": "Daily Grid & Resolved Punches",
+      "type": "data"
+    },
+    {
+      "id": "e-ot-signoff",
+      "from": "time-overtime-engine",
+      "to": "time-signoff",
+      "label": "Manager OT Approval & Roll-Forward",
+      "type": "workflow"
+    },
+    {
+      "id": "e-signoff-payroll",
+      "from": "time-signoff",
+      "to": "pay-calculate",
+      "label": "Payroll-Ready State (HrConfirmed)",
+      "type": "workflow"
+    },
+    {
+      "id": "e-calc-variance",
+      "from": "pay-calculate",
+      "to": "pay-validate-variance",
+      "label": "Draft Payslips & 17 Line Items",
+      "type": "data"
+    },
+    {
+      "id": "e-variance-lock",
+      "from": "pay-validate-variance",
+      "to": "pay-lock",
+      "label": "Variances Justified -> Lock Request",
+      "type": "workflow"
+    },
+    {
+      "id": "e-lock-wps",
+      "from": "pay-lock",
+      "to": "pay-wps-sif",
+      "label": "Trigger Armed & Locked State",
+      "type": "security"
+    },
+    {
+      "id": "e-wps-disburse",
+      "from": "pay-wps-sif",
+      "to": "pay-disburse",
+      "label": "CBUAE Bank Transmission",
+      "type": "http"
+    },
+    {
+      "id": "e-disburse-ui",
+      "from": "pay-disburse",
+      "to": "ui-login",
+      "label": "Released to /me/payslips",
+      "type": "event"
+    },
+    {
+      "id": "e-active-exit",
+      "from": "onboard-activate",
+      "to": "exit-clearance",
+      "label": "Resignation / Termination Initiated",
+      "type": "workflow"
+    },
+    {
+      "id": "e-clearance-gratuity",
+      "from": "exit-clearance",
+      "to": "exit-gratuity",
+      "label": "All Department Clearances Signed Off",
+      "type": "workflow"
+    },
+    {
+      "id": "e-gratuity-archive",
+      "from": "exit-gratuity",
+      "to": "exit-archive",
+      "label": "Final Settlement Approved",
+      "type": "security"
+    },
+    {
+      "id": "e-archive-audit",
+      "from": "exit-archive",
+      "to": "db-audit-persist",
+      "label": "T36 Archival & Settlement Lock Trigger",
+      "type": "database"
+    },
+    {
+      "id": "e-lock-audit",
+      "from": "pay-lock",
+      "to": "db-audit-persist",
+      "label": "PostgreSQL Locked Pay Run Trigger",
+      "type": "database"
+    },
+    {
+      "id": "e-onboard-audit",
+      "from": "onboard-dual-verify",
+      "to": "db-audit-persist",
+      "label": "Dual-Control Audit Trail Record",
+      "type": "database"
+    }
+  ],
+  "cards": [
+    {
+      "id": "card-compliance",
+      "title": "UAE Statutory Compliance Framework",
+      "points": [
+        "Federal Decree-Law No. 33 of 2021: Article 51 End-of-Service Gratuity (21 days/yr for first 5 yrs, 30 days/yr thereafter)",
+        "Overtime Multipliers: 1.25x Normal, 1.50x Night (10pm-4am) & Public Holidays",
+        "WPS SIF Format: Validates Ministry of Human Resources & Emiratisation Establishment ID & Central Bank routing",
+        "ISO-7064 MOD-97 checksum enforcement on all 23-character UAE IBANs",
+        "Dual-Control creator isolation on hiring (Creator cannot verify own recruit)"
+      ]
+    },
+    {
+      "id": "card-triggers",
+      "title": "Database Invariants & PostgreSQL Triggers",
+      "points": [
+        "prevent_locked_pay_run_modification: Rejects any UPDATE or DELETE to payslips / payslip_lines in Locked or Paid state",
+        "prevent_final_settlement_modification: Enforces immutability on approved end-of-service financial settlements",
+        "T36 Archival Enforcement: Blocks user login immediately upon completion of final settlement",
+        "T4 SHA-256 Deduplication: Automatically rejects duplicate biometric files by cryptographic content hash"
+      ]
+    }
+  ]
+}
+

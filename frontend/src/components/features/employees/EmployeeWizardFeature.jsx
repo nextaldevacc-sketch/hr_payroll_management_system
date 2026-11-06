@@ -101,7 +101,10 @@ export function EmployeeWizardFeature() {
   });
 
   // Scoped branches filtered to the selected Company Visa (Spec 7.2)
-  const selectedVisaId = personalForm.company_visa_id || metaOptions?.visas?.[0]?.id || '';
+  const defaultVisa = (metaOptions?.visas || []).find((v) =>
+    (metaOptions?.branches || []).some((b) => b.company_visa_id === v.id)
+  ) || metaOptions?.visas?.[0];
+  const selectedVisaId = personalForm.company_visa_id || defaultVisa?.id || '';
   const filteredBranches = (metaOptions?.branches || []).filter(
     (b) => !selectedVisaId || b.company_visa_id === selectedVisaId
   );
@@ -127,7 +130,10 @@ export function EmployeeWizardFeature() {
       if (metaOptions.next_employee_code && !personalForm.employee_code) {
         setPersonalForm((f) => ({ ...f, employee_code: metaOptions.next_employee_code }));
       }
-      const initialVisaId = personalForm.company_visa_id || metaOptions.visas?.[0]?.id || '';
+      const visaWithBranches = (metaOptions.visas || []).find((v) =>
+        (metaOptions.branches || []).some((b) => b.company_visa_id === v.id)
+      ) || metaOptions.visas?.[0];
+      const initialVisaId = personalForm.company_visa_id || visaWithBranches?.id || '';
       if (!personalForm.company_visa_id && initialVisaId) {
         setPersonalForm((f) => ({ ...f, company_visa_id: initialVisaId }));
       }
@@ -242,7 +248,13 @@ export function EmployeeWizardFeature() {
     },
   });
 
-  const stepsList = [
+  const stepsList = language === 'ar' ? [
+    'قبل الالتحاق',
+    'تدقيق الموارد البشرية',
+    'العقد والمستندات',
+    'الجدول والبنك',
+    'التحقق من التفعيل',
+  ] : [
     'Pre-Joined',
     'HR Verification',
     'Contract & Docs',
@@ -393,7 +405,7 @@ export function EmployeeWizardFeature() {
                 <input
                   id="wizard-input-work-email"
                   type="email"
-                  placeholder="salem@gulftech.ae"
+                  placeholder="salem@company.ae"
                   value={personalForm.work_email}
                   onChange={(e) => setPersonalForm({ ...personalForm, work_email: e.target.value })}
                   className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text font-mono"
@@ -547,32 +559,32 @@ export function EmployeeWizardFeature() {
             <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs">
               <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                 <span className="font-bold text-emerald-600 dark:text-emerald-400 block flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Stage 1
+                  <CheckCircle2 className="w-3.5 h-3.5" /> {language === 'ar' ? 'المرحلة 1' : 'Stage 1'}
                 </span>
-                <span className="font-medium text-text mt-0.5 block">Identity & File</span>
-                <span className="text-[10px] text-text-muted block mt-0.5">Completed · File created</span>
+                <span className="font-medium text-text mt-0.5 block">{language === 'ar' ? 'الهوية والملف' : 'Identity & File'}</span>
+                <span className="text-[10px] text-text-muted block mt-0.5">{language === 'ar' ? 'مكتمل · تم إنشاء الملف' : 'Completed · File created'}</span>
               </div>
               <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
                 <span className="font-bold text-amber-600 dark:text-amber-400 block flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" /> Stage 2
+                  <Clock className="w-3.5 h-3.5" /> {language === 'ar' ? 'المرحلة 2' : 'Stage 2'}
                 </span>
-                <span className="font-medium text-text mt-0.5 block">HR Verification</span>
-                <span className="text-[10px] text-text-muted block mt-0.5">Pending HR Manager</span>
+                <span className="font-medium text-text mt-0.5 block">{language === 'ar' ? 'تدقيق الموارد البشرية' : 'HR Verification'}</span>
+                <span className="text-[10px] text-text-muted block mt-0.5">{language === 'ar' ? 'بانتظار مدير الموارد' : 'Pending HR Manager'}</span>
               </div>
               <div className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border opacity-70">
-                <span className="font-bold text-text-muted block">Stage 3</span>
-                <span className="font-medium text-text mt-0.5 block">Contract Offer</span>
-                <span className="text-[10px] text-text-muted block mt-0.5">Pending verification</span>
+                <span className="font-bold text-text-muted block">{language === 'ar' ? 'المرحلة 3' : 'Stage 3'}</span>
+                <span className="font-medium text-text mt-0.5 block">{language === 'ar' ? 'عرض العقد' : 'Contract Offer'}</span>
+                <span className="text-[10px] text-text-muted block mt-0.5">{language === 'ar' ? 'بانتظار التحقق' : 'Pending verification'}</span>
               </div>
               <div className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border opacity-70">
-                <span className="font-bold text-text-muted block">Stage 4</span>
-                <span className="font-medium text-text mt-0.5 block">Bank & WPS</span>
-                <span className="text-[10px] text-text-muted block mt-0.5">Pending verification</span>
+                <span className="font-bold text-text-muted block">{language === 'ar' ? 'المرحلة 4' : 'Stage 4'}</span>
+                <span className="font-medium text-text mt-0.5 block">{language === 'ar' ? 'البنك وحماية الأجور' : 'Bank & WPS'}</span>
+                <span className="text-[10px] text-text-muted block mt-0.5">{language === 'ar' ? 'بانتظار التحقق' : 'Pending verification'}</span>
               </div>
               <div className="p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-border opacity-70">
-                <span className="font-bold text-text-muted block">Stage 5</span>
-                <span className="font-medium text-text mt-0.5 block">Activation</span>
-                <span className="text-[10px] text-text-muted block mt-0.5">Pending stages 2–4</span>
+                <span className="font-bold text-text-muted block">{language === 'ar' ? 'المرحلة 5' : 'Stage 5'}</span>
+                <span className="font-medium text-text mt-0.5 block">{language === 'ar' ? 'التفعيل' : 'Activation'}</span>
+                <span className="text-[10px] text-text-muted block mt-0.5">{language === 'ar' ? 'بانتظار المراحل 2–4' : 'Pending stages 2–4'}</span>
               </div>
             </div>
           </div>

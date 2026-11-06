@@ -20,12 +20,59 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
-import { DEMO_PRESETS_DATA } from '../settingsData';
 import {
   validateFormula,
   evaluateFormula,
   executeRuleEngine,
 } from '@nextal/shared';
+
+const BENCHMARK_PRESETS = {
+  AHMED: {
+    name: 'Ahmed (Worked Example 8)',
+    contract: { basic: 5000, hra: 2000, tra: 500, oth: 500 },
+    paid_days: 30,
+    month_days: 30,
+    absent_days: 2,
+    ot_hours_normal: 3,
+    ot_hours_night: 0,
+    ot_hours_rest: 0,
+    late_units: 0,
+    loan_instalment: 500,
+    adv_instalment: 0,
+    gpssa_salary: 0,
+    notes: 'Contract: Basic 5,000 + Housing 2,000 + Transport 500 + Other 500 = 8,000 Gross. Normal OT 3h = +78.13. 2 days absence (÷30) = -533.33. Loan = -500.00. Exact Net = AED 7,044.80.',
+  },
+  SARA: {
+    name: 'Sara (Full Month)',
+    contract: { basic: 5000, hra: 2000, tra: 500, oth: 500 },
+    paid_days: 30,
+    month_days: 30,
+    absent_days: 0,
+    ot_hours_normal: 0,
+    ot_hours_night: 0,
+    ot_hours_rest: 0,
+    late_units: 0,
+    loan_instalment: 0,
+    adv_instalment: 0,
+    gpssa_salary: 0,
+    notes: 'Gross 8,000 AED. Full month worked, zero deductions or overtime. Exact Net = AED 8,000.00.',
+  },
+  OMAR: {
+    name: 'Omar (UAE National)',
+    contract: { basic: 6000, hra: 2500, tra: 1000, oth: 500 },
+    paid_days: 30,
+    month_days: 30,
+    absent_days: 0,
+    ot_hours_normal: 0,
+    ot_hours_night: 0,
+    ot_hours_rest: 0,
+    late_units: 0,
+    loan_instalment: 0,
+    adv_instalment: 0,
+    gpssa_salary: 10000,
+    notes: 'Gross 10,000 AED. UAE National with GPSSA 5% employee pension contribution = -500. Exact Net = AED 9,500.00.',
+  },
+};
 
 export function SalaryRulesDrawer({
   isOpen,
@@ -80,7 +127,7 @@ export function SalaryRulesDrawer({
 
   // Live Rule B Simulator Evaluation
   const simulationResult = useMemo(() => {
-    const preset = DEMO_PRESETS_DATA[selectedPresetKey];
+    const preset = BENCHMARK_PRESETS[selectedPresetKey];
     let employeeContext;
 
     if (selectedPresetKey === 'CUSTOM') {
@@ -524,9 +571,9 @@ export function SalaryRulesDrawer({
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary shrink-0" />
                 <span className="text-text-muted">
-                  {selectedPresetKey === 'AHMED' && DEMO_PRESETS_DATA.AHMED.notes}
-                  {selectedPresetKey === 'SARA' && DEMO_PRESETS_DATA.SARA.notes}
-                  {selectedPresetKey === 'OMAR' && DEMO_PRESETS_DATA.OMAR.notes}
+                  {selectedPresetKey === 'AHMED' && BENCHMARK_PRESETS.AHMED.notes}
+                  {selectedPresetKey === 'SARA' && BENCHMARK_PRESETS.SARA.notes}
+                  {selectedPresetKey === 'OMAR' && BENCHMARK_PRESETS.OMAR.notes}
                   {selectedPresetKey === 'CUSTOM' && 'Adjust custom inputs below to test any wage formula combination.'}
                 </span>
               </div>

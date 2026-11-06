@@ -46,6 +46,7 @@ import { StatusPill } from '../../primitives/StatusPill';
 import { Stepper } from '../../primitives/Stepper';
 import { PayslipModal } from './PayslipModal';
 import { useLanguage } from '../../../context/LanguageContext';
+import { getEnumLabel } from '../../../i18n/enums';
 
 export function PayRunDetailFeature() {
   const params = useParams();
@@ -227,16 +228,20 @@ export function PayRunDetailFeature() {
               </h1>
               <StatusPill status={payRun.status} />
               <span className="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-surface-raised border border-border text-text-muted">
-                {payRun.run_type || 'Regular'}
+                {getEnumLabel('pay_run_type', payRun.run_type || 'Regular', language)}
               </span>
             </div>
             <p className="text-xs text-text-muted flex items-center gap-2">
               <Building className="w-3.5 h-3.5 text-primary" />
-              <span>{language === 'ar' ? (payRun.company_visa?.name_ar || payRun.company_visa?.name || 'MOHRE Dubai') : (payRun.company_visa?.name || 'MOHRE Dubai')}</span>
+              <span>
+                {language === 'ar'
+                  ? (payRun.company_visa?.name_ar || getEnumLabel('visa_names', payRun.company_visa?.name, 'ar') || payRun.company_visa?.name || 'MOHRE Dubai')
+                  : (payRun.company_visa?.name || 'MOHRE Dubai')}
+              </span>
               &bull;
-              <span>MOL ID: <strong className="text-text font-mono">{payRun.company_visa?.mol_establishment_id}</strong></span>
+              <span>{language === 'ar' ? 'معرف الوزارة:' : 'MOL ID:'} <strong className="text-text font-mono" data-i18n-skip>{payRun.company_visa?.mol_establishment_id}</strong></span>
               &bull;
-              <span>Cut-Off: <strong>{new Date(payRun.cutoff_date).toLocaleDateString('en-GB')}</strong></span>
+              <span>{language === 'ar' ? 'تاريخ الإقفال:' : 'Cut-Off:'} <strong>{new Date(payRun.cutoff_date).toLocaleDateString('en-GB')}</strong></span>
             </p>
           </div>
 
@@ -669,7 +674,7 @@ export function PayRunDetailFeature() {
 
                     return (
                       <tr key={ps.id} className="hover:bg-surface-raised/30 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-bold text-text">{emp.employee_code || '---'}</td>
+                        <td className="py-3.5 px-4 font-mono font-bold text-text" data-i18n-skip>{emp.employee_code || '---'}</td>
                         <td className="py-3.5 px-4">
                           <span className="font-bold text-text" data-i18n-skip>
                             {language === 'ar' ? (emp.arabic_name || emp.name) : emp.name}
@@ -678,7 +683,11 @@ export function PayRunDetailFeature() {
                             <span className="block text-[10px] text-text-muted font-arabic">{emp.arabic_name}</span>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 text-text-muted">{emp.department?.name || 'Operations'}</td>
+                        <td className="py-3.5 px-4 text-text-muted">
+                          {language === 'ar'
+                            ? (emp.department?.name_ar || (emp.department?.name === 'Operations' ? 'العمليات اللوجستية' : emp.department?.name) || 'العمليات')
+                            : (emp.department?.name || 'Operations')}
+                        </td>
                         <td className="py-3.5 px-4 text-right font-medium text-text">
                           {Number(ps.basic || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>

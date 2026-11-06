@@ -49,6 +49,16 @@ export async function seedOrganisation(prisma) {
     },
   });
 
+  const branch1_ad = await prisma.branches.create({
+    data: {
+      company_id: company1.id,
+      company_visa_id: visa1_01.id,
+      name: 'Abu Dhabi Corniche Branch',
+      name_ar: 'فرع كورنيش أبوظبي',
+      emirate: 'Abu Dhabi',
+    },
+  });
+
   const branch1_difc = await prisma.branches.create({
     data: {
       company_id: company1.id,
@@ -160,7 +170,7 @@ export async function seedOrganisation(prisma) {
   return {
     company1,
     visas1: { visa1_01, visa1_02 },
-    branches1: { branch1_main, branch1_difc },
+    branches1: { branch1_main, branch1_ad, branch1_difc },
     depts1,
     jobs1,
     company2,

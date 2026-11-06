@@ -3,6 +3,7 @@ import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
 import { ApprovalService } from './approvalService.js';
 import notificationService from './notificationService.js';
+import scopeService from './scopeService.js';
 
 Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_UP });
 
@@ -327,6 +328,9 @@ export class SeparationService {
     }
 
     if (user) {
+      const scope = scopeService.resolveDataScope(user);
+      scopeService.assertEmployeeInScope(separation.employee, scope);
+
       const roles = user.roles || [];
       const isHrOrGm = roles.some((r) =>
         ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM'].includes(r)
@@ -391,6 +395,15 @@ export class SeparationService {
     if (employeeId) where.employee_id = employeeId;
 
     if (user) {
+      const scope = scopeService.resolveDataScope(user);
+      const scopeWhere = scopeService.buildEmployeeWhere(scope);
+      if (scopeWhere && Object.keys(scopeWhere).length > 0) {
+        where.employee = {
+          ...(where.employee || {}),
+          ...scopeWhere,
+        };
+      }
+
       const roles = user.roles || [];
       const isHrOrGm = roles.some((r) =>
         ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM'].includes(r)

@@ -47,6 +47,7 @@ export function errorHandler(err, req, res, next) {
     status: 'error',
     code: err.code || 'INTERNAL_SERVER_ERROR',
     message: err.message || 'An unexpected error occurred.',
+    ...(err.field ? { field: err.field } : {}),
     ...(isDev && { stack: err.stack }),
   });
 }

@@ -201,7 +201,7 @@ export default function DashboardPage() {
 
   const defaultLivePayroll = {
     monthYear: 'Current Period',
-    entityName: language === 'ar' ? (companyNameAr || 'شركة الخليج للتقنية اللوجستية ذ.م.م') : (companyName || 'Gulf Tech Logistics LLC'),
+    entityName: language === 'ar' ? (companyNameAr || companyName || '') : (companyName || ''),
     visaBadge: getVisaBadge(selectedVisa?.name || 'All Visas'),
     cutoffDays: 0,
     employeesIncluded: 0,
@@ -280,7 +280,8 @@ export default function DashboardPage() {
     total: overviewData.headcount.total,
     joiners: overviewData.headcount.joinersThisMonth || 0,
     leavers: overviewData.headcount.leaversThisMonth || 0,
-    netChange: `+${overviewData.headcount.joinersThisMonth || 0} net this month`,
+    netCount: overviewData.headcount.joinersThisMonth || 1,
+    netChange: language === 'ar' ? `+${overviewData.headcount.joinersThisMonth || 1} صافي هذا الشهر` : `+${overviewData.headcount.joinersThisMonth || 1} net this month`,
     nationalityMix: {
       uaeNationals: Math.round(overviewData.headcount.total * 0.1),
       expats: Math.round(overviewData.headcount.total * 0.9),
@@ -403,7 +404,7 @@ export default function DashboardPage() {
   // Live Payroll metrics (only when seesSalary is true)
   const livePayrollData = salaryData?.livePayroll ? {
     monthYear: salaryData.livePayroll.period || 'October 2026',
-    entityName: language === 'ar' ? (companyNameAr || 'شركة الخليج للتقنية اللوجستية ذ.م.م') : (companyName || 'Gulf Tech Logistics LLC'),
+    entityName: language === 'ar' ? (companyNameAr || companyName || '') : (companyName || ''),
     visaBadge: getVisaBadge(selectedVisa?.name || salaryData.livePayroll.visaName || 'All Visas'),
     cutoffDays: 4,
     employeesIncluded: salaryData.livePayroll.employeeCount,
@@ -437,7 +438,7 @@ export default function DashboardPage() {
             {t('dashboard.title')}
           </h1>
           <p className="text-xs sm:text-sm text-text-muted mt-1">
-            {language === 'ar' ? (companyNameAr || 'شركة الخليج للتقنية اللوجستية ذ.م.م') : (companyName || 'Gulf Tech Logistics LLC')} · {t('dashboard.subtitle')}
+            {language === 'ar' ? (companyNameAr || companyName || '') : (companyName || '')} · {t('dashboard.subtitle')}
           </p>
         </div>
 

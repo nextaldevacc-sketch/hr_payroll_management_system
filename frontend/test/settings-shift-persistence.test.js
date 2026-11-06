@@ -130,6 +130,8 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
   it('changes shift grace minutes in UI, reloads page, confirms persistence, and verifies audit & version records in DB', async () => {
     const context = await browser.newContext();
     const page = await context.newPage();
+    page.on('console', (msg) => console.log('BROWSER CONSOLE:', msg.type(), msg.text()));
+    page.on('pageerror', (err) => console.log('PAGE ERROR:', err.message, err.stack));
 
     // 1. Log in as Company Admin
     await page.goto(`http://127.0.0.1:${WEB_PORT}/login`);
@@ -143,6 +145,9 @@ describe('Settings Shift Grace Minutes UI Persistence & Audit Logs (Playwright)'
 
     // 2. Navigate to /settings
     await page.goto(`http://127.0.0.1:${WEB_PORT}/settings`);
+    await page.waitForLoadState('networkidle');
+    console.log('DEBUG: Page URL:', page.url());
+    console.log('DEBUG: Body Text:', (await page.innerText('body')).slice(0, 400));
     await page.waitForSelector('#settings-tile-shifts_policies');
 
     // 3. Open Shifts & Attendance Policies drawer

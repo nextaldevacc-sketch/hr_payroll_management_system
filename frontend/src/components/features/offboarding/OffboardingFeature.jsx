@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
+import { getEnumLabel } from '../../../i18n/enums';
 import {
   UserMinus,
   Search,
@@ -582,7 +583,7 @@ export function OffboardingFeature() {
                                 : 'bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300'
                             }`}
                           >
-                            {sep.type}
+                            {getEnumLabel('separation_reason', sep.type, language)}
                           </span>
                         </td>
 
@@ -594,12 +595,12 @@ export function OffboardingFeature() {
                           {sep.all_clearance_cleared ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              All Cleared
+                              {getEnumLabel('clearance_status', 'All Cleared', language)}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
                               <Clock className="w-3.5 h-3.5" />
-                              {sep.pending_clearance_count} Pending
+                              {sep.pending_clearance_count} {language === 'ar' ? 'معلق' : 'Pending'}
                             </span>
                           )}
                         </td>

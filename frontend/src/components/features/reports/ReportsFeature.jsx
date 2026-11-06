@@ -291,7 +291,7 @@ export default function ReportsFeature() {
                   <FileSpreadsheet className="w-5 h-5" />
                 </div>
                 <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                  CSV Journal (Balanced)
+                  {isAr ? 'دفتر اليومية للقيود المتوازنة (CSV)' : 'CSV Journal (Balanced)'}
                 </span>
               </div>
               <h3 className="font-semibold text-slate-900 dark:text-white text-base">
@@ -342,7 +342,12 @@ export default function ReportsFeature() {
             </div>
             <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
               <span className="text-xs text-slate-400 font-mono">
-                {payRuns.find((r) => r.id === selectedPayRunId)?.company_visa?.visa_name || 'Visa'}
+                {(() => {
+                  const run = payRuns.find((r) => r.id === selectedPayRunId);
+                  const vName = run?.company_visa?.visa_name;
+                  if (!vName) return isAr ? 'التأشيرة' : 'Visa';
+                  return isAr ? (run?.company_visa?.visa_name_ar || vName.replace('Visa', 'تأشيرة')) : vName;
+                })()}
               </span>
               <button
                 onClick={() => handleDownload('register', () => reportsApi.downloadPayrollRegister(selectedPayRunId))}

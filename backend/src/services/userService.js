@@ -55,6 +55,47 @@ export class UserService {
     }));
   }
 
+  async validateScopeAssignment(companyId, scopeType, scopeId) {
+    if (!scopeType || scopeType === 'Company') return;
+    if (!scopeId || scopeId === 'All') {
+      const err = new Error(`scope_id is required when scope_type is '${scopeType}'`);
+      err.status = 400;
+      err.code = 'INVALID_SCOPE';
+      throw err;
+    }
+    if (scopeType === 'CompanyVisa') {
+      const visa = await this.prisma.$base().company_visas.findFirst({
+        where: { id: scopeId, company_id: companyId },
+      });
+      if (!visa) {
+        const err = new Error('Specified company visa does not belong to your company');
+        err.status = 400;
+        err.code = 'INVALID_VISA';
+        throw err;
+      }
+    } else if (scopeType === 'Branch') {
+      const branch = await this.prisma.$base().branches.findFirst({
+        where: { id: scopeId, company_id: companyId },
+      });
+      if (!branch) {
+        const err = new Error('Specified branch does not belong to your company');
+        err.status = 400;
+        err.code = 'INVALID_BRANCH';
+        throw err;
+      }
+    } else if (scopeType === 'Department') {
+      const dept = await this.prisma.$base().departments.findFirst({
+        where: { id: scopeId, company_id: companyId },
+      });
+      if (!dept) {
+        const err = new Error('Specified department does not belong to your company');
+        err.status = 400;
+        err.code = 'INVALID_DEPARTMENT';
+        throw err;
+      }
+    }
+  }
+
   /**
    * Invite a user to the company and assign one or more roles and scopes
    */
@@ -99,6 +140,11 @@ export class UserService {
         created_by: invitedBy,
       },
     });
+
+    // Validate all scope assignments first
+    for (const assignment of roleAssignments) {
+      await this.validateScopeAssignment(companyId, assignment.scopeType, assignment.scopeId);
+    }
 
     // Assign roles
     const assignedRoles = [];
@@ -168,6 +214,11 @@ export class UserService {
       err.status = 404;
       err.code = 'NOT_FOUND';
       throw err;
+    }
+
+    // Validate all scope assignments first
+    for (const assignment of roleAssignments) {
+      await this.validateScopeAssignment(companyId, assignment.scopeType, assignment.scopeId);
     }
 
     // Remove existing roles for this user in this company

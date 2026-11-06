@@ -77,6 +77,7 @@ router.get('/overview', authorizeSettings('general', 'view'), settingsController
 // 2. Company Profile & Visas
 router.get('/company', authorizeSettings('company', 'view'), settingsController.getCompany);
 router.put('/company', authorizeSettings('company', 'edit'), settingsController.updateCompany);
+router.get('/visas', authorizeSettings('company', 'view'), settingsController.getVisas);
 router.post('/visas', authorizeSettings('company', 'edit'), settingsController.createVisa);
 router.put('/visas/:id', authorizeSettings('company', 'edit'), settingsController.updateVisa);
 router.delete('/visas/:id', authorizeSettings('company', 'edit'), settingsController.deleteVisa);

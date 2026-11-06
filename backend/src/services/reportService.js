@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 import Decimal from 'decimal.js';
 import prisma from '../lib/prisma.js';
 import { validateAndResolveVisa } from './visaValidator.js';
+import scopeService from './scopeService.js';
 
 Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_UP });
 
@@ -44,7 +45,7 @@ export class ReportService {
    * 1. Attendance Report (Excel)
    * Late arrivals, early outs, absences, missing punches and OT by employee / department / month
    */
-  async generateAttendanceReportExcel({ companyId, month, departmentId = null, companyVisaId = null }) {
+  async generateAttendanceReportExcel({ companyId, month, departmentId = null, companyVisaId = null, viewer = null }) {
     // month format: 'YYYY-MM'
     const targetMonth = month || new Date().toISOString().slice(0, 7);
     const [yearStr, monthStr] = targetMonth.split('-');
@@ -54,18 +55,16 @@ export class ReportService {
     const startDate = new Date(Date.UTC(year, m - 1, 1));
     const endDate = new Date(Date.UTC(year, m, 0)); // last day of month
 
+    const scope = scopeService.resolveDataScope(viewer);
+    const scopeWhere = scopeService.buildEmployeeWhere(scope, companyVisaId);
+
     const empWhere = {
       company_id: companyId,
       status: 'Active',
+      ...(scopeWhere || {}),
     };
     if (departmentId) {
       empWhere.department_id = departmentId;
-    }
-    if (companyVisaId) {
-      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
-      if (validVisa) {
-        empWhere.company_visa_id = validVisa;
-      }
     }
 
     const [company, employees, attendanceDays] = await Promise.all([
@@ -235,23 +234,21 @@ export class ReportService {
    * 2. Leave Report (Excel)
    * Leave taken, balances and upcoming leave by employee, department and leave type
    */
-  async generateLeaveReportExcel({ companyId, year = null, departmentId = null, leaveTypeId = null, companyVisaId = null }) {
+  async generateLeaveReportExcel({ companyId, year = null, departmentId = null, leaveTypeId = null, companyVisaId = null, viewer = null }) {
     const targetYear = year ? parseInt(year, 10) : new Date().getUTCFullYear();
     const yearStart = new Date(Date.UTC(targetYear, 0, 1));
     const yearEnd = new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59));
 
+    const scope = scopeService.resolveDataScope(viewer);
+    const scopeWhere = scopeService.buildEmployeeWhere(scope, companyVisaId);
+
     const empWhere = {
       company_id: companyId,
       status: 'Active',
+      ...(scopeWhere || {}),
     };
     if (departmentId) {
       empWhere.department_id = departmentId;
-    }
-    if (companyVisaId) {
-      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
-      if (validVisa) {
-        empWhere.company_visa_id = validVisa;
-      }
     }
 
     const [company, employees, leaveTypes, allocations, leaveRequests] = await Promise.all([
@@ -382,18 +379,18 @@ export class ReportService {
    * 3. Headcount & Attrition Report (Dashboard JSON & Excel)
    * Joiners, leavers, by department and nationality
    */
-  async getHeadcountReportData({ companyId, year = null, companyVisaId = null }) {
+  async getHeadcountReportData({ companyId, year = null, companyVisaId = null, viewer = null }) {
     const targetYear = year ? parseInt(year, 10) : new Date().getUTCFullYear();
     const yearStart = new Date(Date.UTC(targetYear, 0, 1));
     const yearEnd = new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59));
 
-    const empWhere = { company_id: companyId };
-    if (companyVisaId) {
-      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
-      if (validVisa) {
-        empWhere.company_visa_id = validVisa;
-      }
-    }
+    const scope = scopeService.resolveDataScope(viewer);
+    const scopeWhere = scopeService.buildEmployeeWhere(scope, companyVisaId);
+
+    const empWhere = {
+      company_id: companyId,
+      ...(scopeWhere || {}),
+    };
 
     const [allEmployees, departments] = await Promise.all([
       this.prisma.$base().employees.findMany({
@@ -510,8 +507,8 @@ export class ReportService {
     };
   }
 
-  async generateHeadcountReportExcel({ companyId, year = null, companyVisaId = null }) {
-    const data = await this.getHeadcountReportData({ companyId, year, companyVisaId });
+  async generateHeadcountReportExcel({ companyId, year = null, companyVisaId = null, viewer = null }) {
+    const data = await this.getHeadcountReportData({ companyId, year, companyVisaId, viewer });
     const company = await this.prisma.$base().companies.findUnique({ where: { id: companyId } });
 
     const workbook = new ExcelJS.Workbook();
@@ -580,7 +577,7 @@ export class ReportService {
    * Debit and credit per salary rule by cost centre, from Locked runs only.
    * Debits must strictly equal credits; fails otherwise.
    */
-  async generateAccountingExportCsv({ companyId, payRunId }) {
+  async generateAccountingExportCsv({ companyId, payRunId, viewer = null }) {
     const payRun = await this.prisma.$base().pay_runs.findUnique({
       where: { id: payRunId },
       include: {
@@ -609,6 +606,18 @@ export class ReportService {
       const err = new Error('Pay run not found');
       err.status = 404;
       throw err;
+    }
+
+    if (viewer) {
+      const scope = scopeService.resolveDataScope(viewer);
+      if (!scope.all && scope.visaIds && scope.visaIds.length > 0) {
+        if (!scope.visaIds.includes(payRun.company_visa_id)) {
+          const err = new Error('Pay run not found');
+          err.status = 404;
+          err.code = 'NOT_FOUND';
+          throw err;
+        }
+      }
     }
 
     // Status check: MUST be Locked or Paid

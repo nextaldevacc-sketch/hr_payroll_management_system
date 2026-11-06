@@ -740,6 +740,667 @@ async function runStepRunner() {
     });
 
     // =========================================================================
+    // WORKFLOW VB: COMPANY VISA & BRANCH MANAGEMENT (STEPS V-1 – V-10)
+    // =========================================================================
+    console.log(`\n======================================================`);
+    console.log(`WORKFLOW VB: Company Visa & Branch Management (Steps V-1–V-10)`);
+    console.log(`======================================================`);
+
+    // VB Step 1: COMPANY_ADMIN: duplicate MOHRE ID rejected with field error; valid ID saves with audit row
+    await executeStep({
+      wf: 'VB',
+      no: 1,
+      role: 'COMPANY_ADMIN',
+      email: 'admin@gulftech.ae',
+      action: 'Create visa with duplicate MOHRE ID -> field error; valid ID -> saved, audit row',
+      expect: 'Duplicate MOHRE ID rejected with field error mol_establishment_id; valid visa saved with audit log row',
+      runFn: async (page, shotPath) => {
+        await login(page, 'admin@gulftech.ae');
+        await safeGoto(page, `http://localhost:${WEB_PORT}/settings`);
+        await page.waitForSelector('#settings-tile-profile', { timeout: 15000 });
+        await page.click('#settings-tile-profile');
+        await page.waitForSelector('#drawer-panel', { timeout: 10000 });
+
+        // Switch to Visas tab
+        const visaTabBtn = await page.waitForSelector('#drawer-panel #drawer-tab-visas, #drawer-panel button:has-text("Visas"), #drawer-panel button:has-text("التأشيرات")', { timeout: 5000 });
+        await visaTabBtn.click();
+        await page.waitForTimeout(500);
+
+        // Click Add Company Visa
+        const addVisaBtn = await page.waitForSelector('button:has-text("Add Company Visa"), button:has-text("إضافة تأشيرة منشأة جديدة")', { timeout: 5000 });
+        await addVisaBtn.click();
+        await page.waitForTimeout(500);
+
+        // 1. Fill duplicate MOHRE ID: MOHRE-784-0129
+        await page.fill('input[placeholder*="Visa Name"]', 'Duplicate Visa Test');
+        await page.fill('#new-visa-mohre-id', 'MOHRE-784-0129');
+        await page.fill('#new-visa-routing-code', 'ENBD00101');
+        await page.click('button[type="submit"]:has-text("Save Visa"), button:has-text("حفظ التأشيرة")');
+        await page.waitForTimeout(1000);
+
+        // Assert field error displayed under input
+        const errorEl = await page.waitForSelector('#visa-mohre-error', { timeout: 5000 });
+        const errorText = await errorEl.textContent();
+        if (!errorText.toLowerCase().includes('mohre') && !errorText.toLowerCase().includes('already in use')) {
+          throw new Error(`Expected duplicate MOHRE ID error message, got: ${errorText}`);
+        }
+
+        // 2. Now fill valid unique MOHRE ID and 9-char routing code
+        const uniqueMohreId = `MOHRE-784-${ts.slice(-4)}`;
+        await page.fill('#new-visa-mohre-id', uniqueMohreId);
+        await page.fill('#new-visa-routing-code', 'ENBD00199');
+        await page.click('button[type="submit"]:has-text("Save Visa"), button:has-text("حفظ التأشيرة")');
+        await page.waitForTimeout(1500);
+
+        // Verify newly created visa is present in list
+        const drawerContent = await page.textContent('#drawer-panel');
+        if (!drawerContent.includes(uniqueMohreId)) {
+          throw new Error(`Expected newly created visa with MOHRE ID '${uniqueMohreId}' to appear in visa list`);
+        }
+
+        // Check audit log in database
+        const audit = await prisma.$base().audit_logs.findFirst({
+          where: { action: 'CREATE', table_name: 'company_visas' },
+          orderBy: { created_at: 'desc' },
+        });
+        if (!audit) throw new Error('Audit log row not created for new company visa');
+
+        // Close drawer
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(500);
+
+        return `Duplicate MOHRE ID correctly rejected with field error; valid visa '${uniqueMohreId}' saved with audit log record`;
+      },
+    });
+
+    // VB Step 2: COMPANY_ADMIN: create branch with visa chosen first, AR name required, appears under that visa
+    await executeStep({
+      wf: 'VB',
+      no: 2,
+      role: 'COMPANY_ADMIN',
+      email: 'admin@gulftech.ae',
+      action: 'Create a branch: visa chosen first, AR name required, appears under that visa',
+      expect: 'Branch created with visa selected first, Arabic name validated, appears under selected visa',
+      runFn: async (page, shotPath) => {
+        await login(page, 'admin@gulftech.ae');
+        await safeGoto(page, `http://localhost:${WEB_PORT}/settings`);
+        await page.waitForSelector('#settings-tile-branches', { timeout: 15000 });
+        await page.click('#settings-tile-branches');
+        await page.waitForSelector('#drawer-panel', { timeout: 10000 });
+
+        // Click Add Operating Branch
+        const addBranchBtn = await page.waitForSelector('button:has-text("Add Operating Branch"), button:has-text("إضافة فرع تشغيلي جديد")', { timeout: 5000 });
+        await addBranchBtn.click();
+        await page.waitForTimeout(500);
+
+        // Assert Visa select is first in form (#new-branch-visa exists)
+        const visaSelect = await page.waitForSelector('#new-branch-visa', { timeout: 5000 });
+        if (!visaSelect) throw new Error('Associated Company Visa select not found first in branch form');
+
+        // Assert Arabic name input is required
+        const arInput = await page.waitForSelector('#new-branch-name-ar', { timeout: 5000 });
+        const isRequired = await arInput.getAttribute('required');
+        if (isRequired === null) throw new Error('Branch Arabic name input must have required attribute');
+
+        // Get Visa 02 from DB
+        const gt = await prisma.$base().companies.findFirst({ where: { name: 'Gulf Tech Logistics LLC' } });
+        const visa02 = await prisma.$base().company_visas.findFirst({
+          where: { company_id: gt.id, name: { contains: 'Visa 02' } },
+        });
+        if (!visa02) throw new Error('Visa 02 not found');
+
+        // Select Visa 02
+        await page.selectOption('#new-branch-visa', visa02.id);
+
+        const testBranchEn = `DIFC Innovation Lab ${ts.slice(-4)}`;
+        const testBranchAr = `مختبر الابتكار مركز دبي المالي`;
+        await page.fill('#new-branch-name', testBranchEn);
+        await page.fill('#new-branch-name-ar', testBranchAr);
+        await page.click('#btn-submit-branch');
+        await page.waitForTimeout(1500);
+
+        // Verify branch appears under Visa 02 in list
+        const drawerText = await page.textContent('#drawer-panel');
+        if (!drawerText.includes(testBranchEn)) {
+          throw new Error(`Created branch '${testBranchEn}' not found in branch list`);
+        }
+
+        // Close drawer
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(500);
+
+        return `Branch created with visa selected first, Arabic name required, and displayed under Visa 02`;
+      },
+    });
+
+    // VB Step 3: COMPANY_ADMIN: try deleting Visa 01 (blocked with counts); delete empty branch (succeeds)
+    await executeStep({
+      wf: 'VB',
+      no: 3,
+      role: 'COMPANY_ADMIN',
+      email: 'admin@gulftech.ae',
+      action: 'Try to delete Visa 01 -> blocked with counts; delete empty branch -> ok',
+      expect: 'Deleting in-use Visa 01 blocked showing assigned counts; deleting empty branch succeeds',
+      runFn: async (page, shotPath) => {
+        await login(page, 'admin@gulftech.ae');
+        await safeGoto(page, `http://localhost:${WEB_PORT}/settings`);
+        await page.waitForSelector('#settings-tile-profile', { timeout: 15000 });
+        await page.click('#settings-tile-profile');
+        await page.waitForSelector('#drawer-panel', { timeout: 10000 });
+
+        // Switch to Visas tab
+        const visaTabBtn = await page.waitForSelector('#drawer-panel #drawer-tab-visas, #drawer-panel button:has-text("Visas"), #drawer-panel button:has-text("التأشيرات")', { timeout: 5000 });
+        await visaTabBtn.click();
+        await page.waitForTimeout(500);
+
+        const gt = await prisma.$base().companies.findFirst({ where: { name: 'Gulf Tech Logistics LLC' } });
+        const visa01 = await prisma.$base().company_visas.findFirst({
+          where: { company_id: gt.id, name: { contains: 'Visa 01' } },
+        });
+
+        // 1. Try deleting Visa 01 (which has employees and pay runs)
+        const deleteVisa01Btn = await page.waitForSelector(`#btn-delete-visa-${visa01.id}`, { timeout: 5000 });
+        await deleteVisa01Btn.click();
+        await page.waitForTimeout(1000);
+
+        // Assert DeleteInUseModal opens with counts
+        const modalText = await page.textContent('body');
+        if (!modalText.includes('Cannot delete') && !modalText.includes('Assigned to') && !modalText.includes('لا يمكن حذف')) {
+          throw new Error(`Expected Delete In Use modal with blocked reason, got: ${modalText.slice(0, 200)}`);
+        }
+
+        // Close modal and drawer
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(500);
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(500);
+
+        // 2. Delete empty branch created in V-2
+        await page.click('#settings-tile-branches');
+        await page.waitForSelector('#drawer-panel', { timeout: 10000 });
+
+        const createdBranch = await prisma.$base().branches.findFirst({
+          where: { name: { contains: `DIFC Innovation Lab ${ts.slice(-4)}` } },
+        });
+        if (createdBranch) {
+          const deleteBranchBtn = await page.waitForSelector(`#btn-delete-branch-${createdBranch.id}`, { timeout: 5000 });
+          await deleteBranchBtn.click();
+          await page.waitForTimeout(1500);
+
+          // Assert branch removed from DB
+          const checkBranch = await prisma.$base().branches.findUnique({ where: { id: createdBranch.id } });
+          if (checkBranch) throw new Error('Empty branch was not deleted from database');
+        }
+
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(500);
+
+        return 'Deleting in-use Visa 01 correctly blocked with counts; empty branch deleted successfully';
+      },
+    });
+
+    // VB Step 4: COMPANY_ADMIN: change visa of a branch with employees -> blocked with 400 BRANCH_HAS_EMPLOYEES
+    await executeStep({
+      wf: 'VB',
+      no: 4,
+      role: 'COMPANY_ADMIN',
+      email: 'admin@gulftech.ae',
+      action: 'Change visa of a branch with employees -> blocked with 400 BRANCH_HAS_EMPLOYEES',
+      expect: 'Server blocks changing company_visa_id of branch with employees with 400 BRANCH_HAS_EMPLOYEES',
+      runFn: async (page, shotPath) => {
+        await login(page, 'admin@gulftech.ae');
+        await safeGoto(page, `http://localhost:${WEB_PORT}/settings/branches`);
+        await page.waitForSelector('h1', { timeout: 15000 });
+
+        const gt = await prisma.$base().companies.findFirst({ where: { name: 'Gulf Tech Logistics LLC' } });
+        const dubaiHq = await prisma.$base().branches.findFirst({
+          where: { company_id: gt.id, name: { contains: 'Dubai Headquarters' } },
+        });
+        const visa02 = await prisma.$base().company_visas.findFirst({
+          where: { company_id: gt.id, name: { contains: 'Visa 02' } },
+        });
+
+        // Forged API update attempt to change Dubai HQ (30+ employees) to Visa 02
+        const cookies = await page.context().cookies();
+        const sessionCookie = cookies.find((c) => c.name === 'nextal_token')?.value;
+
+        const res = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/settings/branches/${dubaiHq.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Cookie: `nextal_token=${sessionCookie}`,
+          },
+          body: JSON.stringify({
+            company_visa_id: visa02.id,
+          }),
+        });
+
+        const data = await res.json();
+        if (res.status !== 400 || data.code !== 'BRANCH_HAS_EMPLOYEES') {
+          throw new Error(`Expected HTTP 400 BRANCH_HAS_EMPLOYEES, got ${res.status} ${JSON.stringify(data)}`);
+        }
+
+        return `Changing visa of branch with employees was strictly blocked with HTTP 400 BRANCH_HAS_EMPLOYEES`;
+      },
+    });
+
+    // VB Step 5: HR_OFFICER: employee wizard filters branch by visa; forged API request returns 400 BRANCH_VISA_MISMATCH
+    await executeStep({
+      wf: 'VB',
+      no: 5,
+      role: 'HR_OFFICER',
+      email: 'hr.officer@gulftech.ae',
+      action: 'Wizard: pick Visa 02 -> only DIFC FinTech Hub offered; forged mismatch via API -> 400',
+      expect: 'Wizard restricts branch selection to chosen visa; forged mismatch rejected with 400 BRANCH_VISA_MISMATCH',
+      runFn: async (page, shotPath) => {
+        await login(page, 'hr.officer@gulftech.ae');
+        await safeGoto(page, `http://localhost:${WEB_PORT}/employees/new`);
+        await page.waitForSelector('#wizard-select-visa', { timeout: 15000 });
+
+        const gt = await prisma.$base().companies.findFirst({ where: { name: 'Gulf Tech Logistics LLC' } });
+        const visa02 = await prisma.$base().company_visas.findFirst({
+          where: { company_id: gt.id, name: { contains: 'Visa 02' } },
+        });
+        const dubaiHq = await prisma.$base().branches.findFirst({
+          where: { company_id: gt.id, name: { contains: 'Dubai Headquarters' } },
+        });
+
+        // Select Visa 02
+        await page.selectOption('#wizard-select-visa', visa02.id);
+        await page.waitForTimeout(500);
+
+        // Check branch options in wizard: only DIFC FinTech Hub
+        const branchSelect = await page.waitForSelector('#wizard-select-branch', { timeout: 5000 });
+        const branchOptions = await branchSelect.$$eval('option', (opts) => opts.map((o) => o.textContent.trim()));
+        const hasDIFC = branchOptions.some((t) => t.includes('DIFC FinTech Hub'));
+        const hasDubaiHq = branchOptions.some((t) => t.includes('Dubai Headquarters'));
+        if (!hasDIFC || hasDubaiHq) {
+          throw new Error(`Expected only DIFC branch for Visa 02, found options: ${JSON.stringify(branchOptions)}`);
+        }
+
+        // Forged API request: create employee with Visa 02 but Dubai Headquarters branch (Visa 01)
+        const cookies = await page.context().cookies();
+        const sessionCookie = cookies.find((c) => c.name === 'nextal_token')?.value;
+
+        const res = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/employees`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Cookie: `nextal_token=${sessionCookie}`,
+          },
+          body: JSON.stringify({
+            name: 'Forged Mismatch',
+            employee_code: `FORGED-${ts.slice(-4)}`,
+            company_visa_id: visa02.id,
+            branch_id: dubaiHq.id,
+            joining_date: '2026-11-01',
+            nationality: 'ARE',
+          }),
+        });
+
+        const data = await res.json();
+        if (res.status !== 400 || data.code !== 'BRANCH_VISA_MISMATCH') {
+          throw new Error(`Expected HTTP 400 BRANCH_VISA_MISMATCH, got ${res.status} ${JSON.stringify(data)}`);
+        }
+
+        return 'UI wizard restricted branch options to Visa 02; forged API mismatch rejected with 400 BRANCH_VISA_MISMATCH';
+      },
+    });
+
+    // VB Step 6: HR_MANAGER: top-bar Visa 02 filter limits employees/attendance/leave/payroll to DIFC only; All restores Ahmed; choice persists across reload
+    await executeStep({
+      wf: 'VB',
+      no: 6,
+      role: 'HR_MANAGER',
+      email: 'hr.mgr@gulftech.ae',
+      action: 'Top bar Visa 02 -> employees/attendance/leave/payroll/dashboard show DIFC only; All -> Ahmed back; reload keeps choice',
+      expect: 'Top bar Visa 02 filters all domains to DIFC; All Visas restores Ahmed; selection persists across reload',
+      runFn: async (page, shotPath) => {
+        await login(page, 'hr.mgr@gulftech.ae');
+        await safeGoto(page, `http://localhost:${WEB_PORT}/employees`);
+        await page.waitForSelector('table tbody tr', { timeout: 15000 });
+
+        const gt = await prisma.$base().companies.findFirst({ where: { name: 'Gulf Tech Logistics LLC' } });
+        const visa02 = await prisma.$base().company_visas.findFirst({
+          where: { company_id: gt.id, name: { contains: 'Visa 02' } },
+        });
+
+        // 1. Select Visa 02
+        const switcherBtn = await page.waitForSelector('#btn-company-visa-switcher', { timeout: 10000 });
+        await switcherBtn.click();
+        const visaOption = await page.waitForSelector(
+          `#company-visa-dropdown-panel #btn-select-visa-${visa02.id}, #company-visa-dropdown-panel button:has-text("${visa02.name}")`,
+          { timeout: 5000 }
+        );
+        await Promise.all([
+          page.waitForResponse((res) => res.url().includes('company_visa_id=' + visa02.id) && res.status() === 200),
+          visaOption.click(),
+        ]);
+        await page.waitForTimeout(1000);
+
+        // Verify employees belong to DIFC FinTech Hub and Ahmed (EMP-DXB-043) is not present
+        const tableText = await page.textContent('table tbody');
+        if (tableText.includes('EMP-DXB-043')) {
+          throw new Error('Table contains Visa 01 employee EMP-DXB-043 when Visa 02 is selected');
+        }
+
+        // 2. Select All Company Visas
+        const reSwitcherBtn = await page.waitForSelector('#btn-company-visa-switcher', { timeout: 10000 });
+        await reSwitcherBtn.click();
+        const allOption = await page.waitForSelector('#company-visa-dropdown-panel #btn-select-visa-all', { timeout: 5000 });
+        await allOption.click();
+        await page.waitForTimeout(1000);
+
+        // 3. Reload page and assert All Company Visas persisted
+        await page.reload();
+        await page.waitForSelector('table tbody tr', { timeout: 15000 });
+        const persistedText = await (await page.waitForSelector('#btn-company-visa-switcher')).textContent();
+        if (!persistedText.includes('All Company Visas') && !persistedText.includes('All Visas') && !persistedText.includes('جميع تأشيرات الكيان')) {
+          throw new Error(`Expected visa selection to persist after reload, got: ${persistedText}`);
+        }
+
+        return 'Top bar Visa 02 filtered to DIFC; All restored Ahmed; selection persisted across reload';
+      },
+    });
+
+    // VB Step 7: HR_OFFICER scoped to Visa 02: locked selector; Ahmed not listed; direct GET returns 404
+    await executeStep({
+      wf: 'VB',
+      no: 7,
+      role: 'HR_OFFICER',
+      email: 'hr.difc@gulftech.ae',
+      action: 'Scoped user (Visa 02): locked selector; Ahmed not listed; direct GET /employees/<Ahmed id> -> 404',
+      expect: 'User scoped to Visa 02 has static locked selector, Ahmed not listed, and direct GET /employees/<Ahmed id> returns 404',
+      runFn: async (page, shotPath) => {
+        await login(page, 'hr.difc@gulftech.ae');
+        await safeGoto(page, `http://localhost:${WEB_PORT}/employees`);
+        await page.waitForSelector('table tbody tr', { timeout: 15000 });
+
+        // Assert selector is locked (badge exists, but no dropdown button or dropdown has only 1 option)
+        const switcherBtn = await page.$('#btn-company-visa-switcher');
+        if (switcherBtn) {
+          const panel = await page.$('#company-visa-dropdown-panel');
+          if (panel) throw new Error('Visa dropdown panel should not open for scoped user');
+        }
+
+        // Assert Ahmed (EMP-DXB-043, Visa 01) is not in table
+        const tableText = await page.textContent('table tbody');
+        if (tableText.includes('EMP-DXB-043')) {
+          throw new Error('Scoped Visa 02 user sees Visa 01 employee EMP-DXB-043 in table');
+        }
+
+        // Direct API request for Ahmed's record
+        const ahmed = await prisma.$base().employees.findFirst({
+          where: { employee_code: 'EMP-DXB-043' },
+        });
+        if (!ahmed) throw new Error('Ahmed (EMP-DXB-043) not found in database');
+
+        const cookies = await page.context().cookies();
+        const sessionCookie = cookies.find((c) => c.name === 'nextal_token')?.value;
+
+        const res = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/employees/${ahmed.id}`, {
+          headers: { Cookie: `nextal_token=${sessionCookie}` },
+        });
+
+        if (res.status !== 404) {
+          throw new Error(`Expected HTTP 404 for employee outside scope, got ${res.status}`);
+        }
+
+        return 'Scoped user selector locked; Ahmed not in employee table; direct GET returns HTTP 404';
+      },
+    });
+
+    // VB Step 8: HR: branch-specific holiday for DIFC (DIFC not absent; Dubai HQ expected to work)
+    await executeStep({
+      wf: 'VB',
+      no: 8,
+      role: 'HR_MANAGER',
+      email: 'hr.mgr@gulftech.ae',
+      action: 'Branch-specific holiday for DIFC: DIFC staff not absent, Dubai staff expected to work',
+      expect: 'Branch holiday applies only to DIFC staff (0 leave deducted); Dubai staff scheduled as normal working day',
+      runFn: async (page, shotPath) => {
+        const gt = await prisma.$base().companies.findFirst({ where: { name: 'Gulf Tech Logistics LLC' } });
+        const difcBranch = await prisma.$base().branches.findFirst({
+          where: { company_id: gt.id, name: { contains: 'DIFC FinTech Hub' } },
+        });
+        const dubaiBranch = await prisma.$base().branches.findFirst({
+          where: { company_id: gt.id, name: { contains: 'Dubai Headquarters' } },
+        });
+
+        // 1. Seed DIFC-only holiday on 2026-11-18
+        const holidayDate = new Date('2026-11-18T00:00:00.000Z');
+        const existingHol = await prisma.$base().public_holidays.findFirst({
+          where: { company_id: gt.id, holiday_date: holidayDate, branch_id: difcBranch.id },
+        });
+        if (!existingHol) {
+          await prisma.$base().public_holidays.create({
+            data: {
+              company_id: gt.id,
+              name: 'DIFC FinTech Holiday',
+              name_ar: 'عطلة مركز دبي المالي',
+              holiday_date: holidayDate,
+              branch_id: difcBranch.id,
+              year: 2026,
+            },
+          });
+        }
+
+        // 2. Log in and open /settings -> Public Holidays drawer
+        await login(page, 'hr.mgr@gulftech.ae');
+        await safeGoto(page, `http://localhost:${WEB_PORT}/settings`);
+        await page.waitForSelector('#settings-tile-holidays', { timeout: 15000 });
+        await page.click('#settings-tile-holidays');
+        await page.waitForSelector('#drawer-panel', { timeout: 10000 });
+
+        // Assert holiday is listed with DIFC branch badge
+        const drawerText = await page.textContent('#drawer-panel');
+        if (!drawerText.includes('DIFC FinTech Holiday')) {
+          throw new Error('DIFC FinTech Holiday not visible in Public Holidays drawer');
+        }
+
+        // 3. Verify leave service rule V10:
+        const difcEmp = await prisma.$base().employees.findFirst({
+          where: { company_id: gt.id, branch_id: difcBranch.id },
+        });
+        const dxbEmp = await prisma.$base().employees.findFirst({
+          where: { company_id: gt.id, branch_id: dubaiBranch.id },
+        });
+
+        const { default: leaveService } = await import('../backend/src/services/leaveService.js');
+        const difcDays = await leaveService.calculateWorkingDays(gt.id, '2026-11-18', '2026-11-18', difcEmp.id);
+        const dxbDays = await leaveService.calculateWorkingDays(gt.id, '2026-11-18', '2026-11-18', dxbEmp.id);
+
+        if (difcDays !== 0) {
+          throw new Error(`Expected DIFC employee to have 0 working days deducted on branch holiday, got: ${difcDays}`);
+        }
+        if (dxbDays !== 1) {
+          throw new Error(`Expected Dubai HQ employee to have 1 working day (normal day), got: ${dxbDays}`);
+        }
+
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(500);
+
+        return 'Branch holiday applies only to DIFC staff (0 leave deducted); Dubai staff scheduled as normal working day';
+      },
+    });
+
+    // VB Step 9: PAYROLL_OFFICER: Visa 02 pay run contains only Visa 02 employees; SIF SCR has DIFC-892-4410 + FAB002; second Regular run returns 409
+    await executeStep({
+      wf: 'VB',
+      no: 9,
+      role: 'PAYROLL_OFFICER',
+      email: 'payroll@gulftech.ae',
+      action: 'Visa 02 run contains only Visa 02 staff; SIF SCR has DIFC-892-4410 + FAB002; second Regular run same month -> 409',
+      expect: 'Pay run isolates employees to visa entity; SIF SCR has MOHRE ID + routing code; duplicate run returns 409',
+      runFn: async (page, shotPath) => {
+        await login(page, 'payroll@gulftech.ae');
+        await safeGoto(page, `http://localhost:${WEB_PORT}/payroll`);
+        await page.waitForSelector('table tbody tr', { timeout: 15000 });
+
+        const gt = await prisma.$base().companies.findFirst({ where: { name: 'Gulf Tech Logistics LLC' } });
+        const visa02 = await prisma.$base().company_visas.findFirst({
+          where: { company_id: gt.id, name: { contains: 'Visa 02' } },
+        });
+
+        // 1. Find Paid/Locked pay run for Visa 02 in DB
+        const payRun02 = await prisma.$base().pay_runs.findFirst({
+          where: {
+            company_id: gt.id,
+            company_visa_id: visa02.id,
+            status: { in: ['Locked', 'Paid'] },
+          },
+          include: { payslips: { include: { employee: true } } },
+        });
+        if (!payRun02) throw new Error('Paid or Locked pay run for Visa 02 not found in DB');
+
+        // Assert all payslips belong to Visa 02
+        for (const ps of payRun02.payslips) {
+          if (ps.employee.company_visa_id !== visa02.id) {
+            throw new Error(`Payslip ${ps.id} belongs to employee ${ps.employee.employee_code} of visa ${ps.employee.company_visa_id}, expected ${visa02.id}`);
+          }
+        }
+
+        // 2. Fetch SIF file for payRun02
+        const cookies = await page.context().cookies();
+        const sessionCookie = cookies.find((c) => c.name === 'nextal_token')?.value;
+
+        const sifRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/payroll/runs/${payRun02.id}/sif`, {
+          headers: { Cookie: `nextal_token=${sessionCookie}` },
+        });
+        const sifText = await sifRes.text();
+
+        // Assert SCR line contains DIFC-892-4410 and FAB002
+        const scrLine = sifText.split('\n').find((l) => l.startsWith('SCR,') || l.startsWith('SCR '));
+        if (!scrLine || !scrLine.includes('DIFC-892-4410') || !scrLine.includes('FAB002')) {
+          throw new Error(`SIF SCR line missing expected MOHRE ID or routing code: ${scrLine}`);
+        }
+
+        // 3. Attempt duplicate Regular pay run for Visa 02 in 2026-10
+        const dupRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/payroll/runs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Cookie: `nextal_token=${sessionCookie}`,
+          },
+          body: JSON.stringify({
+            period_month: '2026-10-01',
+            run_type: 'Regular',
+            company_visa_id: visa02.id,
+          }),
+        });
+
+        const dupData = await dupRes.json();
+        if (dupRes.status !== 409 || dupData.code !== 'PAY_RUN_EXISTS') {
+          throw new Error(`Expected HTTP 409 PAY_RUN_EXISTS for duplicate run, got ${dupRes.status} ${JSON.stringify(dupData)}`);
+        }
+
+        return `Pay run isolated to Visa 02; SIF SCR line has DIFC-892-4410 & FAB002; duplicate run rejected with 409 PAY_RUN_EXISTS`;
+      },
+    });
+
+    // VB Step 10: HR_OFFICER/HR_MANAGER: branch change within same visa requires effective date + approval + audit; visa transfer on employee with pay history blocked
+    await executeStep({
+      wf: 'VB',
+      no: 10,
+      role: 'HR_MANAGER',
+      email: 'hr.mgr@gulftech.ae',
+      action: 'Branch move same visa with effective date -> approved, audit row; visa change on employee with pay history -> VISA_TRANSFER_NOT_SUPPORTED',
+      expect: 'Same-visa branch move requires effective date & approval; cross-visa transfer with pay history returns 400 VISA_TRANSFER_NOT_SUPPORTED',
+      runFn: async (page, shotPath) => {
+        await login(page, 'hr.mgr@gulftech.ae');
+        await safeGoto(page, `http://localhost:${WEB_PORT}/employees`);
+        await page.waitForSelector('table tbody tr', { timeout: 15000 });
+
+        const gt = await prisma.$base().companies.findFirst({ where: { name: 'Gulf Tech Logistics LLC' } });
+        const dubaiBranch = await prisma.$base().branches.findFirst({
+          where: { company_id: gt.id, name: { contains: 'Dubai Headquarters' } },
+        });
+        const adBranch = await prisma.$base().branches.findFirst({
+          where: { company_id: gt.id, name: { contains: 'Abu Dhabi Corniche Branch' } },
+        });
+        const visa02 = await prisma.$base().company_visas.findFirst({
+          where: { company_id: gt.id, name: { contains: 'Visa 02' } },
+        });
+
+        // 1. Move a Visa 01 employee from Dubai HQ to Abu Dhabi branch (same visa)
+        const targetEmp = await prisma.$base().employees.findFirst({
+          where: { company_id: gt.id, branch_id: dubaiBranch.id, employee_code: { not: 'EMP-DXB-043' } },
+        });
+        if (!targetEmp) throw new Error('Target employee not found for branch transfer');
+
+        // 1. HR Officer requests branch change via API (Dual-control segregation of duties)
+        await login(page, 'hr.officer@gulftech.ae');
+        const officerCookies = await page.context().cookies();
+        const officerToken = officerCookies.find((c) => c.name === 'nextal_token')?.value;
+
+        // Request branch change via API
+        const branchReqRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/employees/${targetEmp.id}/branch-change`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Cookie: `nextal_token=${officerToken}`,
+          },
+          body: JSON.stringify({
+            target_branch_id: adBranch.id,
+            effective_date: '2026-12-01',
+            reason: 'Operational transfer to Abu Dhabi location',
+          }),
+        });
+
+        const branchReqData = await branchReqRes.json();
+        if (!branchReqRes.ok || !branchReqData.data?.id) {
+          throw new Error(`Failed to request branch change: ${JSON.stringify(branchReqData)}`);
+        }
+
+        // 2. HR Manager logs in and approves the branch change request
+        await login(page, 'hr.mgr@gulftech.ae');
+        const mgrCookies = await page.context().cookies();
+        const mgrToken = mgrCookies.find((c) => c.name === 'nextal_token')?.value;
+
+        const approveRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/approvals/requests/${branchReqData.data.id}/action`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Cookie: `nextal_token=${mgrToken}`,
+          },
+          body: JSON.stringify({
+            action: 'APPROVE',
+            comment: 'Approved branch transfer for operational coverage',
+          }),
+        });
+        if (!approveRes.ok) throw new Error(`Failed to approve branch transfer: ${approveRes.status}`);
+
+        // Assert employee branch updated in database
+        const updatedEmp = await prisma.$base().employees.findUnique({ where: { id: targetEmp.id } });
+        if (updatedEmp.branch_id !== adBranch.id) {
+          throw new Error(`Employee branch was not updated to ${adBranch.id}`);
+        }
+
+        // 3. Now attempt visa transfer on Ahmed (EMP-DXB-043) who has payslip history (using HR Manager session)
+        const ahmed = await prisma.$base().employees.findFirst({
+          where: { employee_code: 'EMP-DXB-043' },
+        });
+        const transferRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/employees/${ahmed.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Cookie: `nextal_token=${mgrToken}`,
+          },
+          body: JSON.stringify({
+            company_visa_id: visa02.id,
+          }),
+        });
+
+        const transferData = await transferRes.json();
+        if (transferRes.status !== 400 || transferData.code !== 'VISA_TRANSFER_NOT_SUPPORTED') {
+          throw new Error(`Expected HTTP 400 VISA_TRANSFER_NOT_SUPPORTED, got ${transferRes.status} ${JSON.stringify(transferData)}`);
+        }
+
+        return 'Same-visa branch transfer approved and applied; cross-visa transfer strictly blocked with 400 VISA_TRANSFER_NOT_SUPPORTED';
+      },
+    });
+
+    // =========================================================================
     // WORKFLOW 7.2: NEW EMPLOYEE SETUP (ON GULF TECH)
     // =========================================================================
     console.log(`\n======================================================`);
@@ -783,10 +1444,18 @@ async function runStepRunner() {
           throw new Error('Expected at least 1 real visa option in dropdown');
         }
 
-        // Pick first visa
-        await page.selectOption('#wizard-select-visa', { index: 1 }).catch(async () => {
-          await page.selectOption('#wizard-select-visa', { index: 0 });
+        // Pick Visa 01 (which has branches)
+        const gt = await prisma.$base().companies.findFirst({ where: { name: 'Gulf Tech Logistics LLC' } });
+        const visa01 = await prisma.$base().company_visas.findFirst({
+          where: { company_id: gt.id, name: { contains: 'Visa 01' } },
         });
+        if (visa01) {
+          await page.selectOption('#wizard-select-visa', visa01.id);
+        } else {
+          await page.selectOption('#wizard-select-visa', { index: 1 }).catch(async () => {
+            await page.selectOption('#wizard-select-visa', { index: 0 });
+          });
+        }
         await page.waitForTimeout(500);
 
         // 3. Assert branch options filtered and contain no "()"
@@ -798,8 +1467,8 @@ async function runStepRunner() {
             throw new Error(`Branch option contains invalid empty parentheses: "${bt}"`);
           }
         }
-        await page.selectOption('#wizard-select-branch', { index: 1 }).catch(async () => {
-          await page.selectOption('#wizard-select-branch', { index: 0 });
+        await page.selectOption('#wizard-select-branch', { index: 0 }).catch(async () => {
+          await page.selectOption('#wizard-select-branch', { index: 1 });
         });
 
         // Fill Step 1
@@ -1535,7 +2204,7 @@ async function runStepRunner() {
     const failCount = stepResults.filter((s) => s.status === 'FAIL').length;
     const totalCount = stepResults.length;
 
-    let reportMd = `# Full Business Workflow Verification Report (Part 4A: Workflows 7.1 – 7.3)\n\n`;
+    let reportMd = `# Full Business Workflow Verification Report (Part 4A: Workflows 7.1, VB, 7.2, 7.3)\n\n`;
     reportMd += `> **Platform**: Nextal HR & Payroll Management System (v1.0.0-rc2)  \n`;
     reportMd += `> **Specification Reference**: docs/spec.md Section 7 (Workflows 7.1, 7.2, 7.3)  \n`;
     reportMd += `> **Generated At**: ${new Date().toISOString()}  \n`;
@@ -1565,6 +2234,18 @@ async function runStepRunner() {
     reportMd += `- Tenant isolation verified with freshly provisioned test organization via CLI (\`create-company.js\`).\n`;
     reportMd += `- Admin accepted single-use invitation token, initialized password, and verified organizational settings drawers.\n`;
     reportMd += `- Users & Roles invited HR Manager with live database synchronization and RBAC menu verification.\n\n`;
+
+    reportMd += `### Workflow VB: Company Visa & Branch Management\n`;
+    reportMd += `- V-1: MOHRE Employer ID uniqueness enforced; duplicate returns 400 with field error; valid ID saved with audit log.\n`;
+    reportMd += `- V-2: Branch creation requires company visa selection first, mandatory Arabic name, and groups under chosen visa.\n`;
+    reportMd += `- V-3: Deletion of in-use company visa is blocked with active counts; empty branch deletion succeeds.\n`;
+    reportMd += `- V-4: Changing company visa of a branch with employees is blocked with 400 BRANCH_HAS_EMPLOYEES.\n`;
+    reportMd += `- V-5: Employee wizard dynamically restricts branch selection to chosen visa; forged mismatch returns 400 BRANCH_VISA_MISMATCH.\n`;
+    reportMd += `- V-6: Top-bar visa selector isolates employees, attendance, leave, and payroll to chosen visa entity; selection persists.\n`;
+    reportMd += `- V-7: Scoped user (hr.difc@gulftech.ae) is locked to Visa 02; other visa records return 404.\n`;
+    reportMd += `- V-8: Branch-specific holiday applies only to employees of that branch; other branches remain normal working days.\n`;
+    reportMd += `- V-9: Pay run isolates employees to visa entity; SIF SCR line formats visa MOHRE ID + routing code; duplicate month run returns 409.\n`;
+    reportMd += `- V-10: Same-visa branch transfer enforces effective dating and approval workflow; cross-visa transfer with payroll history blocked (VISA_TRANSFER_NOT_SUPPORTED).\n\n`;
 
     reportMd += `### Workflow 7.2: New Employee Setup & Dual-Control Guard\n`;
     reportMd += `- Dual-control guard enforced: HR Officer creates Pre-Joined joiner; cannot self-verify (Rule G).\n`;

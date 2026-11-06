@@ -11,6 +11,8 @@ import { useLanguage } from '../../../context/LanguageContext';
 export function HeadcountTile({ data, onClick }) {
   const { t } = useLanguage();
   const natMix = data.nationalityMix || { uaeNationals: 4, expats: 38, uaePercent: 9.5, expatPercent: 90.5, gpssaEligible: 4 };
+  const count = data.netCount ?? ((data.joiners || 0) - (data.leavers || 0));
+  const netDisplay = t('dashboard.headcount.netCount', { count: count || 1 });
 
   return (
     <BentoTile
@@ -30,7 +32,7 @@ export function HeadcountTile({ data, onClick }) {
         <div className="flex items-baseline justify-between">
           <StatNumber value={data.total} size="lg" />
           <span className="text-xs text-secondary-text font-bold block tabular-nums">
-            {data.netChange}
+            {netDisplay}
           </span>
         </div>
 

@@ -41,6 +41,7 @@ export async function main() {
     company1: org.company1,
     company2: org.company2,
     depts1: org.depts1,
+    visas1: org.visas1,
   });
 
   // 3. Settings (Holidays, Shifts, Policies, Rules, Leave Types)

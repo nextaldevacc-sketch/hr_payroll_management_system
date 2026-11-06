@@ -35,7 +35,7 @@ export class ApprovalService {
       orderBy: { priority: 'asc' },
     });
 
-    if ((!flow || flow.steps.length === 0) && requestType === 'EMPLOYEE_VERIFICATION') {
+    if ((!flow || flow.steps.length === 0) && (requestType === 'EMPLOYEE_VERIFICATION' || requestType === 'EMPLOYEE_BRANCH_CHANGE')) {
       const hrMgrRole = await client.roles.findFirst({
         where: { code: 'HR_MANAGER' },
       });
@@ -43,8 +43,11 @@ export class ApprovalService {
         flow = await client.approval_flows.create({
           data: {
             company_id: companyId,
-            request_type: 'EMPLOYEE_VERIFICATION',
-            name: 'Employee Verification Dual-Control Flow',
+            request_type: requestType,
+            name:
+              requestType === 'EMPLOYEE_BRANCH_CHANGE'
+                ? 'Employee Branch Change Approval Flow'
+                : 'Employee Verification Dual-Control Flow',
             priority: 1,
             is_active: true,
           },
@@ -121,6 +124,19 @@ export class ApprovalService {
       },
     });
 
+    if (comment) {
+      await client.approval_actions.create({
+        data: {
+          company_id: companyId,
+          approval_request_id: request.id,
+          step_no: 0,
+          acted_by: requestedBy,
+          action: 'SUBMIT',
+          comment,
+        },
+      }).catch(() => {});
+    }
+
     await auditService.log({
       companyId,
       userId: requestedBy,
@@ -132,6 +148,7 @@ export class ApprovalService {
         record_id: recordId,
         current_step: 1,
         status: 'Pending',
+        comment,
       },
       tx,
     }).catch(() => {});
@@ -352,6 +369,47 @@ export class ApprovalService {
       newValues: { status: newStatus, current_step: nextStep, comment },
     }).catch(() => {});
 
+    // Apply branch update if EMPLOYEE_BRANCH_CHANGE approved
+    if (newStatus === 'Approved' && request.request_type === 'EMPLOYEE_BRANCH_CHANGE') {
+      try {
+        let rawComment = request.comment;
+        if (!rawComment) {
+          const submitAction = await this.prisma.$base().approval_actions.findFirst({
+            where: { approval_request_id: request.id, action: 'SUBMIT' },
+            orderBy: { step_no: 'asc' },
+          });
+          rawComment = submitAction?.comment;
+        }
+        const changeData = rawComment ? JSON.parse(rawComment) : null;
+        if (changeData && changeData.target_branch_id) {
+          const emp = await this.prisma.$base().employees.findUnique({
+            where: { id: request.record_id },
+          });
+          if (emp) {
+            await this.prisma.$base().employees.update({
+              where: { id: emp.id },
+              data: { branch_id: changeData.target_branch_id },
+            });
+            await auditService.log({
+              companyId,
+              userId: actorId,
+              action: 'UPDATE',
+              tableName: 'employees',
+              recordId: emp.id,
+              oldValues: { branch_id: emp.branch_id },
+              newValues: {
+                branch_id: changeData.target_branch_id,
+                effective_date: changeData.effective_date,
+                reason: changeData.reason,
+              },
+            }).catch(() => {});
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to apply approved branch change:', err.message);
+      }
+    }
+
     // Notify requester of decision
     try {
       if (newStatus === 'Approved' || newStatus === 'Rejected') {
@@ -464,6 +522,34 @@ export class ApprovalService {
               },
             };
           }
+        }
+        if (req.request_type === 'EMPLOYEE_BRANCH_CHANGE') {
+          const emp = await this.prisma.$base().employees.findUnique({
+            where: { id: req.record_id },
+            include: {
+              company_visa: { select: { id: true, name: true } },
+              branch: { select: { id: true, name: true } },
+            },
+          });
+          let details = null;
+          try {
+            details = JSON.parse(req.comment);
+          } catch {}
+          return {
+            ...req,
+            employee: emp
+              ? {
+                  id: emp.id,
+                  name: emp.name,
+                  arabic_name: emp.arabic_name,
+                  code: emp.employee_code,
+                  current_branch: emp.branch?.name,
+                  target_branch: details?.target_branch_name,
+                  effective_date: details?.effective_date,
+                  reason: details?.reason,
+                }
+              : null,
+          };
         }
         return req;
       })

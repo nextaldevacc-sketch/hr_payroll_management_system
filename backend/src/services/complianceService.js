@@ -3,6 +3,7 @@ import mailer from '../lib/mailer.js';
 import auditService from './auditService.js';
 import storageService from '../lib/storage.js';
 import { validateAndResolveVisa } from './visaValidator.js';
+import scopeService from './scopeService.js';
 
 // Dubai timezone is UTC+4 (no DST)
 const DUBAI_OFFSET_MS = 4 * 60 * 60 * 1000;
@@ -254,18 +255,17 @@ export class ComplianceService {
   /**
    * Get compliance overview statistics for dashboard / tracker bento
    */
-  async getComplianceOverview(companyId, companyVisaId = null) {
+  async getComplianceOverview(companyId, companyVisaId = null, viewer = null) {
+    const scope = scopeService.resolveDataScope(viewer);
+    const scopeWhere = scopeService.buildEmployeeWhere(scope, companyVisaId);
+
     const where = {
       company_id: companyId,
-      employee: { status: 'Active' },
+      employee: {
+        status: 'Active',
+        ...(scopeWhere || {}),
+      },
     };
-
-    if (companyVisaId) {
-      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId });
-      if (validVisa) {
-        where.employee.company_visa_id = validVisa;
-      }
-    }
 
     const docs = await this.prisma.$base().employee_documents.findMany({
       where,
@@ -328,18 +328,17 @@ export class ComplianceService {
     const skip = (Math.max(1, parseInt(page, 10)) - 1) * parseInt(limit, 10);
     const take = parseInt(limit, 10);
 
+    const scope = scopeService.resolveDataScope(viewer);
+    const visaParam = filters.company_visa_id || filters.companyVisaId;
+    const scopeWhere = scopeService.buildEmployeeWhere(scope, visaParam);
+
     const where = {
       company_id: companyId,
-      employee: { status: 'Active' },
+      employee: {
+        status: 'Active',
+        ...(scopeWhere || {}),
+      },
     };
-
-    const visaParam = filters.company_visa_id || filters.companyVisaId;
-    if (visaParam) {
-      const validVisa = await validateAndResolveVisa({ companyId, companyVisaId: visaParam });
-      if (validVisa) {
-        where.employee.company_visa_id = validVisa;
-      }
-    }
 
     if (status) {
       if (status === 'Pending Verification') {

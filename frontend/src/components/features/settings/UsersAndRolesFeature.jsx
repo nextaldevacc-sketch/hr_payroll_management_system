@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { AppShell } from '../../layout/AppShell';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
+import { getEnumLabel } from '../../../i18n/enums';
 import { request } from '../../../services/apiClient';
 import { Select } from '../../primitives/form/Select';
 import {
@@ -38,7 +39,7 @@ const COMPANY_ROLES = [
 
 export function UsersAndRolesFeature() {
   const { user } = useAuth();
-  const { locale, isRTL } = useLanguage();
+  const { locale, language, isRTL } = useLanguage();
 
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,8 +54,68 @@ export function UsersAndRolesFeature() {
   const [scopeType, setScopeType] = useState('Company'); // 'Company' | 'CompanyVisa' | 'Branch' | 'Department'
   const [scopeTarget, setScopeTarget] = useState('All');
 
+  const [companyVisas, setCompanyVisas] = useState([]);
+  const [companyBranches, setCompanyBranches] = useState([]);
+  const [companyDepartments, setCompanyDepartments] = useState([]);
+
   // Bulk creation summary
   const [bulkResult, setBulkResult] = useState(null);
+
+  useEffect(() => {
+    async function loadScopeEntities() {
+      try {
+        const [visasRes, branchesRes, deptsRes] = await Promise.allSettled([
+          request('/settings/visas'),
+          request('/settings/branches'),
+          request('/settings/departments'),
+        ]);
+        if (visasRes.status === 'fulfilled' && Array.isArray(visasRes.value)) {
+          setCompanyVisas(visasRes.value);
+        }
+        if (branchesRes.status === 'fulfilled' && Array.isArray(branchesRes.value)) {
+          setCompanyBranches(branchesRes.value);
+        }
+        if (deptsRes.status === 'fulfilled' && Array.isArray(deptsRes.value)) {
+          setCompanyDepartments(deptsRes.value);
+        }
+      } catch (e) {
+        console.warn('Failed to load scope entities', e);
+      }
+    }
+    loadScopeEntities();
+  }, []);
+
+  const scopeTargetOptions = React.useMemo(() => {
+    if (scopeType === 'CompanyVisa') {
+      return companyVisas.map((v) => ({
+        value: v.id,
+        label: locale === 'ar' && v.name_ar ? v.name_ar : `${v.name} (${v.mol_establishment_id || v.emirate})`,
+      }));
+    }
+    if (scopeType === 'Branch') {
+      return companyBranches.map((b) => ({
+        value: b.id,
+        label: locale === 'ar' && b.name_ar ? b.name_ar : `${b.name} (${b.emirate})`,
+      }));
+    }
+    if (scopeType === 'Department') {
+      return companyDepartments.map((d) => ({
+        value: d.id,
+        label: locale === 'ar' && d.name_ar ? d.name_ar : d.name,
+      }));
+    }
+    return [{ value: 'All', label: locale === 'ar' ? 'جميع الكيانات (كامل الشركة)' : 'Company-Wide (All)' }];
+  }, [scopeType, companyVisas, companyBranches, companyDepartments, locale]);
+
+  useEffect(() => {
+    if (scopeType === 'Company') {
+      setScopeTarget('All');
+    } else if (scopeTargetOptions.length > 0) {
+      setScopeTarget(scopeTargetOptions[0].value);
+    } else {
+      setScopeTarget('');
+    }
+  }, [scopeType, scopeTargetOptions]);
 
   const loadUsers = async () => {
     try {
@@ -69,92 +130,9 @@ export function UsersAndRolesFeature() {
         return;
       }
     } catch (err) {
-      console.warn('Failed to fetch users, using fallback', err);
+      console.error('Failed to fetch users:', err);
+      setUsers([]);
     }
-
-    const initialUsers = [
-      {
-        id: 'u-admin',
-        email: 'admin@gulftech.ae',
-        name: 'Tariq Al-Hashemi',
-        status: 'Active',
-        failed_logins: 0,
-        is_locked: false,
-        last_login_at: '2026-10-27T10:45:00Z',
-        roles: [{ code: 'COMPANY_ADMIN', name: 'Company Administrator', scope_type: 'Company', sees_salary: true }],
-      },
-      {
-        id: 'u-hr-mgr',
-        email: 'hr.mgr@gulftech.ae',
-        name: 'Maryam Al-Nuaimi',
-        status: 'Active',
-        failed_logins: 0,
-        is_locked: false,
-        last_login_at: '2026-10-27T09:12:00Z',
-        roles: [{ code: 'HR_MANAGER', name: 'HR Manager', scope_type: 'Company', sees_salary: true }],
-      },
-      {
-        id: 'u-hr-off',
-        email: 'hr.officer@gulftech.ae',
-        name: 'Saeed Al-Ketbi',
-        status: 'Active',
-        failed_logins: 0,
-        is_locked: false,
-        last_login_at: '2026-10-26T14:30:00Z',
-        roles: [{ code: 'HR_OFFICER', name: 'HR Officer', scope_type: 'Company', sees_salary: false }],
-      },
-      {
-        id: 'u-payroll',
-        email: 'payroll@gulftech.ae',
-        name: 'Zaid Al-Marzooqi',
-        status: 'Active',
-        failed_logins: 0,
-        is_locked: false,
-        last_login_at: '2026-10-27T11:05:00Z',
-        roles: [{ code: 'PAYROLL_OFFICER', name: 'Payroll Officer', scope_type: 'Company', sees_salary: true }],
-      },
-      {
-        id: 'u-dept-mgr',
-        email: 'dept.mgr@gulftech.ae',
-        name: 'Fatima Al-Zaabi',
-        status: 'Active',
-        failed_logins: 0,
-        is_locked: false,
-        last_login_at: '2026-10-25T08:00:00Z',
-        roles: [{ code: 'DEPT_MANAGER', name: 'Department Manager', scope_type: 'Department', scope_name: 'Engineering', sees_salary: false }],
-      },
-      {
-        id: 'u-gm',
-        email: 'gm@gulftech.ae',
-        name: 'Rashid Al-Falasi',
-        status: 'Active',
-        failed_logins: 0,
-        is_locked: false,
-        last_login_at: '2026-10-26T16:20:00Z',
-        roles: [{ code: 'GM', name: 'General Manager', scope_type: 'Company', sees_salary: true }],
-      },
-      {
-        id: 'u-fin',
-        email: 'finance@gulftech.ae',
-        name: 'Hassan Al-Balooshi',
-        status: 'Active',
-        failed_logins: 0,
-        is_locked: false,
-        last_login_at: '2026-10-27T07:45:00Z',
-        roles: [{ code: 'FINANCE', name: 'Finance / Accounts', scope_type: 'Company', sees_salary: true }],
-      },
-      {
-        id: 'u-emp1',
-        email: 'employee@gulftech.ae',
-        name: 'Ahmed Al-Mansoori',
-        status: 'Active',
-        failed_logins: 0,
-        is_locked: false,
-        last_login_at: '2026-10-26T12:00:00Z',
-        roles: [{ code: 'EMPLOYEE', name: 'Employee', scope_type: 'Company', sees_salary: false }],
-      },
-    ];
-    setUsers(initialUsers);
   };
 
   useEffect(() => {
@@ -182,7 +160,8 @@ export function UsersAndRolesFeature() {
           email: inviteEmail,
           role_assignments: selectedRoles.map((code) => ({
             roleCode: code,
-            scopeType: ['Company', 'Branch', 'Department', 'Self'].includes(scopeType) ? scopeType : 'Company',
+            scopeType: ['Company', 'CompanyVisa', 'Branch', 'Department'].includes(scopeType) ? scopeType : 'Company',
+            scopeId: scopeType === 'Company' ? null : scopeTarget,
           })),
         }),
       });
@@ -212,7 +191,7 @@ export function UsersAndRolesFeature() {
       totalEligible: unlinkedCount,
       createdCount: unlinkedCount,
       defaultRole: 'EMPLOYEE',
-      sampleEmail: 'emp_12@gulftech.ae',
+      sampleEmail: 'emp_12@company.ae',
     });
     setAlertMessage({
       type: 'success',
@@ -443,8 +422,8 @@ export function UsersAndRolesFeature() {
                               {u.name.charAt(0)}
                             </div>
                             <div>
-                              <span className="font-semibold block">{u.name}</span>
-                              <span className="text-[10px] font-mono block" style={{ color: 'var(--text-tertiary)' }}>
+                              <span className="font-semibold block">{language === 'ar' && u.arabic_name ? u.arabic_name : <span data-i18n-skip>{u.name}</span>}</span>
+                              <span className="text-[10px] font-mono block" style={{ color: 'var(--text-tertiary)' }} data-i18n-skip>
                                 {u.email}
                               </span>
                             </div>
@@ -463,7 +442,7 @@ export function UsersAndRolesFeature() {
                                   color: 'var(--primary-strong)',
                                 }}
                               >
-                                {r.name || r.code}
+                                {getEnumLabel('role_name', r.name || r.code, language)}
                               </span>
                             ))}
                           </div>
@@ -473,7 +452,7 @@ export function UsersAndRolesFeature() {
                           <span className="inline-flex items-center gap-1 font-mono text-[11px]">
                             <Layers className="w-3 h-3 text-neutral-400" />
                             <span>
-                              {u.roles[0]?.scope_type || 'Company'}
+                              {getEnumLabel('scope_type', u.roles[0]?.scope_type || 'Company', language)}
                               {u.roles[0]?.scope_name ? ` (${u.roles[0].scope_name})` : ''}
                             </span>
                           </span>
@@ -482,11 +461,11 @@ export function UsersAndRolesFeature() {
                         <td className="py-3.5 px-4 text-center">
                           {hasSalaryAccess ? (
                             <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                              Visible (WPS)
+                              {language === 'ar' ? 'مرئي (حماية الأجور)' : 'Visible (WPS)'}
                             </span>
                           ) : (
                             <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-800 text-neutral-400">
-                              Hidden (Protected)
+                              {language === 'ar' ? 'محجوب (محمي)' : 'Hidden (Protected)'}
                             </span>
                           )}
                         </td>
@@ -501,7 +480,7 @@ export function UsersAndRolesFeature() {
                                 : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                             }`}
                           >
-                            {u.status}
+                            {language === 'ar' ? getEnumLabel('user_status', u.status, 'ar') : u.status}
                           </span>
                         </td>
 
@@ -566,7 +545,7 @@ export function UsersAndRolesFeature() {
                     required
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="colleague@gulftech.ae"
+                    placeholder="colleague@company.ae"
                     className="w-full rounded-xl py-2 px-3 border outline-none font-mono"
                     style={{ background: 'var(--bg-well)', borderColor: 'var(--border-subtle)' }}
                   />
@@ -630,15 +609,8 @@ export function UsersAndRolesFeature() {
                       label="Scope Target"
                       value={scopeTarget}
                       onChange={(e) => setScopeTarget(e.target.value)}
-                      options={[
-                        { value: 'All', label: 'All Entities' },
-                        { value: 'Engineering', label: 'Engineering Department' },
-                        { value: 'Operations', label: 'Operations Department' },
-                        { value: 'Logistics', label: 'Logistics & Fleet' },
-                        { value: 'HR & Admin', label: 'HR & Admin' },
-                        { value: 'Dubai HQ', label: 'Dubai Headquarters Branch' },
-                        { value: 'DIFC', label: 'DIFC FinTech Hub' },
-                      ]}
+                      disabled={scopeType === 'Company'}
+                      options={scopeTargetOptions}
                     />
                   </div>
                 </div>

@@ -320,7 +320,9 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
                   return (
                     <tr key={req.id} className="hover:bg-surface/30 transition-colors">
                       <td className="p-3.5 font-sans">
-                        <div className="font-semibold text-text" data-i18n-skip>{req.employee?.name}</div>
+                        <div className="font-semibold text-text">
+                          {isAr && req.employee?.arabic_name ? req.employee.arabic_name : <span data-i18n-skip>{req.employee?.name}</span>}
+                        </div>
                         <div className="text-[11px] text-text-muted" data-i18n-skip>{req.employee?.employee_number}</div>
                       </td>
                       <td className="p-3.5 font-sans">
@@ -337,7 +339,9 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
                         {isHalf ? startStr : `${startStr} → ${endStr}`}
                       </td>
                       <td className="p-3.5 text-center font-bold text-primary">
-                        {Number(req.days_deducted).toFixed(1)}d
+                        {isAr
+                          ? `${(Number(req.days_deducted ?? req.days_count ?? 1) || 1).toFixed(1)} يوم`
+                          : `${(Number(req.days_deducted ?? req.days_count ?? 1) || 1).toFixed(1)}d`}
                       </td>
                       <td className="p-3.5 font-sans">
                         {req.attachment_url ? (
@@ -354,13 +358,13 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
                           <span className="text-text-muted text-[11px]">-</span>
                         )}
                       </td>
-                      <td className="p-3.5 font-sans text-text-muted max-w-xs truncate" title={req.reason}>
+                      <td className="p-3.5 font-sans text-text-muted max-w-xs truncate" title={req.reason} data-i18n-skip>
                         {req.reason}
                       </td>
                       {currentTab === 'inbox' && (
                         <td className="p-3.5 font-sans">
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/20">
-                            1d pending
+                            {isAr ? 'معلق منذ 1 يوم' : '1d pending'}
                           </span>
                         </td>
                       )}

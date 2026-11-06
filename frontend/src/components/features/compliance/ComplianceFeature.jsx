@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
+import { getEnumLabel } from '../../../i18n/enums';
 import {
   ShieldAlert,
   ShieldCheck,
@@ -405,27 +406,27 @@ export default function ComplianceFeature() {
                       </td>
                       <td className="py-3 px-4">
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
-                          {doc.doc_type}
+                          {getEnumLabel('document_type', doc.doc_type, language)}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-mono text-xs text-slate-700 dark:text-slate-300">
+                      <td className="py-3 px-4 font-mono text-xs text-slate-700 dark:text-slate-300" data-i18n-skip>
                         {doc.doc_number || '—'}
                       </td>
-                      <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
+                      <td className="py-3 px-4 text-slate-600 dark:text-slate-300" data-i18n-skip>
                         {doc.expiry_date ? new Date(doc.expiry_date).toISOString().slice(0, 10) : '—'}
                       </td>
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${daysBadgeColor}`}>
                           {days !== null && days !== undefined
                             ? days < 0
-                              ? `${Math.abs(days)}d ${isAr ? 'منتهية' : 'expired'}`
-                              : `${days}d ${isAr ? 'متبقية' : 'left'}`
+                              ? `${Math.abs(days)} ${isAr ? 'يوم منتهية' : 'd expired'}`
+                              : `${days} ${isAr ? 'يوم متبقية' : 'd left'}`
                             : '—'}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadgeColor}`}>
-                          {doc.status}
+                          {getEnumLabel('document_status', doc.status, language)}
                         </span>
                       </td>
                       <td className="py-3 px-4">

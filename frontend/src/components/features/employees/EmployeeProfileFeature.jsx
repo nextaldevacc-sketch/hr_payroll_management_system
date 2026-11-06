@@ -467,7 +467,7 @@ export function EmployeeProfileFeature({ id } = {}) {
                     ({employee.arabic_name})
                   </span>
                 )}
-                <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-md bg-surface-raised border border-border text-primary">
+                <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-md bg-surface-raised border border-border text-primary" data-i18n-skip>
                   {employee.employee_code}
                 </span>
                 <StatusPill status={employee.status} />
@@ -485,19 +485,25 @@ export function EmployeeProfileFeature({ id } = {}) {
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-muted pt-1">
                 <span className="flex items-center gap-1.5">
                   <Building2 className="w-3.5 h-3.5 text-text-muted" />
-                  {employee.department?.name || activeContract?.department?.name || 'Department Unassigned'}
+                  {isRTL
+                    ? (employee.department?.name_ar || activeContract?.department?.name_ar || <span data-i18n-skip>{employee.department?.name || activeContract?.department?.name || 'Department Unassigned'}</span>)
+                    : (employee.department?.name || activeContract?.department?.name || 'Department Unassigned')}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Briefcase className="w-3.5 h-3.5 text-text-muted" />
-                  {employee.job?.title || activeContract?.job?.title || 'Job Unassigned'}
+                  {isRTL
+                    ? (employee.job?.title_ar || activeContract?.job?.title_ar || <span data-i18n-skip>{employee.job?.title || activeContract?.job?.title || 'Job Unassigned'}</span>)
+                    : (employee.job?.title || activeContract?.job?.title || 'Job Unassigned')}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <FileCheck className="w-3.5 h-3.5 text-text-muted" />
-                  {employee.company_visa?.visa_entity_name || employee.company?.name || 'Company'}
+                  {isRTL
+                    ? (employee.company_visa?.visa_entity_name_ar || employee.company?.name_ar || <span data-i18n-skip>{employee.company_visa?.visa_entity_name || employee.company?.name || 'Company'}</span>)
+                    : (employee.company_visa?.visa_entity_name || employee.company?.name || 'Company')}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-text-muted" />
-                  Joined: {employee.joining_date ? new Date(employee.joining_date).toLocaleDateString('en-GB') : '—'}
+                  {isRTL ? 'التحق بتاريخ:' : 'Joined:'} {employee.joining_date ? new Date(employee.joining_date).toLocaleDateString('en-GB') : '—'}
                 </span>
               </div>
             </div>
@@ -624,21 +630,27 @@ export function EmployeeProfileFeature({ id } = {}) {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-xs">
                 <div>
-                  <span className="text-text-muted block mb-1">Department</span>
+                  <span className="text-text-muted block mb-1">{isRTL ? 'القسم' : 'Department'}</span>
                   <span className="font-semibold text-text text-sm">
-                    {employee.department?.name || activeContract?.department?.name || '—'}
+                    {isRTL
+                      ? (employee.department?.name_ar || activeContract?.department?.name_ar || <span data-i18n-skip>{employee.department?.name || activeContract?.department?.name || '—'}</span>)
+                      : (employee.department?.name || activeContract?.department?.name || '—')}
                   </span>
                 </div>
                 <div>
-                  <span className="text-text-muted block mb-1">Job Designation</span>
+                  <span className="text-text-muted block mb-1">{isRTL ? 'المسمى الوظيفي' : 'Job Designation'}</span>
                   <span className="font-semibold text-text text-sm">
-                    {employee.job?.title || activeContract?.job?.title || '—'}
+                    {isRTL
+                      ? (employee.job?.title_ar || activeContract?.job?.title_ar || <span data-i18n-skip>{employee.job?.title || activeContract?.job?.title || '—'}</span>)
+                      : (employee.job?.title || activeContract?.job?.title || '—')}
                   </span>
                 </div>
                 <div>
-                  <span className="text-text-muted block mb-1">Branch / Location</span>
+                  <span className="text-text-muted block mb-1">{isRTL ? 'الفرع / الموقع' : 'Branch / Location'}</span>
                   <span className="font-semibold text-text">
-                    {employee.branch?.name || 'Dubai Main Office'}
+                    {isRTL
+                      ? (employee.branch?.name_ar || activeContract?.branch?.name_ar || <span data-i18n-skip>{employee.branch?.name || 'Dubai Main Office'}</span>)
+                      : (employee.branch?.name || 'Dubai Main Office')}
                   </span>
                 </div>
                 <div>

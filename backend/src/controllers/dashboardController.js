@@ -59,9 +59,13 @@ export async function getOverview(req, res, next) {
 
 export async function getSalary(req, res, next) {
   try {
-    const data = await dashboardService.getSalaryMetrics(req.companyId, {
-      companyVisaId: req.query.company_visa_id || req.query.companyVisaId,
-    });
+    const data = await dashboardService.getSalaryMetrics(
+      req.companyId,
+      {
+        companyVisaId: req.query.company_visa_id || req.query.companyVisaId,
+      },
+      req.user
+    );
     res.json({ status: 'success', data });
   } catch (err) {
     next(err);

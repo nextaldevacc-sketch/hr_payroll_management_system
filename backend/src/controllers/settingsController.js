@@ -16,6 +16,13 @@ export async function getCompany(req, res, next) {
   } catch (err) { next(err); }
 }
 
+export async function getVisas(req, res, next) {
+  try {
+    const profile = await settingsService.getCompanyProfile(req.companyId);
+    res.json({ status: 'success', data: profile.visas || profile.company_visas || [] });
+  } catch (err) { next(err); }
+}
+
 export async function updateCompany(req, res, next) {
   try {
     const data = await settingsService.updateCompanyProfile({
@@ -556,6 +563,7 @@ export async function revokeSupportGrant(req, res, next) {
 export default {
   getOverview,
   getCompany,
+  getVisas,
   updateCompany,
   createVisa,
   updateVisa,

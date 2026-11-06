@@ -5,6 +5,7 @@ import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
 import { roundToCurrency, formatCurrency } from '@nextal/shared';
 import notificationService from './notificationService.js';
+import scopeService from './scopeService.js';
 
 Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_UP });
 
@@ -528,7 +529,7 @@ export class SettlementService {
   /**
    * Get Final Settlement by ID
    */
-  async getSettlement(companyId, settlementId) {
+  async getSettlement(companyId, settlementId, viewer = null) {
     const settlement = await this.prisma.$base().final_settlements.findFirst({
       where: { id: settlementId, company_id: companyId },
       include: {
@@ -557,6 +558,11 @@ export class SettlementService {
       err.status = 404;
       err.code = 'NOT_FOUND';
       throw err;
+    }
+
+    if (viewer) {
+      const scope = scopeService.resolveDataScope(viewer);
+      scopeService.assertEmployeeInScope(settlement.separation?.employee, scope);
     }
 
     return settlement;

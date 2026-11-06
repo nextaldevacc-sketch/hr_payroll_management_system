@@ -15,6 +15,8 @@ export async function listOvertime(req, res, next) {
       status: req.query.status,
       departmentId: deptId,
       employeeId: req.query.employee_id,
+      companyVisaId: req.query.company_visa_id || req.query.companyVisaId,
+      viewer: req.user,
     });
 
     // Role-aware serialization

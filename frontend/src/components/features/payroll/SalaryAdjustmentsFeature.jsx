@@ -30,6 +30,7 @@ import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
 import { Select } from '../../primitives/form/Select';
 import { useLanguage } from '../../../context/LanguageContext';
+import { getEnumLabel } from '../../../i18n/enums';
 
 export function SalaryAdjustmentsFeature() {
   const queryClient = useQueryClient();
@@ -297,8 +298,10 @@ export function SalaryAdjustmentsFeature() {
                   return (
                     <tr key={adj.id} className="hover:bg-surface-raised/30 transition-colors">
                       <td className="py-3.5 px-4">
-                        <span className="font-bold text-text">{emp.name || '---'}</span>
-                        <span className="block text-[10px] text-text-muted font-mono">{emp.employee_code}</span>
+                        <span className="font-bold text-text">
+                          {language === 'ar' && emp.arabic_name ? emp.arabic_name : <span data-i18n-skip>{emp.name || '---'}</span>}
+                        </span>
+                        <span className="block text-[10px] text-text-muted font-mono" data-i18n-skip>{emp.employee_code}</span>
                       </td>
                       <td className="py-3.5 px-4">
                         <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
@@ -308,7 +311,7 @@ export function SalaryAdjustmentsFeature() {
                             ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
                             : 'bg-primary/10 text-primary border border-primary/20'
                         }`}>
-                          {adj.type}
+                          {getEnumLabel('adjustment_type', adj.type, language)}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-right font-medium text-text">
@@ -321,7 +324,7 @@ export function SalaryAdjustmentsFeature() {
                         AED {Number(adj.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td className="py-3.5 px-4 text-text-muted">{startMonthStr}</td>
-                      <td className="py-3.5 px-4 text-text-muted max-w-xs truncate" title={adj.reason}>
+                      <td className="py-3.5 px-4 text-text-muted max-w-xs truncate" title={adj.reason} data-i18n-skip>
                         {adj.reason || '---'}
                       </td>
                       <td className="py-3.5 px-4 text-center">
