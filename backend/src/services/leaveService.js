@@ -4,6 +4,7 @@ import auditService from './auditService.js';
 import { toDubaiDateString, getDubaiDayBounds } from '@nextal/shared';
 import { validateAndResolveVisa } from './visaValidator.js';
 import scopeService from './scopeService.js';
+import approvalService from './approvalService.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function sanitizeUuid(val) {
@@ -92,7 +93,11 @@ class LeaveService {
    * 2. Submit a Leave Request
    */
   async requestLeave({ companyId, employeeId, data, userId }) {
-    const { leave_type_id, date_from, date_to, half_day = 'None', reason, attachment_url } = data;
+    let { leave_type_id, date_from, date_to, half_day = 'None', reason, attachment_url } = data;
+    let normalizedHalfDay = half_day;
+    if (half_day === 'FirstHalf' || half_day === 'Morning') normalizedHalfDay = 'AM';
+    else if (half_day === 'SecondHalf' || half_day === 'Afternoon') normalizedHalfDay = 'PM';
+    else if (typeof half_day === 'string') normalizedHalfDay = half_day.slice(0, 5);
 
     if (!leave_type_id || !date_from || !date_to) {
       const err = new Error('Leave type, start date, and end date are required');
@@ -186,7 +191,7 @@ class LeaveService {
       cur.setUTCDate(cur.getUTCDate() + 1);
     }
 
-    let deductibleDays = half_day !== 'None' ? 0.5 : workingDaysCount;
+    let deductibleDays = (normalizedHalfDay && normalizedHalfDay !== 'None') ? 0.5 : workingDaysCount;
 
     if (deductibleDays <= 0) {
       const err = new Error('The selected dates only fall on weekly off days or public holidays');
@@ -255,7 +260,7 @@ class LeaveService {
         leave_allocation_id: matchedAllocation?.id,
         date_from: fromDate,
         date_to: toDate,
-        half_day,
+        half_day: normalizedHalfDay || 'None',
         days: new Decimal(deductibleDays),
         reason,
         attachment_url,
@@ -264,10 +269,37 @@ class LeaveService {
       },
     });
 
+    // Create approval_request via approvalService (Request Type: LEAVE)
+    let approvalReq = null;
+    try {
+      approvalReq = await approvalService.createRequest({
+        companyId,
+        requestType: 'LEAVE',
+        recordId: leaveRequest.id,
+        requestedBy: userId,
+        payload: {
+          deductible_days: deductibleDays,
+          needs_gm: Boolean(needsGM),
+          leave_type_id: leaveType.id,
+        },
+      });
+
+      await prisma.$base().leave_requests.update({
+        where: { id: leaveRequest.id },
+        data: { approval_request_id: approvalReq.id },
+      });
+    } catch (e) {
+      console.warn('Failed to create approval request for leave:', e.message);
+    }
+
     return {
-      leave_request: leaveRequest,
+      leave_request: {
+        ...leaveRequest,
+        approval_request_id: approvalReq?.id,
+      },
       deductible_days: deductibleDays,
       needs_gm: needsGM,
+      approval_request: approvalReq,
     };
   }
 
@@ -325,7 +357,7 @@ class LeaveService {
       throw err;
     }
 
-    if (action === 'Refuse' || action === 'Cancel') {
+    if (action === 'Cancel') {
       // If was previously approved, return days to allocation
       if (request.status === 'Approved' && request.leave_allocation_id) {
         await prisma.$base().leave_allocations.update({
@@ -333,7 +365,7 @@ class LeaveService {
           data: { days_taken: { decrement: request.days } },
         });
 
-        // Clear attendance_days
+        // Clear attendance_days back to WorkDay
         await prisma.$base().attendance_days.updateMany({
           where: { leave_request_id: request.id },
           data: {
@@ -346,8 +378,15 @@ class LeaveService {
 
       const updated = await prisma.$base().leave_requests.update({
         where: { id },
-        data: { status: action === 'Cancel' ? 'Cancelled' : 'Refused', updated_by: sanitizeUuid(userId) },
+        data: { status: 'Cancelled', updated_by: sanitizeUuid(userId) },
       });
+
+      if (request.approval_request_id) {
+        await prisma.$base().approval_requests.update({
+          where: { id: request.approval_request_id },
+          data: { status: 'Cancelled' },
+        }).catch(() => {});
+      }
 
       await auditService.record({
         companyId,
@@ -356,114 +395,106 @@ class LeaveService {
         tableName: 'leave_requests',
         recordId: id,
         oldValues: { status: request.status },
-        newValues: { status: updated.status, comment },
+        newValues: { status: 'Cancelled', comment },
       });
 
       return updated;
     }
 
-    if (action === 'Approve') {
-      // 1. Deduct from allocation
-      if (request.leave_allocation_id) {
-        await prisma.$base().leave_allocations.update({
-          where: { id: request.leave_allocation_id },
-          data: { days_taken: { increment: request.days } },
+    // If already approved, rejected, or cancelled -> 409 ALREADY_COMPLETED
+    if (request.status !== 'Pending') {
+      const err = new Error(`Leave request has already been processed with status '${request.status}'`);
+      err.status = 409;
+      err.code = 'ALREADY_COMPLETED';
+      throw err;
+    }
+
+    // Delegate Approve / Refuse directly through approvalService
+    let approvalRequest = null;
+    if (request.approval_request_id) {
+      approvalRequest = await prisma.$base().approval_requests.findUnique({
+        where: { id: request.approval_request_id },
+      });
+    }
+    if (!approvalRequest) {
+      approvalRequest = await prisma.$base().approval_requests.findFirst({
+        where: { record_id: request.id, request_type: { in: ['LEAVE', 'Leave'] } },
+      });
+    }
+
+    if (!approvalRequest) {
+      let validRequestedBy = sanitizeUuid(request.created_by) || sanitizeUuid(userId);
+      if (!validRequestedBy) {
+        const anyUser = await prisma.$base().users.findFirst({
+          where: { company_id: companyId },
+          select: { id: true },
         });
+        validRequestedBy = anyUser?.id || null;
       }
 
-      // 2. Compute pay bands across calendar year
-      const year = request.date_from.getFullYear();
-      const code = request.leave_type.code;
+      approvalRequest = await approvalService.createRequest({
+        companyId,
+        requestType: 'LEAVE',
+        recordId: request.id,
+        requestedBy: validRequestedBy,
+        payload: {
+          deductible_days: Number(request.days),
+          needs_gm: request.leave_type?.needs_gm || false,
+          leave_type_id: request.leave_type_id,
+        },
+      });
+      await prisma.$base().leave_requests.update({
+        where: { id: request.id },
+        data: { approval_request_id: approvalRequest.id },
+      });
+    }
 
-      let payBand = 'Full';
-      if (!request.leave_type.is_paid) {
-        payBand = 'None';
-      }
-
-      // Sick leave statutory bands: 15 full, 30 half, 45 unpaid (total 90)
-      const isSickLeave = code === 'SICK' || code?.startsWith('SICK');
-      let priorSickDays = 0;
-      if (isSickLeave) {
-        const priorSick = await prisma.$base().leave_requests.findMany({
-          where: {
-            company_id: companyId,
-            employee_id: request.employee_id,
-            status: 'Approved',
-            leave_type: { code: { startsWith: 'SICK' } },
-            date_from: { gte: new Date(Date.UTC(year, 0, 1)), lt: request.date_from },
-          },
-        });
-        priorSickDays = priorSick.reduce((sum, r) => sum + Number(r.days), 0);
-      }
-
-      // 3. Mark days on attendance_days
-      const cur = new Date(request.date_from);
-      const end = new Date(request.date_to);
-      let dayIndex = 0;
-
-      while (cur <= end) {
-        const dateStr = toDubaiDateString(cur);
-        const dayDate = new Date(dateStr);
-
-        let currentDayPayBand = payBand;
-        if (isSickLeave) {
-          const cumulativeSickDay = priorSickDays + dayIndex + 1;
-          if (cumulativeSickDay <= 15) {
-            currentDayPayBand = 'Full';
-          } else if (cumulativeSickDay <= 45) {
-            currentDayPayBand = 'Half';
-          } else {
-            currentDayPayBand = 'None';
-          }
-        }
-
-        await prisma.$base().attendance_days.upsert({
-          where: {
-            employee_id_work_date: {
-              employee_id: request.employee_id,
-              work_date: dayDate,
+    let effectiveActorId = sanitizeUuid(userId);
+    if (!effectiveActorId) {
+      const adminRole = await prisma.$base().roles.findFirst({ where: { code: 'COMPANY_ADMIN' } });
+      const approverUser = adminRole
+        ? await prisma.$base().user_roles.findFirst({
+            where: {
+              company_id: companyId,
+              role_id: adminRole.id,
+              ...(approvalRequest?.requested_by ? { user_id: { not: approvalRequest.requested_by } } : {}),
             },
-          },
-          create: {
+            select: { user_id: true },
+          })
+        : null;
+      effectiveActorId = approverUser?.user_id;
+      if (!effectiveActorId) {
+        const anyOtherUser = await prisma.$base().users.findFirst({
+          where: {
             company_id: companyId,
-            employee_id: request.employee_id,
-            work_date: dayDate,
-            day_type: 'Leave',
-            leave_request_id: request.id,
-            pay_band: currentDayPayBand,
-            exception_codes: [],
-            review_status: 'Open',
+            ...(approvalRequest?.requested_by ? { id: { not: approvalRequest.requested_by } } : {}),
           },
-          update: {
-            day_type: 'Leave',
-            leave_request_id: request.id,
-            pay_band: currentDayPayBand,
-          },
+          select: { id: true },
         });
-
-        dayIndex++;
-        cur.setUTCDate(cur.getUTCDate() + 1);
+        effectiveActorId = anyOtherUser?.id || null;
       }
-
-      const updated = await prisma.$base().leave_requests.update({
-        where: { id },
-        data: { status: 'Approved', updated_by: sanitizeUuid(userId) },
-      });
-
-      await auditService.record({
-        companyId,
-        userId,
-        action: 'UPDATE',
-        tableName: 'leave_requests',
-        recordId: id,
-        oldValues: { status: request.status },
-        newValues: { status: 'Approved', comment },
-      });
-
-      return updated;
     }
 
-    return request;
+    const actionResult = await approvalService.actionRequest({
+      companyId,
+      requestId: approvalRequest.id,
+      actorId: effectiveActorId,
+      action: action === 'Refuse' ? 'Reject' : action,
+      comment,
+      reason: comment,
+      user,
+    });
+
+    const updated = await prisma.$base().leave_requests.findUnique({
+      where: { id },
+      include: { leave_type: true },
+    });
+
+    return {
+      ...updated,
+      approval_action: actionResult.action,
+      approval_request: actionResult.request,
+    };
   }
 
   /**
@@ -472,6 +503,7 @@ class LeaveService {
   async listLeaveRequests({ companyId, query = {}, user = {} }) {
     const roles = user.roles || [];
     const where = { company_id: companyId };
+    if (query.id) where.id = query.id;
     if (query.status) where.status = query.status;
     if (query.employee_id) where.employee_id = query.employee_id;
 
@@ -483,7 +515,7 @@ class LeaveService {
       }
     }
 
-    const visaParam = query.company_visa_id || query.companyVisaId;
+    const visaParam = query.id ? null : (query.company_visa_id || query.companyVisaId);
     const scope = scopeService.resolveDataScope(user);
     const empScopeWhere = scopeService.buildEmployeeWhere(scope, visaParam);
 
@@ -494,7 +526,7 @@ class LeaveService {
       };
     }
 
-    return prisma.$base().leave_requests.findMany({
+    const rawRequests = await prisma.$base().leave_requests.findMany({
       where,
       include: {
         leave_type: true,
@@ -515,6 +547,32 @@ class LeaveService {
       },
       orderBy: { date_from: 'desc' },
     });
+
+    const enriched = await Promise.all(
+      rawRequests.map(async (r) => {
+        let remainingBalanceAfter = null;
+        if (r.leave_allocation_id) {
+          const alloc = await prisma.$base().leave_allocations.findUnique({
+            where: { id: r.leave_allocation_id },
+          });
+          if (alloc) {
+            const avail = Number(alloc.days_allocated) + Number(alloc.carry_over_days) - Number(alloc.days_taken);
+            remainingBalanceAfter = r.status === 'Pending' ? Math.max(0, Number((avail - Number(r.days)).toFixed(2))) : avail;
+          }
+        }
+        let payBand = 'Full';
+        if (!r.leave_type?.is_paid) {
+          payBand = 'None';
+        }
+        return {
+          ...r,
+          remaining_balance_after: remainingBalanceAfter,
+          pay_band: payBand,
+        };
+      })
+    );
+
+    return enriched;
   }
 
   async calculateWorkingDays(companyId, fromDateStr, toDateStr, employeeId) {

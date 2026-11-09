@@ -254,7 +254,12 @@ async function runStepRunner() {
 
     try {
       actual = await runFn(page, shotPath);
-      await page.screenshot({ path: shotPath, fullPage: false });
+      try {
+        await page.screenshot({ path: shotPath, fullPage: false });
+      } catch {
+        await new Promise((r) => setTimeout(r, 300));
+        await page.screenshot({ path: shotPath, fullPage: false });
+      }
       await assertPageClean(page, role, `${wf}.${no} ${action}`);
       console.log(`     [PASS] ${actual}`);
     } catch (err) {

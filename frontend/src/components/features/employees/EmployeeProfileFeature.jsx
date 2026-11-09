@@ -1212,6 +1212,7 @@ export function EmployeeProfileFeature({ id } = {}) {
               <div>
                 <label className="block font-semibold text-text mb-1">UAE IBAN (23 Characters)</label>
                 <input
+                  id="bank-form-iban"
                   type="text"
                   placeholder="AE070331234567890123456"
                   value={bankForm.iban}
@@ -1224,6 +1225,7 @@ export function EmployeeProfileFeature({ id } = {}) {
               <div>
                 <label className="block font-semibold text-text mb-1">Routing Code</label>
                 <input
+                  id="bank-form-routing-code"
                   type="text"
                   value={bankForm.routing_code}
                   onChange={(e) => setBankForm({ ...bankForm, routing_code: e.target.value })}
@@ -1241,6 +1243,7 @@ export function EmployeeProfileFeature({ id } = {}) {
                   Cancel
                 </button>
                 <button
+                  id="btn-save-bank-account"
                   type="submit"
                   disabled={bankMutation.isPending}
                   className="px-4 py-2 rounded-xl bg-primary text-[var(--on-primary)] font-semibold shadow-md disabled:opacity-50"

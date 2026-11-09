@@ -72,7 +72,7 @@ export async function seedEmployees(prisma, {
   leaveType2,
   accrualPlan2,
 }) {
-  console.log('Seeding 44 employees for Company 1...');
+  console.log('Seeding 45 employees for Company 1...');
   const userHR1 = demoUsersMap['hr.mgr@gulftech.ae'];
   const placeholderUrl = ensureDemoPlaceholderPdf();
 
@@ -104,10 +104,10 @@ export async function seedEmployees(prisma, {
   const seededContracts = [];
   let totalSeededGross = 0;
 
-  for (let i = 1; i <= 44; i++) {
+  for (let i = 1; i <= 45; i++) {
     const code = `EMP-DXB-${String(i).padStart(3, '0')}`;
-    const targetVisa = (i <= 30 || i === 43) ? visas1.visa1_01 : visas1.visa1_02;
-    const targetBranch = (i <= 30 || i === 43) ? branches1.branch1_main : branches1.branch1_difc;
+    const targetVisa = (i <= 30 || i === 43 || i === 45) ? visas1.visa1_01 : visas1.visa1_02;
+    const targetBranch = (i <= 30 || i === 43 || i === 45) ? branches1.branch1_main : branches1.branch1_difc;
 
     let baseInfo;
     if (i <= employeeNames.length) {
@@ -159,6 +159,22 @@ export async function seedEmployees(prisma, {
         trans: 500,
         oth: 500,
         joining_date: new Date('2023-05-01'), // 3 yrs 6 mos to 2026-10-31
+      };
+    } else if (i === 45) {
+      baseInfo = {
+        name: 'Tariq Mansoor',
+        name_ar: 'طارق منصور',
+        nat: 'ARE',
+        gender: 'Male',
+        uae: true,
+        job: jobs1.jobOps,
+        dept: depts1['Operations'],
+        gross: 7000,
+        basic: 4200,
+        housing: 2100,
+        trans: 350,
+        oth: 350,
+        joining_date: new Date('2026-11-01'), // Joins Nov 1, 2026 -> excluded from Sep & Oct pay runs, included in Nov pay run without bank account (T28)
       };
     } else {
       const cycleItem = deptCycle[(i - 13) % deptCycle.length];
@@ -289,24 +305,27 @@ export async function seedEmployees(prisma, {
     seededContracts.push(activeContract);
     totalSeededGross += empGross;
 
-    // Bank accounts: all employees have valid mod-97 UAE IBANs and routing codes
-    const iban = generateValidUaeIban('033', 1000000000 + i);
-    if (!validateUaeIban(iban)) {
-      throw new Error(`Invalid generated UAE IBAN for employee ${code}: ${iban}`);
-    }
+    // Bank accounts: all employees except EMP-DXB-045 (Tariq Mansoor, joins Nov 2026) have valid mod-97 UAE IBANs
+    // EMP-DXB-045 is seeded with NO bank account as a natural fixture for T28 (missing IBAN in November pay run)
+    if (i !== 45) {
+      const iban = generateValidUaeIban('033', 1000000000 + i);
+      if (!validateUaeIban(iban)) {
+        throw new Error(`Invalid generated UAE IBAN for employee ${code}: ${iban}`);
+      }
 
-    await prisma.bank_accounts.create({
-      data: {
-        company_id: company1.id,
-        employee_id: emp.id,
-        bank_name: 'Emirates NBD',
-        iban: iban,
-        routing_code: 'ENBD001',
-        salary_split_pct: 100.00,
-        is_primary: true,
-        is_active: true,
-      },
-    });
+      await prisma.bank_accounts.create({
+        data: {
+          company_id: company1.id,
+          employee_id: emp.id,
+          bank_name: 'Emirates NBD',
+          iban: iban,
+          routing_code: 'ENBD001',
+          salary_split_pct: 100.00,
+          is_primary: true,
+          is_active: true,
+        },
+      });
+    }
 
     // Device mapping
     await prisma.device_mappings.create({
@@ -397,7 +416,7 @@ export async function seedEmployees(prisma, {
         allocation_type: 'Regular',
         accrual_plan_id: accrualPlan1.id,
         days_allocated: 30.00,
-        days_taken: (i % 5),
+        days_taken: emp.employee_code === 'EMP-DXB-043' ? 0.00 : (i % 5),
         valid_from: new Date('2026-01-01'),
         valid_to: new Date('2026-12-31'),
       },

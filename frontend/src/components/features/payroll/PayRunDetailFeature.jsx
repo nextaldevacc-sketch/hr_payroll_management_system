@@ -120,8 +120,9 @@ export function PayRunDetailFeature() {
 
   const blockingIssues = issues.filter((i) => i.severity === 'Blocking' && !i.resolved_at);
   const warningIssues = issues.filter((i) => i.severity === 'Warning' && !i.resolved_at);
+  const thresholdPct = Number(payRun?.variance_threshold_pct || payRun?.company?.variance_threshold_pct || 5.0);
   const variancePayslips = payslips.filter(
-    (p) => p.variance_pct && Math.abs(Number(p.variance_pct)) >= 10.0
+    (p) => p.variance_pct && Math.abs(Number(p.variance_pct)) >= thresholdPct
   );
 
   // Mutations
@@ -891,6 +892,7 @@ export function PayRunDetailFeature() {
                             {isEditing ? (
                               <div className="flex items-center gap-2">
                                 <input
+                                  id={`input-variance-${ps.id}`}
                                   type="text"
                                   autoFocus
                                   value={varianceReasonText}
@@ -899,6 +901,7 @@ export function PayRunDetailFeature() {
                                   className="w-full px-2.5 py-1 text-xs rounded-lg bg-surface-raised border border-primary text-text focus:outline-none"
                                 />
                                 <button
+                                  id={`btn-save-variance-${ps.id}`}
                                   onClick={() => handleSaveVariance(ps.id)}
                                   disabled={varianceMutation.isPending}
                                   className="p-1 rounded-lg bg-primary text-black hover:opacity-90 transition-all shrink-0"
@@ -922,6 +925,7 @@ export function PayRunDetailFeature() {
                                 </span>
                                 {!isLockedOrPaid && (
                                   <button
+                                    id={`btn-justify-variance-${ps.id}`}
                                     onClick={() => {
                                       setEditingVarianceId(ps.id);
                                       setVarianceReasonText(ps.variance_reason || '');

@@ -353,6 +353,44 @@ export async function seedAttendance(prisma, {
         status: 'Approved',
       },
     });
+
+    // Spec Section 8 Ahmed Worked Example inputs for November 2026 Pay Run (T19/7.5.11):
+    // 1. Overtime: 3 hours Normal OT (rate 1.25) -> AED 78.13
+    await prisma.overtime_requests.create({
+      data: {
+        company_id: company1.id,
+        employee_id: ahmedEmp.id,
+        work_date: new Date('2026-11-10'),
+        hours: 3.00,
+        source: 'Attendance',
+        ot_type: 'Normal',
+        rate: 1.2500,
+        compensation: 'Pay',
+        status: 'Approved',
+      },
+    });
+
+    // 2. Attendance: 2 unapproved absence days -> (8000 / 30) * 2 = AED 533.33
+    await prisma.attendance_days.createMany({
+      data: [
+        {
+          company_id: company1.id,
+          employee_id: ahmedEmp.id,
+          work_date: new Date('2026-11-15'),
+          day_type: 'Absence',
+          review_status: 'HRConfirmed',
+          worked_hours: 0,
+        },
+        {
+          company_id: company1.id,
+          employee_id: ahmedEmp.id,
+          work_date: new Date('2026-11-16'),
+          day_type: 'Absence',
+          review_status: 'HRConfirmed',
+          worked_hours: 0,
+        },
+      ],
+    });
   }
 
   // Sample Leave Requests
@@ -369,6 +407,45 @@ export async function seedAttendance(prisma, {
       status: 'Approved',
     },
   });
+
+  // Spec 7.4.6 (T32): Ahmed has a dedicated approved 5-day annual leave (Dec 14-18, 2026, 5 working days, no holidays)
+  // Employee cancels this approved leave in 7.4.6 -> balance restored by +5
+  const ahmedAnnualAlloc = await prisma.leave_allocations.findFirst({
+    where: { company_id: company1.id, employee_id: ahmedEmp.id, leave_type_id: leaveTypesMap1['ANNUAL'].id },
+  });
+  if (ahmedEmp && ahmedAnnualAlloc) {
+    const t32Leave = await prisma.leave_requests.create({
+      data: {
+        company_id: company1.id,
+        employee_id: ahmedEmp.id,
+        leave_type_id: leaveTypesMap1['ANNUAL'].id,
+        leave_allocation_id: ahmedAnnualAlloc.id,
+        date_from: new Date('2026-12-14'),
+        date_to: new Date('2026-12-18'),
+        days: 5.00,
+        reason: 'Spec T32: Approved 5-day vacation (to be cancelled by employee in 7.4.6)',
+        status: 'Approved',
+      },
+    });
+    await prisma.leave_allocations.update({
+      where: { id: ahmedAnnualAlloc.id },
+      data: { days_taken: { increment: 5.00 } },
+    });
+    const decDates = ['2026-12-14', '2026-12-15', '2026-12-16', '2026-12-17', '2026-12-18'];
+    for (const dStr of decDates) {
+      await prisma.attendance_days.create({
+        data: {
+          company_id: company1.id,
+          employee_id: ahmedEmp.id,
+          work_date: new Date(dStr),
+          day_type: 'Leave',
+          leave_request_id: t32Leave.id,
+          pay_band: 'Full',
+          review_status: 'Open',
+        },
+      });
+    }
+  }
 
   await prisma.leave_requests.create({
     data: {

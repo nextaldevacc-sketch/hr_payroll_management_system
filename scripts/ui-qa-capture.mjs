@@ -458,8 +458,27 @@ async function main() {
           navigationError = err.message;
         }
 
+        const safeEval = async (fn, arg) => {
+          for (let attempt = 0; attempt < 4; attempt++) {
+            try {
+              return await page.evaluate(fn, arg);
+            } catch (err) {
+              if (
+                err.message.includes('Execution context was destroyed') ||
+                err.message.includes('navigation') ||
+                err.message.includes('Target closed')
+              ) {
+                await page.waitForTimeout(500);
+                continue;
+              }
+              throw err;
+            }
+          }
+          return await page.evaluate(fn, arg);
+        };
+
         // 1. Next.js Error Overlay Check
-        const hasErrorOverlay = await page.evaluate(() => {
+        const hasErrorOverlay = await safeEval(() => {
           return Boolean(
             document.querySelector('nextjs-portal') ||
             document.querySelector('[data-nextjs-dialog-overlay]') ||
@@ -469,7 +488,7 @@ async function main() {
         });
 
         // 2. Horizontal Overflow Check
-        const scrollWidth = await page.evaluate(() => {
+        const scrollWidth = await safeEval(() => {
           return Math.max(
             document.documentElement.scrollWidth,
             document.body.scrollWidth,
@@ -494,7 +513,7 @@ async function main() {
         }
 
         // 5. Raw i18n Key Check
-        const rawKeyHits = await page.evaluate((allKeys) => {
+        const rawKeyHits = await safeEval((allKeys) => {
           const keySet = new Set(allKeys);
           const hits = [];
           const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
@@ -520,7 +539,7 @@ async function main() {
         // 6. Arabic English-word Check (all visible leaf text nodes)
         let arabicViolations = [];
         if (variant.lang === 'ar') {
-          arabicViolations = await page.evaluate((allowlist) => {
+          arabicViolations = await safeEval((allowlist) => {
             const allowSet = new Set(allowlist.map((w) => w.toUpperCase()));
             const hits = [];
             const selectors = 'button, th, td, label, h1, h2, h3, h4, nav a, p, span, small, a, div';
@@ -551,7 +570,7 @@ async function main() {
         }
 
         // 7. Table Clipping Check
-        const tableClippingViolations = await page.evaluate(() => {
+        const tableClippingViolations = await safeEval(() => {
           const tables = document.querySelectorAll('table, [role="table"]');
           const violations = [];
           for (const table of tables) {

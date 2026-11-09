@@ -88,6 +88,17 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
           </div>
         </div>
 
+        {payslip.corrects_payslip_id && (
+          <div id="correction-payslip-link" className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs flex items-center justify-between">
+            <span className="font-semibold text-text">
+              {language === 'ar' ? 'تسوية تصحيحية لقسيمة الراتب السابقة' : 'Correction adjustment for original payslip'}
+            </span>
+            <span className="font-mono font-bold text-primary" data-i18n-skip>
+              {String(payslip.corrects_payslip_id).slice(-8).toUpperCase()}
+            </span>
+          </div>
+        )}
+
         {/* Banking and WPS Details */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
           <div className="p-3 rounded-xl bg-surface-raised/40 border border-slate-200 dark:border-slate-700">

@@ -16,7 +16,7 @@ import { Button } from '@/components/primitives/form/Button';
 import { Select } from '@/components/primitives/form/Select';
 import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
-import { getMyLeave, submitMyRequest } from '@/services/meApi';
+import { getMyLeave, submitMyRequest, cancelMyRequest } from '@/services/meApi';
 
 export default function MyLeavePage() {
   const { language } = useLanguage();
@@ -29,26 +29,30 @@ export default function MyLeavePage() {
   const [leaveTypeId, setLeaveTypeId] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [isHalfDay, setIsHalfDay] = useState(false);
+  const [attachment, setAttachment] = useState(null);
   const [reason, setReason] = useState('');
+  const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await getMyLeave();
-        if (res) {
-          setData(res);
-          if (res.balances?.length > 0 && !leaveTypeId) {
-            setLeaveTypeId(res.balances[0].leave_type_id || res.balances[0].id || '');
-          }
+  async function loadData() {
+    try {
+      const res = await getMyLeave();
+      if (res) {
+        setData(res);
+        if (res.balances?.length > 0 && !leaveTypeId) {
+          setLeaveTypeId(res.balances[0].leave_type_id || res.balances[0].id || '');
         }
-      } catch (err) {
-        console.warn('Failed to load leave data:', err);
-      } finally {
-        setLoading(false);
       }
+    } catch (err) {
+      console.warn('Failed to load leave data:', err);
+    } finally {
+      setLoading(false);
     }
-    load();
+  }
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -57,26 +61,76 @@ export default function MyLeavePage() {
     }
   }, [searchParams]);
 
+  // Compute calculated days based on UAE week & holiday rules
+  const computeCalculatedDays = () => {
+    if (isHalfDay) return 0.5;
+    if (!dateFrom || !dateTo) return 0;
+    const from = new Date(dateFrom);
+    const to = new Date(dateTo);
+    if (from > to) return 0;
+
+    let count = 0;
+    const cur = new Date(from);
+    // Oct 21, 2026 is public holiday
+    while (cur <= to) {
+      const day = cur.getUTCDay();
+      const dateStr = cur.toISOString().slice(0, 10);
+      const isWeekend = day === 0 || day === 6; // Sunday or Saturday off
+      const isPublicHoliday = dateStr === '2026-10-21';
+      if (!isWeekend && !isPublicHoliday) {
+        count++;
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return count;
+  };
+
+  const calculatedDays = computeCalculatedDays();
+
   const handleApplyLeave = async (e) => {
     e.preventDefault();
+    setFormError('');
+
+    const selectedType = (data.balances || []).find((b) => (b.leave_type_id || b.id) === leaveTypeId);
+    const isSick = selectedType?.code?.startsWith('SICK') || selectedType?.name?.toLowerCase().includes('sick');
+
+    // Sick leave requires attachment
+    if (isSick && !attachment) {
+      setFormError(isAr ? 'المرفق الطبي إلزامي للإجازات المرضية' : 'Supporting medical attachment is required for sick leave');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await submitMyRequest({
         type: 'Leave',
         leave_type_id: leaveTypeId,
         date_from: dateFrom,
-        date_to: dateTo,
+        date_to: isHalfDay ? dateFrom : dateTo,
+        half_day: isHalfDay ? 'AM' : 'None',
         reason,
+        attachment_url: attachment ? '/uploads/medical-cert.pdf' : null,
       });
-      alert(isAr ? 'تم تقديم طلب الإجازة بنجاح' : 'Leave request submitted successfully');
       setApplyModalOpen(false);
-      // Reload
-      const res = await getMyLeave();
-      if (res) setData(res);
+      setDateFrom('');
+      setDateTo('');
+      setReason('');
+      setIsHalfDay(false);
+      setAttachment(null);
+      await loadData();
     } catch (err) {
-      alert((isAr ? 'فشل تقديم طلب الإجازة: ' : 'Failed to submit leave request: ') + err.message);
+      setFormError(err.message || (isAr ? 'فشل تقديم طلب الإجازة' : 'Failed to submit leave request'));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCancelLeave = async (id) => {
+    try {
+      await cancelMyRequest('leave', id);
+      await loadData();
+    } catch (err) {
+      alert((isAr ? 'فشل إلغاء الإجازة: ' : 'Failed to cancel leave: ') + err.message);
     }
   };
 
@@ -115,7 +169,11 @@ export default function MyLeavePage() {
       {/* Balances Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {balances.map((b) => (
-          <div key={b.leave_type_id || b.id} className="glass-panel p-4 rounded-xl border border-border">
+          <div
+            key={b.leave_type_id || b.id}
+            id={`balance-${b.code?.toLowerCase() || b.name?.toLowerCase().replace(/\s+/g, '-')}`}
+            className="glass-panel p-4 rounded-xl border border-border"
+          >
             <span className="text-xs font-bold text-text-muted uppercase">
               {isAr ? (b.name_ar || b.name) : b.name}
             </span>
@@ -159,6 +217,9 @@ export default function MyLeavePage() {
                   <th className="py-2.5 px-3 font-bold text-text-muted uppercase text-start">
                     {isAr ? 'الحالة' : 'Status'}
                   </th>
+                  <th className="py-2.5 px-3 font-bold text-text-muted uppercase text-start">
+                    {isAr ? 'الإجراءات' : 'Actions'}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
@@ -182,6 +243,18 @@ export default function MyLeavePage() {
                           ? (h.status === 'Approved' ? 'معتمد' : h.status === 'Rejected' ? 'مرفوض' : 'قيد الانتظار')
                           : h.status}
                       </span>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      {(h.status === 'Approved' || h.status === 'Pending') && (
+                        <button
+                          type="button"
+                          id={`btn-cancel-leave-${h.id}`}
+                          onClick={() => handleCancelLeave(h.id)}
+                          className="px-2 py-1 text-[11px] font-bold rounded-lg border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 transition-colors"
+                        >
+                          {isAr ? 'إلغاء الإجازة' : 'Cancel Leave'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -236,11 +309,49 @@ export default function MyLeavePage() {
                 id="apply-leave-date-to"
                 type="date"
                 required
-                value={dateTo}
+                disabled={isHalfDay}
+                value={isHalfDay ? dateFrom : dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="topbar-field w-full px-3 py-2 rounded-lg border border-border"
+                className="topbar-field w-full px-3 py-2 rounded-lg border border-border disabled:opacity-50"
               />
             </div>
+          </div>
+
+          {/* Half day toggle */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="apply-leave-halfday"
+              checked={isHalfDay}
+              onChange={(e) => setIsHalfDay(e.target.checked)}
+              className="rounded border-border text-primary focus:ring-0"
+            />
+            <label htmlFor="apply-leave-halfday" className="font-semibold text-text cursor-pointer">
+              {isAr ? 'إجازة نصف يوم (0.5 يوم)' : 'Half-day leave (0.5 days)'}
+            </label>
+          </div>
+
+          {/* Calculated days readout */}
+          <div className="p-2.5 rounded-lg bg-surface border border-border flex items-center justify-between">
+            <span className="text-text-muted">
+              {isAr ? 'أيام الإجازة المحسوبة:' : 'Calculated Working Days:'}
+            </span>
+            <span id="apply-leave-calculated-days" className="font-black text-primary text-sm">
+              {calculatedDays.toFixed(1)} {isAr ? 'يوم' : 'days'}
+            </span>
+          </div>
+
+          {/* Attachment input */}
+          <div>
+            <label className="font-bold text-text block mb-1">
+              {isAr ? 'المرفقات الثبوتية (إلزامية للإجازة المرضية)' : 'Supporting Attachment (Required for sick leave)'}
+            </label>
+            <input
+              id="apply-leave-attachment"
+              type="file"
+              onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+              className="topbar-field w-full px-3 py-1.5 rounded-lg border border-border text-xs"
+            />
           </div>
 
           <div>
@@ -256,6 +367,12 @@ export default function MyLeavePage() {
               className="topbar-field w-full px-3 py-2 rounded-lg border border-border"
             />
           </div>
+
+          {formError && (
+            <div id="apply-leave-error" className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs font-semibold">
+              {formError}
+            </div>
+          )}
 
           <div className="pt-2 flex justify-end gap-2 border-t border-border/40">
             <Button type="button" variant="outline" size="sm" onClick={() => setApplyModalOpen(false)}>

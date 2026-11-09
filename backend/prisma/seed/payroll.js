@@ -92,7 +92,8 @@ export async function seedPayroll(prisma, {
     }
   }
 
-  // Spec Example: Ahmed Al-Mansoori (EMP-DXB-043) loan 6,000 at 500/month, 3rd month (starts 2026-08-01)
+  // Spec Example: Ahmed Al-Mansoori (EMP-DXB-043) loan 6,000 at 500/month (starts 2026-08-01)
+  // Enters Oct with 5,500 balance; Oct run deducts 500 -> leaves 5,000 balance entering Nov run
   const ahmedEmp = seededEmployees.find((e) => e.employee_code === 'EMP-DXB-043');
   if (ahmedEmp) {
     await prisma.salary_adjustments.create({
@@ -102,10 +103,10 @@ export async function seedPayroll(prisma, {
         type: 'Loan',
         total_amount: 6000.0,
         monthly_amount: 500.0,
-        balance: 5000.0, // Enters October (3rd month) with 5,000 remaining; Oct run deducts 500 -> 4,500
+        balance: 5000.0, // Enters Nov run with 5,000; Nov run deducts 500 -> leaves 4,500 after payment
         start_month: new Date('2026-08-01'),
         status: 'Approved',
-        reason: 'Personal staff loan (3rd month)',
+        reason: 'Spec Section 8: Ahmed worked example loan (500/month, leaves 5,000 entering Nov)',
         created_by: userFinance1.id,
       },
     });

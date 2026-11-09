@@ -2,13 +2,13 @@
  * Seed Module: Settings
  * Approvals, Shifts, Policies, Holidays, Leave Types, Accrual Plans, Salary Rules
  */
-export async function seedSettings(prisma, { company1, company2, rolesMap }) {
+export async function seedSettings(prisma, { company1, company2, rolesMap, branches1 }) {
   // 1. Approval Flows for Company 1
   console.log('Seeding approval flows for Company 1...');
   const leaveFlow1 = await prisma.approval_flows.create({
     data: {
       company_id: company1.id,
-      request_type: 'Leave',
+      request_type: 'LEAVE',
       name: 'Standard Leave Approval Flow',
       priority: 1,
       is_active: true,
@@ -16,8 +16,9 @@ export async function seedSettings(prisma, { company1, company2, rolesMap }) {
   });
   await prisma.approval_flow_steps.createMany({
     data: [
-      { company_id: company1.id, flow_id: leaveFlow1.id, step_no: 1, role_id: rolesMap['HR_MANAGER'].id, approver_rule: 'SpecificRole' },
-      { company_id: company1.id, flow_id: leaveFlow1.id, step_no: 2, role_id: rolesMap['GM'].id, approver_rule: 'SpecificRole' },
+      { company_id: company1.id, flow_id: leaveFlow1.id, step_no: 1, role_id: rolesMap['DEPT_MANAGER'].id, approver_rule: 'SpecificRole' },
+      { company_id: company1.id, flow_id: leaveFlow1.id, step_no: 2, role_id: rolesMap['HR_OFFICER'].id, approver_rule: 'SpecificRole' },
+      { company_id: company1.id, flow_id: leaveFlow1.id, step_no: 3, role_id: rolesMap['GM'].id, approver_rule: 'SpecificRole' },
     ],
   });
 
@@ -127,6 +128,7 @@ export async function seedSettings(prisma, { company1, company2, rolesMap }) {
     { name: 'Eid Al Adha Day 3', name_ar: 'عيد الأضحى - اليوم 3', date: '2026-05-29' },
     { name: 'Islamic New Year', name_ar: 'رأس السنة الهجرية', date: '2026-06-16' },
     { name: 'Prophet Birthday', name_ar: 'المولد النبوي الشريف', date: '2026-08-25' },
+    { name: 'UAE Statutory Public Holiday', name_ar: 'عطلة رسمية اتحادية', date: '2026-10-21' },
     { name: 'UAE National Day 1', name_ar: 'اليوم الوطني - اليوم 1', date: '2026-12-02' },
     { name: 'UAE National Day 2', name_ar: 'اليوم الوطني - اليوم 2', date: '2026-12-03' },
   ];
@@ -138,6 +140,19 @@ export async function seedSettings(prisma, { company1, company2, rolesMap }) {
         holiday_date: new Date(h.date),
         name: h.name,
         name_ar: h.name_ar,
+        year: 2026,
+      },
+    });
+  }
+
+  if (branches1?.branch1_difc) {
+    await prisma.public_holidays.create({
+      data: {
+        company_id: company1.id,
+        branch_id: branches1.branch1_difc.id,
+        holiday_date: new Date('2026-11-18'),
+        name: 'DIFC FinTech Holiday',
+        name_ar: 'عطلة مركز دبي المالي',
         year: 2026,
       },
     });

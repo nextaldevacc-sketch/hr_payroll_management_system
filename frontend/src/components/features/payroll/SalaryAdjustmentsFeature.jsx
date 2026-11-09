@@ -69,7 +69,9 @@ export function SalaryAdjustmentsFeature() {
   const adjustments = Array.isArray(adjustmentsData)
     ? adjustmentsData
     : adjustmentsData?.items || [];
-  const employees = employeesData?.employees || [];
+  const employees = Array.isArray(employeesData)
+    ? employeesData
+    : employeesData?.data || employeesData?.employees || [];
 
   // Mutations
   const createMutation = useMutation({
@@ -160,6 +162,7 @@ export function SalaryAdjustmentsFeature() {
         </div>
 
         <button
+          id="btn-open-create-adjustment"
           onClick={() => {
             if (employees.length && !createForm.employee_id) {
               setCreateForm((prev) => ({ ...prev, employee_id: employees[0].id }));
@@ -332,6 +335,7 @@ export function SalaryAdjustmentsFeature() {
                         {adj.status === 'Pending' ? (
                           <div className="flex items-center justify-center gap-1.5">
                             <button
+                              id={`btn-approve-adj-${adj.id}`}
                               onClick={() => approveMutation.mutate(adj.id)}
                               disabled={approveMutation.isPending}
                               className="px-2 py-1 rounded-lg text-[11px] font-bold bg-secondary text-white hover:opacity-90 transition-all shadow-sm"
@@ -380,6 +384,7 @@ export function SalaryAdjustmentsFeature() {
 
           <div>
             <Select
+              id="create-adj-employee"
               label="Employee / الموظف"
               required
               placeholder="Select Employee..."
@@ -396,12 +401,14 @@ export function SalaryAdjustmentsFeature() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Select
+                id="create-adj-type"
                 label="Adjustment Type / النوع"
                 value={createForm.type}
                 onChange={(e) => setCreateForm({ ...createForm, type: e.target.value })}
                 options={[
                   { value: 'Loan', label: 'Company Loan' },
                   { value: 'Advance', label: 'Salary Advance' },
+                  { value: 'Bonus', label: 'Performance Bonus' },
                   { value: 'Correction', label: 'Payroll Correction' },
                 ]}
               />
@@ -411,6 +418,7 @@ export function SalaryAdjustmentsFeature() {
                 Start Month / شهر البداية <span className="text-red-500">*</span>
               </label>
               <input
+                id="create-adj-start-month"
                 type="date"
                 required
                 value={createForm.start_month}
@@ -426,6 +434,7 @@ export function SalaryAdjustmentsFeature() {
                 Total Amount (AED) <span className="text-red-500">*</span>
               </label>
               <input
+                id="create-adj-total-amount"
                 type="number"
                 step="0.01"
                 min="1"
@@ -441,6 +450,7 @@ export function SalaryAdjustmentsFeature() {
                 Monthly Instalment (AED)
               </label>
               <input
+                id="create-adj-monthly-amount"
                 type="number"
                 step="0.01"
                 min="1"
@@ -455,6 +465,7 @@ export function SalaryAdjustmentsFeature() {
           <div>
             <label className="block text-xs font-bold text-text mb-1">Reason / Notes / السبب</label>
             <textarea
+              id="create-adj-reason"
               rows={2}
               placeholder="e.g. Emergency medical advance, personal home renovation loan..."
               value={createForm.reason}
@@ -472,6 +483,7 @@ export function SalaryAdjustmentsFeature() {
               Cancel
             </button>
             <button
+              id="btn-submit-salary-adjustment"
               type="submit"
               disabled={createMutation.isPending}
               className="px-5 py-2 rounded-xl text-xs font-bold bg-primary text-black hover:opacity-95 transition-all shadow-md disabled:opacity-50"

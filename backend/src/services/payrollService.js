@@ -835,6 +835,8 @@ export class PayrollService {
         }
       }
 
+      const correctionAdj = empAdjustments.find((a) => a.type === 'Correction' && a.corrects_payslip_id);
+
       calculatedPayslips.push({
         payslipData: {
           company_id: companyId,
@@ -851,6 +853,7 @@ export class PayrollService {
           net: netAmount,
           previous_net: prevNet !== undefined ? new Decimal(prevNet) : null,
           variance_pct: variancePct !== null ? new Decimal(variancePct) : null,
+          corrects_payslip_id: correctionAdj?.corrects_payslip_id || null,
           status: 'Draft',
         },
         steps: ruleResult.steps || [],

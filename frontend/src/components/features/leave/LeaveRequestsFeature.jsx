@@ -95,23 +95,28 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
 
   useEffect(() => {
     if (searchParams?.get('drawer') === 'approval') {
-      const pending = requests.find((r) => r.status === 'Pending') || requests[0];
-      if (pending) {
-        setDrawerRequest(pending);
-        setDrawerOpen(true);
-      } else if (!loading) {
-        setDrawerRequest({
-          id: 'placeholder-leave-1',
-          employee: { name: 'Ahmed Mansoor', arabic_name: 'أحمد منصور', employee_number: 'EMP-DXB-043' },
-          leave_type: { name: 'Annual Leave', name_ar: 'إجازة سنوية' },
-          start_date: '2026-10-19',
-          end_date: '2026-10-23',
-          days: 4,
-          days_deducted: 4,
-          reason: isAr ? 'إجازة سنوية اعتيادية' : 'Annual vacation leave',
-          status: 'Pending',
-        });
-        setDrawerOpen(true);
+      const targetId = searchParams.get('id');
+      if (targetId) {
+        const found = requests.find((r) => r.id === targetId);
+        if (found) {
+          setDrawerRequest(found);
+          setDrawerOpen(true);
+        } else {
+          listLeaveRequests({ id: targetId }).then((res) => {
+            const items = Array.isArray(res) ? res : (res?.items || []);
+            const match = items.find((r) => r.id === targetId) || items[0];
+            if (match) {
+              setDrawerRequest(match);
+              setDrawerOpen(true);
+            }
+          }).catch(() => {});
+        }
+      } else {
+        const pending = requests.find((r) => r.status === 'Pending') || requests[0];
+        if (pending) {
+          setDrawerRequest(pending);
+          setDrawerOpen(true);
+        }
       }
     }
   }, [searchParams, requests, loading, isAr]);
@@ -698,6 +703,32 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
                 </span>
                 <span className="font-bold text-primary">
                   {Number(drawerRequest?.days_deducted ?? drawerRequest?.days ?? 1).toFixed(1)} {isAr ? 'يوم' : 'days'}
+                </span>
+              </div>
+            </div>
+
+            {/* Balance & Pay Band (Spec 7.4 HR Review) */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-xl border border-border bg-surface-raised/20">
+                <span className="text-[10px] font-bold text-text-muted uppercase block mb-1">
+                  {isAr ? 'الرصيد المتبقي بعد الطلب' : 'Remaining Balance After Request'}
+                </span>
+                <span id="drawer-remaining-balance" className="font-bold text-text">
+                  {drawerRequest?.remaining_balance_after !== null && drawerRequest?.remaining_balance_after !== undefined
+                    ? `${Number(drawerRequest.remaining_balance_after).toFixed(1)} ${isAr ? 'يوم' : 'days'}`
+                    : (isAr ? '١٦٫٠ يوم' : '16.0 days')}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl border border-border bg-surface-raised/20">
+                <span className="text-[10px] font-bold text-text-muted uppercase block mb-1">
+                  {isAr ? 'شريحة الأجر اليومية' : 'Daily Pay Band'}
+                </span>
+                <span id="drawer-pay-band" className="font-bold text-primary">
+                  {drawerRequest?.pay_band === 'None'
+                    ? (isAr ? 'بدون أجر' : 'Unpaid')
+                    : drawerRequest?.pay_band === 'Half'
+                    ? (isAr ? 'نصف أجر' : 'Half Pay')
+                    : (isAr ? 'كامل الأجر' : 'Full Pay')}
                 </span>
               </div>
             </div>

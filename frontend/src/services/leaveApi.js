@@ -34,7 +34,7 @@ export async function requestLeave(data) {
 }
 
 export async function actOnLeave(id, data) {
-  return request(`/leave/${id}/action`, {
+  return request(`/leave/requests/${id}/action`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
