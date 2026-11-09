@@ -9,6 +9,7 @@ import notificationService from './notificationService.js';
 import mailer from '../lib/mailer.js';
 import { validateAndResolveVisa } from './visaValidator.js';
 import { scopeService, resolveDataScope } from './scopeService.js';
+import { hasSalaryAccess } from '../serializers/index.js';
 
 Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_UP });
 
@@ -210,12 +211,18 @@ export class PayrollService {
       where: { pay_run_id: payRunId, severity: 'Blocking', resolved_at: null },
     });
 
+    const canSeeSalary = !viewer || hasSalaryAccess(viewer);
+
     return {
       ...payRun,
       employee_count: payslips.length,
-      total_gross: totalGross.toFixed(2),
-      total_deductions: totalDeductions.toFixed(2),
-      total_net: totalNet.toFixed(2),
+      ...(canSeeSalary
+        ? {
+            total_gross: totalGross.toFixed(2),
+            total_deductions: totalDeductions.toFixed(2),
+            total_net: totalNet.toFixed(2),
+          }
+        : {}),
       issues_count: issuesCount,
       blocking_issues_count: blockingIssuesCount,
       variance_count: varianceCount,
@@ -260,6 +267,8 @@ export class PayrollService {
       };
     }
 
+    const canSeeSalary = !viewer || hasSalaryAccess(viewer);
+
     const [items, total] = await Promise.all([
       this.prisma.$base().payslips.findMany({
         where,
@@ -272,10 +281,14 @@ export class PayrollService {
               arabic_name: true,
               residency_type: true,
               nationality: true,
-              bank_accounts: {
-                where: { is_active: true },
-                select: { id: true, bank_name: true, iban: true, routing_code: true, is_primary: true },
-              },
+              ...(canSeeSalary
+                ? {
+                    bank_accounts: {
+                      where: { is_active: true },
+                      select: { id: true, bank_name: true, iban: true, routing_code: true, is_primary: true },
+                    },
+                  }
+                : {}),
             },
           },
           contract: {
@@ -285,10 +298,14 @@ export class PayrollService {
               department: { select: { id: true, name: true } },
             },
           },
-          lines: {
-            include: { salary_rule: true },
-            orderBy: [{ salary_rule: { sequence: 'asc' } }, { created_at: 'asc' }],
-          },
+          ...(canSeeSalary
+            ? {
+                lines: {
+                  include: { salary_rule: true },
+                  orderBy: [{ salary_rule: { sequence: 'asc' } }, { created_at: 'asc' }],
+                },
+              }
+            : {}),
         },
         orderBy: { employee: { employee_code: 'asc' } },
         take: Number(limit),
@@ -298,6 +315,15 @@ export class PayrollService {
     ]);
 
     const formatted = items.map((ps) => {
+      if (!canSeeSalary) {
+        return {
+          id: ps.id,
+          employee_id: ps.employee_id,
+          employee: ps.employee,
+          contract: ps.contract,
+          status: ps.status,
+        };
+      }
       const primaryBank = ps.employee?.bank_accounts?.find((b) => b.is_primary) || ps.employee?.bank_accounts?.[0] || null;
       return {
         ...ps,
@@ -968,6 +994,7 @@ export class PayrollService {
       const err = new Error('Segregation of duties violation: You cannot validate a pay run you calculated or prepared.');
       err.status = 403;
       err.code = 'SELF_VALIDATION_BLOCKED';
+      err.subcode = 'SEGREGATION_OF_DUTIES';
       throw err;
     }
 
@@ -1051,11 +1078,12 @@ export class PayrollService {
       throw err;
     }
 
-    // Segregation of duties (P9): The validator cannot approve/lock
-    if (userId && payRun.validated_by && payRun.validated_by === userId) {
-      const err = new Error('Segregation of duties violation: You cannot approve or lock a pay run you validated.');
+    // Segregation of duties (P9): The user who calculated or validated cannot approve/lock
+    if (userId && ((payRun.validated_by && payRun.validated_by === userId) || (payRun.created_by && payRun.created_by === userId))) {
+      const err = new Error('Segregation of duties violation: You cannot approve or lock a pay run you calculated or validated.');
       err.status = 403;
       err.code = 'SELF_APPROVAL_BLOCKED';
+      err.subcode = 'SEGREGATION_OF_DUTIES';
       throw err;
     }
 
@@ -1150,11 +1178,12 @@ export class PayrollService {
       throw err;
     }
 
-    // Segregation of duties (P9): The approver cannot mark Paid
-    if (userId && payRun.locked_by && payRun.locked_by === userId) {
-      const err = new Error('Segregation of duties violation: You cannot mark paid a pay run you approved.');
+    // Segregation of duties (P9): The user who calculated, validated, or approved cannot mark Paid
+    if (userId && ((payRun.locked_by && payRun.locked_by === userId) || (payRun.validated_by && payRun.validated_by === userId) || (payRun.created_by && payRun.created_by === userId))) {
+      const err = new Error('Segregation of duties violation: You cannot mark paid a pay run you calculated, validated, or approved.');
       err.status = 403;
       err.code = 'SELF_PAYMENT_BLOCKED';
+      err.subcode = 'SEGREGATION_OF_DUTIES';
       throw err;
     }
 
@@ -1318,6 +1347,13 @@ export class PayrollService {
     if (viewer) {
       const scope = scopeService.resolveDataScope(viewer);
       scopeService.assertEmployeeInScope(payslip.employee, scope);
+      const isSelf = viewer.employeeId && viewer.employeeId === payslip.employee_id;
+      if (!isSelf && !hasSalaryAccess(viewer)) {
+        const err = new Error('Access denied: You do not have permission to view salary details');
+        err.status = 403;
+        err.code = 'FORBIDDEN_SALARY_ACCESS';
+        throw err;
+      }
     }
 
     const primaryBank = payslip.employee?.bank_accounts?.find((b) => b.is_primary) || payslip.employee?.bank_accounts?.[0] || null;

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
-import { requirePermission } from '../middleware/permissions.js';
+import { requirePermission, checkPermission } from '../middleware/permissions.js';
 import payrollController from '../controllers/payrollController.js';
 import salaryAdjustmentController from '../controllers/salaryAdjustmentController.js';
 
@@ -37,7 +37,21 @@ router.get('/payslips/:id', payrollController.getPayslip);
 router.get('/runs/:runId/payslips/:id', payrollController.getPayslip);
 router.get('/pay-runs/:runId/payslips/:id', payrollController.getPayslip);
 router.get('/payslips/:id/pdf', payrollController.downloadPayslipPdf);
-router.patch('/payslips/:id/variance', requirePermission('pay_runs', 'validate'), payrollController.updateVarianceReason);
+function requirePayRunPrepareOrValidate(req, res, next) {
+  if (req.user?.isPlatformAdmin) return next();
+  const roles = req.user?.roles || [];
+  const hasAccess = checkPermission(roles, 'pay_runs', 'prepare') || checkPermission(roles, 'pay_runs', 'validate');
+  if (!hasAccess) {
+    return res.status(403).json({
+      status: 'error',
+      code: 'FORBIDDEN',
+      message: 'Forbidden: requires permission to prepare or validate pay runs',
+    });
+  }
+  next();
+}
+
+router.patch('/payslips/:id/variance', requirePayRunPrepareOrValidate, payrollController.updateVarianceReason);
 
 // ==========================================
 // Salary Adjustments (Loans, Advances, Corrections)

@@ -182,7 +182,7 @@ export class ApprovalService {
    * Act on an approval request (Approve or Reject)
    * Enforces: "Nobody approves their own request"
    */
-  async actionRequest({ companyId, requestId, actorId, action, comment = null, reason = null }) {
+  async actionRequest({ companyId, requestId, actorId, action, comment = null, reason = null, user = null }) {
     if (!companyId || !requestId || !actorId || !action) {
       const err = new Error('companyId, requestId, actorId, and action are required');
       err.status = 400;
@@ -219,6 +219,34 @@ export class ApprovalService {
       err.status = 404;
       err.code = 'NOT_FOUND';
       throw err;
+    }
+
+    // Check data scope for actor
+    if (user) {
+      const { scopeService } = await import('./scopeService.js');
+      const scope = scopeService.resolveDataScope(user);
+      if (!scope.all && scope.visaIds && scope.visaIds.length > 0) {
+        let empVisaId = null;
+        if (request.request_type === 'LEAVE') {
+          const lr = await this.prisma.$base().leave_requests.findUnique({
+            where: { id: request.record_id },
+            select: { employee: { select: { company_visa_id: true } } },
+          });
+          empVisaId = lr?.employee?.company_visa_id;
+        } else if (request.requester?.employee_id) {
+          const emp = await this.prisma.$base().employees.findUnique({
+            where: { id: request.requester.employee_id },
+            select: { company_visa_id: true },
+          });
+          empVisaId = emp?.company_visa_id;
+        }
+        if (empVisaId && !scope.visaIds.includes(empVisaId)) {
+          const err = new Error('Approval request not found');
+          err.status = 404;
+          err.code = 'NOT_FOUND';
+          throw err;
+        }
+      }
     }
 
     if (request.status !== 'Pending') {

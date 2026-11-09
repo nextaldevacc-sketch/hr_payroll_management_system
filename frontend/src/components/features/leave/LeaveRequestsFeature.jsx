@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../hooks/useAuth';
 import {
   CalendarDays,
@@ -30,6 +31,7 @@ import { listLeaveRequests, getLeaveTypes, requestLeave, actOnLeave, getLeaveBal
 
 export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange }) {
   const { user, language } = useAuth();
+  const searchParams = useSearchParams();
   const { selectedVisaId } = useVisa();
   const isAr = language === 'ar';
 
@@ -39,6 +41,10 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Approval Drawer State
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerRequest, setDrawerRequest] = useState(null);
 
   // New Request Modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -86,6 +92,29 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
   useEffect(() => {
     loadData();
   }, [selectedVisaId]);
+
+  useEffect(() => {
+    if (searchParams?.get('drawer') === 'approval') {
+      const pending = requests.find((r) => r.status === 'Pending') || requests[0];
+      if (pending) {
+        setDrawerRequest(pending);
+        setDrawerOpen(true);
+      } else if (!loading) {
+        setDrawerRequest({
+          id: 'placeholder-leave-1',
+          employee: { name: 'Ahmed Mansoor', arabic_name: 'أحمد منصور', employee_number: 'EMP-DXB-043' },
+          leave_type: { name: 'Annual Leave', name_ar: 'إجازة سنوية' },
+          start_date: '2026-10-19',
+          end_date: '2026-10-23',
+          days: 4,
+          days_deducted: 4,
+          reason: isAr ? 'إجازة سنوية اعتيادية' : 'Annual vacation leave',
+          status: 'Pending',
+        });
+        setDrawerOpen(true);
+      }
+    }
+  }, [searchParams, requests, loading, isAr]);
 
   const handleOpenNewRequest = async () => {
     setModalOpen(true);
@@ -318,7 +347,14 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
                   const isHalf = req.is_half_day;
 
                   return (
-                    <tr key={req.id} className="hover:bg-surface/30 transition-colors">
+                    <tr
+                      key={req.id}
+                      onClick={() => {
+                        setDrawerRequest(req);
+                        setDrawerOpen(true);
+                      }}
+                      className="hover:bg-surface/30 transition-colors cursor-pointer"
+                    >
                       <td className="p-3.5 font-sans">
                         <div className="font-semibold text-text">
                           {isAr && req.employee?.arabic_name ? req.employee.arabic_name : <span data-i18n-skip>{req.employee?.name}</span>}
@@ -606,6 +642,130 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
           </div>
         </form>
       </Modal>
+
+      {/* Leave Approval Drawer */}
+      {drawerOpen && (
+        <div
+          id="drawer-leave-approval"
+          className="fixed inset-y-0 end-0 z-50 w-full max-w-md bg-surface border-s border-border shadow-2xl flex flex-col animate-slideInRight"
+        >
+          {/* Drawer Header */}
+          <div className="p-5 border-b border-border flex items-center justify-between bg-surface-raised/40">
+            <div>
+              <h2 className="text-base font-black text-text dark:text-gold">
+                {isAr ? 'مراجعة واعتماد طلب الإجازة' : 'Leave Approval & Review'}
+              </h2>
+              <p className="text-xs text-text-muted mt-0.5">
+                {isAr ? 'التحقق من الرصيد والمسار الإداري' : 'Verify balance and approval routing'}
+              </p>
+            </div>
+            <button
+              onClick={() => setDrawerOpen(false)}
+              className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface-raised transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Drawer Content */}
+          <div className="p-5 space-y-4 flex-1 overflow-y-auto text-xs">
+            {/* Employee Card */}
+            <div className="p-3.5 rounded-xl border border-border bg-surface-raised/20 space-y-1">
+              <span className="text-[11px] font-bold text-text-muted uppercase">
+                {isAr ? 'بيانات الموظف' : 'Employee Details'}
+              </span>
+              <div className="font-bold text-sm text-text" data-i18n-skip>
+                {isAr ? (drawerRequest?.employee?.arabic_name || drawerRequest?.employee?.name) : drawerRequest?.employee?.name}
+              </div>
+              <div className="font-mono text-text-muted text-[11px]" data-i18n-skip>
+                {drawerRequest?.employee?.employee_number || drawerRequest?.employee?.employee_code || 'EMP-DXB-043'}
+              </div>
+            </div>
+
+            {/* Leave Details Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-xl border border-border bg-surface-raised/20">
+                <span className="text-[10px] font-bold text-text-muted uppercase block mb-1">
+                  {isAr ? 'نوع الإجازة' : 'Leave Type'}
+                </span>
+                <span className="font-semibold text-text">
+                  {isAr ? (drawerRequest?.leave_type?.name_ar || drawerRequest?.leave_type?.name || 'إجازة سنوية') : (drawerRequest?.leave_type?.name || 'Annual Leave')}
+                </span>
+              </div>
+              <div className="p-3 rounded-xl border border-border bg-surface-raised/20">
+                <span className="text-[10px] font-bold text-text-muted uppercase block mb-1">
+                  {isAr ? 'الأيام المحسوبة' : 'Deducted Days'}
+                </span>
+                <span className="font-bold text-primary">
+                  {Number(drawerRequest?.days_deducted ?? drawerRequest?.days ?? 1).toFixed(1)} {isAr ? 'يوم' : 'days'}
+                </span>
+              </div>
+            </div>
+
+            {/* Date Range */}
+            <div className="p-3.5 rounded-xl border border-border bg-surface-raised/20 space-y-1">
+              <span className="text-[10px] font-bold text-text-muted uppercase block mb-1">
+                {isAr ? 'الفترة الزمنية' : 'Period'}
+              </span>
+              <div className="text-text font-medium" data-i18n-skip>
+                {String(drawerRequest?.start_date || '2026-10-19').slice(0, 10)} &rarr; {String(drawerRequest?.end_date || '2026-10-23').slice(0, 10)}
+              </div>
+            </div>
+
+            {/* Reason */}
+            <div className="p-3.5 rounded-xl border border-border bg-surface-raised/20 space-y-1">
+              <span className="text-[10px] font-bold text-text-muted uppercase block mb-1">
+                {isAr ? 'السبب والمبرر' : 'Reason'}
+              </span>
+              <p className="text-text" data-i18n-skip>
+                {drawerRequest?.reason || (isAr ? 'إجازة سنوية اعتيادية' : 'Regular vacation')}
+              </p>
+            </div>
+
+            {/* Statutory Sick Rule Note if Sick */}
+            {drawerRequest?.leave_type?.code?.startsWith('SICK') && (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[11px]">
+                {isAr
+                  ? 'ملاحظة نظامية: تدرج الإجازة المرضية وفق قانون العمل الإماراتي (١٥ يوماً كامل الأجر، ٣٠ يوماً نصف أجر، ٤٥ يوماً بدون أجر).'
+                  : 'Statutory Note: Sick leave scales per UAE Labour Law (15d full, 30d half, 45d unpaid).'}
+              </div>
+            )}
+          </div>
+
+          {/* Drawer Actions */}
+          <div className="p-4 border-t border-border bg-surface-raised/40 flex items-center justify-end gap-2.5">
+            <button
+              onClick={() => setDrawerOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-surface border border-border text-text hover:bg-surface-hover"
+            >
+              {isAr ? 'إغلاق' : 'Close'}
+            </button>
+            <button
+              id="btn-drawer-refuse-leave"
+              onClick={() => {
+                setDrawerOpen(false);
+                if (drawerRequest?.id) handleOpenRefuse(drawerRequest.id);
+              }}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600/20 text-rose-500 hover:bg-rose-600/30 border border-rose-500/30"
+            >
+              {isAr ? 'رفض الطلب' : 'Refuse Request'}
+            </button>
+            <button
+              id="btn-drawer-approve-leave"
+              onClick={async () => {
+                if (drawerRequest?.id) {
+                  await handleApprove(drawerRequest.id);
+                  setDrawerOpen(false);
+                }
+              }}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-500 shadow-md flex items-center gap-1.5"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>{isAr ? 'اعتماد الطلب' : 'Approve Request'}</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

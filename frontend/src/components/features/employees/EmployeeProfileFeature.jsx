@@ -584,9 +584,16 @@ export function EmployeeProfileFeature({ id } = {}) {
                 </span>
                 <span className="flex items-center gap-1.5">
                   <FileCheck className="w-3.5 h-3.5 text-text-muted" />
-                  {isRTL
-                    ? (employee.company_visa?.visa_entity_name_ar || employee.company?.name_ar || <span data-i18n-skip>{employee.company_visa?.visa_entity_name || employee.company?.name || 'Company'}</span>)
-                    : (employee.company_visa?.visa_entity_name || employee.company?.name || 'Company')}
+                  <span>
+                    {isRTL
+                      ? (employee.company_visa?.name_ar || getVisaNameAr(employee.company_visa?.name) || employee.company?.name_ar || employee.company?.name || '')
+                      : (employee.company_visa?.name || employee.company?.name || '')}
+                    {employee.company_visa?.mol_establishment_id ? (
+                      <span className="font-mono text-xs text-text-muted ms-1" data-i18n-skip>
+                        ({employee.company_visa.mol_establishment_id})
+                      </span>
+                    ) : null}
+                  </span>
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-text-muted" />
@@ -762,9 +769,16 @@ export function EmployeeProfileFeature({ id } = {}) {
                 <div>
                   <span className="text-text-muted block mb-1">{isRTL ? 'كيان تأشيرة المنشأة' : 'Company Visa Entity'}</span>
                   <span className="font-semibold text-text">
-                    {isRTL
-                      ? (employee.company_visa?.visa_entity_name_ar || employee.company?.name_ar || getVisaNameAr(employee.company_visa?.name) || 'المنشأة')
-                      : (employee.company_visa?.visa_entity_name || employee.company?.name || 'Company')}
+                    <span>
+                      {isRTL
+                        ? (employee.company_visa?.name_ar || getVisaNameAr(employee.company_visa?.name) || employee.company?.name_ar || employee.company?.name || '')
+                        : (employee.company_visa?.name || employee.company?.name || '')}
+                      {employee.company_visa?.mol_establishment_id ? (
+                        <span className="font-mono text-xs text-text-muted ms-1" data-i18n-skip>
+                          ({employee.company_visa.mol_establishment_id})
+                        </span>
+                      ) : null}
+                    </span>
                   </span>
                 </div>
                 <div>

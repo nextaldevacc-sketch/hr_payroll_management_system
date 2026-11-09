@@ -481,8 +481,8 @@ export function EmployeeWizardFeature() {
                   options={(metaOptions?.visas || []).map((v) => {
                     const molId = v.mol_establishment_id || '';
                     const vName = language === 'ar'
-                      ? (v.name_ar || v.visa_entity_name_ar || getVisaNameAr(v.name))
-                      : (v.visa_entity_name || v.name || 'Visa');
+                      ? (v.name_ar || getVisaNameAr(v.name))
+                      : (v.name || 'Visa');
                     return {
                       value: v.id,
                       label: molId ? `${vName} · ${molId}` : vName,

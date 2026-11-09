@@ -416,12 +416,15 @@ export async function cancelMyRequest(req, res, next) {
       if (!item) {
         return res.status(404).json({ status: 'error', message: 'Request not found' });
       }
-      if (item.status !== 'Pending') {
-        return res.status(400).json({ status: 'error', message: 'Cannot cancel non-pending request' });
+      if (item.status !== 'Pending' && item.status !== 'Approved') {
+        return res.status(400).json({ status: 'error', message: 'Cannot cancel request in status: ' + item.status });
       }
-      await prisma.$base().leave_requests.update({
-        where: { id },
-        data: { status: 'Cancelled' },
+      await leaveService.actOnLeave({
+        companyId: req.companyId,
+        id,
+        action: 'Cancel',
+        userId: req.user.id,
+        user: req.user,
       });
       return res.json({ status: 'success', message: 'Request cancelled' });
     }
@@ -537,6 +540,9 @@ export async function getMyPayslipById(req, res, next) {
         },
         contract: {
           include: { job: true, department: true },
+        },
+        employee: {
+          select: { id: true, name: true, arabic_name: true, employee_code: true },
         },
       },
     });

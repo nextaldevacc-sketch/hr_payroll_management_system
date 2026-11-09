@@ -23,7 +23,7 @@ function formatMoney(amount) {
 export async function generatePayslipPdf({ payslip, company, employee, contract }) {
   const empCode = employee?.employee_code || '-';
   const empName = employee?.name || 'Employee';
-  const empNameAr = employee?.name_ar || empName;
+  const empNameAr = employee?.arabic_name || employee?.name_ar || '';
   const companyName = company?.name || 'Nextal Corporation';
   const companyNameAr = company?.name_ar || companyName;
   const tradeLicense = company?.trade_license_no || '-';
@@ -272,7 +272,7 @@ export async function generatePayslipPdf({ payslip, company, employee, contract 
         </div>
         <div class="info-item">
           <span class="info-label">Employee Name / الاسم</span>
-          <span class="info-value">${empName}</span>
+          <span class="info-value">${empName}${empNameAr && empNameAr !== empName ? ` / ${empNameAr}` : ''}</span>
         </div>
         <div class="info-item">
           <span class="info-label">Designation / المسمى</span>

@@ -23,7 +23,7 @@ import { fetchEmployees, fetchEmployeeMetaOptions } from '../../../services/empl
 import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Select } from '../../primitives/form/Select';
-import { getEnumLabel } from '../../../i18n/enums';
+import { getEnumLabel, getVisaNameAr } from '../../../i18n/enums';
 
 export function EmployeeListFeature() {
   const { user } = useAuth();
@@ -379,7 +379,7 @@ export function EmployeeListFeature() {
                   { value: '', label: t('employees.allVisas', 'All Visa Entities') },
                   ...(metaOptions?.visas?.map((v) => ({
                     value: v.id,
-                    label: language === 'ar' && (v.name_ar || v.visa_entity_name_ar) ? (v.name_ar || v.visa_entity_name_ar) : (v.name || v.visa_entity_name),
+                    label: language === 'ar' ? (v.name_ar || getVisaNameAr(v.name)) : v.name,
                   })) || []),
                 ]}
               />

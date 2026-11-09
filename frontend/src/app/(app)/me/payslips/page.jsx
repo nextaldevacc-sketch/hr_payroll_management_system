@@ -20,6 +20,18 @@ import { useVisa } from '@/context/VisaContext';
 import { getMyPayslips, getMyPayslip, getMyPayslipPdfUrl } from '@/services/meApi';
 import { formatCurrency } from '@nextal/shared';
 
+function formatPeriodMonth(monthStr, lang) {
+  if (!monthStr) return '';
+  const parts = String(monthStr).split('-');
+  if (parts.length >= 2) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const d = new Date(Date.UTC(year, month, 1));
+    return d.toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  }
+  return monthStr;
+}
+
 export default function MyPayslipsPage() {
   const { language } = useLanguage();
   const { companyName } = useVisa();
@@ -129,7 +141,7 @@ export default function MyPayslipsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 font-bold text-text text-sm">
                       <Calendar className="w-4 h-4 text-primary" />
-                      <span>{ps.period_month}</span>
+                      <span>{formatPeriodMonth(ps.period_month, language)}</span>
                     </div>
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
                       <CheckCircle2 className="w-3 h-3" />
@@ -212,7 +224,7 @@ export default function MyPayslipsPage() {
                       <td className="py-3 px-4 font-bold text-text">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-3.5 h-3.5 text-primary" />
-                          <span>{ps.period_month}</span>
+                          <span>{formatPeriodMonth(ps.period_month, language)}</span>
                         </div>
                       </td>
                       <td className="py-3 px-4 text-text font-semibold tabular-nums">

@@ -46,7 +46,7 @@ export const PERMISSIONS_MATRIX = {
     overtime: ['view'],
     leave: ['approve_2nd', 'view'],
     salary_adjustments: [],
-    pay_runs: [],
+    pay_runs: ['view'],
     clearance: ['prepare', 'clear', 'view'],
     final_settlement: ['prepare'],
     settings: [],

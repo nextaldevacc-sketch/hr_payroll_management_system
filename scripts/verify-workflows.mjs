@@ -20,6 +20,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { chromium } from 'playwright';
 import { PrismaClient } from '@prisma/client';
+import { runWorkflows4B, ahmedPayslipRenderedLines } from './steps-4b.mjs';
 
 const reportsDir = path.resolve(rootDir, 'docs/reports');
 const shotsDir = path.resolve(reportsDir, 'screenshots/workflow');
@@ -131,7 +132,8 @@ async function assertPageClean(page, role, stepContext = '') {
   const nonSalaryRoles = ['COMPANY_ADMIN', 'HR_OFFICER', 'DEPT_MANAGER', 'EMPLOYEE'];
   if (nonSalaryRoles.includes(role)) {
     // If on /me/payslips or personal payslip view, employee can see own salary
-    if (!stepContext.includes('/me/payslips') && !stepContext.includes('payslip')) {
+    const currentUrl = page.url();
+    if (!currentUrl.includes('/me/payslips') && !stepContext.toLowerCase().includes('payslip')) {
       const match = content.match(/AED\s*\d[\d,.]*|\d[\d,.]*\s*AED/i);
       if (match) {
         throw new Error(`[Salary Leak Violation] Found salary amount '${match[0]}' on page for non-salary role ${role} during ${stepContext}`);
@@ -2230,6 +2232,17 @@ async function runStepRunner() {
       },
     });
 
+    // Run Part 4B Workflows: 7.4 (Leave requests) & 7.5 (Monthly payroll)
+    await runWorkflows4B({
+      executeStep,
+      login,
+      safeGoto,
+      prisma,
+      API_PORT,
+      WEB_PORT,
+      shotsDir,
+    });
+
   } finally {
     await browser.close();
 
@@ -2247,9 +2260,9 @@ async function runStepRunner() {
     const failCount = stepResults.filter((s) => s.status === 'FAIL').length;
     const totalCount = stepResults.length;
 
-    let reportMd = `# Full Business Workflow Verification Report (Part 4A: Workflows 7.1, VB, 7.2, 7.3)\n\n`;
+    let reportMd = `# Full Business Workflow Verification Report (Workflows 7.1, VB, 7.2, 7.3, 7.4, 7.5)\n\n`;
     reportMd += `> **Platform**: Nextal HR & Payroll Management System (v1.0.0-rc2)  \n`;
-    reportMd += `> **Specification Reference**: docs/spec.md Section 7 (Workflows 7.1, 7.2, 7.3)  \n`;
+    reportMd += `> **Specification Reference**: docs/spec.md Section 7 (Workflows 7.1, 7.2, 7.3, 7.4, 7.5)  \n`;
     reportMd += `> **Generated At**: ${new Date().toISOString()}  \n`;
     reportMd += `> **Test Database**: \`${TEST_DB_URL}\`  \n`;
     reportMd += `> **Summary**: **${passCount} / ${totalCount} STEPS PASSED** (${failCount} Failures)  \n\n`;
@@ -2304,7 +2317,47 @@ async function runStepRunner() {
     reportMd += `- Missing punch resolution requires mandatory compliance reason in audit log.\n`;
     reportMd += `- Employee submits missing punch and overtime requests through self-service portal (\`/me/requests\`).\n`;
     reportMd += `- Department Manager reviews and classifies overtime across 4 statutory multipliers and refuses unauthorized items.\n`;
-    reportMd += `- Monthly attendance review: Department Manager sign-off -> HR Officer confirmation -> Payroll-Ready state.\n`;
+    reportMd += `- Monthly attendance review: Department Manager sign-off -> HR Officer confirmation -> Payroll-Ready state.\n\n`;
+
+    reportMd += `### Workflow 7.4: Leave Request & Balance Invariants\n`;
+    reportMd += `- Statutory holiday deduplication: Mon–Fri leave with Wed public holiday deducts exactly 4 working days (T31).\n`;
+    reportMd += `- Overlapping leave periods blocked; half-day requests correctly record 0.5 day.\n`;
+    reportMd += `- Sick leave without mandatory medical certificate attachment blocked at submission.\n`;
+    reportMd += `- Multi-tier approval routing: Dept Manager -> HR Officer -> GM for flagged long leave (T15).\n`;
+    reportMd += `- Real-time balance reduction and attendance synchronization across active pay bands.\n`;
+    reportMd += `- Cancellation of approved leave restores leave balance in full (T32).\n`;
+    reportMd += `- UAE Labour Law probation accruals: <6 months blocked / unpaid (T16); 8 months grants 16 days (T17).\n`;
+    reportMd += `- Self-approval prevented: HR Manager applying for own leave routes to next approver.\n`;
+    reportMd += `- Visa isolation: Visa 02 scoped user cannot see or approve Visa 01 leave requests (404 NOT_FOUND).\n`;
+    reportMd += `- Complete Arabic UI: Leave approval drawer rendered with 100% Arabic strings, zero English leaks.\n`;
+    reportMd += `- Branch-scoped holiday: Leave over another branch's holiday is correctly counted as working days.\n\n`;
+
+    reportMd += `### Workflow 7.5: Monthly Payroll Execution & WPS Compliance\n`;
+    reportMd += `- Pay run creation isolates employees to selected visa entity.\n`;
+    reportMd += `- Pre-calculation validation blocks run when bank details/IBAN are missing (T28).\n`;
+    reportMd += `- Unapproved salary adjustments omitted (T37); approved loan instalments deducted (T18 balance 4,500).\n`;
+    reportMd += `- Variances exceeding configurable threshold require justification notes (T29).\n`;
+    reportMd += `- Strict segregation of duties: Creator cannot validate; validator cannot approve; approver cannot mark paid.\n`;
+    reportMd += `- SIF download strictly prohibited before run lock (T30); locked runs prevent payslip modifications.\n`;
+    reportMd += `- WPS SIF file checksum parity: EDR line count matches SCR; sum of EDR matches run net (T26).\n`;
+    reportMd += `- Marking as paid triggers payslip email notifications to dev email store.\n`;
+    reportMd += `- Self-service payslip access: Ahmed views net 7,044.80 (T19) and downloads bilingual PDF.\n`;
+    reportMd += `- Post-lock retro-adjustments: Correction adjustments linked to original payslip in subsequent run (T20).\n`;
+    reportMd += `- Spec-exact compensation calculation asserted: Basic 5,000 / HRA 2,000 / TRA 500 / OTH 500 / OT 78.13 / ABS 533.33 / Loan 500 -> Net 7,044.80.\n`;
+    reportMd += `- SIF header records Visa 01 MOHRE ID \`MOHRE-784-0129\` and bank routing code \`ENBD001\`.\n`;
+    reportMd += `- Cross-visa payroll access blocked for scoped users (404).\n`;
+    reportMd += `- Bilingual Arabic payslip: Arabic month, \`د.إ\` currency symbol, and employee's legal Arabic name printed.\n`;
+    reportMd += `- Employee salary privacy enforced: Users without salary access receive stripped API payloads with no compensation keys.\n\n`;
+
+    if (ahmedPayslipRenderedLines.length > 0) {
+      reportMd += `## 4. Ahmed Mansoor Verified Payslip Lines (November 2026)\n\n`;
+      reportMd += `| Sequence | Salary Rule Code | Description | Amount (AED) |\n`;
+      reportMd += `|:--------:|:-----------------|:------------|:-------------|\n`;
+      for (const line of ahmedPayslipRenderedLines) {
+        reportMd += `| ${line.seq} | \`${line.code}\` | ${line.name} | **${line.amount}** |\n`;
+      }
+      reportMd += `\n---\n`;
+    }
 
     const reportPath = path.join(reportsDir, 'workflow-verification.md');
     fs.writeFileSync(reportPath, reportMd, 'utf8');

@@ -49,6 +49,7 @@ export async function actionApprovalRequest(req, res, next) {
       action,
       comment: comment || reason,
       reason,
+      user: req.user,
     });
 
     res.json(result);

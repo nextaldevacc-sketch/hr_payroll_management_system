@@ -274,19 +274,47 @@ class LeaveService {
   /**
    * 3. Act on a Leave Request (Approve / Refuse / Cancel)
    */
-  async actOnLeave({ companyId, id, action, userId, comment }) {
+  async actOnLeave({ companyId, id, action, userId, comment, user = null }) {
     const request = await prisma.$base().leave_requests.findFirst({
       where: { id, company_id: companyId },
       include: {
         leave_type: true,
-        employee: { select: { id: true, user: { select: { id: true } } } },
+        employee: { select: { id: true, company_visa_id: true, branch_id: true, user: { select: { id: true } } } },
       },
     });
 
     if (!request) {
       const err = new Error('Leave request not found');
       err.status = 404;
+      err.code = 'NOT_FOUND';
       throw err;
+    }
+
+    if (user) {
+      const scope = scopeService.resolveDataScope(user);
+      if (!scope.all && scope.visaIds && scope.visaIds.length > 0) {
+        if (!scope.visaIds.includes(request.employee?.company_visa_id)) {
+          const err = new Error('Leave request not found');
+          err.status = 404;
+          err.code = 'NOT_FOUND';
+          throw err;
+        }
+      }
+
+      const roles = user.roles || [];
+      const isOnlyEmployee = roles.length === 1 && roles[0] === 'EMPLOYEE';
+      if (isOnlyEmployee && action !== 'Cancel') {
+        const err = new Error('Employees can only cancel leave requests');
+        err.status = 403;
+        err.code = 'FORBIDDEN';
+        throw err;
+      }
+      if (isOnlyEmployee && action === 'Cancel' && request.employee?.user?.id !== userId) {
+        const err = new Error('Cannot cancel another employee\'s leave request');
+        err.status = 403;
+        err.code = 'FORBIDDEN';
+        throw err;
+      }
     }
 
     // Section 5.3 Rule: "Nobody approves their own request"

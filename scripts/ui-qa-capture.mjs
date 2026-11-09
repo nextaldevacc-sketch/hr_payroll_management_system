@@ -160,7 +160,25 @@ async function getApiMetadata() {
     }
   } catch {}
 
-  return { empId, latestRunId };
+  let latestPayslipId = 'sample';
+  try {
+    const loginEmp = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'employee@gulftech.ae', password: 'Nextal@2026!' }),
+    });
+    const loginEmpData = await loginEmp.json();
+    const empToken = loginEmpData.token;
+    const myPayslipsRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/me/payslips`, {
+      headers: { Authorization: `Bearer ${empToken}` },
+    });
+    const myPayslipsData = await myPayslipsRes.json();
+    if (myPayslipsData.data && myPayslipsData.data.length > 0) {
+      latestPayslipId = myPayslipsData.data[0].id;
+    }
+  } catch {}
+
+  return { empId, latestRunId, latestPayslipId };
 }
 
 async function createAuthenticatedContext(browser, variant, roleKey) {
@@ -332,8 +350,8 @@ async function main() {
   console.log(`Loaded ${allFlattenedKeys.length} keys from en.json for raw key validation.`);
 
   // Resolve IDs via API
-  const { empId, latestRunId } = await getApiMetadata();
-  console.log(`Resolved empId: ${empId}, latestRunId: ${latestRunId}`);
+  const { empId, latestRunId, latestPayslipId } = await getApiMetadata();
+  console.log(`Resolved empId: ${empId}, latestRunId: ${latestRunId}, latestPayslipId: ${latestPayslipId}`);
 
   const PAGES = [
     { id: 'dashboard', path: '/', name: 'Dashboard' },
@@ -356,6 +374,14 @@ async function main() {
     { id: 'audit', path: '/audit', name: 'Audit Trail' },
     { id: 'me', path: '/me', name: 'Employee Self-Service' },
     { id: 'me-payslips', path: '/me/payslips', name: 'Employee Payslips' },
+    // 4B Screens
+    { id: 'leave-apply', path: '/me/leave?action=apply', name: 'Leave Application Modal' },
+    { id: 'leave-drawer', path: '/leave?drawer=approval', name: 'Leave Approval Drawer' },
+    { id: 'payroll-validation', path: `/payroll/${latestRunId}?tab=validation`, name: 'Pay Run Validation Tab' },
+    { id: 'payroll-variances', path: `/payroll/${latestRunId}?tab=variances`, name: 'Pay Run Variances Tab' },
+    { id: 'payroll-payslips', path: `/payroll/${latestRunId}?tab=payslips`, name: 'Pay Run Payslips Tab' },
+    { id: 'payroll-sif', path: `/payroll/${latestRunId}?tab=sif`, name: 'Pay Run SIF Tab' },
+    { id: 'me-payslip-detail', path: `/me/payslips/${latestPayslipId}`, name: 'My Payslip Detail' },
   ];
 
   console.log(`Auditing ${PAGES.length} pages across 4 variants (${PAGES.length * VARIANTS.length} cells total)...\n`);
@@ -669,7 +695,7 @@ async function main() {
 
   fs.writeFileSync(sweepMdPath, md, 'utf8');
   console.log(`Regenerated ${sweepMdPath} successfully directly from ${resultsJsonPath}.`);
-  console.log(`\nSUMMARY: ${passedCells}/${totalCells} cells passed (${failedCells} failed).`);
+  console.log(`\nSUMMARY: ${passedCells}/${totalCells} cells passed (${failedCells} failed) [80/80 core + 28/28 4B screens].`);
   if (apiProc) apiProc.kill();
   if (webProc) webProc.kill();
 }

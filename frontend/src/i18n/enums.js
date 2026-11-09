@@ -346,5 +346,66 @@ export function getVisaNameAr(name) {
   return str;
 }
 
+export const SALARY_RULE_NAMES_AR = {
+  BASIC: 'الراتب الأساسي',
+  HRA: 'بدل السكن',
+  TRA: 'بدل الانتقال',
+  OTH: 'بدلات أخرى',
+  GROSS: 'إجمالي الراتب',
+  OT_NORMAL: 'عمل إضافي عادي (×١.٢٥)',
+  OT_NIGHT: 'عمل إضافي ليلي (×١.٥)',
+  OT_REST: 'عمل إضافي عطلة/راحة (×١.٥)',
+  ABS: 'خصم غياب / إجازة غير مدفوعة',
+  LATE: 'خصم تأخير / خروج مبكر',
+  SICK_HALF: 'إجازة مرضية ٥٠٪',
+  SICK_NONE: 'إجازة مرضية بدون راتب',
+  LOAN: 'استقطاع قرض',
+  ADV: 'استقطاع سلفة راتب',
+  GPSSA_EE: 'اشتراك التقاعد للمواطنين (حصة الموظف)',
+  GPSSA_ER: 'اشتراك التقاعد للمواطنين (حصة المنشأة)',
+  NET: 'صافي الراتب المستحق (حماية الأجور)',
+};
+
+export function getSalaryRuleNameAr(code, fallbackName = '') {
+  if (!code) return fallbackName;
+  return SALARY_RULE_NAMES_AR[code] || fallbackName;
+}
+
+export const ISSUE_CODES_AR = {
+  VARIANCE_EXCEEDED_THRESHOLD: 'تجاوز حد الفروقات المسموح',
+  MISSING_IBAN: 'آيبان مصرفي مفقود',
+  UNCONFIRMED_ATTENDANCE_HELD: 'حضور معلق غير مؤكد',
+};
+
+export function getIssueCodeAr(code) {
+  if (!code) return '';
+  return ISSUE_CODES_AR[code] || code;
+}
+
+export function formatVarianceReasonAr(reason) {
+  if (!reason) return '';
+  if (reason.includes('Approved operational variance')) {
+    return 'فروقات تشغيلية معتمدة (تعديل الورديات والعمل الإضافي)';
+  }
+  if (reason.includes('Overtime and statutory absence deduction') || reason.includes('Overtime and statutory absence')) {
+    return 'عمل إضافي واستقطاع غياب قانوني تم التحقق منه وفقاً لسجلات البصمة';
+  }
+  return reason;
+}
+
+export function formatIssueMessageAr(iss) {
+  if (!iss) return '';
+  if (iss.issue_code === 'VARIANCE_EXCEEDED_THRESHOLD') {
+    return 'تجاوز تباين صافي الراتب الحد المسموح به. يلزم توثيق تبرير قبل الاعتماد.';
+  }
+  if (iss.issue_code === 'MISSING_IBAN') {
+    return 'الحساب المصرفي أو الآيبان الإماراتي مفقود. يلزم إدخال آيبان صالح.';
+  }
+  if (iss.issue_code === 'UNCONFIRMED_ATTENDANCE_HELD') {
+    return 'سجلات الحضور غير مؤكدة من الإدارة، تم احتجاز المدخلات للشهر القادم.';
+  }
+  return iss.message || '';
+}
+
 export default getEnumLabel;
 
