@@ -273,7 +273,7 @@ describe('Phase 9: Compliance, Reports & Audit Integration Tests', () => {
     it('HR verifies renewed document -> verification status Verified, status Valid, audit logged', async () => {
       const res = await request(app)
         .post(`/api/v1/compliance/documents/${renewableDoc.id}/verify`)
-        .set('Authorization', `Bearer ${hrMgrAToken}`)
+        .set('Authorization', `Bearer ${hrOfficerAToken}`)
         .send({});
 
       assert.equal(res.status, 200);

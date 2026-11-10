@@ -555,7 +555,7 @@ model employee_documents {
   doc_type            String    @db.VarChar(30)
   doc_number          String    @db.VarChar(50)
   issue_date          DateTime? @db.Date
-  expiry_date         DateTime  @db.Date
+  expiry_date         DateTime? @db.Date
   file_url            String?   @db.Text
   owner_id            String?   @db.Uuid
   status              String    @default("Valid") @db.VarChar(20)

@@ -112,6 +112,25 @@ export async function seedPayroll(prisma, {
     });
   }
 
+  // Spec Example / 7.6.7: Khalid Al-Marzouqi (EMP-DXB-041) outstanding loan of 1,500.00
+  const khalidEmp = seededEmployees.find((e) => e.employee_code === 'EMP-DXB-041');
+  if (khalidEmp) {
+    await prisma.salary_adjustments.create({
+      data: {
+        company_id: company1.id,
+        employee_id: khalidEmp.id,
+        type: 'Loan',
+        total_amount: 3000.0,
+        monthly_amount: 500.0,
+        balance: 1500.0,
+        start_month: new Date('2026-08-01'),
+        status: 'Approved',
+        reason: 'Staff equipment loan (recorded on clearance in 7.6.3 / 7.6.7)',
+        created_by: userFinance1.id,
+      },
+    });
+  }
+
   // =========================================================================
   // 3. October 2026 Pay Runs (Calculated via PayrollService)
   // =========================================================================

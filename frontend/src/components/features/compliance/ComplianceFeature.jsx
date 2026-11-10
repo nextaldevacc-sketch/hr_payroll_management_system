@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { getEnumLabel } from '../../../i18n/enums';
@@ -51,11 +52,24 @@ export default function ComplianceFeature() {
     pendingVerification: 0,
   });
 
+  const searchParams = useSearchParams();
+  const urlStatus = searchParams?.get('status');
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const initialStatus = (urlStatus === 'Pending' || urlStatus === 'Pending Verification') ? 'Pending Verification' : (urlStatus || 'ALL');
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [typeFilter, setTypeFilter] = useState('ALL');
+
+  useEffect(() => {
+    if (urlStatus) {
+      if (urlStatus === 'Pending' || urlStatus === 'Pending Verification') {
+        setStatusFilter('Pending Verification');
+      } else {
+        setStatusFilter(urlStatus);
+      }
+    }
+  }, [urlStatus]);
 
   // Modal states
   const [renewModalDoc, setRenewModalDoc] = useState(null);
@@ -295,6 +309,7 @@ export default function ComplianceFeature() {
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 rtl:left-auto rtl:right-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
+              id="compliance-search-input"
               type="text"
               placeholder={isAr ? 'بحث بالاسم أو كود الموظف أو رقم الوثيقة...' : 'Search employee, code, or document #...'}
               value={search}
@@ -303,6 +318,7 @@ export default function ComplianceFeature() {
             />
           </div>
           <button
+            id="btn-compliance-search"
             type="submit"
             className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
           >
@@ -314,6 +330,7 @@ export default function ComplianceFeature() {
           {/* Status select */}
           <div className="min-w-[180px]">
             <Select
+              id="compliance-filter-status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               placeholder={isAr ? 'جميع الحالات' : 'All Statuses'}
@@ -331,6 +348,7 @@ export default function ComplianceFeature() {
           {/* Type select */}
           <div className="min-w-[180px]">
             <Select
+              id="compliance-filter-type"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
               placeholder={isAr ? 'جميع أنواع الوثائق' : 'All Document Types'}
@@ -445,6 +463,7 @@ export default function ComplianceFeature() {
                           {/* HR Verify Button */}
                           {canVerify && doc.verification_status === 'Pending' && (
                             <button
+                              id={`btn-verify-doc-${doc.id}`}
                               onClick={() => handleVerify(doc.id)}
                               title={isAr ? 'اعتماد الوثيقة' : 'Verify Document'}
                               className="p-1.5 rounded-lg bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 transition-colors"
@@ -455,6 +474,7 @@ export default function ComplianceFeature() {
 
                           {/* Upload Renewal */}
                           <button
+                            id={`btn-renew-doc-${doc.id}`}
                             onClick={() => openRenewModal(doc)}
                             title={isAr ? 'رفع التجديد' : 'Upload Renewal'}
                             className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
@@ -464,6 +484,7 @@ export default function ComplianceFeature() {
 
                           {/* History */}
                           <button
+                            id={`btn-history-doc-${doc.id}`}
                             onClick={() => openHistoryModal(doc)}
                             title={isAr ? 'سجل التجديدات' : 'Renewal History'}
                             className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
@@ -607,6 +628,7 @@ export default function ComplianceFeature() {
                 {isAr ? 'سجل تجديدات وتعديلات الوثيقة' : 'Document Version & Audit History'}
               </h3>
               <button
+                id="btn-close-history-modal"
                 onClick={() => setHistoryModalDoc(null)}
                 className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
               >

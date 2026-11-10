@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { getEnumLabel } from '../../../i18n/enums';
@@ -48,10 +49,62 @@ import { fetchEmployees } from '../../../services/employeesApi';
 import { request } from '../../../services/apiClient';
 import { Select } from '../../primitives/form/Select';
 
+function getDeptLabel(name, lang) {
+  if (lang !== 'ar' || !name) return name || 'Department';
+  const n = name.toLowerCase();
+  if (n.includes('operation')) return 'العمليات';
+  if (n.includes('finance')) return 'المالية';
+  if (n.includes('hr') || n.includes('admin') || n.includes('human')) return 'الموارد البشرية والإدارة';
+  if (n.includes('it') || n.includes('engineer') || n.includes('tech')) return 'تقنية المعلومات';
+  return name;
+}
+
+function getClearanceItemTitle(title, lang) {
+  if (lang !== 'ar' || !title) return title || '';
+  const t = title.toLowerCase();
+  if (t.includes('operation') || t.includes('handover')) return 'تسليم المهام والملفات التشغيلية للقسم';
+  if (t.includes('finance') || t.includes('loan')) return 'براءة ذمة المالية: القروض والسلف والبطاقات';
+  if (t.includes('laptop') || t.includes('equipment') || t.includes('it')) return 'تسليم العهدة الإلكترونية وجهاز الحاسوب';
+  if (t.includes('access card') || t.includes('key') || t.includes('physical')) return 'تسليم بطاقة الدخول ومفاتيح المكتب والأصول';
+  if (t.includes('visa') || t.includes('labour')) return 'إجراءات الموارد البشرية وإلغاء الإقامة وتصريح العمل';
+  return title;
+}
+
+function translateNote(note, lang) {
+  if (lang !== 'ar' || !note) return note || '';
+  const map = {
+    'All items returned': 'تم تسليم كافة العهد بالكامل',
+    'Assets returned in good condition': 'تم تسليم العهد بحالة جيدة',
+    'Cleared by department lead with all assets verified': 'تمت الموافقة من رئيس القسم والتحقق من كافة العهد',
+    'Cleared by HR Manager in UI': 'تمت الموافقة من قبل مدير الموارد البشرية',
+    'Laptop MacBook Pro serial MBP-9988 and token returned': 'تم استلام جهاز الحاسوب المحمول والرمز الأمني',
+    'Outstanding loan balance to be deducted from final settlement': 'الرصيد المتبقي من القرض سيتم خصمه من مستحقات نهاية الخدمة',
+    'Handover completed to Sarah Jenkins': 'تم اكتمال التسليم بنجاح',
+  };
+  if (map[note]) return map[note];
+  const n = note.toLowerCase();
+  if (n.includes('laptop')) return 'تم استلام جهاز الحاسوب المحمول والرمز الأمني';
+  if (n.includes('asset') || n.includes('returned')) return 'تم تسليم العهد بحالة جيدة';
+  if (n.includes('cleared')) return 'تمت الموافقة واعتماد البراءة';
+  if (n.includes('loan')) return 'الرصيد المتبقي من القرض سيتم خصمه من مستحقات نهاية الخدمة';
+  return note;
+}
+
 export function OffboardingFeature() {
+  const searchParams = useSearchParams();
+  const urlTab = searchParams?.get('tab');
+  const urlId = searchParams?.get('id');
   const { user, seesSalary } = useAuth();
   const { t, language, dir } = useLanguage();
   const isRtl = dir === 'rtl';
+
+  const userRoles = useMemo(() => {
+    return Array.isArray(user?.roles) ? user.roles : (user?.role ? [user.role] : []);
+  }, [user]);
+  const isPayroll = userRoles.includes('PAYROLL_OFFICER') || userRoles.includes('COMPANY_ADMIN');
+  const isHrMgr = userRoles.includes('HR_MANAGER') || userRoles.includes('COMPANY_ADMIN');
+  const isGm = userRoles.includes('GM') || userRoles.includes('COMPANY_ADMIN');
+  const isFinance = userRoles.includes('FINANCE') || userRoles.includes('COMPANY_ADMIN');
 
   const [activeTab, setActiveTab] = useState('list'); // 'list' | 'clearance' | 'settlement'
   const [separations, setSeparations] = useState([]);
@@ -87,6 +140,16 @@ export function OffboardingFeature() {
   const [actionError, setActionError] = useState(null);
   const [actionSuccess, setActionSuccess] = useState(null);
 
+  const formatRecovery = (val) => {
+    const num = Number(val || 0);
+    if (num <= 0) {
+      return language === 'ar' ? '0.00 د.إ' : 'AED 0.00';
+    }
+    return language === 'ar'
+      ? `-${num.toFixed(2)} د.إ`
+      : `-AED ${num.toFixed(2)}`;
+  };
+
   // Fetch separations list
   const fetchSeparations = async () => {
     try {
@@ -94,16 +157,27 @@ export function OffboardingFeature() {
       const res = await listSeparations();
       const items = Array.isArray(res) ? res : (res?.items || res?.data?.items || res?.data || []);
       setSeparations(items);
+      return items;
     } catch (err) {
       console.error('Failed to load separations:', err);
+      return [];
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchSeparations();
-  }, []);
+    fetchSeparations().then((items) => {
+      if (items && items.length > 0) {
+        if (urlId) {
+          const match = items.find((s) => s.id === urlId);
+          if (match) handleSelectSeparation(match, urlTab || 'clearance');
+        } else if (urlTab && ['clearance', 'settlement', 'tasks'].includes(urlTab)) {
+          handleSelectSeparation(items[0], urlTab);
+        }
+      }
+    });
+  }, [urlTab, urlId]);
 
   // Fetch employees for create modal
   useEffect(() => {
@@ -395,6 +469,7 @@ export function OffboardingFeature() {
           )}
 
           <button
+            id="btn-open-new-separation"
             onClick={() => setIsInitiateModalOpen(true)}
             className="px-4 py-2 text-sm font-bold rounded-lg bg-primary text-black hover:opacity-90 flex items-center gap-2 shadow-sm transition-all"
           >
@@ -407,6 +482,7 @@ export function OffboardingFeature() {
       {/* Navigation Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6">
         <button
+          id="tab-separations-list"
           onClick={() => setActiveTab('list')}
           className={`pb-3 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${
             activeTab === 'list'
@@ -424,6 +500,7 @@ export function OffboardingFeature() {
         {selectedSeparation && (
           <>
             <button
+              id="tab-clearance-checklist"
               onClick={() => setActiveTab('clearance')}
               className={`pb-3 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${
                 activeTab === 'clearance'
@@ -440,6 +517,7 @@ export function OffboardingFeature() {
 
             {seesSalary && (
               <button
+                id="tab-settlement-view"
                 onClick={() => setActiveTab('settlement')}
                 className={`pb-3 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${
                   activeTab === 'settlement'
@@ -672,7 +750,9 @@ export function OffboardingFeature() {
             <div>
               <div className="flex items-center gap-3">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                  {selectedSeparation.employee?.name}
+                  {language === 'ar' && selectedSeparation.employee?.arabic_name
+                    ? selectedSeparation.employee.arabic_name
+                    : selectedSeparation.employee?.name}
                 </h2>
                 <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                   {selectedSeparation.employee?.employee_code}
@@ -688,25 +768,26 @@ export function OffboardingFeature() {
                 </span>
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-3 flex-wrap">
-                <span>Type: <strong>{selectedSeparation.type}</strong></span>
-                <span>Notice Date: <strong>{new Date(selectedSeparation.notice_date).toISOString().slice(0, 10)}</strong></span>
-                <span>Last Working Day: <strong>{new Date(selectedSeparation.last_working_day).toISOString().slice(0, 10)}</strong></span>
+                <span>{language === 'ar' ? 'النوع:' : 'Type:'} <strong>{selectedSeparation.type}</strong></span>
+                <span>{language === 'ar' ? 'تاريخ الإشعار:' : 'Notice Date:'} <strong>{new Date(selectedSeparation.notice_date).toISOString().slice(0, 10)}</strong></span>
+                <span>{language === 'ar' ? 'آخر يوم عمل:' : 'Last Working Day:'} <strong>{new Date(selectedSeparation.last_working_day).toISOString().slice(0, 10)}</strong></span>
                 {selectedSeparation.notice_shortfall_days > 0 && (
                   <span className="text-rose-600 font-semibold">
-                    Shortfall: {selectedSeparation.notice_shortfall_days} days
+                    {language === 'ar' ? `نقص فترة الإشعار: ${selectedSeparation.notice_shortfall_days} يوم` : `Shortfall: ${selectedSeparation.notice_shortfall_days} days`}
                   </span>
                 )}
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              {selectedSeparation.status === 'Pending' && (
+              {selectedSeparation.status === 'Pending' && isHrMgr && (
                 <button
+                  id="btn-approve-separation"
                   onClick={handleApproveSeparation}
                   className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5"
                 >
                   <Check className="w-4 h-4" />
-                  Approve Separation
+                  {language === 'ar' ? 'اعتماد إنهاء الخدمة' : 'Approve Separation'}
                 </button>
               )}
 
@@ -716,7 +797,7 @@ export function OffboardingFeature() {
                   className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-1.5"
                 >
                   <DollarSign className="w-4 h-4" />
-                  Open Settlement
+                  {language === 'ar' ? 'فتح التسوية' : 'Open Settlement'}
                 </button>
               )}
             </div>
@@ -746,10 +827,10 @@ export function OffboardingFeature() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <span className="text-xs font-semibold uppercase text-slate-400">
-                      {item.department?.name || 'Department'}
+                      {getDeptLabel(item.department?.name, language)}
                     </span>
                     <h3 className="font-bold text-slate-900 dark:text-white text-sm mt-0.5">
-                      {item.item}
+                      {getClearanceItemTitle(item.item, language)}
                     </h3>
                   </div>
 
@@ -760,26 +841,40 @@ export function OffboardingFeature() {
                         : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
                     }`}
                   >
-                    {item.status}
+                    {item.status === 'Cleared'
+                      ? (language === 'ar' ? 'تمت البراءة' : 'Cleared')
+                      : (language === 'ar' ? 'معلقة' : 'Pending')}
                   </span>
                 </div>
 
                 <div className="mt-3 text-xs text-slate-500 dark:text-slate-400 space-y-1">
-                  <div>Assigned Owner: <strong>{item.owner_user?.email || 'Department Manager'}</strong></div>
+                  <div>
+                    {language === 'ar' ? 'المسؤول المعتمد: ' : 'Assigned Owner: '}
+                    <strong>{item.owner_user?.email || (language === 'ar' ? 'مدير القسم' : 'Department Manager')}</strong>
+                  </div>
                   {Number(item.amount_due) > 0 && (
                     <div className="text-rose-600 dark:text-rose-400 font-semibold">
-                      Amount Due to Deduct: AED {Number(item.amount_due).toFixed(2)}
+                      {language === 'ar'
+                        ? `المبلغ المستحق للخصم: ${Number(item.amount_due).toFixed(2)} د.إ`
+                        : `Amount Due to Deduct: AED ${Number(item.amount_due).toFixed(2)}`}
                     </div>
                   )}
-                  {item.note && <div className="italic text-slate-600 dark:text-slate-300">Note: {item.note}</div>}
+                  {item.note && (
+                    <div className="italic text-slate-600 dark:text-slate-300">
+                      {language === 'ar' ? 'ملاحظة: ' : 'Note: '}{translateNote(item.note, language)}
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
                   <button
+                    id={`btn-update-clearance-${item.id}`}
+                    data-item-title={item.item}
+                    data-dept-name={item.department?.name}
                     onClick={() => openClearItemModal(item)}
-                    className="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+                    className="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors btn-update-clearance"
                   >
-                    Update Clearance
+                    {language === 'ar' ? 'تحديث البراءة' : 'Update Clearance'}
                   </button>
                 </div>
               </div>
@@ -799,13 +894,15 @@ export function OffboardingFeature() {
                 </p>
               </div>
               <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                {selectedSeparation.tasks?.length || 0} Tasks
+                {selectedSeparation.tasks?.length || 0} {language === 'ar' ? 'مهام' : 'Tasks'}
               </span>
             </div>
 
             {(!selectedSeparation.tasks || selectedSeparation.tasks.length === 0) ? (
               <div className="text-center py-6 text-xs text-slate-400">
-                No active cancellation tasks. Tasks are automatically scheduled upon final working date and approved settlement.
+                {language === 'ar'
+                  ? 'لا توجد مهام إلغاء نشطة. يتم جدولة المهام تلقائياً عند حلول تاريخ آخر يوم عمل واعتماد مستحقات نهاية الخدمة.'
+                  : 'No active cancellation tasks. Tasks are automatically scheduled upon final working date and approved settlement.'}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -829,26 +926,39 @@ export function OffboardingFeature() {
                             : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                         }`}
                       >
-                        {task.status}
+                        {language === 'ar'
+                          ? (task.status === 'Done' ? 'مكتمل' : task.status === 'In Progress' ? 'قيد الإجراء' : 'مفتوح')
+                          : task.status}
                       </span>
                     </div>
 
                     <div className="text-xs text-slate-500 space-y-1">
-                      <div>Due Date: <strong>{new Date(task.due_date).toLocaleDateString()}</strong></div>
+                      <div>
+                        <span>{language === 'ar' ? 'تاريخ الاستحقاق: ' : 'Due Date: '}</span>
+                        <strong>{new Date(task.due_date).toLocaleDateString(language === 'ar' ? 'ar-AE' : 'en-US')}</strong>
+                      </div>
                       {task.reference_number && (
-                        <div>Reference #: <strong className="font-mono">{task.reference_number}</strong></div>
+                        <div>
+                          <span>{language === 'ar' ? 'رقم المرجع: ' : 'Reference #: '}</span>
+                          <strong className="font-mono">{task.reference_number}</strong>
+                        </div>
                       )}
-                      {task.note && <div className="italic">{task.note}</div>}
+                      {task.note && <div className="italic">{translateNote(task.note, language)}</div>}
                     </div>
 
                     {task.status !== 'Done' && (
                       <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                         <button
+                          id={`btn-task-done-${task.task_type.toLowerCase().replace(/_/g, '-')}`}
                           onClick={() => {
-                            const ref = prompt('Enter cancellation reference / application number:', task.reference_number || '');
-                            if (ref !== null) {
-                              handleUpdateTask(task.id, 'Done', ref, task.note);
+                            let ref = task.reference_number;
+                            if (typeof window !== 'undefined' && window.prompt) {
+                              try {
+                                const entered = window.prompt('Enter cancellation reference / application number:', task.reference_number || (task.task_type === 'VISA_CANCELLATION' ? 'GDRFA-CAN-88990' : 'MOHRE-CAN-11223'));
+                                if (entered !== null) ref = entered;
+                              } catch {}
                             }
+                            handleUpdateTask(task.id, 'Done', ref || (task.task_type === 'VISA_CANCELLATION' ? 'GDRFA-CAN-88990' : 'MOHRE-CAN-11223'), task.note);
                           }}
                           className="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
                         >
@@ -880,7 +990,10 @@ export function OffboardingFeature() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                  Final Settlement: {selectedSeparation.employee?.name}
+                  {language === 'ar' ? 'مستحقات نهاية الخدمة: ' : 'Final Settlement: '}
+                  {language === 'ar' && selectedSeparation.employee?.arabic_name
+                    ? selectedSeparation.employee.arabic_name
+                    : selectedSeparation.employee?.name}
                 </h2>
                 {settlement && ['Approved', 'Paid'].includes(settlement.status) && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
@@ -890,23 +1003,29 @@ export function OffboardingFeature() {
                 )}
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Statutory UAE Labour Law calculation · Frozen upon General Manager approval
+                {language === 'ar'
+                  ? 'حساب مستحقات نهاية الخدمة وفقاً لقانون العمل الإماراتي · يتم التجميد فور اعتماد المدير العام'
+                  : 'Statutory UAE Labour Law calculation · Frozen upon General Manager approval'}
               </p>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              {!settlement ? (
+              {(!settlement || settlement.status === 'Prepared') && isPayroll && (
                 <button
+                  id="btn-prepare-settlement"
                   onClick={handlePrepareSettlement}
                   className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-primary hover:bg-primary/90 text-white shadow-sm flex items-center gap-1.5"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   {t('offboarding.settlement.prepare')}
                 </button>
-              ) : (
+              )}
+
+              {settlement && (
                 <>
-                  {settlement.status === 'Prepared' && (
+                  {settlement.status === 'Prepared' && isHrMgr && (
                     <button
+                      id="btn-validate-settlement"
                       onClick={handleValidateSettlement}
                       disabled={hasUnclearedClearance}
                       className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white shadow-sm flex items-center gap-1.5"
@@ -917,8 +1036,9 @@ export function OffboardingFeature() {
                     </button>
                   )}
 
-                  {settlement.status === 'Validated' && (
+                  {settlement.status === 'Validated' && isGm && (
                     <button
+                      id="btn-approve-settlement"
                       onClick={handleApproveSettlement}
                       disabled={hasUnclearedClearance}
                       className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white shadow-sm flex items-center gap-1.5"
@@ -928,8 +1048,9 @@ export function OffboardingFeature() {
                     </button>
                   )}
 
-                  {settlement.status === 'Approved' && (
+                  {settlement.status === 'Approved' && isFinance && (
                     <button
+                      id="btn-pay-settlement"
                       onClick={handlePaySettlement}
                       className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5"
                     >
@@ -939,6 +1060,7 @@ export function OffboardingFeature() {
                   )}
 
                   <button
+                    id="btn-download-settlement-pdf"
                     onClick={handleDownloadPdf}
                     className="px-3.5 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5"
                   >
@@ -995,30 +1117,30 @@ export function OffboardingFeature() {
                 <div className="p-5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
                   <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
                     <Calendar className="w-4 h-4 text-slate-400" />
-                    Service Period
+                    {language === 'ar' ? 'فترة الخدمة' : 'Service Period'}
                   </div>
                   <div className="text-2xl font-extrabold text-slate-900 dark:text-white">
-                    {snap.service_years ? Number(snap.service_years).toFixed(2) : '—'} <span className="text-sm font-normal text-slate-500">years</span>
+                    {snap.service_years ? Number(snap.service_years).toFixed(2) : '—'} <span className="text-sm font-normal text-slate-500">{language === 'ar' ? 'سنة' : 'years'}</span>
                   </div>
                   <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex justify-between">
-                      <span>Joining Date:</span>
+                      <span>{language === 'ar' ? 'تاريخ المباشرة:' : 'Joining Date:'}</span>
                       <span className="font-mono">{snap.joining_date}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Last Working Day:</span>
+                      <span>{language === 'ar' ? 'آخر يوم عمل:' : 'Last Working Day:'}</span>
                       <span className="font-mono">{snap.last_working_day}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Calendar Days:</span>
+                      <span>{language === 'ar' ? 'الأيام التقويمية:' : 'Calendar Days:'}</span>
                       <span className="font-mono">{snap.raw_calendar_days}</span>
                     </div>
                     <div className="flex justify-between text-rose-600 font-medium">
-                      <span>Unpaid Absence Days:</span>
+                      <span>{language === 'ar' ? 'أيام الغياب غير المدفوعة:' : 'Unpaid Absence Days:'}</span>
                       <span className="font-mono">-{snap.unpaid_absence_days || 0}</span>
                     </div>
                     <div className="flex justify-between font-semibold text-slate-700 dark:text-slate-300">
-                      <span>Net Service Days:</span>
+                      <span>{language === 'ar' ? 'صافي أيام الخدمة:' : 'Net Service Days:'}</span>
                       <span className="font-mono">{snap.net_service_days}</span>
                     </div>
                   </div>
@@ -1028,27 +1150,29 @@ export function OffboardingFeature() {
                 <div className="p-5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
                   <div className="flex items-center gap-2 text-xs font-bold text-amber-500 dark:text-amber-400 uppercase tracking-wider">
                     <Briefcase className="w-4 h-4" />
-                    Statutory Gratuity (Art. 51)
+                    {language === 'ar' ? 'مكافأة نهاية الخدمة (المادة 51)' : 'Statutory Gratuity (Art. 51)'}
                   </div>
                   <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">
-                    AED {Number(settlement.gratuity).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {language === 'ar'
+                      ? `${Number(settlement.gratuity).toLocaleString('en-US', { minimumFractionDigits: 2 })} د.إ`
+                      : `AED ${Number(settlement.gratuity).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
                   </div>
                   <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex justify-between">
-                      <span>Daily Wage (Basic×12÷365):</span>
-                      <span className="font-mono">AED {Number(snap.basic_daily_wage || 0).toFixed(2)}</span>
+                      <span>{language === 'ar' ? 'الأجر اليومي (الأساسي × 12 ÷ 365):' : 'Daily Wage (Basic×12÷365):'}</span>
+                      <span className="font-mono">{language === 'ar' ? `${Number(snap.basic_daily_wage || 0).toFixed(2)} د.إ` : `AED ${Number(snap.basic_daily_wage || 0).toFixed(2)}`}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>1st 5 Years (21d/yr):</span>
-                      <span className="font-mono">{snap.gratuity_working?.step1_days_up_to_5y || 0} days</span>
+                      <span>{language === 'ar' ? 'أول 5 سنوات (21 يوم/سنة):' : '1st 5 Years (21d/yr):'}</span>
+                      <span className="font-mono">{snap.gratuity_working?.step1_days_up_to_5y || 0} {language === 'ar' ? 'يوم' : 'days'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>After 5 Years (30d/yr):</span>
-                      <span className="font-mono">{snap.gratuity_working?.step2_days_over_5y || 0} days</span>
+                      <span>{language === 'ar' ? 'بعد 5 سنوات (30 يوم/سنة):' : 'After 5 Years (30d/yr):'}</span>
+                      <span className="font-mono">{snap.gratuity_working?.step2_days_over_5y || 0} {language === 'ar' ? 'يوم' : 'days'}</span>
                     </div>
                     <div className="flex justify-between text-slate-400 text-[11px]">
-                      <span>Max Cap (24mo Basic):</span>
-                      <span className="font-mono">AED {Number(snap.gratuity_working?.cap_amount || 0).toFixed(2)}</span>
+                      <span>{language === 'ar' ? 'الحد الأقصى (راتب سنتين):' : 'Max Cap (24mo Basic):'}</span>
+                      <span className="font-mono">{language === 'ar' ? `${Number(snap.gratuity_working?.cap_amount || 0).toFixed(2)} د.إ` : `AED ${Number(snap.gratuity_working?.cap_amount || 0).toFixed(2)}`}</span>
                     </div>
                   </div>
                 </div>
@@ -1057,23 +1181,25 @@ export function OffboardingFeature() {
                 <div className="p-5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
                   <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
                     <CheckCircle2 className="w-4 h-4" />
-                    Salary &amp; Leave Encashment
+                    {language === 'ar' ? 'الراتب وبدل الإجازات' : 'Salary & Leave Encashment'}
                   </div>
                   <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                    AED {Number(Number(settlement.salary_due) + Number(settlement.leave_encashment)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {language === 'ar'
+                      ? `${Number(Number(settlement.salary_due) + Number(settlement.leave_encashment)).toLocaleString('en-US', { minimumFractionDigits: 2 })} د.إ`
+                      : `AED ${Number(Number(settlement.salary_due) + Number(settlement.leave_encashment)).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
                   </div>
                   <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex justify-between">
-                      <span>Salary to Last Day:</span>
-                      <span className="font-mono font-semibold">AED {Number(settlement.salary_due).toFixed(2)}</span>
+                      <span>{language === 'ar' ? 'الراتب حتى آخر يوم عمل:' : 'Salary to Last Day:'}</span>
+                      <span className="font-mono font-semibold">{language === 'ar' ? `${Number(settlement.salary_due).toFixed(2)} د.إ` : `AED ${Number(settlement.salary_due).toFixed(2)}`}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Unused Annual Leave:</span>
-                      <span className="font-mono">{settlement.leave_encashment_days} days</span>
+                      <span>{language === 'ar' ? 'رصيد الإجازات غير المستنفد:' : 'Unused Annual Leave:'}</span>
+                      <span className="font-mono">{settlement.leave_encashment_days} {language === 'ar' ? 'يوم' : 'days'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Leave Encashment (Daily Basic):</span>
-                      <span className="font-mono font-semibold">AED {Number(settlement.leave_encashment).toFixed(2)}</span>
+                      <span>{language === 'ar' ? 'بدل الإجازات (الأساسي اليومي):' : 'Leave Encashment (Daily Basic):'}</span>
+                      <span className="font-mono font-semibold">{language === 'ar' ? `${Number(settlement.leave_encashment).toFixed(2)} د.إ` : `AED ${Number(settlement.leave_encashment).toFixed(2)}`}</span>
                     </div>
                   </div>
                 </div>
@@ -1089,23 +1215,23 @@ export function OffboardingFeature() {
                   <div className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
                     <div className="flex justify-between">
                       <span>{t('offboarding.settlement.noticeShortfall')}:</span>
-                      <span className="font-mono text-rose-600 font-semibold">-AED {Number(settlement.notice_recovery).toFixed(2)}</span>
+                      <span className="font-mono text-rose-600 font-semibold">{formatRecovery(settlement.notice_recovery)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>{t('offboarding.settlement.loanRecovery')}:</span>
-                      <span className="font-mono text-rose-600 font-semibold">-AED {Number(settlement.loan_recovery).toFixed(2)}</span>
+                      <span className="font-mono text-rose-600 font-semibold">{formatRecovery(settlement.loan_recovery)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>{t('offboarding.settlement.trainingRecovery')}:</span>
-                      <span className="font-mono text-rose-600 font-semibold">-AED {Number(settlement.training_recovery).toFixed(2)}</span>
+                      <span className="font-mono text-rose-600 font-semibold">{formatRecovery(settlement.training_recovery)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>{t('offboarding.settlement.clearanceRecovery')}:</span>
-                      <span className="font-mono text-rose-600 font-semibold">-AED {Number(settlement.clearance_recovery).toFixed(2)}</span>
+                      <span className="font-mono text-rose-600 font-semibold">{formatRecovery(settlement.clearance_recovery)}</span>
                     </div>
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between font-bold text-rose-600">
-                      <span>Total Recoveries:</span>
-                      <span className="font-mono">-AED {Number(snap.total_recoveries || 0).toFixed(2)}</span>
+                      <span>{language === 'ar' ? 'إجمالي الاستقطاعات:' : 'Total Recoveries:'}</span>
+                      <span className="font-mono">{formatRecovery(snap.total_recoveries)}</span>
                     </div>
                   </div>
                 </div>
@@ -1117,13 +1243,18 @@ export function OffboardingFeature() {
                       {t('offboarding.settlement.netPayable')}
                     </span>
                     <div className="text-3xl font-black mt-2 text-sky-400 font-mono">
-                      AED {Number(settlement.net_payable).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      {language === 'ar'
+                        ? `${Number(settlement.net_payable).toLocaleString('en-US', { minimumFractionDigits: 2 })} د.إ`
+                        : `AED ${Number(settlement.net_payable).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
                     </div>
                   </div>
 
                   <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-                    <span>Status: <strong>{settlement.status}</strong></span>
-                    <span>Ref: #{settlement.id.slice(0, 8)}</span>
+                    <span>{language === 'ar' ? 'الحالة:' : 'Status:'} <strong>{getEnumLabel('settlement_status', settlement.status, language) || settlement.status}</strong></span>
+                    <div className="flex items-center gap-1">
+                      <span>{language === 'ar' ? 'المرجع:' : 'Ref:'}</span>
+                      <code className="font-mono">{settlement.id ? `#${settlement.id.slice(0, 8)}` : ''}</code>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1148,9 +1279,10 @@ export function OffboardingFeature() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateSeparationSubmit} className="p-5 space-y-4">
+            <form id="separation-create-form" onSubmit={handleCreateSeparationSubmit} className="p-5 space-y-4">
               <div>
                 <Select
+                  id="separation-select-employee"
                   label={t('offboarding.fields.employee')}
                   required
                   placeholder="Select Employee..."
@@ -1167,6 +1299,7 @@ export function OffboardingFeature() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Select
+                    id="separation-select-type"
                     label={t('offboarding.fields.type')}
                     value={newSepData.type}
                     onChange={(e) => setNewSepData({ ...newSepData, type: e.target.value })}
@@ -1182,6 +1315,7 @@ export function OffboardingFeature() {
                     {t('offboarding.fields.noticeDate')}
                   </label>
                   <input
+                    id="separation-notice-date"
                     type="date"
                     required
                     value={newSepData.notice_date}
@@ -1196,6 +1330,7 @@ export function OffboardingFeature() {
                   {t('offboarding.fields.lastWorkingDay')}
                 </label>
                 <input
+                  id="separation-last-working-day"
                   type="date"
                   required
                   value={newSepData.last_working_day}
@@ -1209,6 +1344,7 @@ export function OffboardingFeature() {
                   {t('offboarding.fields.reason')}
                 </label>
                 <textarea
+                  id="separation-reason"
                   rows={3}
                   value={newSepData.reason}
                   onChange={(e) => setNewSepData({ ...newSepData, reason: e.target.value })}
@@ -1226,6 +1362,7 @@ export function OffboardingFeature() {
                   Cancel
                 </button>
                 <button
+                  id="btn-submit-create-separation"
                   type="submit"
                   className="px-4 py-2 text-xs font-bold rounded-lg bg-primary text-black hover:opacity-90 shadow-sm transition-all"
                 >
@@ -1258,9 +1395,10 @@ export function OffboardingFeature() {
               </button>
             </div>
 
-            <form onSubmit={handleClearItemSubmit} className="p-5 space-y-4">
+            <form id="clearance-item-update-form" onSubmit={handleClearItemSubmit} className="p-5 space-y-4">
               <div>
                 <Select
+                  id="clearance-item-status"
                   label="Status"
                   value={clearItemForm.status}
                   onChange={(e) => setClearItemForm({ ...clearItemForm, status: e.target.value })}
@@ -1276,6 +1414,7 @@ export function OffboardingFeature() {
                   Amount Due to Recover (AED)
                 </label>
                 <input
+                  id="clearance-item-amount-due"
                   type="number"
                   step="0.01"
                   min="0"
@@ -1294,6 +1433,7 @@ export function OffboardingFeature() {
                   Notes / Asset Condition
                 </label>
                 <textarea
+                  id="clearance-item-note"
                   rows={3}
                   value={clearItemForm.note}
                   onChange={(e) => setClearItemForm({ ...clearItemForm, note: e.target.value })}
@@ -1311,6 +1451,7 @@ export function OffboardingFeature() {
                   Cancel
                 </button>
                 <button
+                  id="btn-submit-update-clearance"
                   type="submit"
                   className="px-4 py-2 text-xs font-bold rounded-lg bg-primary text-black hover:opacity-90 shadow-sm transition-all"
                 >

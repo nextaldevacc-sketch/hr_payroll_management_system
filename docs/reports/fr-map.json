@@ -1,0 +1,1887 @@
+{
+  "FR-PL1": {
+    "title": "Platform admin creates a company with UAE default settings and invites its company admin",
+    "domain": "Platform Admin & Multi-Tenant Management",
+    "deferred": true,
+    "deferredReason": "Phase 2 Platform Admin disabled by FEATURE_PLATFORM_ADMIN=false"
+  },
+  "FR-PL2": {
+    "title": "Platform admin suspends or reactivates a company; suspended users cannot log in",
+    "domain": "Platform Admin & Multi-Tenant Management",
+    "deferred": true,
+    "deferredReason": "Phase 2 Platform Admin disabled by FEATURE_PLATFORM_ADMIN=false"
+  },
+  "FR-PL3": {
+    "title": "Platform admin cannot see employee or salary data unless the company grants time-limited support access",
+    "domain": "Platform Admin & Multi-Tenant Management",
+    "deferred": true,
+    "deferredReason": "Phase 2 Platform Admin disabled by FEATURE_PLATFORM_ADMIN=false"
+  },
+  "FR-DS1": {
+    "title": "Dashboard tiles for headcount, pending approvals, this month's payroll status, exceptions waiting and documents expiring in 90 days; each tile opens the list behind it",
+    "domain": "Live Dashboard & Metric Tiles",
+    "files": [
+      "backend/src/controllers/dashboardController.js",
+      "frontend/src/app/(app)/page.jsx"
+    ],
+    "tests": [
+      "All internal roles can access /api/v1/dashboard/overview"
+    ],
+    "workflowSteps": [
+      "7.1.8",
+      "VB.6"
+    ]
+  },
+  "FR-DS2": {
+    "title": "Tiles follow the user's role: salary figures appear only for salary roles, and managers see only their team",
+    "domain": "Live Dashboard & Metric Tiles",
+    "files": [
+      "backend/src/controllers/dashboardController.js",
+      "backend/src/services/dashboardService.js"
+    ],
+    "tests": [
+      "Salary tiles API (/api/v1/dashboard/salary) returns 403 Forbidden for Dept Manager & Employee"
+    ],
+    "workflowSteps": [
+      "7.7.9"
+    ]
+  },
+  "FR-EM1": {
+    "title": "Employee record with code (unique), English and Arabic names, legal name, status, joining date, residency type, company visa, branch, manager, HR manager, leave approver, personal and emergency details",
+    "domain": "Employee Directory & Lifecycle",
+    "files": [
+      "backend/src/services/employeeService.js",
+      "backend/src/controllers/employeeController.js"
+    ],
+    "tests": [
+      "filters employees by search term (name / code / email)"
+    ],
+    "workflowSteps": [
+      "7.2.1"
+    ]
+  },
+  "FR-EM2": {
+    "title": "Statuses: Pre-Joined, New Joined, Active, Suspended, Transferred, Archived",
+    "domain": "Employee Directory & Lifecycle",
+    "files": [
+      "backend/src/services/employeeService.js"
+    ],
+    "tests": [
+      "rejects invalid status transitions with HTTP 400 (e.g. Pre-Joined -> Suspended)"
+    ],
+    "workflowSteps": [
+      "7.2.3",
+      "7.2.9",
+      "7.6.6"
+    ]
+  },
+  "FR-EM3": {
+    "title": "Contract versions with effective date, type (Limited/Unlimited), dates, probation, job, department, shift, basic and allowances, annual leave days, gratuity policy and notice periods; every salary change is a new dated version, listed in the Salary History tab",
+    "domain": "Employee Directory & Lifecycle",
+    "files": [
+      "backend/src/services/employeeService.js",
+      "backend/src/controllers/employeeController.js"
+    ],
+    "tests": [
+      "returns all version rows ordered in Salary History (403 for non-salary)"
+    ],
+    "workflowSteps": [
+      "7.2.4"
+    ]
+  },
+  "FR-EM4": {
+    "title": "UAE documents: passport, visa, Emirates ID, labour card, MOHRE contract and insurance, each with number, dates, file and owner",
+    "domain": "Employee Directory & Lifecycle",
+    "files": [
+      "backend/src/services/employeeService.js",
+      "backend/src/services/complianceService.js"
+    ],
+    "tests": [
+      "T27: Given New employee with no bank account -> Expected Cannot be set to Active"
+    ],
+    "workflowSteps": [
+      "7.2.5"
+    ]
+  },
+  "FR-EM5": {
+    "title": "Secure documents: files stored encrypted, opened only by permitted roles and the employee, and every view or download logged",
+    "domain": "Employee Directory & Lifecycle",
+    "files": [
+      "backend/src/lib/storage.js",
+      "backend/src/services/complianceService.js"
+    ],
+    "tests": [
+      "accepts valid PDF file upload via magic byte detection"
+    ],
+    "workflowSteps": [
+      "7.7.8"
+    ]
+  },
+  "FR-EM6": {
+    "title": "Bank accounts with IBAN, routing code and salary split %",
+    "domain": "Employee Directory & Lifecycle",
+    "files": [
+      "shared/src/utils/employeeUtils.js",
+      "backend/src/services/employeeService.js"
+    ],
+    "tests": [
+      "accepts valid UAE IBAN with ISO-7064 mod-97 verification"
+    ],
+    "workflowSteps": [
+      "7.2.8"
+    ]
+  },
+  "FR-EM7": {
+    "title": "New employee setup: create, HR verification, contract and documents, schedule and bank, then Active; the status cannot become Active until contract, shift, bank account and labour card or person ID exist",
+    "domain": "Employee Directory & Lifecycle",
+    "files": [
+      "backend/src/services/employeeService.js"
+    ],
+    "tests": [
+      "T27: Given New employee with no bank account -> Expected Cannot be set to Active"
+    ],
+    "workflowSteps": [
+      "7.2.7",
+      "7.2.9"
+    ]
+  },
+  "FR-EM8": {
+    "title": "History tab showing every change with who, when, old value and new value",
+    "domain": "Employee Directory & Lifecycle",
+    "files": [
+      "backend/src/services/auditService.js",
+      "backend/src/services/employeeService.js"
+    ],
+    "tests": [
+      "records audit log entries for changes and retrieves them on History tab (Rule F)"
+    ],
+    "workflowSteps": [
+      "7.2.10"
+    ]
+  },
+  "FR-AT1": {
+    "title": "Import CSV or Excel from the device software; map device code to employee code",
+    "domain": "Biometric Attendance & Overtime",
+    "files": [
+      "backend/src/services/attendanceService.js",
+      "backend/src/lib/excel.js"
+    ],
+    "tests": [
+      "Imports CSV punches, drops duplicates within file and maps device codes"
+    ],
+    "workflowSteps": [
+      "7.3.1"
+    ]
+  },
+  "FR-AT2": {
+    "title": "Drop duplicate punches on import; importing the same file twice adds nothing",
+    "domain": "Biometric Attendance & Overtime",
+    "files": [
+      "backend/src/services/attendanceService.js"
+    ],
+    "tests": [
+      "Re-import of the exact same biometric file is REJECTED (HTTP 400 DUPLICATE_IMPORT_FILE)"
+    ],
+    "workflowSteps": [
+      "7.3.2"
+    ]
+  },
+  "FR-AT3": {
+    "title": "Daily record: check-in, check-out, worked hours, break deducted, net hours, late minutes, early-out hours, penalty days, day type (work day, weekly off, public holiday, leave)",
+    "domain": "Biometric Attendance & Overtime",
+    "files": [
+      "backend/src/services/attendanceService.js"
+    ],
+    "tests": [
+      "Calculates worked duration with 1 hour break deducted only when > 4 hours"
+    ],
+    "workflowSteps": [
+      "7.3.3"
+    ]
+  },
+  "FR-AT4": {
+    "title": "Exceptions flagged: missing punch, late, early out, absent without leave, work on a rest day or public holiday, unknown device code",
+    "domain": "Biometric Attendance & Overtime",
+    "files": [
+      "backend/src/services/attendanceService.js",
+      "backend/src/services/overtimeService.js"
+    ],
+    "tests": [
+      "Day with check-in only appears in the Missing Punch Queue"
+    ],
+    "workflowSteps": [
+      "7.3.3",
+      "7.3.4"
+    ]
+  },
+  "FR-AT5": {
+    "title": "Missing Punch Queue; HR edits record who, when and why; employees can submit a missing-punch request",
+    "domain": "Biometric Attendance & Overtime",
+    "files": [
+      "backend/src/services/attendanceService.js",
+      "backend/src/controllers/meController.js"
+    ],
+    "tests": [
+      "Resolving missing punch requires mandatory reason and clears exception"
+    ],
+    "workflowSteps": [
+      "7.3.4",
+      "7.3.5"
+    ]
+  },
+  "FR-AT6": {
+    "title": "Late and early-out penalties from the employee's attendance policy steps",
+    "domain": "Biometric Attendance & Overtime",
+    "files": [
+      "backend/src/services/attendanceService.js",
+      "backend/src/services/settingsService.js"
+    ],
+    "tests": [
+      "Punch after grace limit calculates late minutes and applies penalty step"
+    ],
+    "workflowSteps": [
+      "7.2.6",
+      "7.3.3"
+    ]
+  },
+  "FR-AT7": {
+    "title": "Overtime requests created from attendance (above the policy's minimum minutes) or submitted by the employee",
+    "domain": "Biometric Attendance & Overtime",
+    "files": [
+      "backend/src/services/overtimeService.js",
+      "backend/src/controllers/meController.js"
+    ],
+    "tests": [
+      "Self-service overtime submission and approval"
+    ],
+    "workflowSteps": [
+      "7.3.6"
+    ]
+  },
+  "FR-AT8": {
+    "title": "Overtime approval as normal (1.25), night (1.5), rest day or holiday (1.5 or a substitute day), or refused",
+    "domain": "Biometric Attendance & Overtime",
+    "files": [
+      "backend/src/services/overtimeService.js",
+      "backend/src/services/approvalService.js"
+    ],
+    "tests": [
+      "3 approved OT hours on normal day produces AED 78.13 (basic 5,000)",
+      "2 OT hours in night window (10 pm to midnight) produces AED 62.50 at 1.5x"
+    ],
+    "workflowSteps": [
+      "7.3.7"
+    ]
+  },
+  "FR-AT9": {
+    "title": "Monthly review: manager confirms the team, then HR confirms; only confirmed days and approved overtime reach payroll",
+    "domain": "Biometric Attendance & Overtime",
+    "files": [
+      "backend/src/services/attendanceService.js"
+    ],
+    "tests": [
+      "Manager confirms department, then HR confirms company (payroll-ready)"
+    ],
+    "workflowSteps": [
+      "7.3.8",
+      "7.3.9"
+    ]
+  },
+  "FR-TO1": {
+    "title": "Leave request for full days or a half day, with reason and attachment, by the employee or by HR for them",
+    "domain": "Time Off & UAE Statutory Leave",
+    "files": [
+      "backend/src/services/leaveService.js",
+      "backend/src/controllers/meController.js"
+    ],
+    "tests": [
+      "Half-day leave deducts exactly 0.5 days"
+    ],
+    "workflowSteps": [
+      "7.4.1",
+      "7.4.2"
+    ]
+  },
+  "FR-TO2": {
+    "title": "On submit, check the balance and overlapping requests; public holidays and weekly off days are not counted",
+    "domain": "Time Off & UAE Statutory Leave",
+    "files": [
+      "backend/src/services/leaveService.js"
+    ],
+    "tests": [
+      "Mon to Fri annual leave with Wednesday public holiday deducts exactly 4 days"
+    ],
+    "workflowSteps": [
+      "7.4.1",
+      "7.4.2"
+    ]
+  },
+  "FR-TO3": {
+    "title": "Approval chain from Approval Settings: department manager, then HR, then GM when flagged",
+    "domain": "Time Off & UAE Statutory Leave",
+    "files": [
+      "backend/src/services/approvalService.js",
+      "backend/src/services/leaveService.js"
+    ],
+    "tests": [
+      "T15: Given Leave request on a flagged type -> Expected Needs manager, HR and GM approval before it reaches payroll",
+      "2. Flagged leave type requires GM (Step 3) after HR approval"
+    ],
+    "workflowSteps": [
+      "7.4.4",
+      "7.4.5",
+      "7.4.6"
+    ]
+  },
+  "FR-TO4": {
+    "title": "Pay band applied per day (full, half, none) by leave type",
+    "domain": "Time Off & UAE Statutory Leave",
+    "files": [
+      "backend/src/services/leaveService.js"
+    ],
+    "tests": [
+      "Statutory Sick Leave: crossing full (1-15) and half (16-45) pay bands within one request"
+    ],
+    "workflowSteps": [
+      "7.4.7"
+    ]
+  },
+  "FR-TO5": {
+    "title": "Allocations, regular or by accrual plan, with carry-over and expiry",
+    "domain": "Time Off & UAE Statutory Leave",
+    "files": [
+      "backend/src/services/leaveService.js",
+      "backend/src/jobs/complianceJob.js"
+    ],
+    "tests": [
+      "Employee with < 6 months service blocked from annual leave without balance"
+    ],
+    "workflowSteps": [
+      "7.4.8"
+    ]
+  },
+  "FR-TO6": {
+    "title": "Balance reduced on approval and restored when a request is refused or cancelled",
+    "domain": "Time Off & UAE Statutory Leave",
+    "files": [
+      "backend/src/services/leaveService.js"
+    ],
+    "tests": [
+      "Approved leave deducts balance, and cancellation restores it"
+    ],
+    "workflowSteps": [
+      "7.4.6",
+      "7.4.7"
+    ]
+  },
+  "FR-TO7": {
+    "title": "Public holiday calendar per year, for all branches or one branch; a holiday is never counted as absence",
+    "domain": "Time Off & UAE Statutory Leave",
+    "files": [
+      "backend/src/services/settingsService.js",
+      "backend/src/services/leaveService.js"
+    ],
+    "tests": [
+      "Public Holiday is NEVER counted as absence even with 0 punches"
+    ],
+    "workflowSteps": [
+      "VB.8",
+      "7.4.11"
+    ]
+  },
+  "FR-TO8": {
+    "title": "Approved days are marked on attendance and used by the pay run of that month",
+    "domain": "Time Off & UAE Statutory Leave",
+    "files": [
+      "backend/src/services/leaveService.js",
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "runMonthlyAccrualJob: is idempotent when run multiple times in same month"
+    ],
+    "workflowSteps": [
+      "7.4.6",
+      "7.5.3"
+    ]
+  },
+  "FR-PY1": {
+    "title": "Pay run per month and company visa; status Draft, Calculated, Validated, Locked, Paid",
+    "domain": "UAE Statutory Payroll & WPS SIF",
+    "files": [
+      "backend/src/services/payrollService.js",
+      "backend/src/controllers/payrollController.js"
+    ],
+    "tests": [
+      "1. Confirms 42 active payslips exist for October 2026 pay runs (31 Visa 1 + 11 Visa 2)"
+    ],
+    "workflowSteps": [
+      "VB.9",
+      "7.5.1"
+    ]
+  },
+  "FR-PY2": {
+    "title": "Cut-off date per run; anything approved after it moves to next month",
+    "domain": "UAE Statutory Payroll & WPS SIF",
+    "files": [
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T10: Given OT not approved by cut-off -> Expected Not paid; carried to next month's inputs"
+    ],
+    "workflowSteps": [
+      "7.3.9",
+      "7.5.2"
+    ]
+  },
+  "FR-PY3": {
+    "title": "Validation before calculation: employee status, confirmed attendance, approved leave and overtime, contract and salary changes, approved deductions, bank details; blocking errors must be cleared",
+    "domain": "UAE Statutory Payroll & WPS SIF",
+    "files": [
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T28: Given Pay run with one employee missing an IBAN -> Expected Validation lists the error; the run cannot be calculated until it is fixed"
+    ],
+    "workflowSteps": [
+      "7.5.2"
+    ]
+  },
+  "FR-PY4": {
+    "title": "Payslips computed from the salary rules in the employee structure, using approved inputs only",
+    "domain": "UAE Statutory Payroll & WPS SIF",
+    "files": [
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T19: Given Ahmed's month (T6, T11, T18) -> Expected Net AED 7,044.80"
+    ],
+    "workflowSteps": [
+      "7.5.3",
+      "7.5.9"
+    ]
+  },
+  "FR-PY5": {
+    "title": "Salary adjustments (loan, advance, recurring deduction, bonus) approved before payroll uses them, with monthly amount and running balance",
+    "domain": "UAE Statutory Payroll & WPS SIF",
+    "files": [
+      "backend/src/services/salaryAdjustmentService.js",
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T18: Given Loan 6,000 at 500 a month, third month -> Expected AED 500 deducted; balance AED 4,500"
+    ],
+    "workflowSteps": [
+      "7.5.3",
+      "7.6.7"
+    ]
+  },
+  "FR-PY6": {
+    "title": "Variance report comparing each employee with last month; changes above the set threshold need a reason",
+    "domain": "UAE Statutory Payroll & WPS SIF",
+    "files": [
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T29: Given Employee's net is 25% higher than last month, threshold 10% -> Expected Shown in the variance report; the run cannot be validated until a reason is entered"
+    ],
+    "workflowSteps": [
+      "7.5.4"
+    ]
+  },
+  "FR-PY7": {
+    "title": "Prepare (Payroll Officer), validate (HR Manager), approve (GM), pay (Finance)",
+    "domain": "UAE Statutory Payroll & WPS SIF",
+    "files": [
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "allows salary roles (Payroll, HR Mgr, GM, Finance) to access payslip JSON"
+    ],
+    "workflowSteps": [
+      "7.5.5",
+      "7.6.8"
+    ]
+  },
+  "FR-PY8": {
+    "title": "The approved run is locked before payslips and the WPS SIF are generated; a locked run cannot be edited",
+    "domain": "UAE Statutory Payroll & WPS SIF",
+    "files": [
+      "backend/src/services/payrollService.js",
+      "backend/src/lib/wps/sifGenerator.js"
+    ],
+    "tests": [
+      "T30: Given Ask for the SIF of a run that is Validated but not Locked -> Expected Refused; the SIF is made only from a locked run"
+    ],
+    "workflowSteps": [
+      "7.5.6",
+      "7.5.7"
+    ]
+  },
+  "FR-PY9": {
+    "title": "Corrections are approved and made in a later run as a correction payslip linked to the original, with a full audit trail",
+    "domain": "UAE Statutory Payroll & WPS SIF",
+    "files": [
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T20: Given Locked run, then a mistake found -> Expected Payslip cannot be edited; an approved correction payslip in a later run, linked to the original and shown in the audit history"
+    ],
+    "workflowSteps": [
+      "7.5.10"
+    ]
+  },
+  "FR-PY10": {
+    "title": "Payslip PDF in English with Arabic name, emailed or in the portal",
+    "domain": "UAE Statutory Payroll & WPS SIF",
+    "files": [
+      "backend/src/lib/pdf.js",
+      "backend/src/controllers/meController.js"
+    ],
+    "tests": [
+      "logs every payslip PDF download in audit_logs with action PAYSLIP_PDF_DOWNLOAD"
+    ],
+    "workflowSteps": [
+      "7.5.8",
+      "7.5.9",
+      "7.5.15"
+    ]
+  },
+  "FR-PY11": {
+    "title": "GPSSA pension for UAE Nationals",
+    "domain": "UAE Statutory Payroll & WPS SIF",
+    "files": [
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "Extra preset: UAE National with GPSSA 5% deduction gives AED 9,500.00 net on AED 10,000 gross"
+    ],
+    "workflowSteps": [
+      "7.5.3"
+    ]
+  },
+  "FR-OF1": {
+    "title": "Record resignation or termination with notice date and final working date; HR Manager approves",
+    "domain": "Offboarding & Final Settlement",
+    "files": [
+      "backend/src/services/separationService.js",
+      "backend/src/controllers/separationController.js"
+    ],
+    "tests": [
+      "strictly enforces HR Manager approval only on separations (others 403)"
+    ],
+    "workflowSteps": [
+      "7.6.1",
+      "7.6.2"
+    ]
+  },
+  "FR-OF2": {
+    "title": "Clearance checklist with one item per department, its owner, status and any amount due; the settlement cannot be approved until every item is cleared",
+    "domain": "Offboarding & Final Settlement",
+    "files": [
+      "backend/src/services/separationService.js",
+      "backend/src/services/settlementService.js"
+    ],
+    "tests": [
+      "8. Clearance item permissions: Department manager cannot clear Finance items"
+    ],
+    "workflowSteps": [
+      "7.6.3",
+      "7.6.7"
+    ]
+  },
+  "FR-OF3": {
+    "title": "Calculate salary to the last day, notice shortfall, gratuity, unused leave encashment, loan balance, training-cost recovery and clearance amounts",
+    "domain": "Offboarding & Final Settlement",
+    "files": [
+      "backend/src/services/settlementService.js"
+    ],
+    "tests": [
+      "Sara gratuity (Section 8.4): Exactly AED 12,082.19 (basic 5,000, 3y 6m)"
+    ],
+    "workflowSteps": [
+      "7.6.4"
+    ]
+  },
+  "FR-OF4": {
+    "title": "Freeze the figures in a settlement snapshot",
+    "domain": "Offboarding & Final Settlement",
+    "files": [
+      "backend/src/services/settlementService.js"
+    ],
+    "tests": [
+      "7. DB Trigger blocks modifying an Approved or Paid final settlement"
+    ],
+    "workflowSteps": [
+      "7.6.5"
+    ]
+  },
+  "FR-OF5": {
+    "title": "Final-settlement payslip using the final-settlement structure; HR Manager validates, GM approves, Finance pays",
+    "domain": "Offboarding & Final Settlement",
+    "files": [
+      "backend/src/services/settlementService.js"
+    ],
+    "tests": [
+      "9. Non-salary roles receive 403 on /api/v1/settlements"
+    ],
+    "workflowSteps": [
+      "7.6.5",
+      "7.6.8",
+      "7.6.11"
+    ]
+  },
+  "FR-OF6": {
+    "title": "Deactivate the employee's login after the final working date and set the status to Archived",
+    "domain": "Offboarding & Final Settlement",
+    "files": [
+      "backend/src/jobs/deactivationJob.js",
+      "backend/src/services/authService.js"
+    ],
+    "tests": [
+      "T36: Given Settlement approved and the final working date has passed -> Expected Login refused; status Archived"
+    ],
+    "workflowSteps": [
+      "7.6.6",
+      "7.6.10"
+    ]
+  },
+  "FR-OF7": {
+    "title": "Open visa and labour card cancellation tasks",
+    "domain": "Offboarding & Final Settlement",
+    "files": [
+      "backend/src/services/separationService.js",
+      "backend/src/jobs/deactivationJob.js"
+    ],
+    "tests": [
+      "blocks Company Admin from viewing and listing separation tasks (HTTP 403)"
+    ],
+    "workflowSteps": [
+      "7.6.6"
+    ]
+  },
+  "FR-CO1": {
+    "title": "Every document has an owner responsible for renewing it",
+    "domain": "Compliance & Document Expiry Tracking",
+    "files": [
+      "backend/src/services/complianceService.js"
+    ],
+    "tests": [
+      "T25: Given Visa expiring in 85 days -> Expected Status Expiring Soon; reminder sent to the document owner and HR"
+    ],
+    "workflowSteps": [
+      "7.7.1",
+      "7.7.5"
+    ]
+  },
+  "FR-CO2": {
+    "title": "Nightly expiry check of every document",
+    "domain": "Compliance & Document Expiry Tracking",
+    "files": [
+      "backend/src/jobs/complianceJob.js",
+      "backend/src/services/complianceService.js"
+    ],
+    "tests": [
+      "runNightlyExpiryJob: scans employee documents and reports status"
+    ],
+    "workflowSteps": [
+      "7.7.1",
+      "7.7.2"
+    ]
+  },
+  "FR-CO3": {
+    "title": "Status Valid, Expiring Soon (90 days or less), Expired or Missing Data",
+    "domain": "Compliance & Document Expiry Tracking",
+    "files": [
+      "backend/src/services/complianceService.js"
+    ],
+    "tests": [
+      "a document that expired 2 days ago shows Expired on read without running the cron job"
+    ],
+    "workflowSteps": [
+      "7.7.4",
+      "7.7.6"
+    ]
+  },
+  "FR-CO4": {
+    "title": "Reminders to the owner and HR at 90, 60 and 30 days; count on the dashboard",
+    "domain": "Compliance & Document Expiry Tracking",
+    "files": [
+      "backend/src/services/complianceService.js",
+      "backend/src/lib/mailer.js"
+    ],
+    "tests": [
+      "first run sends milestone 90 reminder; second run on same date sends NO duplicate reminders"
+    ],
+    "workflowSteps": [
+      "7.7.1",
+      "7.7.2",
+      "7.7.5"
+    ]
+  },
+  "FR-RP1": {
+    "title": "WPS SIF file per company visa, generated from a locked run only",
+    "domain": "Reporting & Analytics",
+    "files": [
+      "backend/src/lib/wps/sifGenerator.js",
+      "backend/src/services/reportService.js"
+    ],
+    "tests": [
+      "T26: Given SIF for one company visa -> Expected SCR total equals the sum of EDR lines; each EDR matches its payslip"
+    ],
+    "workflowSteps": [
+      "VB.9",
+      "7.5.7"
+    ]
+  },
+  "FR-RP2": {
+    "title": "Payroll register per pay run, department and company visa, in Excel and PDF",
+    "domain": "Reporting & Analytics",
+    "files": [
+      "backend/src/services/reportService.js",
+      "backend/src/lib/excel.js"
+    ],
+    "tests": [
+      "5. Payslips sum to pay run totals for each visa (Sum of payslips = pay_run.total_gross & total_net via service)"
+    ],
+    "workflowSteps": [
+      "7.5.8"
+    ]
+  },
+  "FR-RP3": {
+    "title": "Variance report per pay run: each employee's gross, deductions and net against last month, with the reason for each large change",
+    "domain": "Reporting & Analytics",
+    "files": [
+      "backend/src/services/reportService.js"
+    ],
+    "tests": [
+      "T29: Given Employee's net is 25% higher than last month, threshold 10% -> Expected Shown in the variance report; the run cannot be validated until a reason is entered"
+    ],
+    "workflowSteps": [
+      "7.5.4"
+    ]
+  },
+  "FR-RP4": {
+    "title": "Attendance report: late arrivals, early outs, absences and overtime by employee, department and month",
+    "domain": "Reporting & Analytics",
+    "files": [
+      "backend/src/services/reportService.js"
+    ],
+    "tests": [
+      "non-salary reports (Attendance, Leave, Headcount) are accessible to HR Officer"
+    ],
+    "workflowSteps": [
+      "7.3.8"
+    ]
+  },
+  "FR-RP5": {
+    "title": "Leave report: leave taken, balances and upcoming leave by employee, department and leave type",
+    "domain": "Reporting & Analytics",
+    "files": [
+      "backend/src/services/reportService.js"
+    ],
+    "tests": [
+      "non-salary reports (Attendance, Leave, Headcount) are accessible to HR Officer"
+    ],
+    "workflowSteps": [
+      "7.4.8"
+    ]
+  },
+  "FR-RP6": {
+    "title": "Gratuity provision and leave liability for Finance",
+    "domain": "Reporting & Analytics",
+    "files": [
+      "backend/src/services/reportService.js"
+    ],
+    "tests": [
+      "salary reports are accessible to Finance, Payroll Officer, HR Manager, and Company Admin"
+    ],
+    "workflowSteps": [
+      "7.6.4"
+    ]
+  },
+  "FR-RP7": {
+    "title": "Headcount and attrition dashboard",
+    "domain": "Reporting & Analytics",
+    "files": [
+      "backend/src/services/reportService.js",
+      "backend/src/controllers/dashboardController.js"
+    ],
+    "tests": [
+      "non-salary reports (Attendance, Leave, Headcount) are accessible to HR Officer"
+    ],
+    "workflowSteps": [
+      "7.1.8",
+      "7.6.6"
+    ]
+  },
+  "FR-RP8": {
+    "title": "Accounting journal as CSV, debit and credit per salary rule by cost centre",
+    "domain": "Reporting & Analytics",
+    "files": [
+      "backend/src/services/reportService.js"
+    ],
+    "tests": [
+      "generates balanced CSV accounting export for locked pay run: Sum(Debit) === Sum(Credit)"
+    ],
+    "workflowSteps": [
+      "7.5.8"
+    ]
+  },
+  "FR-ST1": {
+    "title": "Company profile, company visas and branches",
+    "domain": "Organization Settings & Governance",
+    "files": [
+      "backend/src/services/settingsService.js",
+      "backend/src/controllers/settingsController.js"
+    ],
+    "tests": [
+      "B.3 (V1): creating visa with duplicate MOHRE ID returns 400 with field mol_establishment_id"
+    ],
+    "workflowSteps": [
+      "7.1.3",
+      "7.1.4",
+      "VB.1",
+      "VB.2"
+    ]
+  },
+  "FR-ST2": {
+    "title": "Departments and jobs",
+    "domain": "Organization Settings & Governance",
+    "files": [
+      "backend/src/services/settingsService.js"
+    ],
+    "tests": [
+      "blocks deleting a shift assigned to active employee contracts (HTTP 400)"
+    ],
+    "workflowSteps": [
+      "7.1.5"
+    ]
+  },
+  "FR-ST3": {
+    "title": "Shifts and attendance policies (Section 9.3)",
+    "domain": "Organization Settings & Governance",
+    "files": [
+      "backend/src/services/settingsService.js"
+    ],
+    "tests": [
+      "blocks deleting a shift assigned to active employee contracts (HTTP 400)"
+    ],
+    "workflowSteps": [
+      "7.2.6"
+    ]
+  },
+  "FR-ST4": {
+    "title": "Leave types, accrual plans and public holidays (Section 9.2 and 9.4)",
+    "domain": "Organization Settings & Governance",
+    "files": [
+      "backend/src/services/settingsService.js"
+    ],
+    "tests": [
+      "B.7 (V10): branch-specific public holiday is applied only to employees of that branch in leave calculation"
+    ],
+    "workflowSteps": [
+      "7.1.6",
+      "VB.8"
+    ]
+  },
+  "FR-ST5": {
+    "title": "Salary rules and structures editable without code (Section 9.1)",
+    "domain": "Organization Settings & Governance",
+    "files": [
+      "backend/src/services/settingsService.js"
+    ],
+    "tests": [
+      "Payroll Officer is permitted to edit salary rules"
+    ],
+    "workflowSteps": [
+      "7.1.6"
+    ]
+  },
+  "FR-ST6": {
+    "title": "Users and roles",
+    "domain": "Organization Settings & Governance",
+    "files": [
+      "backend/src/services/userService.js",
+      "backend/src/services/settingsService.js"
+    ],
+    "tests": [
+      "invite token is single-use and cannot be redeemed a second time"
+    ],
+    "workflowSteps": [
+      "7.1.7"
+    ]
+  },
+  "FR-ST7": {
+    "title": "Approval settings per request type",
+    "domain": "Organization Settings & Governance",
+    "files": [
+      "backend/src/services/approvalService.js",
+      "backend/src/services/settingsService.js"
+    ],
+    "tests": [
+      "creating Pre-Joined employee generates an EMPLOYEE_VERIFICATION approval request"
+    ],
+    "workflowSteps": [
+      "7.1.6",
+      "7.4.4"
+    ]
+  },
+  "FR-ST8": {
+    "title": "Payroll checks (cut-off day, variance threshold) and document alerts",
+    "domain": "Organization Settings & Governance",
+    "files": [
+      "backend/src/services/settingsService.js"
+    ],
+    "tests": [
+      "strictly blocks modifying settings with an effective date on or before a locked pay run (HTTP 400)"
+    ],
+    "workflowSteps": [
+      "7.1.6",
+      "7.5.4"
+    ]
+  },
+  "FR-ST9": {
+    "title": "Audit History screen filtered by user, record and date",
+    "domain": "Organization Settings & Governance",
+    "files": [
+      "backend/src/services/auditService.js",
+      "backend/src/controllers/auditController.js"
+    ],
+    "tests": [
+      "lists audit logs with pagination and filters by action and table_name"
+    ],
+    "workflowSteps": [
+      "7.2.10"
+    ]
+  },
+  "FR-ST10": {
+    "title": "The audit log cannot be edited or deleted by anyone, admins included",
+    "domain": "Organization Settings & Governance",
+    "files": [
+      "backend/src/services/auditService.js"
+    ],
+    "tests": [
+      "database trigger strictly blocks any direct modification or deletion of audit logs"
+    ],
+    "workflowSteps": [
+      "7.2.10"
+    ]
+  },
+  "FR-SS1": {
+    "title": "View own profile, payslips, attendance and leave balance",
+    "domain": "Employee Self-Service",
+    "files": [
+      "backend/src/controllers/meController.js",
+      "frontend/src/app/(app)/me/page.jsx"
+    ],
+    "tests": [
+      "Employee can fetch My Home bento overview with real metrics"
+    ],
+    "workflowSteps": [
+      "7.2.9",
+      "7.5.9"
+    ]
+  },
+  "FR-SS2": {
+    "title": "Submit leave, overtime and missing-punch requests and follow their status",
+    "domain": "Employee Self-Service",
+    "files": [
+      "backend/src/controllers/meController.js",
+      "backend/src/services/leaveService.js"
+    ],
+    "tests": [
+      "Self-service overtime submission and approval"
+    ],
+    "workflowSteps": [
+      "7.3.5",
+      "7.3.6",
+      "7.4.1"
+    ]
+  },
+  "FR-SS3": {
+    "title": "Upload documents; HR verifies them before they count",
+    "domain": "Employee Self-Service",
+    "files": [
+      "backend/src/services/complianceService.js",
+      "frontend/src/app/(app)/me/documents/page.jsx"
+    ],
+    "tests": [
+      "HR verifies renewed document -> verification status Verified, status Valid, audit logged"
+    ],
+    "workflowSteps": [
+      "7.7.3",
+      "7.7.7"
+    ]
+  },
+  "FR-X1": {
+    "title": "Every record belongs to one company; nothing crosses companies",
+    "domain": "Security & Multi-Tenant Isolation",
+    "files": [
+      "backend/src/middleware/auth.js",
+      "backend/src/lib/prisma.js"
+    ],
+    "tests": [
+      "2. Company A cannot read records belonging to Company B (findMany)"
+    ],
+    "workflowSteps": [
+      "7.1.1",
+      "7.1.2"
+    ]
+  },
+  "FR-X2": {
+    "title": "Every approval, manual edit and login logged with user, time, old and new value",
+    "domain": "Security & Multi-Tenant Isolation",
+    "files": [
+      "backend/src/services/auditService.js"
+    ],
+    "tests": [
+      "1. AuditService successfully logs create, update, delete and approval actions"
+    ],
+    "workflowSteps": [
+      "7.1.4",
+      "7.2.10",
+      "VB.1"
+    ]
+  },
+  "FR-X3": {
+    "title": "Salary figures visible only to Payroll, HR Manager, GM and Finance",
+    "domain": "Security & Multi-Tenant Isolation",
+    "files": [
+      "backend/src/middleware/salaryMask.js",
+      "backend/src/serializers/index.js"
+    ],
+    "tests": [
+      "hasSalaryAccess: strictly allows only the 4 statutory salary roles"
+    ],
+    "workflowSteps": [
+      "7.7.9"
+    ]
+  },
+  "FR-X4": {
+    "title": "English and Arabic interface with right-to-left layout",
+    "domain": "Security & Multi-Tenant Isolation",
+    "files": [
+      "frontend/src/i18n/en.json",
+      "frontend/src/i18n/ar.json"
+    ],
+    "tests": [
+      "Employee can fetch My Profile with view-only fields and masked IDs"
+    ],
+    "workflowSteps": [
+      "7.4.10",
+      "7.5.15",
+      "7.6.11"
+    ]
+  },
+  "NFR-1": {
+    "title": "Company isolation: Every request checked against the user company",
+    "domain": "Non-Functional Architecture",
+    "files": [
+      "backend/src/middleware/auth.js",
+      "backend/src/lib/prisma.js"
+    ],
+    "tests": [
+      "T2: Given A Company A user asks for a Company B employee -> Expected Refused and logged"
+    ],
+    "workflowSteps": [
+      "7.1.1"
+    ]
+  },
+  "NFR-2": {
+    "title": "Salary privacy: Salary figures shown only to Payroll, HR Manager, GM and Finance",
+    "domain": "Non-Functional Architecture",
+    "files": [
+      "backend/src/middleware/salaryMask.js"
+    ],
+    "tests": [
+      "hasSalaryAccess: strictly allows only the 4 statutory salary roles"
+    ],
+    "workflowSteps": [
+      "7.7.9"
+    ]
+  },
+  "NFR-3": {
+    "title": "Security: HTTPS only; hashed passwords; lockout after 5 failed logins",
+    "domain": "Non-Functional Architecture",
+    "files": [
+      "backend/src/services/authService.js"
+    ],
+    "tests": [
+      "locks account after 5 consecutive failed attempts with HTTP 423 and 15-minute lock"
+    ],
+    "workflowSteps": [
+      "7.1.3"
+    ]
+  },
+  "NFR-4": {
+    "title": "Audit: Every approval and manual edit logged with user, time, old and new value",
+    "domain": "Non-Functional Architecture",
+    "files": [
+      "backend/src/services/auditService.js"
+    ],
+    "tests": [
+      "1. AuditService successfully logs create, update, delete and approval actions"
+    ],
+    "workflowSteps": [
+      "7.2.10"
+    ]
+  },
+  "NFR-5": {
+    "title": "Accuracy: Money held as exact decimals; rounding only on final amounts",
+    "domain": "Non-Functional Architecture",
+    "files": [
+      "backend/src/services/payrollService.js",
+      "backend/src/services/settlementService.js"
+    ],
+    "tests": [
+      "Ahmed example 8: Exactly nets AED 7,044.80 with normal OT, 2 days absence, and loan repayment"
+    ],
+    "workflowSteps": [
+      "7.5.3",
+      "7.6.4"
+    ]
+  },
+  "NFR-6": {
+    "title": "Locking: Approved payslips and settlement snapshots cannot change",
+    "domain": "Non-Functional Architecture",
+    "files": [
+      "backend/src/services/payrollService.js",
+      "backend/src/services/settlementService.js"
+    ],
+    "tests": [
+      "7. DB Trigger blocks modifying an Approved or Paid final settlement",
+      "T20: Given Locked run, then a mistake found -> Expected Payslip cannot be edited; an approved correction payslip in a later run, linked to the original and shown in the audit history"
+    ],
+    "workflowSteps": [
+      "7.5.6",
+      "7.6.5"
+    ]
+  },
+  "NFR-7": {
+    "title": "Performance: Pay run for 500 employees computed within benchmark",
+    "domain": "Non-Functional Architecture",
+    "files": [
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "Calculates 500 employee payslips in under 30 seconds (NFR-7)"
+    ],
+    "workflowSteps": [
+      "7.5.3"
+    ]
+  },
+  "NFR-8": {
+    "title": "Performance: One month of punches imported with deduplication",
+    "domain": "Non-Functional Architecture",
+    "files": [
+      "backend/src/services/attendanceService.js"
+    ],
+    "tests": [
+      "NFR-8 Timed Test: imports 10,000 biometric punch rows in under 30 seconds"
+    ],
+    "workflowSteps": [
+      "7.3.1"
+    ]
+  },
+  "NFR-9": {
+    "title": "Performance: Normal screens load efficiently with low latency",
+    "domain": "Non-Functional Architecture",
+    "files": [
+      "frontend/src/app/(app)/layout.jsx"
+    ],
+    "tests": [
+      "All internal roles can access /api/v1/dashboard/overview"
+    ],
+    "workflowSteps": [
+      "7.1.8"
+    ]
+  },
+  "NFR-10": {
+    "title": "Reliability: Nightly expiry job and automated maintenance",
+    "domain": "Non-Functional Architecture",
+    "files": [
+      "backend/src/jobs/complianceJob.js"
+    ],
+    "tests": [
+      "runNightlyExpiryJob: scans employee documents and reports status"
+    ],
+    "workflowSteps": [
+      "7.7.1",
+      "7.7.2"
+    ]
+  },
+  "NFR-11": {
+    "title": "Language: English and Arabic screens; Arabic names on payslips",
+    "domain": "Non-Functional Architecture",
+    "files": [
+      "frontend/src/i18n/ar.json",
+      "frontend/src/i18n/en.json"
+    ],
+    "tests": [
+      "Employee can fetch My Profile with view-only fields and masked IDs"
+    ],
+    "workflowSteps": [
+      "7.4.10",
+      "7.5.15",
+      "7.6.11"
+    ]
+  },
+  "NFR-12": {
+    "title": "Data residency: All data and files in a UAE region with AES-256-GCM encryption at rest",
+    "domain": "Non-Functional Architecture",
+    "files": [
+      "backend/src/lib/storage.js"
+    ],
+    "tests": [
+      "accepts valid PDF file upload via magic byte detection"
+    ],
+    "workflowSteps": [
+      "7.7.8"
+    ]
+  },
+  "NFR-13": {
+    "title": "Maintainability: No rate or threshold hard-coded",
+    "domain": "Non-Functional Architecture",
+    "files": [
+      "backend/src/services/settingsService.js"
+    ],
+    "tests": [
+      "changing GPSSA rate in Settings changes the calculation result (Fix a)"
+    ],
+    "workflowSteps": [
+      "7.1.6"
+    ]
+  },
+  "T1": {
+    "title": "T1: Platform admin creates Company B with UAE defaults and invites admin",
+    "domain": "Acceptance Tests (T1-T37)",
+    "deferred": true,
+    "deferredReason": "Phase 2 Platform Admin disabled by FEATURE_PLATFORM_ADMIN=false"
+  },
+  "T2": {
+    "title": "T2: Company A user asks for Company B employee -> Refused and logged",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/middleware/auth.js",
+      "backend/src/services/employeeService.js"
+    ],
+    "tests": [
+      "T2: Given A Company A user asks for a Company B employee -> Expected Refused and logged"
+    ],
+    "workflowSteps": [
+      "7.1.1"
+    ]
+  },
+  "T3": {
+    "title": "T3: Department Manager opens team member profile -> Salary and bank tabs hidden",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/middleware/salaryMask.js",
+      "backend/src/serializers/index.js"
+    ],
+    "tests": [
+      "T3: Given Department Manager opens a team member's profile -> Expected Salary and bank tabs are hidden"
+    ],
+    "workflowSteps": [
+      "7.7.9"
+    ]
+  },
+  "T4": {
+    "title": "T4: Biometric file imported twice -> No duplicate punches",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/attendanceService.js"
+    ],
+    "tests": [
+      "T4: Given Biometric file imported twice -> Expected No duplicate punches"
+    ],
+    "workflowSteps": [
+      "7.3.2"
+    ]
+  },
+  "T5": {
+    "title": "T5: Day with check-in only -> Appears in Missing Punch Queue",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/attendanceService.js"
+    ],
+    "tests": [
+      "T5: Given Day with check-in only -> Expected Appears in the Missing Punch Queue"
+    ],
+    "workflowSteps": [
+      "7.3.4"
+    ]
+  },
+  "T6": {
+    "title": "T6: 3 approved OT hours, normal day -> AED 78.13",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/overtimeService.js"
+    ],
+    "tests": [
+      "T6: Given 3 approved OT hours, normal day -> Expected AED 78.13"
+    ],
+    "workflowSteps": [
+      "7.3.7"
+    ]
+  },
+  "T7": {
+    "title": "T7: 2 OT hours between 10 pm and midnight -> AED 62.50 at 1.5×",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/overtimeService.js"
+    ],
+    "tests": [
+      "T7: Given 2 OT hours between 10 pm and midnight -> Expected AED 62.50 at 1.5×"
+    ],
+    "workflowSteps": [
+      "7.3.7"
+    ]
+  },
+  "T8": {
+    "title": "T8: 8 hours on a public holiday, paid -> AED 250.00",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/overtimeService.js"
+    ],
+    "tests": [
+      "T8: Given 8 hours on a public holiday, paid -> Expected AED 250.00"
+    ],
+    "workflowSteps": [
+      "7.3.7"
+    ]
+  },
+  "T9": {
+    "title": "T9: Same holiday, substitute day chosen -> No pay; one substitute day added",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/overtimeService.js"
+    ],
+    "tests": [
+      "T9: Given Same holiday, substitute day chosen -> Expected No pay; one substitute day added"
+    ],
+    "workflowSteps": [
+      "7.3.7"
+    ]
+  },
+  "T10": {
+    "title": "T10: OT not approved by cut-off -> Carried to next month's inputs",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/overtimeService.js",
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T10: Given OT not approved by cut-off -> Expected Not paid; carried to next month's inputs"
+    ],
+    "workflowSteps": [
+      "7.3.9"
+    ]
+  },
+  "T11": {
+    "title": "T11: 2 days unpaid absence, ÷ 30 policy -> AED 533.33 deducted",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T11: Given 2 days unpaid absence, ÷ 30 policy -> Expected AED 533.33 deducted"
+    ],
+    "workflowSteps": [
+      "7.5.3"
+    ]
+  },
+  "T12": {
+    "title": "T12: 2 days unpaid absence, × 12 ÷ 365 policy -> AED 526.03 deducted",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T12: Given Same, × 12 ÷ 365 policy -> Expected AED 526.03 deducted"
+    ],
+    "workflowSteps": [
+      "7.5.3"
+    ]
+  },
+  "T13": {
+    "title": "T13: Sick days 16–20 of the year -> AED 666.67 deducted (half pay)",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/leaveService.js",
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T13: Given Sick days 16–20 of the year -> Expected AED 666.67 deducted (half pay)"
+    ],
+    "workflowSteps": [
+      "7.4.7"
+    ]
+  },
+  "T14": {
+    "title": "T14: Sick day 46 of the year -> Full day deducted",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/leaveService.js",
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T14: Given Sick day 46 of the year -> Expected Full day deducted"
+    ],
+    "workflowSteps": [
+      "7.4.7"
+    ]
+  },
+  "T15": {
+    "title": "T15: Flagged leave request -> Needs manager, HR and GM approval",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/approvalService.js",
+      "backend/src/services/leaveService.js"
+    ],
+    "tests": [
+      "T15: Given Leave request on a flagged type -> Expected Needs manager, HR and GM approval before it reaches payroll"
+    ],
+    "workflowSteps": [
+      "7.4.4",
+      "7.4.5",
+      "7.4.6"
+    ]
+  },
+  "T16": {
+    "title": "T16: Employee with 4 months service applies for annual leave -> Request blocked or unpaid",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/leaveService.js"
+    ],
+    "tests": [
+      "T16: Given Employee with 4 months' service applies for annual leave -> Expected No accrued balance yet; request blocked or unpaid per policy"
+    ],
+    "workflowSteps": [
+      "7.4.8"
+    ]
+  },
+  "T17": {
+    "title": "T17: Employee with 8 months service -> 16 annual leave days accrued",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/leaveService.js"
+    ],
+    "tests": [
+      "T17: Given Employee with 8 months' service -> Expected 16 annual leave days (2 for each month of service, once past 6 months)"
+    ],
+    "workflowSteps": [
+      "7.4.8"
+    ]
+  },
+  "T18": {
+    "title": "T18: Loan 6,000 at 500 a month, 3rd month -> AED 500 deducted, balance AED 4,500",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/salaryAdjustmentService.js",
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T18: Given Loan 6,000 at 500 a month, third month -> Expected AED 500 deducted; balance AED 4,500"
+    ],
+    "workflowSteps": [
+      "7.5.3"
+    ]
+  },
+  "T19": {
+    "title": "T19: Ahmed month (T6, T11, T18) -> Net AED 7,044.80",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T19: Given Ahmed's month (T6, T11, T18) -> Expected Net AED 7,044.80"
+    ],
+    "workflowSteps": [
+      "7.5.3",
+      "7.5.9"
+    ]
+  },
+  "T20": {
+    "title": "T20: Locked run, then mistake found -> Corrected in later run linked to original",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T20: Given Locked run, then a mistake found -> Expected Payslip cannot be edited; an approved correction payslip in a later run, linked to the original and shown in the audit history"
+    ],
+    "workflowSteps": [
+      "7.5.10"
+    ]
+  },
+  "T21": {
+    "title": "T21: Gratuity, basic 5,000, 3 years 6 months -> AED 12,082.19",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/settlementService.js"
+    ],
+    "tests": [
+      "T21: Given Gratuity, basic 5,000, 3 years 6 months -> Expected AED 12,082.19"
+    ],
+    "workflowSteps": [
+      "7.6.4"
+    ]
+  },
+  "T22": {
+    "title": "T22: Gratuity, basic 6,000, 7 years -> AED 32,547.95",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/settlementService.js"
+    ],
+    "tests": [
+      "T22: Given Gratuity, basic 6,000, 7 years -> Expected AED 32,547.95"
+    ],
+    "workflowSteps": [
+      "7.6.4"
+    ]
+  },
+  "T23": {
+    "title": "T23: Gratuity, 11 months service -> Not eligible; AED 0",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/settlementService.js"
+    ],
+    "tests": [
+      "T23: Given Gratuity, 11 months' service -> Expected Not eligible; AED 0"
+    ],
+    "workflowSteps": [
+      "7.6.4"
+    ]
+  },
+  "T24": {
+    "title": "T24: Leave encashment, 12 days, basic 6,000 -> AED 2,367.12",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/settlementService.js"
+    ],
+    "tests": [
+      "T24: Given Leave encashment, 12 days, basic 6,000 -> Expected AED 2,367.12"
+    ],
+    "workflowSteps": [
+      "7.6.4"
+    ]
+  },
+  "T25": {
+    "title": "T25: Visa expiring in 85 days -> Status Expiring Soon; reminder to owner and HR",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/complianceService.js"
+    ],
+    "tests": [
+      "T25: Given Visa expiring in 85 days -> Expected Status Expiring Soon; reminder sent to the document owner and HR"
+    ],
+    "workflowSteps": [
+      "7.7.1"
+    ]
+  },
+  "T26": {
+    "title": "T26: SIF for one company visa -> SCR total equals sum of EDR lines",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/lib/wps/sifGenerator.js"
+    ],
+    "tests": [
+      "T26: Given SIF for one company visa -> Expected SCR total equals the sum of EDR lines; each EDR matches its payslip"
+    ],
+    "workflowSteps": [
+      "7.5.7"
+    ]
+  },
+  "T27": {
+    "title": "T27: New employee with no bank account -> Cannot be set to Active",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/employeeService.js"
+    ],
+    "tests": [
+      "T27: Given New employee with no bank account -> Expected Cannot be set to Active"
+    ],
+    "workflowSteps": [
+      "7.2.7"
+    ]
+  },
+  "T28": {
+    "title": "T28: Pay run with missing IBAN -> Run cannot be calculated until fixed",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T28: Given Pay run with one employee missing an IBAN -> Expected Validation lists the error; the run cannot be calculated until it is fixed"
+    ],
+    "workflowSteps": [
+      "7.5.2"
+    ]
+  },
+  "T29": {
+    "title": "T29: Net 25% higher than last month -> Shown in variance report; requires reason",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T29: Given Employee's net is 25% higher than last month, threshold 10% -> Expected Shown in the variance report; the run cannot be validated until a reason is entered"
+    ],
+    "workflowSteps": [
+      "7.5.4"
+    ]
+  },
+  "T30": {
+    "title": "T30: SIF requested for Validated but not Locked run -> Refused",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/payrollService.js",
+      "backend/src/lib/wps/sifGenerator.js"
+    ],
+    "tests": [
+      "T30: Given Ask for the SIF of a run that is Validated but not Locked -> Expected Refused; the SIF is made only from a locked run"
+    ],
+    "workflowSteps": [
+      "7.5.6"
+    ]
+  },
+  "T31": {
+    "title": "T31: Annual leave Mon-Fri with Wed holiday -> 4 days taken from balance",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/leaveService.js"
+    ],
+    "tests": [
+      "T31: Given Annual leave Monday to Friday with a public holiday on Wednesday -> Expected 4 days taken from the balance"
+    ],
+    "workflowSteps": [
+      "7.4.2"
+    ]
+  },
+  "T32": {
+    "title": "T32: Approved 5-day leave cancelled -> Balance restored by 5 days",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/leaveService.js"
+    ],
+    "tests": [
+      "T32: Given Approved 5-day leave is cancelled -> Expected Balance goes back up by 5 days"
+    ],
+    "workflowSteps": [
+      "7.4.6"
+    ]
+  },
+  "T33": {
+    "title": "T33: Employee requests 2 OT hours in self-service; approved -> AED 52.08 in next run",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/overtimeService.js"
+    ],
+    "tests": [
+      "T33: Given Employee requests 2 OT hours in self-service; manager approves as normal OT -> Expected AED 52.08 in the next pay run inputs"
+    ],
+    "workflowSteps": [
+      "7.3.7"
+    ]
+  },
+  "T34": {
+    "title": "T34: Dept manager has not confirmed attendance at cut-off -> Held for next month",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/attendanceService.js",
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T34: Given Department manager has not confirmed the team's attendance at cut-off -> Expected Those days are held for next month; validation shows them"
+    ],
+    "workflowSteps": [
+      "7.3.9"
+    ]
+  },
+  "T35": {
+    "title": "T35: Settlement with laptop item not cleared -> Settlement cannot be approved",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/settlementService.js"
+    ],
+    "tests": [
+      "T35: Given Settlement with the laptop item not cleared -> Expected Settlement cannot be approved"
+    ],
+    "workflowSteps": [
+      "7.6.3"
+    ]
+  },
+  "T36": {
+    "title": "T36: Settlement approved and final working date passed -> Login refused; status Archived",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/jobs/deactivationJob.js",
+      "backend/src/services/authService.js"
+    ],
+    "tests": [
+      "T36: Given Settlement approved and the final working date has passed -> Expected Login refused; status Archived"
+    ],
+    "workflowSteps": [
+      "7.6.6",
+      "7.6.10"
+    ]
+  },
+  "T37": {
+    "title": "T37: Salary adjustment entered but not approved -> Not used by pay run",
+    "domain": "Acceptance Tests (T1-T37)",
+    "files": [
+      "backend/src/services/salaryAdjustmentService.js",
+      "backend/src/services/payrollService.js"
+    ],
+    "tests": [
+      "T37: Given Salary adjustment entered but not approved -> Expected Not used by the pay run"
+    ],
+    "workflowSteps": [
+      "7.5.3"
+    ]
+  },
+  "V-1": {
+    "title": "V-1: MOHRE Employer ID uniqueness enforced; duplicate rejected with field error; valid ID saved with audit row",
+    "domain": "Company Visa & Branch Governance",
+    "files": [
+      "backend/src/services/settingsService.js",
+      "backend/src/services/visaValidator.js"
+    ],
+    "tests": [
+      "B.3 (V1): creating visa with duplicate MOHRE ID returns 400 with field mol_establishment_id"
+    ],
+    "workflowSteps": [
+      "VB.1"
+    ]
+  },
+  "V-2": {
+    "title": "V-2: Branch creation requires company visa selection first, mandatory Arabic name, and groups under chosen visa",
+    "domain": "Company Visa & Branch Governance",
+    "files": [
+      "backend/src/services/settingsService.js",
+      "frontend/src/app/(app)/settings/branches/page.jsx"
+    ],
+    "tests": [
+      "blocks deleting a shift assigned to active employee contracts (HTTP 400)"
+    ],
+    "workflowSteps": [
+      "VB.2"
+    ]
+  },
+  "V-3": {
+    "title": "V-3: Deletion of in-use company visa is blocked with active counts; empty branch deletion succeeds",
+    "domain": "Company Visa & Branch Governance",
+    "files": [
+      "backend/src/services/settingsService.js"
+    ],
+    "tests": [
+      "B.2 (V6): deleting branch with branch-specific public holidays returns 400 BRANCH_HAS_HOLIDAYS"
+    ],
+    "workflowSteps": [
+      "VB.3"
+    ]
+  },
+  "V-4": {
+    "title": "V-4: Changing company visa of a branch with employees is blocked with 400 BRANCH_HAS_EMPLOYEES",
+    "domain": "Company Visa & Branch Governance",
+    "files": [
+      "backend/src/services/settingsService.js"
+    ],
+    "tests": [
+      "B.1 (V5): changing branch company_visa_id when branch has employees returns 400 BRANCH_HAS_EMPLOYEES"
+    ],
+    "workflowSteps": [
+      "VB.4"
+    ]
+  },
+  "V-5": {
+    "title": "V-5: Employee wizard dynamically restricts branch selection to chosen visa; forged mismatch returns 400 BRANCH_VISA_MISMATCH",
+    "domain": "Company Visa & Branch Governance",
+    "files": [
+      "backend/src/services/employeeService.js",
+      "frontend/src/app/(app)/employees/new/page.jsx"
+    ],
+    "tests": [
+      "2.1 (V8): branch change target with forged cross-visa branch returns 400 BRANCH_VISA_MISMATCH"
+    ],
+    "workflowSteps": [
+      "VB.5"
+    ]
+  },
+  "V-6": {
+    "title": "V-6: Top-bar visa selector isolates employees, attendance, leave, and payroll to chosen visa entity; selection persists",
+    "domain": "Company Visa & Branch Governance",
+    "files": [
+      "backend/src/services/scopeService.js",
+      "frontend/src/components/layout/GlassTopBar.jsx"
+    ],
+    "tests": [
+      "A.6.4: hr.difc requesting out-of-scope visa via top-bar filter returns 400 INVALID_VISA"
+    ],
+    "workflowSteps": [
+      "VB.6"
+    ]
+  },
+  "V-7": {
+    "title": "V-7: Scoped user (hr.difc@gulftech.ae) is locked to Visa 02; other visa records return 404",
+    "domain": "Company Visa & Branch Governance",
+    "files": [
+      "backend/src/services/scopeService.js",
+      "backend/src/middleware/auth.js"
+    ],
+    "tests": [
+      "A.6.1: hr.difc lists only Visa 02 employees",
+      "A.6.2: hr.difc requesting out-of-scope employee (Ahmed, Visa 01) returns 404 (not 403)"
+    ],
+    "workflowSteps": [
+      "VB.7",
+      "7.7.9"
+    ]
+  },
+  "V-8": {
+    "title": "V-8: Branch-specific holiday applies only to employees of that branch; other branches remain normal working days",
+    "domain": "Company Visa & Branch Governance",
+    "files": [
+      "backend/src/services/leaveService.js",
+      "backend/src/services/settingsService.js"
+    ],
+    "tests": [
+      "B.7 (V10): branch-specific public holiday is applied only to employees of that branch in leave calculation"
+    ],
+    "workflowSteps": [
+      "VB.8",
+      "7.4.11"
+    ]
+  },
+  "V-9": {
+    "title": "V-9: Pay run isolates employees to visa entity; SIF SCR line formats visa MOHRE ID + routing code; duplicate month run returns 409",
+    "domain": "Company Visa & Branch Governance",
+    "files": [
+      "backend/src/services/payrollService.js",
+      "backend/src/lib/wps/sifGenerator.js"
+    ],
+    "tests": [
+      "A.6.3: hr.difc lists only Visa 02 pay runs",
+      "B.8 (V11): duplicate Regular pay run for same visa and month is rejected with 409 PAY_RUN_EXISTS"
+    ],
+    "workflowSteps": [
+      "VB.9"
+    ]
+  },
+  "V-10": {
+    "title": "V-10: Same-visa branch transfer enforces effective dating and approval workflow; cross-visa transfer with payroll history blocked",
+    "domain": "Company Visa & Branch Governance",
+    "files": [
+      "backend/src/services/employeeService.js",
+      "backend/src/services/approvalService.js"
+    ],
+    "tests": [
+      "B.5 (V9): updating company_visa_id of an employee with pay history returns 400 VISA_TRANSFER_NOT_SUPPORTED",
+      "2.3 (V8): self-approval of branch change returns 403 SELF_APPROVAL_FORBIDDEN"
+    ],
+    "workflowSteps": [
+      "VB.10"
+    ]
+  }
+}

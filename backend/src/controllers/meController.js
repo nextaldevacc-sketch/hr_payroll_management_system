@@ -663,6 +663,7 @@ export async function uploadMyDocument(req, res, next) {
         file_url: file_url || `/uploads/${employeeId}/${Date.now()}-${doc_type}.pdf`,
         uploaded_by: req.user.id,
         status: 'Pending Verification',
+        verification_status: 'Pending',
       },
     });
 

@@ -341,11 +341,19 @@ export class ComplianceService {
     };
 
     if (status) {
-      if (status === 'Pending Verification') {
-        where.verification_status = 'Pending';
+      if (status === 'Pending Verification' || status === 'Pending') {
+        where.OR = [
+          { verification_status: 'Pending' },
+          { status: 'Pending Verification' },
+          { status: 'Pending' },
+        ];
       } else {
         where.status = status;
       }
+    }
+
+    if (filters.verification_status) {
+      where.verification_status = filters.verification_status;
     }
 
     if (doc_type) {
@@ -577,6 +585,18 @@ export class ComplianceService {
     if (!doc || doc.company_id !== companyId) {
       const err = new Error('Document not found');
       err.status = 404;
+      throw err;
+    }
+
+    // Dual-control enforcement (7.7.7): uploader/owner cannot verify their own upload
+    const viewerId = viewer?.id || viewer?.userId;
+    const isOwner = viewerId && (viewerId === doc.owner_id || (doc.employee && doc.employee.user?.id === viewerId) || (viewer?.employeeId && viewer.employeeId === doc.employee_id));
+    const isSelfUpload = viewerId && (viewerId === doc.uploaded_by || viewerId === doc.created_by);
+
+    if (viewerId && (isOwner || isSelfUpload)) {
+      const err = new Error('Dual-control violation: Uploader cannot verify their own document renewal');
+      err.status = 403;
+      err.code = 'SELF_VERIFICATION_FORBIDDEN';
       throw err;
     }
 

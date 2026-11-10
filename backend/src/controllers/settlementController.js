@@ -6,7 +6,8 @@ export async function calculateSettlement(req, res, next) {
     if (!roles.includes('PAYROLL_OFFICER')) {
       return res.status(403).json({
         status: 'error',
-        code: 'FORBIDDEN',
+        code: 'SEGREGATION_OF_DUTIES',
+        error: 'SEGREGATION_OF_DUTIES',
         message: 'Access denied: Only Payroll Officer can calculate final settlements.',
       });
     }
@@ -30,7 +31,8 @@ export async function prepareSettlement(req, res, next) {
     if (!roles.includes('PAYROLL_OFFICER')) {
       return res.status(403).json({
         status: 'error',
-        code: 'FORBIDDEN',
+        code: 'SEGREGATION_OF_DUTIES',
+        error: 'SEGREGATION_OF_DUTIES',
         message: 'Access denied: Only Payroll Officer can prepare final settlements.',
       });
     }
@@ -55,7 +57,8 @@ export async function validateSettlement(req, res, next) {
     if (!roles.includes('HR_MANAGER')) {
       return res.status(403).json({
         status: 'error',
-        code: 'FORBIDDEN',
+        code: 'SEGREGATION_OF_DUTIES',
+        error: 'SEGREGATION_OF_DUTIES',
         message: 'Access denied: Only HR Manager can validate final settlements.',
       });
     }
@@ -75,7 +78,8 @@ export async function approveSettlement(req, res, next) {
     if (!roles.includes('GM')) {
       return res.status(403).json({
         status: 'error',
-        code: 'FORBIDDEN',
+        code: 'SEGREGATION_OF_DUTIES',
+        error: 'SEGREGATION_OF_DUTIES',
         message: 'Access denied: Only GM can approve final settlements.',
       });
     }
@@ -95,7 +99,8 @@ export async function markSettlementPaid(req, res, next) {
     if (!roles.includes('FINANCE')) {
       return res.status(403).json({
         status: 'error',
-        code: 'FORBIDDEN',
+        code: 'SEGREGATION_OF_DUTIES',
+        error: 'SEGREGATION_OF_DUTIES',
         message: 'Access denied: Only Finance can mark final settlements as Paid.',
       });
     }
@@ -113,7 +118,7 @@ export async function getSettlement(req, res, next) {
   try {
     const companyId = req.user.companyId;
     const { id } = req.params;
-    const settlement = await settlementService.getSettlement(companyId, id);
+    const settlement = await settlementService.getSettlement(companyId, id, req.user);
     res.status(200).json({ status: 'success', data: settlement });
   } catch (err) {
     next(err);
@@ -124,7 +129,7 @@ export async function getSettlementBySeparation(req, res, next) {
   try {
     const companyId = req.user.companyId;
     const { separationId } = req.params;
-    const settlement = await settlementService.getSettlementBySeparationId(companyId, separationId);
+    const settlement = await settlementService.getSettlementBySeparationId(companyId, separationId, req.user);
     if (!settlement) {
       return res.status(200).json({ status: 'success', data: null });
     }
@@ -138,10 +143,12 @@ export async function downloadSettlementPdf(req, res, next) {
   try {
     const companyId = req.user.companyId;
     const { id } = req.params;
-    const pdfBuffer = await settlementService.generateSettlementPdf(companyId, id);
+    const lang = req.query.lang || (req.headers['accept-language']?.includes('ar') ? 'ar' : 'en');
+    const pdfBuffer = await settlementService.generateSettlementPdf(companyId, id, req.user, lang);
+    const buffer = Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="settlement_${id.slice(0, 8)}.pdf"`);
-    res.send(pdfBuffer);
+    res.end(buffer);
   } catch (err) {
     next(err);
   }

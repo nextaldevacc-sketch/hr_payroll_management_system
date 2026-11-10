@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   FileText,
   Upload,
@@ -17,15 +18,56 @@ import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
 import { getMyDocuments, uploadMyDocument } from '@/services/meApi';
 
+function getDocTypeLabel(type, lang) {
+  if (lang !== 'ar') {
+    switch (type) {
+      case 'EMIRATES_ID': return 'Emirates ID';
+      case 'PASSPORT': return 'Passport';
+      case 'RESIDENCE_VISA': return 'Residence Visa';
+      case 'LABOUR_CARD': return 'Labour Card';
+      case 'INSURANCE': return 'Health Insurance';
+      default: return type?.replace(/_/g, ' ');
+    }
+  }
+  switch (type) {
+    case 'EMIRATES_ID': return 'الهوية الإماراتية';
+    case 'PASSPORT': return 'جواز السفر';
+    case 'RESIDENCE_VISA': return 'تأشيرة الإقامة';
+    case 'LABOUR_CARD': return 'بطاقة العمل';
+    case 'INSURANCE': return 'التأمين الصحي';
+    default: return type;
+  }
+}
+
+function getStatusLabel(status, lang) {
+  if (lang !== 'ar') return status;
+  switch (status) {
+    case 'Valid': return 'سارية';
+    case 'Expiring Soon': return 'تنتهي قريباً';
+    case 'Expired': return 'منتهية الصلاحية';
+    case 'Pending Verification': return 'قيد التدقيق والتحقق';
+    case 'Missing Data': return 'بيانات ناقصة';
+    default: return status;
+  }
+}
+
 export default function MyDocumentsPage() {
+  const searchParams = useSearchParams();
+  const actionParam = searchParams?.get('action');
   const { language } = useLanguage();
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadModalOpen, setUploadModalOpen] = useState(actionParam === 'upload');
   const [docType, setDocType] = useState('EMIRATES_ID');
   const [docNumber, setDocNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (actionParam === 'upload') {
+      setUploadModalOpen(true);
+    }
+  }, [actionParam]);
 
   const loadDocs = async () => {
     try {
@@ -77,6 +119,7 @@ export default function MyDocumentsPage() {
         </div>
 
         <Button
+          id="btn-open-upload-modal"
           size="sm"
           variant="primary"
           icon={<Upload className="w-3.5 h-3.5" />}
@@ -100,19 +143,19 @@ export default function MyDocumentsPage() {
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider">{doc.doc_type}</span>
+                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider">{getDocTypeLabel(doc.doc_type, language)}</span>
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                     isExpired ? 'bg-rose-500/10 text-rose-600' :
                     isExpiring ? 'bg-amber-500/10 text-amber-600' :
                     isPending ? 'bg-blue-500/10 text-blue-600' :
                     'bg-emerald-500/10 text-emerald-600'
                   }`}>
-                    {doc.status}
+                    {getStatusLabel(doc.status, language)}
                   </span>
                 </div>
 
                 <div className="mt-3">
-                  <span className="text-xs text-text-muted block">Document Number (Masked)</span>
+                  <span className="text-xs text-text-muted block">{language === 'ar' ? 'رقم المستند (مشفر جزئياً)' : 'Document Number (Masked)'}</span>
                   <span className="font-mono font-bold text-text text-sm block mt-0.5">
                     {doc.doc_number_masked || '—'}
                   </span>
@@ -121,15 +164,15 @@ export default function MyDocumentsPage() {
 
               <div className="pt-3 border-t border-border/40 text-xs space-y-1">
                 <div className="flex justify-between items-center text-text-muted">
-                  <span>Expiry Date:</span>
+                  <span>{language === 'ar' ? 'تاريخ الانتهاء:' : 'Expiry Date:'}</span>
                   <span className="font-bold text-text tabular-nums">
                     {String(doc.expiry_date).slice(0, 10)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-text-muted">
-                  <span>Days Left:</span>
+                  <span>{language === 'ar' ? 'الأيام المتبقية:' : 'Days Left:'}</span>
                   <span className={`font-bold tabular-nums ${doc.days_left <= 30 ? 'text-danger' : 'text-text'}`}>
-                    {doc.days_left} days
+                    {doc.days_left} {language === 'ar' ? 'يوم' : 'days'}
                   </span>
                 </div>
               </div>
@@ -142,28 +185,30 @@ export default function MyDocumentsPage() {
       <Modal
         isOpen={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
-        title="Upload Renewed Document"
-        subtitle="Submit updated document for HR Manager verification"
+        title={language === 'ar' ? 'رفع مستند مجدد' : 'Upload Renewed Document'}
+        subtitle={language === 'ar' ? 'تقديم نسخة المستند المجدد لمراجعة واعتماد الموارد البشرية' : 'Submit updated document for HR Manager verification'}
         maxWidth="max-w-md"
       >
-        <form onSubmit={handleUploadSubmit} className="space-y-4 text-xs">
+        <form id="my-doc-upload-form" onSubmit={handleUploadSubmit} className="space-y-4 text-xs">
           <div>
             <Select
-              label="Document Type"
+              id="my-doc-type-select"
+              label={language === 'ar' ? 'نوع المستند' : 'Document Type'}
               value={docType}
               onChange={(e) => setDocType(e.target.value)}
               options={[
-                { value: 'EMIRATES_ID', label: 'Emirates ID' },
-                { value: 'PASSPORT', label: 'Passport' },
-                { value: 'LABOUR_CARD', label: 'Labour Card / MOHRE' },
-                { value: 'RESIDENCE_VISA', label: 'Residence Visa' },
+                { value: 'EMIRATES_ID', label: language === 'ar' ? 'الهوية الإماراتية' : 'Emirates ID' },
+                { value: 'PASSPORT', label: language === 'ar' ? 'جواز السفر' : 'Passport' },
+                { value: 'LABOUR_CARD', label: language === 'ar' ? 'بطاقة العمل / وزارة الموارد البشرية' : 'Labour Card / MOHRE' },
+                { value: 'RESIDENCE_VISA', label: language === 'ar' ? 'تأشيرة الإقامة' : 'Residence Visa' },
               ]}
             />
           </div>
 
           <div>
-            <label className="font-bold text-text block mb-1">Document Number</label>
+            <label className="font-bold text-text block mb-1">{language === 'ar' ? 'رقم المستند' : 'Document Number'}</label>
             <input
+              id="my-doc-number-input"
               type="text"
               required
               value={docNumber}
@@ -174,8 +219,9 @@ export default function MyDocumentsPage() {
           </div>
 
           <div>
-            <label className="font-bold text-text block mb-1">New Expiry Date</label>
+            <label className="font-bold text-text block mb-1">{language === 'ar' ? 'تاريخ الانتهاء الجديد' : 'New Expiry Date'}</label>
             <input
+              id="my-doc-expiry-input"
               type="date"
               required
               value={expiryDate}
@@ -186,15 +232,15 @@ export default function MyDocumentsPage() {
 
           <div className="border-2 border-dashed border-border rounded-xl p-4 text-center bg-black/[0.01] dark:bg-white/[0.01]">
             <Upload className="w-5 h-5 mx-auto text-primary mb-1" />
-            <p className="text-[11px] text-text-muted">PDF or scanned image copy will be attached</p>
+            <p className="text-[11px] text-text-muted">{language === 'ar' ? 'سيتم إرفاق نسخة ضوئية أو ملف PDF' : 'PDF or scanned image copy will be attached'}</p>
           </div>
 
           <div className="pt-2 flex justify-end gap-2 border-t border-border/40">
             <Button type="button" variant="outline" size="sm" onClick={() => setUploadModalOpen(false)}>
-              Cancel
+              {language === 'ar' ? 'إلغاء' : 'Cancel'}
             </Button>
-            <Button type="submit" variant="primary" size="sm" loading={submitting}>
-              Upload for Verification
+            <Button id="btn-submit-upload-doc" type="submit" variant="primary" size="sm" loading={submitting}>
+              {language === 'ar' ? 'إرسال للاعتماد' : 'Upload for Verification'}
             </Button>
           </div>
         </form>

@@ -78,11 +78,11 @@ export default function LoginPage() {
             ? 'حساب شركتكم معلق حالياً. يرجى التواصل مع الدعم الفني.'
             : 'Your company account is suspended. Please contact Nextal platform support.'
         );
-      } else if (err.code === 'ACCOUNT_DISABLED' || err.code === 'ACCOUNT_ARCHIVED') {
+      } else if (err.code === 'ACCOUNT_DISABLED') {
         setErrorMessage(
           isAr
             ? 'تم إيقاف هذا الحساب. يرجى مراجعة مسؤول الشركة.'
-            : 'This user account has been disabled or archived. Login refused.'
+            : 'This user account has been disabled. Please contact your company administrator.'
         );
       } else if (err.code === 'FEATURE_DISABLED') {
         setErrorMessage(

@@ -365,7 +365,8 @@ export class SettlementService {
     if (settlement.created_by === userId) {
       const err = new Error('Segregation of duties violation: You cannot validate a final settlement you prepared.');
       err.status = 403;
-      err.code = 'SELF_VALIDATION_BLOCKED';
+      err.code = 'SEGREGATION_OF_DUTIES';
+      err.subcode = 'SELF_VALIDATION_BLOCKED';
       throw err;
     }
 
@@ -425,6 +426,15 @@ export class SettlementService {
       throw err;
     }
 
+    // T35: Double check clearance gate
+    const unclearedItems = settlement.separation.clearance_items.filter((c) => c.status !== 'Cleared');
+    if (unclearedItems.length > 0) {
+      const err = new Error(`Settlement cannot be approved: clearance item(s) are still open.`);
+      err.status = 400;
+      err.code = 'CLEARANCE_ITEMS_PENDING';
+      throw err;
+    }
+
     if (settlement.status !== 'Validated') {
       const err = new Error(`Cannot approve settlement in '${settlement.status}' status. It must be Validated first.`);
       err.status = 400;
@@ -432,20 +442,12 @@ export class SettlementService {
       throw err;
     }
 
-    // Segregation of duties: Validator cannot approve their own validation
-    if (settlement.updated_by === userId) {
-      const err = new Error('Segregation of duties violation: You cannot approve a settlement you validated.');
+    // Segregation of duties: Validator cannot approve their own validation, and preparer cannot approve
+    if (settlement.updated_by === userId || settlement.created_by === userId) {
+      const err = new Error('Segregation of duties violation: You cannot approve a settlement you validated or prepared.');
       err.status = 403;
-      err.code = 'SELF_APPROVAL_BLOCKED';
-      throw err;
-    }
-
-    // T35: Double check clearance gate
-    const unclearedItems = settlement.separation.clearance_items.filter((c) => c.status !== 'Cleared');
-    if (unclearedItems.length > 0) {
-      const err = new Error(`Settlement cannot be approved: clearance item(s) are still open.`);
-      err.status = 400;
-      err.code = 'CLEARANCE_ITEMS_PENDING';
+      err.code = 'SEGREGATION_OF_DUTIES';
+      err.subcode = 'SELF_APPROVAL_BLOCKED';
       throw err;
     }
 
@@ -497,11 +499,12 @@ export class SettlementService {
       throw err;
     }
 
-    // Segregation of duties: Approver cannot mark Paid
-    if (settlement.updated_by === userId) {
-      const err = new Error('Segregation of duties violation: You cannot mark paid a final settlement you approved.');
+    // Segregation of duties: Approver, validator, or preparer cannot mark Paid
+    if (settlement.updated_by === userId || settlement.created_by === userId) {
+      const err = new Error('Segregation of duties violation: You cannot mark paid a final settlement you approved, validated, or prepared.');
       err.status = 403;
-      err.code = 'SELF_PAYMENT_BLOCKED';
+      err.code = 'SEGREGATION_OF_DUTIES';
+      err.subcode = 'SELF_PAYMENT_BLOCKED';
       throw err;
     }
 
@@ -571,7 +574,7 @@ export class SettlementService {
   /**
    * Get Final Settlement by Separation ID
    */
-  async getSettlementBySeparationId(companyId, separationId) {
+  async getSettlementBySeparationId(companyId, separationId, viewer = null) {
     const settlement = await this.prisma.$base().final_settlements.findFirst({
       where: { separation_id: separationId, company_id: companyId },
       include: {
@@ -595,19 +598,158 @@ export class SettlementService {
       },
     });
 
+    if (settlement && viewer) {
+      const scope = scopeService.resolveDataScope(viewer);
+      scopeService.assertEmployeeInScope(settlement.separation?.employee, scope);
+    }
+
     return settlement || null;
   }
 
   /**
    * Generate Settlement Payslip PDF
    */
-  async generateSettlementPdf(companyId, settlementId) {
-    const settlement = await this.getSettlement(companyId, settlementId);
+  async generateSettlementPdf(companyId, settlementId, viewer = null, lang = 'en') {
+    const settlement = await this.getSettlement(companyId, settlementId, viewer);
     const snap = settlement.snapshot || {};
     const emp = settlement.separation.employee;
     const contract = emp.contracts[0];
+    const isAr = String(lang).toLowerCase().startsWith('ar');
 
-    const html = `
+    const html = isAr
+      ? `
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <title>مستحقات نهاية الخدمة والتسوية النهائية - ${emp.arabic_name || emp.name}</title>
+      <style>
+        body { font-family: "Noto Sans Arabic", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 40px; color: #1e293b; background: #fff; font-size: 13px; line-height: 1.6; direction: rtl; }
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0284c7; padding-bottom: 15px; margin-bottom: 25px; }
+        .title { font-size: 22px; font-weight: 700; color: #0f172a; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 9999px; font-weight: 600; font-size: 11px; }
+        .badge-approved { background: #dcfce7; color: #15803d; }
+        .badge-paid { background: #e0e7ff; color: #4338ca; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }
+        .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; }
+        .card-title { font-weight: 700; color: #475569; margin-bottom: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th { background: #f1f5f9; text-align: right; padding: 8px 12px; font-weight: 600; color: #475569; border-bottom: 1px solid #cbd5e1; font-size: 12px; }
+        td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; }
+        .text-left { text-align: left; }
+        .total-row { font-weight: 700; background: #f8fafc; }
+        .net-card { background: #0f172a; color: #fff; padding: 20px; border-radius: 8px; text-align: center; margin-top: 20px; }
+        .net-amount { font-size: 28px; font-weight: 800; color: #38bdf8; }
+        .signatures { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 40px; }
+        .sign-box { border-top: 1px dashed #94a3b8; padding-top: 8px; text-align: center; font-size: 11px; color: #64748b; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div>
+          <div class="title">مستحقات نهاية الخدمة والتسوية النهائية</div>
+          <div style="color: #64748b; margin-top: 4px;">نظام نكستال للموارد البشرية والرواتب · تسوية قانون العمل الإماراتي</div>
+        </div>
+        <div style="text-align: left;">
+          <span class="badge ${settlement.status === 'Paid' ? 'badge-paid' : 'badge-approved'}">${settlement.status === 'Paid' ? 'مدفوع' : 'معتمد'}</span>
+          <div style="font-size: 11px; color: #64748b; margin-top: 6px;">المرجع: ${settlement.id.slice(0, 8)}</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">بيانات الموظف</div>
+          <div>الاسم العربي: <strong>${emp.arabic_name || emp.name}</strong> (${emp.employee_code})</div>
+          <div>الاسم بالإنجليزية: ${emp.name}</div>
+          <div>القسم: ${contract?.department?.name || '—'}</div>
+          <div>المسمى الوظيفي: ${contract?.job?.title || '—'}</div>
+          <div>التأشيرة: ${emp.company_visa?.name || '—'}</div>
+        </div>
+        <div class="card">
+          <div class="card-title">مدة الخدمة والعقد</div>
+          <div>تاريخ الالتحاق: <strong>${snap.joining_date || '—'}</strong></div>
+          <div>آخر يوم عمل: <strong>${snap.last_working_day || '—'}</strong></div>
+          <div>مدة الخدمة الصافية: <strong>${snap.service_period_text || '—'}</strong></div>
+          <div>الراتب الأساسي التعاقدي: <strong>${Number(contract?.basic || 0).toFixed(2)} د.إ</strong></div>
+          <div>الراتب الإجمالي التعاقدي: <strong>${Number(contract?.gross || 0).toFixed(2)} د.إ</strong></div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>بند التسوية ومستحقات نهاية الخدمة</th>
+            <th>الأساس والحساب النظامي</th>
+            <th class="text-left">المستحقات (د.إ)</th>
+            <th class="text-left">الاستقطاعات (د.إ)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>راتب آخر شهر حتى آخر يوم عمل</strong></td>
+            <td>${snap.salary_due_working?.days_worked || 0} يوم عمل في شهر المغادرة (÷ ${snap.salary_due_working?.departure_month_days || 30})</td>
+            <td class="text-left">${Number(settlement.salary_due).toFixed(2)} د.إ</td>
+            <td class="text-left">—</td>
+          </tr>
+          <tr>
+            <td><strong>مكافأة نهاية الخدمة (المادة 51)</strong></td>
+            <td>قانون العمل: 21 يوماً (1-5 سنوات) + 30 يوماً (>5 سنوات) @ أجر أساسي يومي ${Number(snap.basic_daily_wage || 0).toFixed(2)} د.إ</td>
+            <td class="text-left">${Number(settlement.gratuity).toFixed(2)} د.إ</td>
+            <td class="text-left">—</td>
+          </tr>
+          <tr>
+            <td><strong>بدل الإجازات السنوية غير المستخدمة</strong></td>
+            <td>${Number(settlement.leave_encashment_days).toFixed(2)} يوم غير مستخدم × الأجر الأساسي اليومي</td>
+            <td class="text-left">${Number(settlement.leave_encashment).toFixed(2)} د.إ</td>
+            <td class="text-left">—</td>
+          </tr>
+          <tr>
+            <td><strong>استرداد فترة الإنذار</strong></td>
+            <td>${snap.recoveries?.notice_shortfall_days || 0} يوم نقص في فترة الإنذار</td>
+            <td class="text-left">—</td>
+            <td class="text-left">${Number(settlement.notice_recovery).toFixed(2)} د.إ</td>
+          </tr>
+          <tr>
+            <td><strong>رصيد القروض والسلف المستحقة</strong></td>
+            <td>تسوية أرصدة القروض والسلف للشركة</td>
+            <td class="text-left">—</td>
+            <td class="text-left">${Number(settlement.loan_recovery).toFixed(2)} د.إ</td>
+          </tr>
+          <tr>
+            <td><strong>استقطاعات براءة الذمة والأصول</strong></td>
+            <td>أصول متأخرة أو مفقودة من قائمة براءة الذمة</td>
+            <td class="text-left">—</td>
+            <td class="text-left">${Number(settlement.clearance_recovery).toFixed(2)} د.إ</td>
+          </tr>
+          <tr>
+            <td><strong>تكاليف التدريب والاستقطاعات الأخرى</strong></td>
+            <td>استرداد التزامات التدريب التعاقدية</td>
+            <td class="text-left">—</td>
+            <td class="text-left">${(Number(settlement.training_recovery) + Number(settlement.other_recovery)).toFixed(2)} د.إ</td>
+          </tr>
+          <tr class="total-row">
+            <td colspan="2"><strong>إجمالي المستحقات والاستقطاعات</strong></td>
+            <td class="text-left"><strong>${(Number(settlement.salary_due) + Number(settlement.gratuity) + Number(settlement.leave_encashment)).toFixed(2)} د.إ</strong></td>
+            <td class="text-left"><strong>${(Number(settlement.notice_recovery) + Number(settlement.loan_recovery) + Number(settlement.clearance_recovery) + Number(settlement.training_recovery) + Number(settlement.other_recovery)).toFixed(2)} د.إ</strong></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="net-card">
+        <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8;">صافي المستحقات النهائية الصافية (WPS)</div>
+        <div class="net-amount">${Number(settlement.net_payable).toFixed(2)} د.إ</div>
+      </div>
+
+      <div class="signatures">
+        <div class="sign-box">إعداد: مسؤول الرواتب<br><strong>Payroll Officer</strong></div>
+        <div class="sign-box">تدقيق: مدير الموارد البشرية<br><strong>HR Manager</strong></div>
+        <div class="sign-box">اعتماد: المدير العام<br><strong>General Manager</strong></div>
+        <div class="sign-box">استلام وإقرار الموظف<br><strong>Employee Signature</strong></div>
+      </div>
+    </body>
+    </html>
+    `
+      : `
     <!DOCTYPE html>
     <html lang="en">
     <head>

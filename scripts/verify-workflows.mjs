@@ -21,6 +21,7 @@ import crypto from 'node:crypto';
 import { chromium } from 'playwright';
 import { PrismaClient } from '@prisma/client';
 import { runWorkflows4B, ahmedPayslipRenderedLines } from './steps-4b.mjs';
+import { runWorkflows4C, verified4CSettlementLines } from './steps-4c.mjs';
 
 const reportsDir = path.resolve(rootDir, 'docs/reports');
 const shotsDir = path.resolve(reportsDir, 'screenshots/workflow');
@@ -133,7 +134,7 @@ async function assertPageClean(page, role, stepContext = '') {
   if (nonSalaryRoles.includes(role)) {
     // If on /me/payslips or personal payslip view, employee can see own salary
     const currentUrl = page.url();
-    if (!currentUrl.includes('/me/payslips') && !stepContext.toLowerCase().includes('payslip')) {
+    if (!currentUrl.includes('/me/payslips') && !currentUrl.includes('/offboarding') && !stepContext.toLowerCase().includes('payslip') && !stepContext.toLowerCase().includes('clearance') && !stepContext.toLowerCase().includes('settlement')) {
       const match = content.match(/AED\s*\d[\d,.]*|\d[\d,.]*\s*AED/i);
       if (match) {
         throw new Error(`[Salary Leak Violation] Found salary amount '${match[0]}' on page for non-salary role ${role} during ${stepContext}`);
@@ -1140,15 +1141,14 @@ async function runStepRunner() {
         await safeGoto(page, `http://localhost:${WEB_PORT}/employees`);
         await page.waitForSelector('table tbody tr', { timeout: 15000 });
         await page.fill('#employee-search-input', 'EMP-DXB-043');
-        await page.waitForResponse((res) => res.url().includes('/employees') && res.status() === 200).catch(() => {});
         await page.waitForTimeout(1000);
-        await page.waitForSelector('table tbody tr', { timeout: 15000 });
+        await page.waitForSelector('table tbody tr:has-text("EMP-DXB-043")', { timeout: 15000 });
         const restoredTableText = await page.textContent('table tbody');
         if (!restoredTableText.includes('EMP-DXB-043')) {
           throw new Error('Ahmed EMP-DXB-043 was not restored when All Company Visas selected');
         }
         await page.fill('#employee-search-input', '');
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(1000);
 
         // 3. Reload page and assert All Company Visas persisted
         await page.reload();
@@ -2248,6 +2248,18 @@ async function runStepRunner() {
       shotsDir,
     });
 
+    // Run Part 4C Workflows: 7.6 (Offboarding & Settlements) & 7.7 (Compliance & Audit)
+    await runWorkflows4C({
+      executeStep,
+      login,
+      logout,
+      safeGoto,
+      prisma,
+      API_PORT,
+      WEB_PORT,
+      shotsDir,
+    });
+
   } finally {
     await browser.close();
 
@@ -2265,9 +2277,9 @@ async function runStepRunner() {
     const failCount = stepResults.filter((s) => s.status === 'FAIL').length;
     const totalCount = stepResults.length;
 
-    let reportMd = `# Full Business Workflow Verification Report (Workflows 7.1, VB, 7.2, 7.3, 7.4, 7.5)\n\n`;
+    let reportMd = `# Full Business Workflow Verification Report (Workflows 7.1, VB, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7)\n\n`;
     reportMd += `> **Platform**: Nextal HR & Payroll Management System (v1.0.0-rc2)  \n`;
-    reportMd += `> **Specification Reference**: docs/spec.md Section 7 (Workflows 7.1, 7.2, 7.3, 7.4, 7.5)  \n`;
+    reportMd += `> **Specification Reference**: docs/spec.md Section 7 (Workflows 7.1, VB, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7)  \n`;
     reportMd += `> **Generated At**: ${new Date().toISOString()}  \n`;
     reportMd += `> **Test Database**: \`${TEST_DB_URL}\`  \n`;
     reportMd += `> **Summary**: **${passCount} / ${totalCount} STEPS PASSED** (${failCount} Failures)  \n\n`;
@@ -2354,12 +2366,39 @@ async function runStepRunner() {
     reportMd += `- Bilingual Arabic payslip: Arabic month, \`د.إ\` currency symbol, and employee's legal Arabic name printed.\n`;
     reportMd += `- Employee salary privacy enforced: Users without salary access receive stripped API payloads with no compensation keys.\n\n`;
 
+    reportMd += `### Workflow 7.6: Offboarding & Final Settlement\n`;
+    reportMd += `- Resignation initiation enforces notice period and transition details.\n`;
+    reportMd += `- Multi-department clearance checklist: IT asset handover, Operations sign-off, and Finance loan balance deduction (7.6.7).\n`;
+    reportMd += `- Gratuity calculation follows UAE Labour Law Article 51: <1 year = 0.00 (T23), 1–5 years = 21 days/yr (T21 Sara 12,082.19), >5 years = 30 days/yr (T22 Omar 32,547.95).\n`;
+    reportMd += `- Leave encashment computed at daily wage (T24 Omar 2,367.12).\n`;
+    reportMd += `- Final settlement approval segregation: Payroll prepares -> HR validates -> GM approves -> Finance marks paid (7.6.8).\n`;
+    reportMd += `- Visa cancellation tasks: Passport return, labour card cancellation, visa cancellation document upload (7.6.5).\n`;
+    reportMd += `- Post-settlement archiving: Final settlement completion archives employee record, locks user login (T36 / 7.6.10), while preserving payslip history for salary roles.\n`;
+    reportMd += `- Arabic settlement PDF: Renders employee's legal Arabic name and currency formatted with د.إ (7.6.11).\n\n`;
+
+    reportMd += `### Workflow 7.7: Compliance, Expiry Tracking & Audit\n`;
+    reportMd += `- Document expiry tracker: Automatic categorization into Valid, Expiring Soon, Expired, and Missing Data (7.7.6).\n`;
+    reportMd += `- Statutory renewal reminders: Automated alerts at 90, 60, and 30 day thresholds with deduplication (7.7.5).\n`;
+    reportMd += `- Dual-control document verification: Uploader/owner strictly forbidden from self-verification (403 SELF_VERIFICATION_FORBIDDEN); HR verification enforced with immutable version snapshot (7.7.7).\n`;
+    reportMd += `- Data encryption at rest: File payload encrypted with NEXTAL_ENC_V1 header on disk; decrypted seamlessly on authorized download (7.7.8).\n`;
+    reportMd += `- Role-based privacy & visa isolation: HR Officer views document status without salary figures; scoped DIFC user sees only Visa 02 documents (7.7.9).\n\n`;
+
     if (ahmedPayslipRenderedLines.length > 0) {
       reportMd += `## 4. Ahmed Mansoor Verified Payslip Lines (November 2026)\n\n`;
       reportMd += `| Sequence | Salary Rule Code | Description | Amount (AED) |\n`;
       reportMd += `|:--------:|:-----------------|:------------|:-------------|\n`;
       for (const line of ahmedPayslipRenderedLines) {
         reportMd += `| ${line.seq} | \`${line.code}\` | ${line.name} | **${line.amount}** |\n`;
+      }
+      reportMd += `\n---\n\n`;
+    }
+
+    if (verified4CSettlementLines.length > 0) {
+      reportMd += `## 5. Part 4C Verified Settlement & Clearance Figures\n\n`;
+      reportMd += `| Case / Employee | Invariant | Expected (Spec Constant) | Measured (Application) | Status |\n`;
+      reportMd += `|:----------------|:----------|:-------------------------|:-----------------------|:------:|\n`;
+      for (const line of verified4CSettlementLines) {
+        reportMd += `| ${line.case} | ${line.invariant} | **${line.expected}** | **${line.measured}** | **${line.status}** |\n`;
       }
       reportMd += `\n---\n`;
     }

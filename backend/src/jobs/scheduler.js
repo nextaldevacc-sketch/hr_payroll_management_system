@@ -138,7 +138,7 @@ export async function executeJob(jobKey, triggeredBy = 'CRON') {
         userId: triggeredBy === 'CRON' ? null : triggeredBy,
         action: `JOB_RUN_${jobDef.name.toUpperCase()}`,
         tableName: 'system_jobs',
-        recordId: null,
+        recordId: comp.id,
         newValues: {
           jobName: jobDef.name,
           triggeredBy,

@@ -382,6 +382,13 @@ async function main() {
     { id: 'payroll-payslips', path: `/payroll/${latestRunId}?tab=payslips`, name: 'Pay Run Payslips Tab' },
     { id: 'payroll-sif', path: `/payroll/${latestRunId}?tab=sif`, name: 'Pay Run SIF Tab' },
     { id: 'me-payslip-detail', path: `/me/payslips/${latestPayslipId}`, name: 'My Payslip Detail' },
+    // 4C Screens
+    { id: 'offboarding-detail', path: '/offboarding?tab=clearance', name: 'Offboarding Detail' },
+    { id: 'clearance-checklist', path: '/offboarding?tab=clearance', name: 'Clearance Checklist' },
+    { id: 'settlement-view', path: '/offboarding?tab=settlement', name: 'Settlement View' },
+    { id: 'cancellation-tasks', path: '/offboarding?tab=tasks', name: 'Cancellation Tasks' },
+    { id: 'me-documents-upload', path: '/me/documents?action=upload', name: 'My Documents Upload Modal' },
+    { id: 'document-verification-drawer', path: '/compliance?status=Pending', name: 'Document Verification Drawer' },
   ];
 
   console.log(`Auditing ${PAGES.length} pages across 4 variants (${PAGES.length * VARIANTS.length} cells total)...\n`);

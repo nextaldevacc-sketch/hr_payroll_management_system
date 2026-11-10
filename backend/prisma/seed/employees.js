@@ -106,12 +106,46 @@ export async function seedEmployees(prisma, {
 
   for (let i = 1; i <= 45; i++) {
     const code = `EMP-DXB-${String(i).padStart(3, '0')}`;
-    const targetVisa = (i <= 30 || i === 43 || i === 45) ? visas1.visa1_01 : visas1.visa1_02;
-    const targetBranch = (i <= 30 || i === 43 || i === 45) ? branches1.branch1_main : branches1.branch1_difc;
+    const targetVisa = (i <= 30 || i === 40 || i === 41 || i === 43 || i === 45) ? visas1.visa1_01 : visas1.visa1_02;
+    const targetBranch = (i <= 30 || i === 40 || i === 41 || i === 43 || i === 45) ? branches1.branch1_main : branches1.branch1_difc;
 
     let baseInfo;
     if (i <= employeeNames.length) {
       baseInfo = employeeNames[i - 1];
+    } else if (i === 40) {
+      // Zaid Al-Harbi: 11 months service (joins 2025-11-30, exits 2026-10-31) -> Gratuity 0.00 (T23)
+      baseInfo = {
+        name: 'Zaid Al-Harbi',
+        name_ar: 'زيد الحربي',
+        nat: 'SAU',
+        gender: 'Male',
+        uae: false,
+        job: jobs1.jobOps,
+        dept: depts1['Operations'],
+        gross: 6000,
+        basic: 3600,
+        housing: 1800,
+        trans: 300,
+        oth: 300,
+        joining_date: new Date('2025-11-30'),
+      };
+    } else if (i === 41) {
+      // Khalid Al-Marzouqi: Active employee for Workflow 7.6 offboarding resignation
+      baseInfo = {
+        name: 'Khalid Al-Marzouqi',
+        name_ar: 'خالد المرزوقي',
+        nat: 'ARE',
+        gender: 'Male',
+        uae: true,
+        job: jobs1.jobOps,
+        dept: depts1['Operations'],
+        gross: 9000,
+        basic: 5400,
+        housing: 2700,
+        trans: 450,
+        oth: 450,
+        joining_date: new Date('2024-01-15'),
+      };
     } else if (i === 42) {
       baseInfo = {
         name: 'Omar Al-Hashimi',
@@ -212,7 +246,7 @@ export async function seedEmployees(prisma, {
         mohre_person_id: `MOHRE${String(1000000 + i)}`,
         company_visa_id: targetVisa.id,
         branch_id: targetBranch.id,
-        work_email: i === 42 ? 'omar.alhashimi@gulftech.ae' : i === 43 ? 'ahmed.mansoori@gulftech.ae' : i === 44 ? 'sara.nuaimi@gulftech.ae' : `emp${i}@gulftech.ae`,
+        work_email: i === 40 ? 'zaid.alharbi@gulftech.ae' : i === 41 ? 'khalid.almarzouqi@gulftech.ae' : i === 42 ? 'omar.alhashimi@gulftech.ae' : i === 43 ? 'ahmed.mansoori@gulftech.ae' : i === 44 ? 'sara.nuaimi@gulftech.ae' : `emp${i}@gulftech.ae`,
         mobile: `+97150${String(1000000 + i).substring(1)}`,
       },
     });
@@ -353,12 +387,23 @@ export async function seedEmployees(prisma, {
     else if (i === 17) labourDays = 70;
     else if (i === 18) passportDays = 75;
     else if (i === 19) eidDays = 85;
+    else if (i === 21) eidDays = 89;
+    else if (i === 22) eidDays = 59;
+    else if (i === 23) eidDays = 29;
 
     const calcStatus = (days) => (days < 0 ? 'Expired' : days <= 90 ? 'Expiring Soon' : 'Valid');
 
-    // 1. Emirates ID
-    const eidExpiry = new Date(baseNow);
-    eidExpiry.setDate(eidExpiry.getDate() + eidDays);
+    // 1. Emirates ID (i === 24 has no expiry date -> 'Missing Data' for FR-CO3 / 7.7.6)
+    let eidExpiry = null;
+    let eidStatus = 'Valid';
+    if (i === 24) {
+      eidExpiry = null;
+      eidStatus = 'Missing Data';
+    } else {
+      eidExpiry = new Date(baseNow);
+      eidExpiry.setDate(eidExpiry.getDate() + eidDays);
+      eidStatus = calcStatus(eidDays);
+    }
     await prisma.employee_documents.create({
       data: {
         company_id: company1.id,
@@ -368,7 +413,7 @@ export async function seedEmployees(prisma, {
         expiry_date: eidExpiry,
         file_url: placeholderUrl,
         owner_id: userHR1.id,
-        status: calcStatus(eidDays),
+        status: eidStatus,
         verification_status: 'Verified',
       },
     });
@@ -432,6 +477,7 @@ export async function seedEmployees(prisma, {
     { email: 'payroll@gulftech.ae', code: 'EMP-DXB-006' },
     { email: 'finance@gulftech.ae', code: 'EMP-DXB-007' },
     { email: 'employee@gulftech.ae', code: 'EMP-DXB-043' }, // Ahmed Al-Mansoori
+    { email: 'khalid.almarzouqi@gulftech.ae', code: 'EMP-DXB-041' }, // Khalid Al-Marzouqi (Workflow 7.6)
   ];
 
   for (const link of staffLinks) {

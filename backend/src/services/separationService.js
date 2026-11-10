@@ -190,15 +190,26 @@ export class SeparationService {
     if (action === 'Approve') {
       await this._createDefaultClearanceItems(companyId, separationId, userId);
       // Notify HR and Finance of exit approval
-      await notificationService.notifyApproversWaiting({
-        companyId,
-        requestType: 'Separation',
-        requestId: separationId,
-        actorUserId: userId,
-        description: `Separation approved for ${separation.employee.name}. Clearance checklist opened.`,
-      }).catch((err) => {
-        console.warn('Failed to notify approvers waiting:', err.message);
-      });
+      try {
+        const hrRole = await this.prisma.$base().roles.findUnique({ where: { code: 'HR_OFFICER' } });
+        if (hrRole) {
+          const hrUsers = await this.prisma.$base().user_roles.findMany({
+            where: { company_id: companyId, role_id: hrRole.id },
+            select: { user_id: true },
+          });
+          for (const u of hrUsers) {
+            await notificationService.notifyApprovalWaiting(
+              companyId,
+              u.user_id,
+              'Separation Clearance',
+              separation.employee.name,
+              `/offboarding?id=${separationId}&tab=clearance`
+            ).catch(() => {});
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to dispatch clearance notifications:', err.message);
+      }
     }
 
     return this.getSeparationById(companyId, separationId);
@@ -222,9 +233,10 @@ export class SeparationService {
     });
 
     const itDept = depts.find((d) => d.name.toLowerCase().includes('it') || d.name.toLowerCase().includes('engineer')) || depts[0];
-    const adminDept = depts.find((d) => d.name.toLowerCase().includes('admin') || d.name.toLowerCase().includes('hr')) || depts[0];
+    const adminDept = depts.find((d) => d.name.toLowerCase().includes('admin')) || depts[0];
     const hrDept = depts.find((d) => d.name.toLowerCase().includes('hr')) || adminDept;
-    const financeDept = depts.find((d) => d.name.toLowerCase().includes('finance') || d.name.toLowerCase().includes('ops')) || depts[0];
+    const financeDept = depts.find((d) => d.name.toLowerCase().includes('finance')) || depts[0];
+    const opsDept = depts.find((d) => d.name.toLowerCase().includes('ops') || d.name.toLowerCase().includes('operation')) || depts[0];
 
     // Find fallback owner user for departments
     const hrUser = await this.prisma.$base().users.findFirst({
@@ -238,25 +250,46 @@ export class SeparationService {
     });
     const fallbackUserId = hrUser?.id || adminUser?.id || userId;
 
+    const getDeptUserId = async (dept) => {
+      if (dept?.manager_id) {
+        const mgrUser = await this.prisma.$base().users.findFirst({
+          where: { employee_id: dept.manager_id },
+        });
+        if (mgrUser) return mgrUser.id;
+      }
+      return null;
+    };
+
+    const opsUserId = (await getDeptUserId(opsDept)) || fallbackUserId;
+    const financeUserId = financeUser?.id || (await getDeptUserId(financeDept)) || fallbackUserId;
+    const itUserId = (await getDeptUserId(itDept)) || fallbackUserId;
+    const adminUserId = (await getDeptUserId(adminDept)) || fallbackUserId;
+    const hrUserId = hrUser?.id || (await getDeptUserId(hrDept)) || fallbackUserId;
+
     const defaultItems = [
       {
+        department_id: opsDept?.id,
+        owner_user_id: opsUserId,
+        item: 'Department Operational Handover & Sign-off',
+      },
+      {
+        department_id: financeDept?.id,
+        owner_user_id: financeUserId,
+        item: 'Finance Clearance: Loans, Advances & Credit Cards',
+      },
+      {
         department_id: itDept?.id,
-        owner_user_id: itDept?.manager_id || fallbackUserId,
+        owner_user_id: itUserId,
         item: 'IT Equipment & Laptop Return',
       },
       {
         department_id: adminDept?.id,
-        owner_user_id: adminDept?.manager_id || fallbackUserId,
+        owner_user_id: adminUserId,
         item: 'Office Access Card, Keys & Physical Assets',
       },
       {
-        department_id: financeDept?.id,
-        owner_user_id: financeUser?.id || financeDept?.manager_id || fallbackUserId,
-        item: 'Finance Clearance: Loans, Advances & Credit Cards',
-      },
-      {
         department_id: hrDept?.id,
-        owner_user_id: hrUser?.id || fallbackUserId,
+        owner_user_id: hrUserId,
         item: 'HR & Visa: Labour Card & Residency Visa Cancellation',
       },
     ];
@@ -335,13 +368,24 @@ export class SeparationService {
 
       const roles = user.roles || [];
       const isHrOrGm = roles.some((r) =>
-        ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM'].includes(r)
+        ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM'].includes(r)
       );
 
       if (!isHrOrGm) {
         if (roles.includes('DEPT_MANAGER')) {
+          const empId = user.employeeId || user.employee_id || (await this.prisma.$base().users.findUnique({
+            where: { id: user.userId || user.id },
+            select: { employee_id: true },
+          }))?.employee_id;
+
           const userDept = await this.prisma.$base().departments.findFirst({
-            where: { company_id: companyId, manager_id: user.userId || user.id },
+            where: {
+              company_id: companyId,
+              OR: [
+                ...(empId ? [{ manager_id: empId }] : []),
+                { manager_id: user.userId || user.id },
+              ],
+            },
           });
           const empDeptId = separation.employee?.contracts?.[0]?.department_id;
           if (!userDept || empDeptId !== userDept.id) {
@@ -408,13 +452,24 @@ export class SeparationService {
 
       const roles = user.roles || [];
       const isHrOrGm = roles.some((r) =>
-        ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM'].includes(r)
+        ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM'].includes(r)
       );
 
       if (!isHrOrGm) {
         if (roles.includes('DEPT_MANAGER')) {
+          const empId = user.employeeId || user.employee_id || (await this.prisma.$base().users.findUnique({
+            where: { id: user.userId || user.id },
+            select: { employee_id: true },
+          }))?.employee_id;
+
           const userDept = await this.prisma.$base().departments.findFirst({
-            where: { company_id: companyId, manager_id: user.userId || user.id },
+            where: {
+              company_id: companyId,
+              OR: [
+                ...(empId ? [{ manager_id: empId }] : []),
+                { manager_id: user.userId || user.id },
+              ],
+            },
           });
           if (userDept) {
             where.employee = {
@@ -543,7 +598,19 @@ export class SeparationService {
           throw err;
         }
       } else if (isDeptManager) {
-        if (item.owner_user_id !== userId && item.department_id !== userObj?.department_id) {
+        const empId = userObj?.employee_id || userObj?.employeeId;
+        const isManagerOfDept = item.department_id ? await this.prisma.$base().departments.findFirst({
+          where: {
+            id: item.department_id,
+            company_id: companyId,
+            OR: [
+              ...(empId ? [{ manager_id: empId }] : []),
+              { manager_id: userId },
+            ],
+          },
+        }) : false;
+
+        if (item.owner_user_id !== userId && !isManagerOfDept) {
           const err = new Error('Department managers can only clear their own assigned checklist items');
           err.status = 403;
           err.code = 'FORBIDDEN_DEPARTMENT';

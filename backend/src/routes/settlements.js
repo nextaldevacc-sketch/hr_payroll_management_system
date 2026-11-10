@@ -27,7 +27,9 @@ router.get('/reports/leave-liability', downloadLeaveLiabilityExcel);
 
 // Calculations & Lifecycle
 router.post('/calculate/:separationId', calculateSettlement);
+router.post('/:separationId/calculate', calculateSettlement);
 router.post('/prepare/:separationId', prepareSettlement);
+router.post('/:separationId/prepare', prepareSettlement);
 router.post('/:id/validate', validateSettlement);
 router.post('/:id/approve', approveSettlement);
 router.post('/:id/pay', markSettlementPaid);

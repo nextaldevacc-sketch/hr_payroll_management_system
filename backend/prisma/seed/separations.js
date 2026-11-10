@@ -147,7 +147,57 @@ export async function seedSeparations(prisma, {
   });
 
   console.log(`Omar settlement approved: Gratuity AED ${approvedSettlement.gratuity}, Total Net AED ${approvedSettlement.net_payable}`);
-  return { sepInProgress, omarSep, approvedSettlement };
+
+  // =========================================================================
+  // 3. 11-Month Tenure (T23): Zaid Al-Harbi (EMP-DXB-040, Gratuity AED 0.00)
+  // =========================================================================
+  console.log('Seeding 11-month tenure separation for Zaid Al-Harbi (EMP-DXB-040)...');
+  const zaid = seededEmployees.find((e) => e.employee_code === 'EMP-DXB-040');
+  let zaidSettlement = null;
+  let zaidSep = null;
+  if (zaid) {
+    zaidSep = await separationService.createSeparation(
+      company1.id,
+      {
+        employee_id: zaid.id,
+        type: 'Resignation',
+        reason: 'Personal reasons (11 months tenure)',
+        notice_date: '2026-09-30',
+        last_working_day: '2026-10-31',
+        auto_approve: true,
+      },
+      userHR1.id
+    );
+
+    const zaidClearance = await prisma.clearance_items.findMany({
+      where: { separation_id: zaidSep.id },
+    });
+    for (const item of zaidClearance) {
+      await separationService.updateClearanceItem(
+        company1.id,
+        item.id,
+        {
+          status: 'Cleared',
+          amount_due: 0,
+          note: 'All items returned',
+        },
+        userHR1.id
+      );
+    }
+
+    zaidSettlement = await settlementService.prepareSettlement(
+      company1.id,
+      zaidSep.id,
+      {
+        unusedLeaveDays: 0,
+        noticeRecoveryDays: 0,
+      },
+      userPayroll1.id
+    );
+    console.log(`Zaid settlement prepared: Gratuity AED ${zaidSettlement.gratuity} (T23: Under 1 year -> 0.00)`);
+  }
+
+  return { sepInProgress, omarSep, approvedSettlement, zaidSep, zaidSettlement };
 }
 
 export default seedSeparations;

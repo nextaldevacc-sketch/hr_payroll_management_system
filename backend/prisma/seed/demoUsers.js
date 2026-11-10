@@ -51,6 +51,7 @@ export async function seedDemoUsers(prisma, { company1, company2, depts1, visas1
     { email: 'gm@gulftech.ae', roleCode: 'GM', scopeType: 'Company' },
     { email: 'finance@gulftech.ae', roleCode: 'FINANCE', scopeType: 'Company' },
     { email: 'employee@gulftech.ae', roleCode: 'EMPLOYEE', scopeType: 'Company' },
+    { email: 'khalid.almarzouqi@gulftech.ae', roleCode: 'EMPLOYEE', scopeType: 'Company' },
   ];
 
   for (const acc of demoAccounts) {
