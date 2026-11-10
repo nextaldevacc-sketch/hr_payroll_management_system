@@ -250,7 +250,7 @@ describe('Payslip Lines Calculation & Sum Integrity Tests', () => {
     );
 
     // -----------------------------------------------------------------------
-    // Benchmark Employee 3: Logistics Associate 31 (EMP-DXB-031) - DIFC Visa 2 Expat
+    // Benchmark Employee 3: Tarek Mostafa (EMP-DXB-031) - DIFC Visa 2 Expat
     // -----------------------------------------------------------------------
     // - Contract Gross: AED 5,500.00
     //     Basic: 5,500 * 0.60 = AED 3,300.00
@@ -261,11 +261,11 @@ describe('Payslip Lines Calculation & Sum Integrity Tests', () => {
     // - Full 31 days attendance, no absences, no overtime, no loans/advances.
     // - Expected Net = Contract Gross - 0 = AED 5,500.00
     const associate31 = payslipsWithLines.find((p) => p.employee.employee_code === 'EMP-DXB-031');
-    assert(associate31, 'Logistics Associate 31 (EMP-DXB-031) payslip must exist');
+    assert(associate31, 'Tarek Mostafa (EMP-DXB-031) payslip must exist');
     assert.equal(
       Number(associate31.net).toFixed(2),
       '5500.00',
-      'Logistics Associate 31 hand-calculated net must be exactly AED 5,500.00'
+      'Tarek Mostafa hand-calculated net must be exactly AED 5,500.00'
     );
 
     // -----------------------------------------------------------------------

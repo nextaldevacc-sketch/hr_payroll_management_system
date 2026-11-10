@@ -135,7 +135,7 @@ async function assertPageClean(page, role, stepContext = '') {
     // The only allowed exception is /me/payslips for the employee's own payslip
     const currentUrl = page.url();
     if (!currentUrl.includes('/me/payslips')) {
-      const match = content.match(/AED\s*\d[\d,.]*|\d[\d,.]*\s*AED/i);
+      const match = content.match(/(?:AED|د\.\s*إ)\s*[\d,]+(?:\.\d+)?|[\d,]+(?:\.\d+)?\s*(?:AED|د\.\s*إ)/iu);
       if (match) {
         throw new Error(`[Salary Leak Violation] Found salary amount '${match[0]}' on page for non-salary role ${role} during ${stepContext}`);
       }

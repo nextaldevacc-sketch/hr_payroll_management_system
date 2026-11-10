@@ -1,23 +1,49 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import bcrypt from 'bcrypt';
+import { getEncryptionKey } from '../../src/lib/storage.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const STORAGE_DOCS = path.resolve(__dirname, '../../storage/documents');
+
+function encryptFileBuffer(buffer) {
+  const key = getEncryptionKey();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const ciphertext = Buffer.concat([cipher.update(buffer), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return Buffer.concat([Buffer.from('NEXTAL_ENC_V1'), iv, authTag, ciphertext]);
+}
 
 function ensureDemoPlaceholderPdf() {
   if (!fs.existsSync(STORAGE_DOCS)) {
     fs.mkdirSync(STORAGE_DOCS, { recursive: true });
   }
   const placeholderPath = path.join(STORAGE_DOCS, 'seed_placeholder.pdf');
-  if (!fs.existsSync(placeholderPath)) {
-    const minimalPdf = Buffer.from(
-      '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000052 00000 n\n0000000101 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n160\n%%EOF'
-    );
-    fs.writeFileSync(placeholderPath, minimalPdf);
+  const minimalPdf = Buffer.from(
+    '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000052 00000 n\n0000000101 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n160\n%%EOF'
+  );
+  fs.writeFileSync(placeholderPath, encryptFileBuffer(minimalPdf));
+
+  // Migrate any existing files in storage that do not have NEXTAL_ENC_V1 header
+  try {
+    const files = fs.readdirSync(STORAGE_DOCS);
+    for (const f of files) {
+      const p = path.join(STORAGE_DOCS, f);
+      if (fs.statSync(p).isFile()) {
+        const raw = fs.readFileSync(p);
+        if (raw.length < 13 || raw.subarray(0, 13).toString() !== 'NEXTAL_ENC_V1') {
+          fs.writeFileSync(p, encryptFileBuffer(raw));
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Storage encryption migration notice:', err.message);
   }
+
   return '/storage/documents/seed_placeholder.pdf';
 }
 
@@ -98,6 +124,36 @@ export async function seedEmployees(prisma, {
     { dept: depts1['Sales & Support'], job: jobs1.jobSales },
     { dept: depts1['Finance'], job: jobs1.jobFin },
     { dept: depts1['HR & Admin'], job: jobs1.jobHR },
+  ];
+
+  const realisticNames13to39 = [
+    { name: 'Hamad Al-Suwaidi', name_ar: 'حمد السويدي', nat: 'ARE', gender: 'Male' },
+    { name: 'Nour Al-Hassan', name_ar: 'نور الحسن', nat: 'SYR', gender: 'Female' },
+    { name: 'Sanjay Gupta', name_ar: 'سانجاي غوبتا', nat: 'IND', gender: 'Male' },
+    { name: 'Maria Santos', name_ar: 'ماريا سانتوس', nat: 'PHL', gender: 'Female' },
+    { name: 'Bilal Khan', name_ar: 'بلال خان', nat: 'PAK', gender: 'Male' },
+    { name: 'Mostafa Mahmoud', name_ar: 'مصطفى محمود', nat: 'EGY', gender: 'Male' },
+    { name: 'John Smith', name_ar: 'جون سميث', nat: 'GBR', gender: 'Male' },
+    { name: 'Reem Al-Nuaimi', name_ar: 'ريم النعيمي', nat: 'ARE', gender: 'Female' },
+    { name: 'Deepak Verma', name_ar: 'ديباك فيرما', nat: 'IND', gender: 'Male' },
+    { name: 'Grace Reyes', name_ar: 'غريس رييس', nat: 'PHL', gender: 'Female' },
+    { name: 'Zeeshan Ali', name_ar: 'زيشان علي', nat: 'PAK', gender: 'Male' },
+    { name: 'Hany El-Sayed', name_ar: 'هاني السيد', nat: 'EGY', gender: 'Male' },
+    { name: 'Abdullah Al-Kaabi', name_ar: 'عبدالله الكعبي', nat: 'ARE', gender: 'Male' },
+    { name: 'Sunita Rao', name_ar: 'سونيتا راو', nat: 'IND', gender: 'Female' },
+    { name: 'Christopher Brown', name_ar: 'كريستوفر براون', nat: 'USA', gender: 'Male' },
+    { name: 'Fahad Al-Shamsi', name_ar: 'فهد الشامسي', nat: 'ARE', gender: 'Male' },
+    { name: 'Joy Bautista', name_ar: 'جوي باوتيستا', nat: 'PHL', gender: 'Female' },
+    { name: 'Imran Qureshi', name_ar: 'عمران قريشي', nat: 'PAK', gender: 'Male' },
+    { name: 'Tarek Mostafa', name_ar: 'طارق مصطفى', nat: 'LBN', gender: 'Male' },
+    { name: 'Arthur Pendelton', name_ar: 'آرثر بندلتون', nat: 'GBR', gender: 'Male' },
+    { name: 'Latifa Al-Dhaheri', name_ar: 'لطيفة الظاهري', nat: 'ARE', gender: 'Female' },
+    { name: 'Amit Patel', name_ar: 'أميت باتيل', nat: 'IND', gender: 'Male' },
+    { name: 'Carlo Mendoza', name_ar: 'كارلو ميندوزا', nat: 'PHL', gender: 'Male' },
+    { name: 'Farhan Siddiqui', name_ar: 'فرحان صديقي', nat: 'PAK', gender: 'Male' },
+    { name: 'Youssef Ibrahim', name_ar: 'يوسف إبراهيم', nat: 'EGY', gender: 'Male' },
+    { name: 'David Taylor', name_ar: 'ديفيد تايلور', nat: 'AUS', gender: 'Male' },
+    { name: 'Shamsa Al-Mheiri', name_ar: 'شمسة المهيري', nat: 'ARE', gender: 'Female' },
   ];
 
   const seededEmployees = [];
@@ -212,12 +268,13 @@ export async function seedEmployees(prisma, {
       };
     } else {
       const cycleItem = deptCycle[(i - 13) % deptCycle.length];
+      const nameItem = realisticNames13to39[i - 13];
       baseInfo = {
-        name: `Logistics Associate ${i}`,
-        name_ar: `مساعد لوجستي ${i}`,
-        nat: i % 3 === 0 ? 'PHL' : i % 2 === 0 ? 'IND' : 'PAK',
-        gender: i % 4 === 0 ? 'Female' : 'Male',
-        uae: false,
+        name: nameItem.name,
+        name_ar: nameItem.name_ar,
+        nat: nameItem.nat,
+        gender: nameItem.gender,
+        uae: nameItem.nat === 'ARE',
         job: cycleItem.job,
         dept: cycleItem.dept,
         gross: i <= 32 ? 5500 : 6000,
@@ -502,19 +559,34 @@ export async function seedEmployees(prisma, {
 
   // Seed 10 Employees for Company 2
   console.log('Seeding 10 employees for Company 2...');
+  const realisticNamesCo2 = [
+    { name: 'Tariq Al-Husseini', name_ar: 'طارق الحسيني', gender: 'Male' },
+    { name: 'Layla Al-Khatib', name_ar: 'ليلى الخطيب', gender: 'Female' },
+    { name: 'Rashed Al-Mansouri', name_ar: 'راشد المنصوري', gender: 'Male' },
+    { name: 'Dania Qasim', name_ar: 'دانية قاسم', gender: 'Female' },
+    { name: 'Samer Haddad', name_ar: 'سامر حداد', gender: 'Male' },
+    { name: 'Rania Naser', name_ar: 'رانيا ناصر', gender: 'Female' },
+    { name: 'Fadi Barakat', name_ar: 'فادي بركات', gender: 'Male' },
+    { name: 'Maya Salameh', name_ar: 'مايا سلامة', gender: 'Female' },
+    { name: 'Ziad Othman', name_ar: 'زياد عثمان', gender: 'Male' },
+    { name: 'Noura Jarrah', name_ar: 'نورة جراح', gender: 'Female' },
+  ];
+
   for (let j = 1; j <= 10; j++) {
     const code2 = `EMP-AUH-${String(j).padStart(3, '0')}`;
+    const co2Person = realisticNamesCo2[j - 1];
     const emp2 = await prisma.employees.create({
       data: {
         company_id: company2.id,
         employee_code: code2,
-        name: `Horizon Specialist ${j}`,
-        arabic_name: `أخصائي أفق ${j}`,
+        name: co2Person.name,
+        arabic_name: co2Person.name_ar,
+        legal_name: co2Person.name,
         status: 'Active',
         joining_date: new Date('2025-03-01'),
         residency_type: 'Expat',
         nationality: 'JOR',
-        gender: j % 2 === 0 ? 'Female' : 'Male',
+        gender: co2Person.gender,
         company_visa_id: visa2.id,
         branch_id: branch2.id,
         work_email: `emp${j}@horizon.ae`,

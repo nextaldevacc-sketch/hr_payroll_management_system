@@ -1,80 +1,56 @@
 # HR Manager User Guide
 
 > **Role Code**: `HR_MANAGER`  
-> **Target Audience**: Human Resources Managers, People Operations Specialists  
-> **Default Demo Login**: `hr@gulftech.ae` / `Nextal@2026!`
+> **Target Audience**: Human Resources Managers, People Operations Directors  
+> **Demo Login**: `hr.mgr@gulftech.ae` / `Nextal@2026!`  
+> **Salary Visibility**: **Yes** (Full HR & Statutory Salary Access)
 
 ---
 
-## 1. Overview & Responsibilities
-The **HR Manager** oversees the full employee lifecycle, compliance adherence, leave administration, attendance verification, and separation clearance.
+## 1. Overview & Key Responsibilities
+The **HR Manager** oversees the complete employee lifecycle, ensures UAE regulatory compliance under Federal Decree-Law No. 33 of 2021, and performs executive HR approvals:
+- **Employee Lifecycle**: Verify new joiners (dual-control), approve contract versions, review history.
+- **Attendance & Overtime**: Review monthly biometric timecards, sign off attendance before payroll cut-off.
+- **Leave Administration**: Approve Step 2 leave requests, monitor statutory entitlements.
+- **Pay Run Validation**: Validate calculated pay runs and variance documentation before GM locking.
+- **Offboarding & Settlements**: Approve separations, oversee clearance checklists, validate Article 51 gratuity.
+- **Statutory Compliance**: Verify renewed compliance documents, monitor upcoming expiry radars.
 
-### Key Capabilities:
-- Onboard new hires, manage employee contracts, salaries, and visa allocations.
-- Monitor document expiry (visas, passports, Emirates IDs, labour cards) and ensure regulatory compliance.
-- Review and sign off company-wide monthly attendance before payroll processing.
-- Manage leave requests, track accruals, and validate special leave types (maternity, sick, hajj).
-- Validate payroll runs calculated by the Payroll Officer before submission to GM.
-- Initiate employee separations, manage clearance checklists, and validate Article 51 final settlements.
-
----
-
-## 2. Navigation & Interface
-- **Dashboard (`/`)**: Real-time HR overview (headcount, upcoming document expirations, attendance sign-off status, leave requests).
-- **Employees (`/employees`)**: Employee directory, profile updates, and contract setup.
-- **Attendance (`/attendance`)**: Monthly timecards, punch records, OT approvals, and HR sign-off.
-- **Leave (`/leave`)**: Leave approval inbox, calendar, and employee balance ledgers.
-- **Payroll (`/payroll`)**: Review calculated pay runs, inspect variance reasons, and click **Validate**.
-- **Offboarding (`/offboarding`)**: Resignation/termination tracking, clearance workflows, and settlement preparation.
-- **Compliance (`/compliance`)**: Expiry tracker, renewal status, and statutory reports.
+![HR Dashboard](../reports/screenshots/qa/dashboard__light-en-1440.png)
 
 ---
 
-## 3. Step-by-Step Workflows
+## 2. Core Workflows
 
-### 3.1 Onboarding a New Employee
-1. Navigate to **Employees** (`/employees`) and click **Add Employee**.
-2. **Personal Information**: Full English & Arabic legal names, DOB, Gender, Nationality (ISO format e.g. `ARE`, `GBR`, `IND`), Marital Status.
-3. **Employment Details**:
-   - Employee ID/Code (e.g., `EMP-DXB-043`).
-   - Joining Date.
-   - Sponsoring Company Visa (Mainland vs Freezone).
-   - Department and Designation.
-   - Reporting Line Manager.
-4. **Contract & Salary Setup**:
-   - Contract Type: Limited (Fixed-term) or Unlimited.
-   - Salary Breakdown: Basic Salary, Housing Allowance (HRA), Transport Allowance (TRA), Other Allowances (OTH).
-   - Bank Details: Employee IBAN (must be valid 23-char UAE IBAN) and 9-digit Bank Routing Code.
-5. **Document Upload**: Upload copies of Passport, Visa, Emirates ID, and Labour Card with their respective issue and expiry dates.
+### 2.1 Verifying a New Joiner (Workflow 7.2)
+1. Navigate to **Employees** (`/employees`).
+2. Filter by status `Pre-Joined`. Select the pending employee.
+3. Review personal records, uploaded Emirates ID, passport, and visa.
+4. If adjustments are required, click **Send Back** with mandatory review comments.
+5. Click **Verify Employee** to approve. After payroll contract and bank setup, click **Activate** to grant self-service access.
 
-### 3.2 Monthly Attendance Verification & Sign-off
-1. Navigate to **Attendance** (`/attendance`).
-2. Select the current payroll period (e.g. `October 2026`).
-3. Check the **Attendance Dashboard**:
-   - Verify that Department Managers have completed team reviews.
-   - Inspect exceptions: unapproved absences, tardiness penalties, and overtime hours.
-   - Ensure approved overtime matches operational needs (standard 125% vs rest-day 150%).
-4. Click **HR Sign-Off**. This locks the attendance data and makes it available to the Payroll Engine.
+![Employee Directory](../reports/screenshots/qa/employees__light-en-1440.png)
 
-### 3.3 Validating a Payroll Run
-1. Navigate to **Payroll** (`/payroll`).
-2. Open the pay run in `Calculated` status.
-3. Review the **Variance Summary**:
-   - Verify that any variance > 5% has an HR-documented explanation.
-   - Check total earnings, gross salary, deductions, and net payouts.
-4. Click **Validate Pay Run**. Status transitions to `Validated` and notifies the General Manager for final sign-off.
+### 2.2 Attendance Sign-Off (Workflow 7.3)
+1. Navigate to **Attendance** (`/attendance`) and select the period (e.g. October 2026).
+2. Ensure Department Managers have completed team reviews.
+3. Review exceptions (tardiness, unapproved absences, approved overtime).
+4. Click **HR Sign-Off** to freeze attendance inputs for the payroll engine.
 
-### 3.4 Managing Offboarding & Final Settlement
+### 2.3 Validating Payroll (Workflow 7.5)
+1. Navigate to **Pay Runs** (`/payroll`) and open the `Calculated` pay run.
+2. Inspect the **Variances** tab for any variance > 5% and verify documented justifications.
+3. Click **Validate Pay Run**. Status transitions to `Validated` for GM approval.
+
+### 2.4 Separation & Gratuity Oversight (Workflow 7.6)
 1. Navigate to **Offboarding** (`/offboarding`).
-2. Click **Initiate Separation**:
-   - Select Employee.
-   - Specify Separation Type: `Resignation` or `Termination`.
-   - Specify Notice Period and Last Working Day.
-3. **Track Clearance Checklist**:
-   - Assets/IT: Laptop, access cards, credentials handed over.
-   - Finance: Company credit cards returned, travel advances cleared.
-   - Operations: Handover of projects and files complete.
-   - HR: Medical insurance cancelled, original documents returned.
-4. **Prepare Settlement**:
-   - System calculates Article 51 End-of-Service Gratuity, unused leave encashment, pending salary, and loan deductions.
-   - Click **Validate Settlement** to pass to GM for approval.
+2. Approve pending separation requests recorded by HR Officers.
+3. Inspect multi-department clearance items (Operations, Finance, IT). Clear company/IT assets.
+4. Inspect calculated Article 51 End-of-Service Gratuity and leave encashment. Click **Validate Settlement**.
+
+### 2.5 Compliance Document Verification (Workflow 7.7)
+1. Navigate to **Compliance** (`/compliance`).
+2. Click on any document flagged `Pending Verification`.
+3. Review uploaded renewal file in the verification drawer. Click **Verify Document**.
+
+![Compliance Overview](../reports/screenshots/qa/compliance__light-en-1440.png)

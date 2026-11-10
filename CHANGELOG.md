@@ -5,6 +5,43 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ---
 
+## [1.0.0-rc3] - 2026-11-10
+
+### Release Candidate 3: Clean Handover, Strict Data Isolation & Full Workflow Verification
+- **Strict Salary Leak Protection**:
+  - Restored strict salary-leak check in `scripts/verify-workflows.mjs` `assertPageClean` for `HR_OFFICER`, `DEPT_MANAGER`, `EMPLOYEE`, and `COMPANY_ADMIN`.
+  - Enforced regex match failing on any money amount written as digits with currency marker in either language: `AED`, `د.إ`, or decimal format (`/(?:AED|د\.\s*إ)\s*[\d,]+(?:\.\d+)?|[\d,]+(?:\.\d+)?\s*(?:AED|د\.\s*إ)/iu`).
+  - Strict exception: only `/me/payslips` for an employee's own payslip is permitted to display salary figures.
+  - Offboarding and settlement pages mask monetary numbers for `!seesSalary` users and display clean privacy notices.
+- **Company Admin Access Isolation**:
+  - Removed `COMPANY_ADMIN` from `'offboarding'` navigation area in `shared/src/constants/permissions.js`.
+  - Removed `COMPANY_ADMIN` from `isHrOrGm` in `backend/src/services/separationService.js` and `updateClearanceItem` in `separationController.js`.
+  - Confirmed `COMPANY_ADMIN` receives HTTP 403 on every separation and settlement endpoint with integration tests in `backend/test/integration/section-5-3-permissions.test.js`.
+- **Settlement Route Canonicalization**:
+  - Deduplicated settlement routes in `backend/src/routes/settlements.js` to single canonical endpoints: `POST /api/v1/settlements/calculate/:separationId` and `POST /api/v1/settlements/prepare/:separationId`.
+- **Database & System Integrity (scripts/check-integrity.mjs)**:
+  - Created automated read-only integrity audit script verifying:
+    1. Employee code uniqueness per company.
+    2. Branch belongs to one visa in same company.
+    3. Employee branch matches employee visa.
+    4. Payslip net equals gross earnings minus total deductions.
+    5. SIF file export total equals sum of payslips net.
+    6. No `user_roles` row has a null or empty `scope_type`.
+    7. Zero relational orphan rows across 14 relational foreign-key pathways.
+    8. 100% of stored documents encrypted at rest with `NEXTAL_ENC_V1` AES-256-GCM header.
+- **Demo Data Cleanliness**:
+  - Seeded realistic multicultural UAE employee names for all 55 employees across Gulf Tech Logistics LLC and Emirates Horizon Trading LLC.
+  - Zero test-like placeholder names in database.
+  - Verified scheduled jobs (expiry, deactivation, accrual) run idempotently against demo DB with zero duplicate alerts or tasks.
+- **Test Suite Pass Rates**:
+  - Backend tests: 287 tests (79 suites, 286 passed, 1 skipped, 0 failed).
+  - Frontend tests: 19 tests (5 suites, 100% passed).
+  - Workflow step runner: 85 steps across 7.1–7.7 and VB (100% passed).
+  - UI visual QA matrix: 132 cells (33 screens × 4 themes/locales/viewports, 100% passed).
+  - FR Traceability: 133 PASS / 4 DEFERRED (Phase 2 Platform Admin) / 0 MISSING.
+
+---
+
 ## [1.0.0-rc1] - 2026-10-31
 
 ### Phase 10: Hardening & Handover

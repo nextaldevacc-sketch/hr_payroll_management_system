@@ -1,79 +1,51 @@
 # Payroll Officer User Guide
 
 > **Role Code**: `PAYROLL_OFFICER`  
-> **Target Audience**: Payroll Specialists, Compensation & Benefits Officers  
-> **Default Demo Login**: `payroll@gulftech.ae` / `Nextal@2026!`
+> **Target Audience**: Payroll Specialists, Compensation & Benefits Analysts  
+> **Demo Login**: `payroll@gulftech.ae` / `Nextal@2026!`  
+> **Salary Visibility**: **Yes** (Full Payroll & Salary Computation Access)
 
 ---
 
-## 1. Overview & Responsibilities
-The **Payroll Officer** is responsible for executing the monthly payroll cycle, calculating pay runs, adjusting variable inputs (bonuses, deductions, loan repayments), analyzing variances against previous runs, and generating payslips.
+## 1. Overview & Key Responsibilities
+The **Payroll Officer** executes the monthly payroll lifecycle, validates variable inputs, manages employee contracts and bank accounts, and prepares final settlements:
+- **Contract & Bank Management**: Create contract versions (Basic, Housing, Transport, Other), add and validate mod-97 UAE IBANs.
+- **Pay Run Execution**: Create monthly pay runs per visa, ingest confirmed attendance hours, execute calculation.
+- **Variance Analysis**: Document justifications for any employee variance exceeding 5%.
+- **Payslip Release**: Generate bilingual PDF payslips after GM locking.
+- **Final Settlement Preparation**: Calculate Article 51 End-of-Service Gratuity, unused leave encashment, and notice recovery.
 
-### Key Capabilities:
-- Create monthly pay run batches per company visa.
-- Ingest approved attendance data (worked days, overtime, unpaid absences).
-- Enter variable adjustments (ad-hoc allowances, discretionary bonuses, deductions).
-- Execute the UAE-compliant payroll calculation engine.
-- Analyze variance against prior periods and supply mandatory explanations for variances > 5%.
-- Lock approved runs and generate bilingual PDF payslips.
-
----
-
-## 2. Navigation & Interface
-- **Payroll (`/payroll`)**: Pay run list, lifecycle status badges (`Draft`, `Calculated`, `Validated`, `Approved`, `Locked`, `Paid`), and run creation.
-- **Pay Run Detail (`/payroll/[id]`)**: Employee payslip list, summary cards (Total Gross, Net Pay, Employer Cost), and variance analysis.
-- **Attendance (`/attendance`)**: View confirmed attendance inputs before calculating payroll.
-- **Reports (`/reports`)**: Payroll Register, WPS preview, and variance summaries.
+![Payroll Overview](../reports/screenshots/qa/payroll__light-en-1440.png)
 
 ---
 
-## 3. Step-by-Step Workflows
+## 2. Core Workflows
 
-### 3.1 The Monthly Payroll Execution Cycle
+### 2.1 Setting Up Contracts & Validating UAE IBANs (Workflow 7.2)
+1. In **Employees** (`/employees`), select an employee and open the **Contracts** tab.
+2. Enter salary breakdown (Basic, HRA, Transport, Other). Submit for HR Manager approval.
+3. Open the **Bank Account** tab. Enter employee bank name and 23-character UAE IBAN.
+4. The system validates ISO 13616 Mod-97 checksums in real-time. Missing or invalid IBANs block future payroll inclusion.
 
-```
-[Create Draft Run] ──> [Import Approved Attendance] ──> [Calculate Run]
-                                                              │
-[Submit to HR] <── [Document Variance Explanations] <── [Variance Check]
-```
+### 2.2 Calculating Monthly Payroll & Validating Inputs (Workflow 7.5)
+1. Navigate to **Pay Runs** (`/payroll`).
+2. Select target visa (e.g. `Visa 01 (MOHRE Dubai)`) and month (e.g. `October 2026`).
+3. Click **Validate Run** to inspect pre-calculation checks (missing contracts, unverified bank accounts, unconfirmed attendance).
 
-#### Step 1: Create a Pay Run
-1. Navigate to **Payroll** (`/payroll`) and click **New Pay Run**.
-2. Select:
-   - **Company Visa**: Choose entity (e.g., `Gulf Technologies LLC - Main Mainland Visa`).
-   - **Period**: Year and Month (e.g. `2026-10`).
-   - **Cut-off Range**: e.g., `2026-09-26` to `2026-10-25` (or calendar month).
-3. Click **Create Pay Run**. The status is initialized to `Draft`.
+![Payroll Pre-Validation](../reports/screenshots/qa/payroll-validation__light-en-1440.png)
 
-#### Step 2: Calculate the Pay Run
-1. Click **Calculate Pay Run**.
-2. The engine executes the full calculation pipeline:
-   - Base earnings: Basic salary, HRA, Transport, Other allowances.
-   - Attendance inputs: Paid days vs worked days, unapproved absences (`DIV_30` or `DAYS_365`), approved overtime (125% and 150%).
-   - Active loan repayments and salary advances.
-   - Statutory pension contributions for UAE Nationals (GPSSA 11% employee / 15% employer).
-3. Status moves to `Calculated`.
+4. Click **Calculate Payroll**. The engine computes statutory gross, GPSSA deductions, overtime additions, absence deductions, and active loan installments.
+5. Open the **Variances** tab. For any variance > 5%, enter the operational justification.
 
-#### Step 3: Variance Analysis & Documentation
-1. Review the **Variance Analysis** tab.
-2. The system compares current pay with the previous finalized run (e.g. September vs October).
-3. **Mandatory Action**: Any employee with net pay variance exceeding **5%** is highlighted with an amber alert.
-4. Click **Add Variance Reason** on flagged rows:
-   - Select category: `New Joiner`, `Overtime Increase`, `Unpaid Leave`, `Loan Deduction`, `Salary Increment`.
-   - Provide supporting notes.
-5. Once all variances are documented, click **Submit to HR for Validation**.
+![Variance Justifications](../reports/screenshots/qa/payroll-variances__light-en-1440.png)
 
-#### Step 4: Finalize & Generate Payslips
-1. After the General Manager approves the run (`Approved` status), click **Lock Pay Run**.
-2. The database trigger locks all payslips and payslip lines against future mutation.
-3. Click **Generate PDF Payslips**:
-   - Generates individual bilingual (English / Arabic) PDFs.
-   - Distributes notification emails with portal download links to employee self-service.
+6. Notify the HR Manager to perform validation. (Under segregation of duties, the Payroll Officer cannot validate or lock the run).
 
----
-
-## 4. Troubleshooting & FAQ
-- **Why is an employee missing from the pay run?**  
-  Verify the employee's `joining_date` is on or before the period end date, their status is `Active` (not `Draft` or `Separated`), and their contract is assigned to the selected `company_visa_id`.
-- **Can I recalculate a pay run after making an adjustment?**  
-  Yes, as long as the run is in `Draft` or `Calculated` status. Click **Recalculate**. Once a run is `Validated`, `Approved`, or `Locked`, database guards prevent arbitrary recalculation without HR rejection.
+### 2.3 Calculating End-of-Service Settlements (Workflow 7.6)
+1. Navigate to **Offboarding** (`/offboarding`) and select an approved separation.
+2. Switch to the **Settlement** tab and click **Calculate Settlement**.
+3. Review statutory breakdown:
+   - Article 51 Gratuity (exact service days: 21 days/yr for 1–5 yrs, 30 days/yr for > 5 yrs; 0 for < 1 yr).
+   - Unused leave encashment `(Gross * 12 / 365) * unused_days`.
+   - Salary due to last working date minus loan balances and clearance deductions.
+4. Click **Prepare Settlement**. Submit to HR Manager for validation.

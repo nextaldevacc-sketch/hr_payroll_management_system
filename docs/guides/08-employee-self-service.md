@@ -1,74 +1,49 @@
-# Employee Self-Service (ESS) User Guide
+# Employee Self-Service User Guide
 
 > **Role Code**: `EMPLOYEE`  
-> **Target Audience**: All Staff, Team Members, Individual Contributors  
-> **Default Demo Login**: `employee1@gulftech.ae` / `Nextal@2026!`
+> **Target Audience**: All Enterprise Employees  
+> **Demo Login**: `employee@gulftech.ae` (Ahmed Al-Mansoori) or any `<emp-code>@gulftech.ae` / `Nextal@2026!`  
+> **Landing Page**: `/me` (Personal Self-Service Portal)
 
 ---
 
-## 1. Overview & Responsibilities
-The **Employee Self-Service (ESS)** portal empowers employees to manage their personal details, track daily attendance and punch times, submit leave applications, review leave balances, download monthly payslips, and check document validity.
+## 1. Overview & Key Responsibilities
+The **Employee Self-Service Portal** provides a dedicated, streamlined interface for staff members to access personal employment information, view and download payslips, submit leave and attendance requests, and upload compliance document renewals:
+- **Personal Overview**: View employment profile, contract start date, assigned branch, and sponsoring visa.
+- **Bilingual Payslips**: View breakdown of monthly salary, allowances, overtime, and deductions; download bilingual PDF payslips.
+- **Leave Self-Service**: Check real-time leave entitlement balances, submit annual/sick leave requests with attachments.
+- **Attendance Requests**: Submit missing-punch requests with explanation notes.
+- **Compliance Renewals**: Upload renewed Emirates ID or Passport copies directly for HR verification.
 
-### Key Capabilities:
-- View personal employment profile, contract type, and allocated company visa.
-- Submit leave requests (Annual, Sick, Parental, etc.) and track manager approval status.
-- View daily attendance punches, worked hours, and overtime records.
-- View and download bilingual (English & Arabic) PDF payslips with complete salary breakdown.
-- View personal document expiration dates (passport, visa, Emirates ID).
-- Submit resignation requests and track offboarding clearance progress.
-
----
-
-## 2. Navigation & Interface
-- **Dashboard (`/`)**: Employee home screen:
-  - Personal leave balances (Annual, Sick, Remaining days).
-  - Quick punch widget / today's attendance status.
-  - Latest payslip download card.
-  - Document validity alerts (e.g., Emirates ID expiring in 45 days).
-- **My Profile (`/employees/me` or `/profile`)**: Personal details, emergency contacts, bank IBAN, and uploaded documents.
-- **My Attendance (`/attendance/me`)**: Monthly calendar of punches, shifts, and overtime.
-- **My Leave (`/leave`)**: Leave balances, submission form, and request history.
-- **My Payslips (`/payroll/payslips`)**: Historical archive of official PDF payslips.
+![Employee Portal Overview](../reports/screenshots/qa/me__light-en-1440.png)
 
 ---
 
-## 3. Step-by-Step Workflows
+## 2. Core Workflows
 
-### 3.1 Applying for Leave
-1. Navigate to **Leave** (`/leave`) and click **Apply for Leave**.
-2. Select **Leave Type**:
-   - `Annual Leave`: Paid vacation from accrued balance (up to 30 calendar days/year).
-   - `Sick Leave`: Medical leave (requires medical certificate for > 2 days).
-   - `Parental / Maternity Leave`: Statutory parental entitlements.
-   - `Unpaid Leave`: Non-accruing personal leave.
-3. Select **Start Date** and **End Date**.
-4. The system calculates the exact number of days and shows your projected remaining balance.
-5. (Optional) Enter notes or upload doctor's note / supporting document.
-6. Click **Submit Request**. Your Line Manager is notified immediately.
+### 2.1 Viewing Payslips (Workflow 7.5 / Ahmed Spec T19)
+1. Upon logging in, navigate to **My Payslips** (`/me/payslips`).
+2. Click on the latest pay period (e.g. `October 2026`).
+3. Inspect detailed breakdown:
+   - Basic Salary, Housing, Transport, and Other Allowances.
+   - Statutory additions (e.g. Overtime +AED 78.13).
+   - Authorised deductions (Absence -AED 533.33, Staff Loan -AED 500.00).
+   - **Net Salary**: **`AED 7,044.80`**.
+4. Click **Download Payslip PDF** to generate official PDF with verified Arabic typography and English layout.
 
-### 3.2 Viewing & Downloading Monthly Payslips
-1. Navigate to **My Payslips** (`/payroll/payslips`).
-2. The list displays all finalized pay periods (e.g. `October 2026`, `September 2026`).
-3. Click **View Payslip** to view the breakdown in the modal:
-   - **Gross Earnings**: Basic salary, Housing allowance, Transport, Overtime.
-   - **Deductions**: Unapproved absences, loan recoveries, employee pension (for UAE Nationals).
-   - **Net Payout**: Transferred amount and masked bank account.
-4. Click **Download Official PDF** to obtain a signed, bilingual PDF for banking or visa purposes.
+![Employee Payslips](../reports/screenshots/qa/me-payslips__light-en-1440.png)
 
-### 3.3 Tracking Attendance & Overtime
-1. Navigate to **My Attendance** (`/attendance/me`).
-2. The monthly calendar view highlights:
-   - Normal working days (Green).
-   - Approved leaves (Blue).
-   - Public holidays / Rest days (Purple).
-   - Tardiness / Late check-ins (Amber).
-   - Unapproved absences (Red).
-3. Click any day to view raw punch times (Check-in, Break out/in, Check-out) and calculated overtime hours.
+### 2.2 Applying for Leave (Workflow 7.4)
+1. Navigate to **My Leave** (`/me/leave`) and click **Apply Leave**.
+2. Select Leave Type (e.g. `Annual Leave`).
+3. Select dates (e.g. Monday to Friday).
+4. The system automatically detects statutory UAE public holidays and weekend rest days, displaying the exact net deductible working days (e.g. `4.0 Days`).
+5. Attach supporting document if required (e.g. medical certificate for sick leave).
+6. Submit. Track progress through Department Manager and HR approval stages.
 
-### 3.4 Submitting a Resignation (Offboarding)
-1. Navigate to **Offboarding** (`/offboarding`).
-2. Click **Submit Resignation**.
-3. Select proposed **Last Working Day** based on your contract notice period (typically 30 or 60 days).
-4. Provide reason/comments.
-5. Click **Submit**. HR and your Line Manager are notified to begin the clearance process.
-6. Track the four clearance checklist items in real time until the final settlement is prepared.
+### 2.3 Uploading Compliance Documents (Workflow 7.7)
+1. When a document is approaching expiration, an alert banner appears on the dashboard.
+2. Navigate to **My Documents** (`/me/documents`).
+3. Click **Upload Renewal** next to the expiring document (e.g. Emirates ID).
+4. Select the renewed file (PDF, PNG, JPG).
+5. The document is uploaded, encrypted at rest with AES-256-GCM, and placed in status `Pending Verification` for HR Manager review.

@@ -1,64 +1,44 @@
 # General Manager (GM) User Guide
 
 > **Role Code**: `GM`  
-> **Target Audience**: Managing Directors, General Managers, Chief Executive Officers  
-> **Default Demo Login**: `gm@gulftech.ae` / `Nextal@2026!`
+> **Target Audience**: General Managers, Managing Directors, Chief Operating Officers  
+> **Demo Login**: `gm@gulftech.ae` / `Nextal@2026!`  
+> **Salary Visibility**: **Yes** (Executive Oversight & Final Approval Access)
 
 ---
 
-## 1. Overview & Responsibilities
-The **General Manager (GM)** acts as the final executive authority in the enterprise workflow. In accordance with UAE corporate governance best practices and delegation of authority matrices, the GM holds ultimate sign-off approval for monthly payroll distributions, high-value discretionary salary adjustments, extended leaves (> 5 days), and final separation payouts.
+## 1. Overview & Key Responsibilities
+The **General Manager** provides executive sign-off and enforces segregation of duties across the organization:
+- **Pay Run Final Locking**: Review validated monthly pay runs and trigger the cryptographic freeze (`Locked`).
+- **Final Settlement Approval**: Approve Article 51 final settlements before finance disbursement.
+- **Extended Leave Authorizations**: Act as Step 3 approver for leaves exceeding 5 days or flagged leave types.
+- **Branch Change Approvals**: Review and authorize employee branch transfers.
 
-### Key Capabilities:
-- Executive review and final authorization of monthly pay runs.
-- Review and approval of extended annual or emergency leaves exceeding 5 days.
-- Co-approval for discretionary salary adjustments, bonuses, or loans > AED 2,000.
-- Executive sign-off on End-of-Service Gratuity settlements and separation agreements.
-- Real-time executive dashboard monitoring workforce cost, headcount trends, and compliance.
-
----
-
-## 2. Navigation & Interface
-- **Dashboard (`/`)**: Executive overview:
-  - Monthly gross salary commitment & bank transfer total.
-  - Active headcount and department distribution.
-  - Pending executive approvals counter (pay runs, leave requests, settlements).
-- **Payroll (`/payroll`)**: Review and approve pay runs in `Validated` status.
-- **Leave (`/leave`)**: Executive approval inbox for long-duration leave applications.
-- **Offboarding (`/offboarding`)**: Review and approve employee final settlements.
-- **Reports (`/reports`)**: Executive summaries: Headcount, Turnover, and Total Cost of Employment.
+![General Manager Approvals](../reports/screenshots/qa/approvals__light-en-1440.png)
 
 ---
 
-## 3. Step-by-Step Workflows
+## 2. Core Workflows
 
-### 3.1 Approving a Monthly Pay Run
-1. Navigate to **Payroll** (`/payroll`).
-2. Identify pay runs with status **`Validated`** (checked and verified by HR).
-3. Click to open the pay run details:
-   - **Financial Summary**: Inspect total gross, total net, total employer pension, and employee count.
-   - **Variance Tab**: Review any significant variance (> 5%) between current and prior month.
-   - Inspect reasons documented by HR for overtime spikes, new joiner pro-rations, or bonuses.
-4. If satisfied, click **Approve Pay Run**.
-   - Status changes to `Approved`.
-   - The Payroll Officer is authorized to lock the run and generate WPS files for Finance.
-5. If issues are identified: Click **Reject Pay Run**, enter rejection rationale, and return it to `Draft` for recalculation.
+### 2.1 Locking Monthly Payroll (Workflow 7.5)
+1. Navigate to **Pay Runs** (`/payroll`).
+2. Open the pay run currently in `Validated` status (verified by HR Manager).
+3. Review total company wage commitment, headcount, and variance explanations.
+4. Click **Lock Pay Run**.
+5. **Database Freeze**: PostgreSQL triggers lock all 33 payslips and payslip lines. No recalculation or edits are permitted after lock.
+6. Notifies Finance Officer to export SIF and process banking transfer.
 
-### 3.2 Approving Extended Leave Requests (> 5 Days)
-1. Navigate to **Leave** (`/leave`).
-2. Access the **Pending Executive Approvals** tab.
-3. Review the request:
-   - Employee name, department, leave type (e.g. Annual Leave).
-   - Start and end dates, total business/calendar days.
-   - Prior Line Manager endorsement.
-   - Remaining balance after deduction.
-4. Click **Approve Leave** or **Reject Leave** with comments.
+![GM Pay Run Locking](../reports/screenshots/workflow/7.5-6-GM.png)
 
-### 3.3 Authorizing Final Settlements
+### 2.2 Approving Final Settlements (Workflow 7.6)
 1. Navigate to **Offboarding** (`/offboarding`).
-2. Open the pending settlement (status `HR Validated`).
-3. Verify:
-   - Statutory Gratuity entitlement per UAE Labour Law Article 51.
-   - Accrued annual leave encashment rate.
-   - Departmental clearance confirmation (IT hardware, vehicle, corporate cards returned).
-4. Click **Approve Settlement**. Authorizes Finance to issue payment.
+2. Select a separation where clearance items are 100% complete and settlement is `Validated` by HR Manager.
+3. If clearance items remain open (e.g. IT laptop pending), the system strictly blocks approval with `CLEARANCE_ITEMS_PENDING` (Spec T35).
+4. Review Article 51 gratuity calculation, leave encashment, and net payable.
+5. Click **Approve Settlement**.
+6. The settlement record transitions to `Approved` (frozen). Notifies Finance for payment.
+
+### 2.3 Executive Leave & Branch Authorizations (Workflow 7.4 & VB)
+1. Navigate to **Approvals** (`/approvals`).
+2. Review pending requests escalated to GM tier (extended annual leaves > 5 days, branch change requests).
+3. Click **Approve** or **Reject** with optional review notes.

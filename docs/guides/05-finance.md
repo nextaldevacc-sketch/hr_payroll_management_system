@@ -1,77 +1,48 @@
-# Finance User Guide
+# Finance Officer User Guide
 
 > **Role Code**: `FINANCE`  
-> **Target Audience**: Chief Financial Officers, Financial Controllers, Treasury & Payroll Accountants  
-> **Default Demo Login**: `finance@gulftech.ae` / `Nextal@2026!`
+> **Target Audience**: Financial Controllers, Chief Accountants, Treasury Officers  
+> **Demo Login**: `finance@gulftech.ae` / `Nextal@2026!`  
+> **Salary Visibility**: **Yes** (Disbursement & General Ledger Access)
 
 ---
 
-## 1. Overview & Responsibilities
-The **Finance** role is responsible for the financial disbursement of payroll, banking integration, statutory WPS file generation, accounting ledger export, and final settlement payments.
+## 1. Overview & Key Responsibilities
+The **Finance Officer** executes salary disbursements, generates official UAE Central Bank WPS Salary Information Files (SIF), manages staff loan recovery, and clears financial assets upon separation:
+- **WPS SIF Export**: Generate compliant `.SIF` files for corporate banking portal upload.
+- **Payment Execution**: Mark pay runs `Paid` after bank transfer confirmation.
+- **General Ledger Accounting**: Export double-entry balanced GL CSV files grouped by cost center.
+- **Financial Clearance**: Enter loan balances and asset deductions during offboarding.
+- **Settlement Disbursement**: Mark final settlements `Paid` and download bilingual settlement PDFs.
 
-### Key Capabilities:
-- Generate and download UAE Central Bank compliant Wages Protection System (WPS) `.SIF` files.
-- Export double-entry General Ledger journal entries grouped by cost centre.
-- Verify bank debit amounts and confirm salary disbursements (`Mark as Paid`).
-- Disburse approved offboarding final settlements and archive separated employees.
-- Audit corporate pension payables (GPSSA / ADPF) and loan repayment balances.
-
----
-
-## 2. Navigation & Interface
-- **Payroll (`/payroll`)**: View locked and approved pay runs, generate WPS SIF files, and confirm bank payout.
-- **Offboarding (`/offboarding`)**: Access GM-approved final settlements, download settlement statements, and disburse gratuity/leave funds.
-- **Reports (`/reports`)**:
-  - **Accounting Export**: Download General Ledger journal CSV.
-  - **Payroll Register**: Detailed spreadsheet of gross, net, allowances, and statutory costs.
-- **Audit Logs (`/audit`)**: Financial transaction integrity records.
+![WPS SIF Generator](../reports/screenshots/qa/payroll-sif__light-en-1440.png)
 
 ---
 
-## 3. Step-by-Step Workflows
+## 2. Core Workflows
 
-### 3.1 Generating & Submitting UAE WPS SIF Files
-1. Navigate to **Payroll** (`/payroll`) and open a pay run in `Locked` status.
-2. Click **Generate WPS SIF**.
-3. The platform validates all records:
-   - Employer MOL Code (13 digits).
-   - Bank Routing Code (9 digits).
-   - Employee Labour Card / Person ID (14 digits).
-   - Mod-97 UAE IBAN validity.
-   - Mathematical balancing: `SCR Total Salaries == Σ(Fixed + Variable) == Σ(Net Pay)`.
-4. Click **Download .SIF File**.
-5. Upload the file to your corporate banking portal (e.g., Emirates NBD smartBUSINESS, FAB Corporate, ADCB ProCash, Al Ansari Exchange).
-6. Save the banking confirmation / reference number.
+### 2.1 Exporting WPS SIF & Executing Payment (Workflow 7.5)
+1. Navigate to **Pay Runs** (`/payroll`).
+2. Open the pay run in `Locked` status (approved by GM).
+3. Click **Export WPS SIF**.
+4. The system validates:
+   - 13-digit Employer MOL ID (`MOHRE-784-0129`).
+   - 9-digit Bank Routing Code (`ENBD001`).
+   - 23-character mod-97 UAE IBAN for every employee.
+   - Mathematical equality: SCR Total Salaries == Sum of Net Payslips.
+5. Upload `.SIF` to corporate banking portal (Emirates NBD smartBUSINESS / FAB Corporate).
+6. Upon bank execution, click **Mark as Paid**.
+7. Payslip release notifications are automatically dispatched to employees.
 
-### 3.2 Marking Pay Run as Paid
-1. Once the corporate bank confirms successful execution of the salary transfer:
-2. Open the pay run in **Payroll** (`/payroll`).
-3. Click **Mark as Paid**:
-   - Enter Bank Payment Reference (e.g. `FT26305001928`).
-   - Enter Value / Disbursement Date.
-4. The pay run status transitions to `Paid`. Database state triggers ensure this status is terminal and permanent.
+![Finance Payment Execution](../reports/screenshots/workflow/7.5-8-FINANCE.png)
 
-### 3.3 General Ledger Accounting Export
-1. Navigate to **Reports > Accounting Export**.
-2. Select the completed pay run period and click **Generate Journal CSV**.
-3. **Journal Structure Verification**:
-   - **Debits**:
-     - Basic Salaries (`5001-01` per cost centre: `CC-OPS`, `CC-ENG`, `CC-SALES`, `CC-LOG`, `CC-HR`, `CC-FIN`).
-     - Housing & Transport Allowances (`5001-02`, `5001-03`).
-     - Overtime Expense (`5002-01`).
-     - Employer Pension Contribution (`5005-01`).
-   - **Credits**:
-     - Net Salaries Payable (`2001-01`).
-     - Employee & Employer GPSSA Pension Payable (`2002-01`, `2002-02`).
-     - Employee Loan Clearing / Recovery (`1150-01`).
-   - **Verification Rule**: Total Debit strictly equals Total Credit.
+### 2.2 Financial Clearance on Separation (Workflow 7.6)
+1. Navigate to **Offboarding** (`/offboarding`) -> open target separation -> **Clearance** tab.
+2. Locate the Finance clearance item (e.g., Staff Loan / Advance Recovery).
+3. Click **Update Item**. Select status `Cleared`, enter recovery amount (e.g. `1500.00`), and add notes.
+4. Save. The deduction amount automatically maps into the settlement computation.
 
-### 3.4 Disbursing Offboarding Settlements
-1. Navigate to **Offboarding** (`/offboarding`).
-2. Filter by status: `GM Approved`.
-3. Open the employee settlement (e.g. Omar Al-Hashimi).
-4. Review the breakdown: Gratuity (Article 51), Unused Leave Encashment, Final Month Salary, minus outstanding company deductions.
-5. Execute the bank wire/cheque transfer.
-6. Click **Mark Disbursed**:
-   - Provide transaction reference and disbursement date.
-7. System archives employee profile, records final audit log, and marks separation `Completed`.
+### 2.3 Settlement Disbursement (Workflow 7.6)
+1. Navigate to the **Settlement** tab for an approved leaver (e.g. Omar Al-Hashimi).
+2. Click **Mark Settlement Paid**.
+3. Click **Download Settlement PDF** to generate the official bilingual Article 51 discharge statement.
