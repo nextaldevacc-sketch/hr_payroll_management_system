@@ -368,7 +368,7 @@ export class SeparationService {
 
       const roles = user.roles || [];
       const isHrOrGm = roles.some((r) =>
-        ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM'].includes(r)
+        ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM'].includes(r)
       );
 
       if (!isHrOrGm) {
@@ -452,7 +452,7 @@ export class SeparationService {
 
       const roles = user.roles || [];
       const isHrOrGm = roles.some((r) =>
-        ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM'].includes(r)
+        ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM'].includes(r)
       );
 
       if (!isHrOrGm) {
@@ -581,10 +581,9 @@ export class SeparationService {
     const isHrOfficer = userRoleNames.includes('HR_OFFICER');
     const isFinance = userRoleNames.includes('FINANCE');
     const isDeptManager = userRoleNames.includes('DEPT_MANAGER');
-    const isAdmin = userRoleNames.some((r) => ['COMPANY_ADMIN', 'PLATFORM_ADMIN'].includes(r));
 
     // Spec Part 2.2:
-    // "clearance item clear: only the item's owner role (Dept Manager for department items, Finance for finance items, HR Officer/HR Manager for HR items, Admin/IT owner for IT/Admin items) — HR Manager can approve the checklist."
+    // "clearance item clear: only the item's owner role (Dept Manager for department items, Finance for finance items, HR Officer/HR Manager for HR items) — HR Manager can approve the checklist."
     const deptName = (item.department?.name || '').toLowerCase();
     const itemName = (item.item || '').toLowerCase();
 
@@ -619,13 +618,6 @@ export class SeparationService {
       } else if (isHrOfficer) {
         if (!deptName.includes('hr') && !deptName.includes('admin') && !itemName.includes('hr') && !itemName.includes('visa')) {
           const err = new Error('HR Officers can only clear HR and Visa checklist items');
-          err.status = 403;
-          err.code = 'FORBIDDEN_DEPARTMENT';
-          throw err;
-        }
-      } else if (isAdmin) {
-        if (!deptName.includes('it') && !deptName.includes('admin') && !itemName.includes('it') && !itemName.includes('laptop') && !itemName.includes('card')) {
-          const err = new Error('Admin/IT can only clear IT and Admin checklist items');
           err.status = 403;
           err.code = 'FORBIDDEN_DEPARTMENT';
           throw err;

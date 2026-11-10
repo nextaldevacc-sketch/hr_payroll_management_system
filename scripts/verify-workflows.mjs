@@ -132,9 +132,9 @@ async function assertPageClean(page, role, stepContext = '') {
   // Check for salary leaks on non-salary roles
   const nonSalaryRoles = ['COMPANY_ADMIN', 'HR_OFFICER', 'DEPT_MANAGER', 'EMPLOYEE'];
   if (nonSalaryRoles.includes(role)) {
-    // If on /me/payslips or personal payslip view, employee can see own salary
+    // The only allowed exception is /me/payslips for the employee's own payslip
     const currentUrl = page.url();
-    if (!currentUrl.includes('/me/payslips') && !currentUrl.includes('/offboarding') && !stepContext.toLowerCase().includes('payslip') && !stepContext.toLowerCase().includes('clearance') && !stepContext.toLowerCase().includes('settlement')) {
+    if (!currentUrl.includes('/me/payslips')) {
       const match = content.match(/AED\s*\d[\d,.]*|\d[\d,.]*\s*AED/i);
       if (match) {
         throw new Error(`[Salary Leak Violation] Found salary amount '${match[0]}' on page for non-salary role ${role} during ${stepContext}`);
@@ -2258,6 +2258,7 @@ async function runStepRunner() {
       API_PORT,
       WEB_PORT,
       shotsDir,
+      assertPageClean,
     });
 
   } finally {

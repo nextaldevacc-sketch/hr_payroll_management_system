@@ -99,6 +99,14 @@ export async function getSeparation(req, res, next) {
 
 export async function updateClearanceItem(req, res, next) {
   try {
+    const roles = req.user?.roles || [];
+    if (roles.includes('COMPANY_ADMIN')) {
+      return res.status(403).json({
+        status: 'error',
+        code: 'FORBIDDEN',
+        message: 'Access denied: Company Administrator cannot clear clearance items.',
+      });
+    }
     const companyId = req.user.companyId;
     const { itemId } = req.params;
     const item = await separationService.updateClearanceItem(

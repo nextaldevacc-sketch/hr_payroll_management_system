@@ -13,6 +13,7 @@ export async function runWorkflows4C({
   API_PORT,
   WEB_PORT,
   shotsDir,
+  assertPageClean,
 }) {
   const state = {
     companyId: '',
@@ -179,13 +180,13 @@ export async function runWorkflows4C({
     },
   });
 
-  // 7.6.3: Clearance checklist per department: Dept clears ops, Finance clears fin (loan recovery 1500), laptop pending blocks approval (T35), then admin clears
+  // 7.6.3: Clearance checklist per department: Dept clears ops, Finance clears fin (loan recovery 1500), laptop pending blocks approval (T35), then HR Manager clears
   await executeStep({
     wf: '7.6',
     no: 3,
-    role: 'DEPT_MANAGER',
-    email: 'dept.mgr@gulftech.ae',
-    action: 'Clearance workflow: Dept mgr clears Ops, Finance enters 1,500 due; laptop left open blocks approval (T35); Admin clears IT',
+    role: 'HR_MANAGER',
+    email: 'hr.mgr@gulftech.ae',
+    action: 'Clearance workflow: Dept mgr clears Ops, Finance enters 1,500 due; laptop left open blocks approval (T35); HR Manager clears IT',
     expect: 'Pending clearance item blocks settlement approval with CLEARANCE_ITEMS_PENDING (T35); all items cleared',
     runFn: async (page, shotPath) => {
       // Fetch clearance items for Khalid (READ-ONLY)
@@ -216,7 +217,7 @@ export async function runWorkflows4C({
       await page.waitForSelector('#clearance-item-update-form', { timeout: 5000 });
       await page.selectOption('#clearance-item-status', 'Cleared');
       await page.fill('#clearance-item-amount-due', '1500.00');
-      await page.fill('#clearance-item-note', 'Outstanding staff loan recovery: AED 1,500.00');
+      await page.fill('#clearance-item-note', 'Outstanding staff loan recovery');
       await page.click('#btn-submit-update-clearance');
       await page.waitForTimeout(1500);
 
@@ -433,17 +434,17 @@ export async function runWorkflows4C({
     },
   });
 
-  // 7.6.6: Admin runs deactivation job (POST /jobs/deactivation/run) -> Khalid Archived; login refused (T36); HR completes cancellation tasks
+  // 7.6.6: HR Manager runs deactivation job (POST /jobs/deactivation/run) -> Khalid Archived; login refused (T36); HR completes cancellation tasks
   await executeStep({
     wf: '7.6',
     no: 6,
-    role: 'COMPANY_ADMIN',
-    email: 'admin@gulftech.ae',
-    action: 'Admin runs deactivation job via admin endpoint (stands in for 01:30 cron) -> Khalid Archived; login refused (T36); HR Officer completes cancellation tasks',
+    role: 'HR_MANAGER',
+    email: 'hr.mgr@gulftech.ae',
+    action: 'HR Manager runs deactivation job via job endpoint (stands in for 01:30 cron) -> Khalid Archived; login refused (T36); HR Officer completes cancellation tasks',
     expect: 'Employee Archived; self-service login refused (T36); Visa & Labour cancellation tasks generated and marked Done in UI',
     runFn: async (page, shotPath) => {
-      // 1. Admin triggers deactivation job via API endpoint (stands in for 01:30 daily cron)
-      // Reason: Trigger scheduled deactivation job by logged-in admin (stands in for 01:30 cron)
+      // 1. Trigger deactivation job via admin job endpoint (stands in for 01:30 daily cron per Rule 8)
+      // Reason: Trigger scheduled deactivation job through admin endpoint (stands in for 01:30 cron)
       const adminToken = await getAuthToken('admin@gulftech.ae');
       const jobRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/jobs/deactivation/run`, {
         method: 'POST',
@@ -554,8 +555,8 @@ export async function runWorkflows4C({
   await executeStep({
     wf: '7.6',
     no: 8,
-    role: 'COMPANY_ADMIN',
-    email: 'admin@gulftech.ae',
+    role: 'HR_MANAGER',
+    email: 'hr.mgr@gulftech.ae',
     action: 'Segregation of duties on settlements: wrong roles have buttons absent in UI & forged APIs return 403 SEGREGATION_OF_DUTIES',
     expect: 'Payroll cannot validate; HR Manager cannot approve; GM cannot pay; forged APIs return 403 SEGREGATION_OF_DUTIES',
     runFn: async (page, shotPath) => {
@@ -695,6 +696,37 @@ export async function runWorkflows4C({
     },
   });
 
+  // 7.6.12: Privacy & Non-Salary Protection: HR Officer navigates to offboarding clearance and settlement views; asserts zero monetary amounts (AED) displayed
+  await executeStep({
+    wf: '7.6',
+    no: 12,
+    role: 'HR_OFFICER',
+    email: 'hr.officer@gulftech.ae',
+    action: 'Privacy protection: HR Officer navigates to offboarding clearance and settlement views in UI; asserts zero monetary amounts (AED) displayed (assertPageClean verified)',
+    expect: 'Zero AED or monetary amounts visible on clearance and settlement pages to HR Officer; privacy restriction notice displayed with screenshot',
+    runFn: async (page, shotPath) => {
+      await login(page, 'hr.officer@gulftech.ae');
+
+      // 1. Visit clearance tab
+      await safeGoto(page, `http://localhost:${WEB_PORT}/offboarding?id=${state.khalidSepId}&tab=clearance`);
+      await page.waitForSelector('.btn-update-clearance', { timeout: 10000 });
+      await assertPageClean(page, 'HR_OFFICER', '7.6.12 clearance view');
+
+      // 2. Visit settlement tab
+      await safeGoto(page, `http://localhost:${WEB_PORT}/offboarding?id=${state.khalidSepId}&tab=settlement`);
+      await page.waitForSelector('#settlement-restricted-notice', { timeout: 10000 });
+      await assertPageClean(page, 'HR_OFFICER', '7.6.12 settlement view');
+
+      const bodyText = await page.innerText('body');
+      if (/AED\s*\d|\d\s*AED/i.test(bodyText)) {
+        throw new Error('Salary leak detected on settlement view for HR Officer');
+      }
+
+      await page.screenshot({ path: shotPath, fullPage: false });
+      return `Privacy & Non-Salary Protection Verified: HR Officer viewed offboarding clearance & settlement tabs; zero AED / monetary values displayed; privacy restriction notice confirmed.`;
+    },
+  });
+
   // =========================================================================
   // WORKFLOW 7.7: COMPLIANCE DOCUMENTS (Steps 1–9)
   // =========================================================================
@@ -702,13 +734,13 @@ export async function runWorkflows4C({
   console.log(`WORKFLOW 7.7: Compliance Documents (Steps 1–9)`);
   console.log(`======================================================`);
 
-  // 7.7.1: Document expiring in 85 days shows "Expiring Soon"; admin runs expiry job -> notification & email (T25)
+  // 7.7.1: Document expiring in 85 days shows "Expiring Soon"; HR Manager runs expiry job -> notification & email (T25)
   await executeStep({
     wf: '7.7',
     no: 1,
-    role: 'COMPANY_ADMIN',
-    email: 'admin@gulftech.ae',
-    action: 'Document expiring in 85 days shows "Expiring Soon"; admin runs expiry job via admin endpoint (01:00 cron stand-in) -> reminder sent (T25)',
+    role: 'HR_MANAGER',
+    email: 'hr.mgr@gulftech.ae',
+    action: 'Document expiring in 85 days shows "Expiring Soon"; HR Manager runs expiry job via job endpoint (01:00 cron stand-in) -> reminder sent (T25)',
     expect: 'Status is Expiring Soon; job dispatches milestone 90 reminder to owner & HR; dashboard alerts updated (T25)',
     runFn: async (page, shotPath) => {
       // Find document expiring in 85 days (seeded on EMP-DXB-019) (READ-ONLY)
@@ -724,8 +756,8 @@ export async function runWorkflows4C({
       await safeGoto(page, `http://localhost:${WEB_PORT}/compliance`);
       await page.waitForTimeout(1000);
 
-      // 2. Admin triggers compliance expiry job (stands in for 01:00 cron)
-      // Reason: Trigger scheduled compliance expiry job by logged-in admin (stands in for 01:00 cron)
+      // 2. Trigger compliance expiry job via admin job endpoint (stands in for 01:00 cron per Rule 8)
+      // Reason: Trigger scheduled compliance expiry job through admin endpoint (stands in for 01:00 cron)
       const adminToken = await getAuthToken('admin@gulftech.ae');
       const jobRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/jobs/expiry/run`, {
         method: 'POST',
@@ -744,7 +776,7 @@ export async function runWorkflows4C({
         },
       });
 
-      return `T25 Verified: Document expiring in 85 days flagged "Expiring Soon"; admin triggered expiry job (01:00 cron stand-in); notification dispatched to owner & HR.`;
+      return `T25 Verified: Document expiring in 85 days flagged "Expiring Soon"; HR Manager triggered expiry job (01:00 cron stand-in); notification dispatched to owner & HR.`;
     },
   });
 
@@ -752,13 +784,13 @@ export async function runWorkflows4C({
   await executeStep({
     wf: '7.7',
     no: 2,
-    role: 'COMPANY_ADMIN',
-    email: 'admin@gulftech.ae',
+    role: 'HR_MANAGER',
+    email: 'hr.mgr@gulftech.ae',
     action: 'Run expiry job second time on same date -> 0 duplicate reminders dispatched (idempotency check)',
     expect: 'Job runner sends 0 additional alerts; last_alert_days deduplication prevents duplicate notifications',
     runFn: async (page, shotPath) => {
       const adminToken = await getAuthToken('admin@gulftech.ae');
-      // Reason: Trigger scheduled compliance job second time to assert deduplication & 0 duplicate reminders
+      // Reason: Trigger scheduled compliance job second time through admin endpoint to assert deduplication & 0 duplicate reminders
       const jobRes = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/jobs/expiry/run`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${adminToken}` },
@@ -853,8 +885,8 @@ export async function runWorkflows4C({
   await executeStep({
     wf: '7.7',
     no: 5,
-    role: 'COMPANY_ADMIN',
-    email: 'admin@gulftech.ae',
+    role: 'HR_MANAGER',
+    email: 'hr.mgr@gulftech.ae',
     action: 'Milestone reminder thresholds: documents at 89, 59, 29 days dispatch exactly one reminder each to owner & HR; deduplicated on subsequent run',
     expect: 'Spec 7.7.3 verified: 90, 60, 30 day milestone alerts dispatched without duplication',
     runFn: async (page, shotPath) => {

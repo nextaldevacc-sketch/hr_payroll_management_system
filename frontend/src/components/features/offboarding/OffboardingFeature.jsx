@@ -852,7 +852,7 @@ export function OffboardingFeature() {
                     {language === 'ar' ? 'المسؤول المعتمد: ' : 'Assigned Owner: '}
                     <strong>{item.owner_user?.email || (language === 'ar' ? 'مدير القسم' : 'Department Manager')}</strong>
                   </div>
-                  {Number(item.amount_due) > 0 && (
+                  {seesSalary && Number(item.amount_due) > 0 && (
                     <div className="text-rose-600 dark:text-rose-400 font-semibold">
                       {language === 'ar'
                         ? `المبلغ المستحق للخصم: ${Number(item.amount_due).toFixed(2)} د.إ`
@@ -861,7 +861,10 @@ export function OffboardingFeature() {
                   )}
                   {item.note && (
                     <div className="italic text-slate-600 dark:text-slate-300">
-                      {language === 'ar' ? 'ملاحظة: ' : 'Note: '}{translateNote(item.note, language)}
+                      {language === 'ar' ? 'ملاحظة: ' : 'Note: '}
+                      {!seesSalary
+                        ? translateNote(item.note, language).replace(/(?:AED|\bد\.إ\b)\s*[\d,]+(?:\.\d{2})?/gi, '***').replace(/[\d,]+(?:\.\d{2})?\s*(?:AED|\bد\.إ\b)/gi, '***')
+                        : translateNote(item.note, language)}
                     </div>
                   )}
                 </div>
@@ -1263,6 +1266,20 @@ export function OffboardingFeature() {
         </div>
       )}
 
+      {activeTab === 'settlement' && selectedSeparation && !seesSalary && (
+        <div id="settlement-restricted-notice" className="p-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+          <ShieldAlert className="w-10 h-10 text-amber-500 mx-auto" />
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            {language === 'ar' ? 'عرض المستحقات المالية مقيّد' : 'Settlement Details Restricted'}
+          </h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            {language === 'ar'
+              ? 'وفقاً لسياسة الخصوصية المالية وقوانين الأجور الإماراتية، تقتصر تفاصيل ومبالغ نهاية الخدمة على الأدوار المخولة فقط.'
+              : 'Per Section 5.3 statutory privacy policies, final settlement calculations, monetary breakdowns, and payments are strictly restricted to authorized salary roles.'}
+          </p>
+        </div>
+      )}
+
       {/* MODAL: Initiate Separation */}
       {isInitiateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm">
@@ -1409,24 +1426,26 @@ export function OffboardingFeature() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Amount Due to Recover (AED)
-                </label>
-                <input
-                  id="clearance-item-amount-due"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={clearItemForm.amount_due}
-                  onChange={(e) => setClearItemForm({ ...clearItemForm, amount_due: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                  placeholder="0.00"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Deducted directly from employee final settlement dues.
-                </p>
-              </div>
+              {seesSalary && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Amount Due to Recover (AED)
+                  </label>
+                  <input
+                    id="clearance-item-amount-due"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={clearItemForm.amount_due}
+                    onChange={(e) => setClearItemForm({ ...clearItemForm, amount_due: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    placeholder="0.00"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Deducted directly from employee final settlement dues.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">

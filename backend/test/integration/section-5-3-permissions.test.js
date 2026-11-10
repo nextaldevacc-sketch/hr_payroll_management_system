@@ -175,6 +175,83 @@ describe('Section 5.3 Permissions Matrix & Part 2 Features', { timeout: 120000 }
       assert.equal(resListTasks.status, 403, 'Company Admin cannot list separation tasks');
     });
 
+    it('blocks Company Admin from every separation and settlement endpoint (HTTP 403)', async () => {
+      // 1. Separation endpoints
+      const resPostSep = await request(app)
+        .post('/api/v1/separations')
+        .set('Authorization', `Bearer ${tokens.admin}`)
+        .send({ employee_id: seededAhmedId, type: 'Resignation', notice_date: '2026-10-01', last_working_day: '2026-10-31' });
+      assert.equal(resPostSep.status, 403, 'Company Admin cannot create separation');
+
+      const resActSep = await request(app)
+        .post(`/api/v1/separations/${sepInProgressId}/action`)
+        .set('Authorization', `Bearer ${tokens.admin}`)
+        .send({ action: 'Approve' });
+      assert.equal(resActSep.status, 403, 'Company Admin cannot approve separation');
+
+      const clearanceItems = await db.clearance_items.findMany({ where: { separation_id: sepInProgressId } });
+      if (clearanceItems[0]) {
+        const resClear = await request(app)
+          .patch(`/api/v1/separations/clearance/${clearanceItems[0].id}`)
+          .set('Authorization', `Bearer ${tokens.admin}`)
+          .send({ status: 'Cleared', amount_due: 0 });
+        assert.equal(resClear.status, 403, 'Company Admin cannot update clearance item');
+      }
+
+      const tasks = await db.separation_tasks.findMany({ where: { separation_id: sepInProgressId } });
+      if (tasks[0]) {
+        const resTaskUpdate = await request(app)
+          .patch(`/api/v1/separation-tasks/${tasks[0].id}`)
+          .set('Authorization', `Bearer ${tokens.admin}`)
+          .send({ status: 'Done' });
+        assert.equal(resTaskUpdate.status, 403, 'Company Admin cannot update separation task');
+      }
+
+      // 2. Settlement endpoints
+      const settlement = await db.final_settlements.findFirst({ where: { separation_id: sepInProgressId } });
+      if (settlement) {
+        const resGetSet = await request(app)
+          .get(`/api/v1/settlements/${settlement.id}`)
+          .set('Authorization', `Bearer ${tokens.admin}`);
+        assert.equal(resGetSet.status, 403, 'Company Admin cannot view settlement');
+
+        const resGetBySep = await request(app)
+          .get(`/api/v1/settlements/by-separation/${sepInProgressId}`)
+          .set('Authorization', `Bearer ${tokens.admin}`);
+        assert.equal(resGetBySep.status, 403, 'Company Admin cannot view settlement by separation');
+
+        const resCalc = await request(app)
+          .post(`/api/v1/settlements/calculate/${sepInProgressId}`)
+          .set('Authorization', `Bearer ${tokens.admin}`);
+        assert.equal(resCalc.status, 403, 'Company Admin cannot calculate settlement');
+
+        const resPrep = await request(app)
+          .post(`/api/v1/settlements/prepare/${sepInProgressId}`)
+          .set('Authorization', `Bearer ${tokens.admin}`);
+        assert.equal(resPrep.status, 403, 'Company Admin cannot prepare settlement');
+
+        const resVal = await request(app)
+          .post(`/api/v1/settlements/${settlement.id}/validate`)
+          .set('Authorization', `Bearer ${tokens.admin}`);
+        assert.equal(resVal.status, 403, 'Company Admin cannot validate settlement');
+
+        const resApprove = await request(app)
+          .post(`/api/v1/settlements/${settlement.id}/approve`)
+          .set('Authorization', `Bearer ${tokens.admin}`);
+        assert.equal(resApprove.status, 403, 'Company Admin cannot approve settlement');
+
+        const resPay = await request(app)
+          .post(`/api/v1/settlements/${settlement.id}/pay`)
+          .set('Authorization', `Bearer ${tokens.admin}`);
+        assert.equal(resPay.status, 403, 'Company Admin cannot pay settlement');
+
+        const resPdf = await request(app)
+          .get(`/api/v1/settlements/${settlement.id}/pdf`)
+          .set('Authorization', `Bearer ${tokens.admin}`);
+        assert.equal(resPdf.status, 403, 'Company Admin cannot download settlement PDF');
+      }
+    });
+
     it('allows HR Officer and HR Manager to create separations; blocks others (403)', async () => {
       // Dept Manager cannot create separation
       const resBlocked = await request(app)

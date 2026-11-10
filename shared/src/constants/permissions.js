@@ -184,7 +184,7 @@ export function canAccessNavArea(userRoles = [], area, seesSalary = false) {
 
   if (area === 'offboarding') {
     return userRoles.some((r) =>
-      ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'DEPT_MANAGER', 'COMPANY_ADMIN'].includes(r)
+      ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'DEPT_MANAGER'].includes(r)
     );
   }
 
