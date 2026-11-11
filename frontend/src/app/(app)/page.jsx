@@ -20,6 +20,7 @@ import { RecentActivityTile } from '../../components/features/dashboard/RecentAc
 import { VarianceTile } from '../../components/features/dashboard/VarianceTile';
 
 import { Drawer } from '../../components/primitives/Drawer';
+import BiometricImportFeature from '../../components/features/attendance/BiometricImportFeature';
 import { Modal } from '../../components/primitives/Modal';
 import { Button } from '../../components/primitives/form/Button';
 import { useLanguage } from '../../context/LanguageContext';
@@ -38,7 +39,8 @@ import {
 export default function DashboardPage() {
   const router = useRouter();
   const { t, language } = useLanguage();
-  const { user, seesSalary } = useAuth();
+  const { user, seesSalary, canAccess } = useAuth();
+  const canImportPunches = canAccess('attendance', 'edit');
   const { selectedVisaId, selectedVisa, companyName, companyNameAr } = useVisa();
   const [activeDrawer, setActiveDrawer] = useState(null);
   const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
@@ -94,7 +96,7 @@ export default function DashboardPage() {
   const handleQuickAction = (actionId) => {
     switch (actionId) {
       case 'import':
-        setActiveDrawer('import');
+        if (canImportPunches) setActiveDrawer('import');
         break;
       case 'new-emp':
         router.push('/employees');
@@ -444,14 +446,18 @@ export default function DashboardPage() {
 
         {/* Quick Action Buttons */}
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<Upload className="w-3.5 h-3.5" />}
-            onClick={() => setActiveDrawer('import')}
-          >
-            {t('dashboard.actions.importPunches', 'Import Punches')}
-          </Button>
+          {canImportPunches && (
+            <Button
+              id="dashboard-import-punches-btn"
+              data-testid="dashboard-import-punches-btn"
+              variant="outline"
+              size="sm"
+              icon={<Upload className="w-3.5 h-3.5" />}
+              onClick={() => setActiveDrawer('import')}
+            >
+              {t('dashboard.actions.importPunches', 'Import Punches')}
+            </Button>
+          )}
           {seesSalary && (
             <Button
               variant="primary"
@@ -625,23 +631,13 @@ export default function DashboardPage() {
 
       {/* Punches Import Drawer */}
       <Drawer
-        isOpen={activeDrawer === 'import'}
+        id="dashboard-biometric-import-drawer"
+        isOpen={canImportPunches && activeDrawer === 'import'}
         onClose={() => setActiveDrawer(null)}
         title={language === 'ar' ? 'استيراد بصمات الحضور البيومترية' : 'Biometric Punches Import'}
         subtitle={language === 'ar' ? 'تحميل سجلات الحضور (ملف CSV/Excel)' : 'Upload attendance records (CSV/Excel format)'}
       >
-        <div className="space-y-4">
-          <p className="text-xs text-text-muted">
-            {language === 'ar' ? 'تحميل سجلات أجهزة البصمة لمطابقتها مع مواعيد الورديات المجدولة.' : 'Upload biometric device logs to reconcile with scheduled shift timings.'}
-          </p>
-          <div className="border-2 border-dashed border-border rounded-xl p-8 text-center space-y-3 bg-black/[0.01] dark:bg-white/[0.01]">
-            <Upload className="w-8 h-8 mx-auto text-primary" />
-            <p className="text-xs text-text-muted">{language === 'ar' ? 'اسحب ملف سجل البصمات وأفلته هنا، أو اضغط للاختيار' : 'Drag & drop punch log file here, or click to browse'}</p>
-            <Button size="sm" variant="outline" onClick={() => setActiveDrawer(null)}>
-              {language === 'ar' ? 'استعراض الملفات' : 'Browse Files'}
-            </Button>
-          </div>
-        </div>
+        <BiometricImportFeature />
       </Drawer>
     </div>
   </RouteGuard>

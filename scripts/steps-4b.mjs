@@ -50,6 +50,54 @@ export async function runWorkflows4B({
   state.ahmedUserId = ahmed.user?.id;
 
   // =========================================================================
+  // WORKFLOW 7.3: ATTENDANCE (Dashboard Quick Action Biometric Import)
+  // =========================================================================
+  console.log(`\n======================================================`);
+  console.log(`WORKFLOW 7.3: Attendance Import via Dashboard Quick Action (Step 10)`);
+  console.log(`======================================================`);
+
+  const dashboardFixtureCsv = path.resolve('backend/test/fixtures/biometric-dashboard-sample.csv');
+
+  // 7.3.10: HR Manager imports biometric CSV via Dashboard Quick Action drawer
+  await executeStep({
+    wf: '7.3',
+    no: 10,
+    role: 'HR_MANAGER',
+    email: 'hr.mgr@gulftech.ae',
+    action: 'HR Manager imports biometric punches via Dashboard quick action drawer',
+    expect: 'Import Punches quick action opens drawer; attached CSV submits successfully; import result summary renders',
+    runFn: async (page, shotPath) => {
+      await login(page, 'hr.mgr@gulftech.ae');
+      await safeGoto(page, `http://localhost:${WEB_PORT}/`);
+      await page.waitForTimeout(1500);
+
+      // Click the Import Punches quick action (button in header or quick action tile)
+      const importBtn = await page.waitForSelector('#dashboard-import-punches-btn, #quick-action-import, [data-testid="quick-action-import"]', { timeout: 10000 });
+      await importBtn.click();
+      await page.waitForTimeout(1000);
+
+      // Attach CSV with page.setInputFiles on [data-testid="biometric-file-input"]
+      const fileInput = await page.waitForSelector('[data-testid="biometric-file-input"]', { state: 'attached', timeout: 10000 });
+      await fileInput.setInputFiles(dashboardFixtureCsv);
+      await page.waitForTimeout(500);
+
+      // Submit through visible UI
+      const submitBtn = await page.waitForSelector('[data-testid="start-import-btn"]', { timeout: 10000 });
+      await submitBtn.click();
+
+      // Assert import result summary shows
+      await page.waitForSelector('[data-testid="import-results-summary"]', { timeout: 30000 });
+      const summaryText = await page.textContent('[data-testid="import-results-summary"]');
+      if (!summaryText.includes('Total Punch Rows') && !summaryText.includes('إجمالي السجلات') && !summaryText.includes('Imported Successfully')) {
+        throw new Error('Biometric import summary did not render expected summary cards');
+      }
+
+      await page.screenshot({ path: shotPath, fullPage: true });
+      return 'Dashboard Quick Action verified: BiometricImportFeature opened in drawer, attached CSV processed, and import result summary confirmed.';
+    },
+  });
+
+  // =========================================================================
   // WORKFLOW 7.4: LEAVE REQUEST
   // =========================================================================
   console.log(`\n======================================================`);

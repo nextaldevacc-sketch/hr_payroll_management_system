@@ -18,7 +18,7 @@ import OvertimeRequestsFeature from '@/components/features/overtime/OvertimeRequ
 import { RouteGuard } from '@/components/common/RouteGuard';
 
 export default function AttendancePage() {
-  const { user, language } = useAuth();
+  const { user, language, canAccess } = useAuth();
   const isAr = language === 'ar';
 
   const [activeTab, setActiveTab] = useState('grid'); // 'grid' | 'import' | 'queue' | 'overtime' | 'review'
@@ -57,6 +57,7 @@ export default function AttendancePage() {
             <span>{isAr ? 'شبكة الحضور' : 'Daily Grid'}</span>
           </button>
 
+          {canAccess('attendance', 'edit') && (
           <button
             type="button"
             id="tab-biometric-import"
@@ -71,6 +72,7 @@ export default function AttendancePage() {
             <UploadCloud className="w-3.5 h-3.5" />
             <span>{isAr ? 'استيراد البصمة' : 'Biometric Import'}</span>
           </button>
+          )}
 
           <button
             type="button"
@@ -121,7 +123,7 @@ export default function AttendancePage() {
 
       {/* Tab Panels */}
       {activeTab === 'grid' && <AttendanceGridFeature />}
-      {activeTab === 'import' && <BiometricImportFeature />}
+      {activeTab === 'import' && canAccess('attendance', 'edit') && <BiometricImportFeature />}
       {activeTab === 'queue' && <MissingPunchQueueFeature />}
       {activeTab === 'overtime' && <OvertimeRequestsFeature />}
       {activeTab === 'review' && <AttendanceReviewFeature />}

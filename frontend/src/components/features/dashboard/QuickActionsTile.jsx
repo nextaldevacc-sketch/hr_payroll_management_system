@@ -54,6 +54,8 @@ export function QuickActionsTile({ data = [], onAction }) {
         {data.map((action) => (
           <InsetBox
             key={action.id}
+            id={`quick-action-${action.id}`}
+            data-testid={`quick-action-${action.id}`}
             as="button"
             tone="neutral"
             interactive
