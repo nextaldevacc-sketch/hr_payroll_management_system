@@ -962,7 +962,9 @@ export function OffboardingFeature() {
                               try {
                                 const entered = window.prompt('Enter cancellation reference / application number:', task.reference_number || (task.task_type === 'VISA_CANCELLATION' ? 'GDRFA-CAN-88990' : 'MOHRE-CAN-11223'));
                                 if (entered !== null) ref = entered;
-                              } catch {}
+                              } catch (err) {
+                                console.warn('[Offboarding] prompt canceled or unavailable:', err?.message);
+                              }
                             }
                             handleUpdateTask(task.id, 'Done', ref || (task.task_type === 'VISA_CANCELLATION' ? 'GDRFA-CAN-88990' : 'MOHRE-CAN-11223'), task.note);
                           }}

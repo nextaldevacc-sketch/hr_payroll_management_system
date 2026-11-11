@@ -26,11 +26,14 @@ import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
 import { Select } from '../../primitives/form/Select';
 import { useVisa } from '../../../context/VisaContext';
+import { useToast } from '../../../context/ToastContext';
+import { formatErrorMessage } from '../../../utils/formatError';
 import { withVisa } from '../../../lib/visaQuery';
 import { listLeaveRequests, getLeaveTypes, requestLeave, actOnLeave, getLeaveBalances } from '../../../services/leaveApi';
 
 export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange }) {
   const { user, language } = useAuth();
+  const { showSuccess, showError } = useToast();
   const searchParams = useSearchParams();
   const { selectedVisaId } = useVisa();
   const isAr = language === 'ar';
@@ -110,7 +113,9 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
               setDrawerRequest(match);
               setDrawerOpen(true);
             }
-          }).catch(() => {});
+          }).catch((err) => {
+            console.warn('[LeaveRequests] fetch target request failed:', err?.message);
+          });
         }
       } else {
         const pending = requests.find((r) => r.status === 'Pending') || requests[0];
@@ -171,9 +176,10 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
   const handleApprove = async (id) => {
     try {
       await actOnLeave(id, { action: 'Approve' });
+      showSuccess(language === 'ar' ? 'تم اعتماد طلب الإجازة بنجاح' : 'Leave request approved successfully');
       loadData();
     } catch (err) {
-      alert(err.message || 'Failed to approve');
+      showError(formatErrorMessage(err, language));
     }
   };
 
@@ -186,7 +192,7 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
   const handleConfirmRefuse = async (e) => {
     e.preventDefault();
     if (!refusalReason.trim()) {
-      alert(isAr ? 'سبب الرفض إلزامي' : 'Refusal reason is mandatory');
+      showError(language === 'ar' ? 'سبب الرفض إلزامي' : 'Refusal reason is mandatory');
       return;
     }
     setRefusing(true);
@@ -195,10 +201,11 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
         action: 'Refuse',
         refusal_reason: refusalReason.trim(),
       });
+      showSuccess(language === 'ar' ? 'تم رفض طلب الإجازة بنجاح' : 'Leave request refused successfully');
       setRefusalModalOpen(false);
       loadData();
     } catch (err) {
-      alert(err.message || 'Failed to refuse');
+      showError(formatErrorMessage(err, language));
     } finally {
       setRefusing(false);
     }

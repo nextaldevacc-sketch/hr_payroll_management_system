@@ -5,6 +5,8 @@ import { Drawer } from '../../../primitives/Drawer';
 import { Select } from '../../../primitives/form/Select';
 import { MapPin, Building, Plus, Trash2, PowerOff, Check } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
+import { useToast } from '../../../../context/ToastContext';
+import { formatErrorMessage } from '../../../../utils/formatError';
 import { createBranch, deleteBranch } from '../../../../services/settingsApi';
 
 const UAE_EMIRATES = [
@@ -27,6 +29,7 @@ export function BranchesDrawer({
   onDeleteBranch,
 }) {
   const { isRTL, language, t } = useLanguage();
+  const { showError, showSuccess } = useToast();
   const [branchList, setBranchList] = useState(branches);
   React.useEffect(() => {
     setBranchList(branches || []);
@@ -60,8 +63,9 @@ export function BranchesDrawer({
       ]);
       setNewBranch({ name: '', name_ar: '', emirate: 'Dubai', company_visa_id: visas[0]?.id || '' });
       setIsAdding(false);
+      showSuccess(language === 'ar' ? 'تمت إضافة الفرع بنجاح' : 'Branch added successfully');
     } catch (err) {
-      alert(err.message);
+      showError(formatErrorMessage(err, language) || (language === 'ar' ? 'فشل إضافة الفرع' : 'Failed to add branch'));
     }
   };
 
@@ -75,11 +79,12 @@ export function BranchesDrawer({
     try {
       await deleteBranch(branch.id);
       setBranchList(branchList.filter((b) => b.id !== branch.id));
+      showSuccess(language === 'ar' ? 'تم حذف الفرع' : 'Branch deleted successfully');
     } catch (err) {
       if (onDeleteBranch) {
-        onDeleteBranch(branch, err.message);
+        onDeleteBranch(branch, formatErrorMessage(err, language));
       } else {
-        alert(err.message);
+        showError(formatErrorMessage(err, language) || (language === 'ar' ? 'فشل حذف الفرع' : 'Failed to delete branch'));
       }
     }
   };

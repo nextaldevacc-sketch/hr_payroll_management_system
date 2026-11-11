@@ -5,6 +5,7 @@ import { Drawer } from '../../../primitives/Drawer';
 import { Select } from '../../../primitives/form/Select';
 import { Building2, FileText, CreditCard, ShieldCheck, Plus, Check, Globe, Upload, AlertTriangle, Coins, Trash2 } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
+import { useToast } from '../../../../context/ToastContext';
 import { createCompanyVisa, deleteCompanyVisa } from '../../../../services/settingsApi';
 
 export function CompanyProfileDrawer({
@@ -18,7 +19,26 @@ export function CompanyProfileDrawer({
 }) {
   const comp = company || companyProfile;
   const { isRTL, language } = useLanguage();
+  const { showSuccess, showError } = useToast();
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'visas' | 'pension'
+  const [logoPreview, setLogoPreview] = useState(comp?.logo_url || null);
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showError(language === 'ar' ? 'يرجى اختيار ملف صورة صالح' : 'Please select a valid image file');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result;
+      setLogoPreview(dataUrl);
+      setFormData((prev) => ({ ...prev, logo_url: dataUrl }));
+      showSuccess(language === 'ar' ? 'تم تحميل الشعار بنجاح' : 'Logo uploaded successfully');
+    };
+    reader.readAsDataURL(file);
+  };
 
   const [formData, setFormData] = useState({
     name: comp?.name || '',
@@ -234,10 +254,14 @@ export function CompanyProfileDrawer({
             {/* Logo Upload Box */}
             <div className="p-3.5 rounded-xl border border-dashed border-border/80 bg-surface/40 flex items-center gap-4">
               <div
-                className="w-12 h-12 rounded-xl border flex items-center justify-center font-bold text-base shrink-0"
+                className="w-12 h-12 rounded-xl border flex items-center justify-center font-bold text-base shrink-0 overflow-hidden"
                 style={{ background: 'var(--primary-wash)', borderColor: 'var(--glass-border)', color: 'var(--primary)' }}
               >
-                GT
+                {logoPreview ? (
+                  <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  formData.name ? formData.name.slice(0, 2).toUpperCase() : 'CO'
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-bold text-text block">
@@ -251,7 +275,14 @@ export function CompanyProfileDrawer({
                 <label className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-border hover:bg-surface-hover text-text cursor-pointer flex items-center gap-1.5 shrink-0">
                   <Upload className="w-3.5 h-3.5" />
                   <span>{language === 'ar' ? 'تحديث' : 'Upload'}</span>
-                  <input type="file" className="hidden" accept="image/*" />
+                  <input
+                    id="company-logo-input"
+                    data-testid="company-logo-input"
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                  />
                 </label>
               )}
             </div>

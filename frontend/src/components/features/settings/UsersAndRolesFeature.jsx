@@ -569,7 +569,8 @@ export function UsersAndRolesFeature() {
                             id={`role-checkbox-${r.code}`}
                             value={r.code}
                             checked={isChecked}
-                            onChange={() => {}}
+                            onChange={() => handleToggleRoleSelection(r.code)}
+                            onClick={(e) => e.stopPropagation()}
                             className="mt-0.5 rounded text-amber-500 focus:ring-amber-500"
                           />
                           <label htmlFor={`role-checkbox-${r.code}`} className="cursor-pointer block">

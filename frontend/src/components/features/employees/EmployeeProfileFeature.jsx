@@ -110,11 +110,14 @@ export function EmployeeProfileFeature({ id } = {}) {
       try {
         const res = await fetchBranches();
         if (Array.isArray(res) && res.length > 0) return res;
-      } catch {}
+      } catch (err) {
+        console.warn('[EmployeeProfile] fetchBranches fallback:', err?.message);
+      }
       try {
         const meta = await fetchEmployeeMetaOptions();
         return meta.branches || [];
-      } catch {
+      } catch (err) {
+        console.warn('[EmployeeProfile] fetchEmployeeMetaOptions error:', err?.message);
         return [];
       }
     },

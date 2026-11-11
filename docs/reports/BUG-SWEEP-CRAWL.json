@@ -1,0 +1,3641 @@
+{
+  "crawlResults": [
+    {
+      "role": "COMPANY_ADMIN",
+      "route": "/",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": true,
+      "networkFired": true,
+      "isDead": false
+    },
+    {
+      "role": "COMPANY_ADMIN",
+      "route": "/",
+      "control": "Late Arrivals Today 0",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "COMPANY_ADMIN",
+      "route": "/settings",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "COMPANY_ADMIN",
+      "route": "/settings",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "COMPANY_ADMIN",
+      "route": "/settings",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "COMPANY_ADMIN",
+      "route": "/settings",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "COMPANY_ADMIN",
+      "route": "/audit",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "COMPANY_ADMIN",
+      "route": "/audit",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "COMPANY_ADMIN",
+      "route": "/audit",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "COMPANY_ADMIN",
+      "route": "/audit",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "COMPANY_ADMIN",
+      "route": "/settings/users",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "COMPANY_ADMIN",
+      "route": "/settings/users",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "COMPANY_ADMIN",
+      "route": "/settings/users",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "COMPANY_ADMIN",
+      "route": "/settings/users",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": true,
+      "networkFired": true,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/employees",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/employees",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/employees",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/employees",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/approvals",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/approvals",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/approvals",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/approvals",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/attendance",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/attendance",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/leave",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/leave",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/payroll",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/payroll",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/payroll",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/payroll",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/offboarding",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/offboarding",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/offboarding",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/offboarding",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/compliance",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/compliance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/compliance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/compliance",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/reports",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/reports",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/reports",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/reports",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/settings",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/settings",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/settings",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/settings",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/audit",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/audit",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/audit",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/audit",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/profile",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/profile",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/profile",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/profile",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/payslips",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/payslips",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/payslips",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/payslips",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/attendance",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/attendance",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/leave",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/leave",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/requests",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/requests",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/requests",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/requests",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/documents",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/documents",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/documents",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_MANAGER",
+      "route": "/me/documents",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": true,
+      "networkFired": true,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/employees",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/employees",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/employees",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/employees",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/attendance",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/attendance",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/leave",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/leave",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/offboarding",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/offboarding",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/offboarding",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/offboarding",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/compliance",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/compliance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/compliance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/compliance",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/profile",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/profile",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/profile",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/profile",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/payslips",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/payslips",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/payslips",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/payslips",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/attendance",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/attendance",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/leave",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/leave",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/requests",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/requests",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/requests",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/requests",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/documents",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/documents",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/documents",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER",
+      "route": "/me/documents",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": true,
+      "networkFired": true,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/",
+      "control": "Late Arrivals Today 0",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/employees",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/employees",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/employees",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/employees",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/attendance",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/attendance",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/leave",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/leave",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/offboarding",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/offboarding",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/offboarding",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/offboarding",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/compliance",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/compliance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/compliance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "route": "/compliance",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": true,
+      "networkFired": true,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/employees",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/employees",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/employees",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/employees",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/approvals",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/approvals",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/approvals",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/approvals",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/attendance",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/attendance",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/leave",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/leave",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/payroll",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/payroll",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/payroll",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/payroll",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/offboarding",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/offboarding",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/offboarding",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/offboarding",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/reports",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/reports",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/reports",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/reports",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/settings",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/settings",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/settings",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/settings",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/profile",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/profile",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/profile",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/profile",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/payslips",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/payslips",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/payslips",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/payslips",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/attendance",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/attendance",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/leave",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/leave",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/requests",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/requests",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/requests",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/requests",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/documents",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/documents",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/documents",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "route": "/me/documents",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": true,
+      "networkFired": true,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/employees",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/employees",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/employees",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/employees",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/approvals",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/approvals",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/approvals",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/approvals",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/attendance",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/attendance",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/leave",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/leave",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/payroll",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/payroll",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/payroll",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/payroll",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/offboarding",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/offboarding",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/offboarding",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/offboarding",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/compliance",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/compliance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/compliance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/compliance",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/reports",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/reports",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/reports",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/reports",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/audit",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/audit",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/audit",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/audit",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/me",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/me/profile",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/profile",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/profile",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/profile",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/me/payslips",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/payslips",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/payslips",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/payslips",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/me/attendance",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/attendance",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/me/leave",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/leave",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/me/requests",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/requests",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/requests",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/requests",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "GM",
+      "route": "/me/documents",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/documents",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/documents",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "GM",
+      "route": "/me/documents",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "FINANCE",
+      "route": "/",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": true,
+      "networkFired": true,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/approvals",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/approvals",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/approvals",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/approvals",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "FINANCE",
+      "route": "/payroll",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/payroll",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/payroll",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/payroll",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "FINANCE",
+      "route": "/offboarding",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/offboarding",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/offboarding",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/offboarding",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "FINANCE",
+      "route": "/reports",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/reports",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/reports",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/reports",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "FINANCE",
+      "route": "/settings",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/settings",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/settings",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/settings",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/profile",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/profile",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/profile",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/profile",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/payslips",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/payslips",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/payslips",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/payslips",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/attendance",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/attendance",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/leave",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/leave",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/requests",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/requests",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/requests",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/requests",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/documents",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/documents",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/documents",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "FINANCE",
+      "route": "/me/documents",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": true,
+      "networkFired": true,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/",
+      "control": "Late Arrivals Today 0",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/employees",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/employees",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/employees",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/employees",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/approvals",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/approvals",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/approvals",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/approvals",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/attendance",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/attendance",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/leave",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/leave",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/offboarding",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/offboarding",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/offboarding",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/offboarding",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/profile",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/profile",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/profile",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/profile",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/payslips",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/payslips",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/payslips",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/payslips",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/attendance",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/attendance",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/leave",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/leave",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/requests",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/requests",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/requests",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/requests",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/documents",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/documents",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/documents",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "route": "/me/documents",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": true,
+      "networkFired": true,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/profile",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/profile",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/profile",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/profile",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/payslips",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/payslips",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/payslips",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/payslips",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/attendance",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/attendance",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/attendance",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/leave",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/leave",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/leave",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/requests",
+      "control": "العربية",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/requests",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/requests",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/requests",
+      "control": "Sign in",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/documents",
+      "control": "English",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/documents",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/documents",
+      "control": "unlabeled",
+      "domChanged": true,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": false
+    },
+    {
+      "role": "EMPLOYEE",
+      "route": "/me/documents",
+      "control": "تسجيل الدخول",
+      "domChanged": false,
+      "urlChanged": false,
+      "networkFired": false,
+      "isDead": true
+    }
+  ],
+  "allBugs": []
+}

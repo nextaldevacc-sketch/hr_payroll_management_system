@@ -16,10 +16,13 @@ import { Button } from '@/components/primitives/form/Button';
 import { Select } from '@/components/primitives/form/Select';
 import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
+import { formatErrorMessage } from '@/utils/formatError';
 import { getMyLeave, submitMyRequest, cancelMyRequest } from '@/services/meApi';
 
 export default function MyLeavePage() {
   const { language } = useLanguage();
+  const { showSuccess, showError } = useToast();
   const searchParams = useSearchParams();
   const isAr = language === 'ar';
 
@@ -128,9 +131,10 @@ export default function MyLeavePage() {
   const handleCancelLeave = async (id) => {
     try {
       await cancelMyRequest('leave', id);
+      showSuccess(isAr ? 'تم إلغاء الإجازة بنجاح' : 'Leave cancelled successfully');
       await loadData();
     } catch (err) {
-      alert((isAr ? 'فشل إلغاء الإجازة: ' : 'Failed to cancel leave: ') + err.message);
+      showError(formatErrorMessage(err, language));
     }
   };
 

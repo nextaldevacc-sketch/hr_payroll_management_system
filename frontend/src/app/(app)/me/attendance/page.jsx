@@ -15,10 +15,13 @@ import { IconWell } from '@/components/primitives/IconWell';
 import { Button } from '@/components/primitives/form/Button';
 import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
+import { formatErrorMessage } from '@/utils/formatError';
 import { getMyAttendance, submitMyRequest } from '@/services/meApi';
 
 export default function MyAttendancePage() {
   const { language } = useLanguage();
+  const { showSuccess, showError } = useToast();
   const [currentMonth, setCurrentMonth] = useState('2026-10');
   const [days, setDays] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,10 +66,10 @@ export default function MyAttendancePage() {
         requested_time: requestedDateTime,
         reason: punchReason || 'Employee submitted missing punch request',
       });
-      alert(language === 'ar' ? 'تم تقديم طلب تصحيح البصمة بنجاح' : 'Missing punch request submitted successfully');
+      showSuccess(language === 'ar' ? 'تم تقديم طلب تصحيح البصمة بنجاح' : 'Missing punch request submitted successfully');
       setPunchModalOpen(false);
     } catch (err) {
-      alert('Failed to submit request: ' + err.message);
+      showError(formatErrorMessage(err, language));
     } finally {
       setSubmitting(false);
     }

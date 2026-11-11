@@ -16,6 +16,8 @@ import { Button } from '@/components/primitives/form/Button';
 import { Select } from '@/components/primitives/form/Select';
 import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
+import { formatErrorMessage } from '@/utils/formatError';
 import { getMyDocuments, uploadMyDocument } from '@/services/meApi';
 
 function getDocTypeLabel(type, lang) {
@@ -55,6 +57,7 @@ export default function MyDocumentsPage() {
   const searchParams = useSearchParams();
   const actionParam = searchParams?.get('action');
   const { language } = useLanguage();
+  const { showSuccess, showError } = useToast();
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploadModalOpen, setUploadModalOpen] = useState(actionParam === 'upload');
@@ -93,11 +96,11 @@ export default function MyDocumentsPage() {
         doc_number: docNumber,
         expiry_date: expiryDate,
       });
-      alert(language === 'ar' ? 'تم رفع المستند بنجاح وهو الآن قيد مراجعة الموارد البشرية' : 'Document uploaded successfully and routed to HR for verification');
+      showSuccess(language === 'ar' ? 'تم رفع المستند بنجاح وهو الآن قيد مراجعة الموارد البشرية' : 'Document uploaded successfully and routed to HR for verification');
       setUploadModalOpen(false);
       loadDocs();
     } catch (err) {
-      alert('Upload failed: ' + err.message);
+      showError(formatErrorMessage(err, language));
     } finally {
       setSubmitting(false);
     }

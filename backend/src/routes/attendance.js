@@ -9,7 +9,6 @@ router.use(authenticate);
 function authorizeAttendance(allowedRoles = []) {
   return (req, res, next) => {
     const roles = req.user.roles || [];
-    if (roles.includes('COMPANY_ADMIN')) return next();
     const hasRole = roles.some((r) => allowedRoles.includes(r));
     if (!hasRole) {
       return res.status(403).json({
@@ -25,14 +24,14 @@ function authorizeAttendance(allowedRoles = []) {
 // 1. Daily Grid
 router.get(
   '/grid',
-  authorizeAttendance(['HR_MANAGER', 'HR_OFFICER', 'DEPT_MANAGER', 'COMPANY_ADMIN']),
+  authorizeAttendance(['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER']),
   attendanceController.getAttendanceGrid
 );
 
 // 2. Biometric Import
 router.post(
   '/import',
-  authorizeAttendance(['HR_MANAGER', 'HR_OFFICER', 'COMPANY_ADMIN']),
+  authorizeAttendance(['HR_MANAGER', 'HR_OFFICER']),
   upload.single('file'),
   attendanceController.importBiometric
 );
@@ -40,40 +39,40 @@ router.post(
 // 3. Cell Edit
 router.put(
   '/days/:id',
-  authorizeAttendance(['HR_MANAGER', 'COMPANY_ADMIN']),
+  authorizeAttendance(['HR_MANAGER', 'HR_OFFICER']),
   attendanceController.editAttendanceDay
 );
 
 // 4. Missing Punch Queue
 router.get(
   '/missing-punch',
-  authorizeAttendance(['HR_MANAGER', 'HR_OFFICER', 'DEPT_MANAGER', 'COMPANY_ADMIN']),
+  authorizeAttendance(['HR_MANAGER', 'HR_OFFICER', 'DEPT_MANAGER', 'PAYROLL_OFFICER', 'GM']),
   attendanceController.getMissingPunchQueue
 );
 
 router.post(
   '/days/:id/resolve-missing-punch',
-  authorizeAttendance(['HR_MANAGER', 'HR_OFFICER', 'DEPT_MANAGER', 'COMPANY_ADMIN']),
+  authorizeAttendance(['HR_MANAGER', 'HR_OFFICER', 'DEPT_MANAGER']),
   attendanceController.resolveMissingPunch
 );
 
 // 5. Attendance Review Sign-Off
 router.post(
   '/review/manager-confirm',
-  authorizeAttendance(['DEPT_MANAGER', 'HR_MANAGER', 'COMPANY_ADMIN']),
+  authorizeAttendance(['DEPT_MANAGER', 'HR_MANAGER']),
   attendanceController.confirmManager
 );
 
 router.post(
   '/review/hr-confirm',
-  authorizeAttendance(['HR_MANAGER', 'HR_OFFICER', 'COMPANY_ADMIN']),
+  authorizeAttendance(['HR_MANAGER', 'HR_OFFICER']),
   attendanceController.confirmHR
 );
 
 // 6. Attendance Correction: Re-open Day (HR Manager only, mandatory reason, before cut-off / pay run locked)
 router.post(
   '/days/:id/reopen',
-  authorizeAttendance(['HR_MANAGER', 'COMPANY_ADMIN']),
+  authorizeAttendance(['HR_MANAGER']),
   attendanceController.reopenAttendanceDay
 );
 

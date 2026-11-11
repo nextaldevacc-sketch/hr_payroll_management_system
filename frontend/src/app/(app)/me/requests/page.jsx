@@ -16,10 +16,13 @@ import { Button } from '@/components/primitives/form/Button';
 import { Select } from '@/components/primitives/form/Select';
 import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
+import { formatErrorMessage } from '@/utils/formatError';
 import { getMyRequests, cancelMyRequest, submitMyRequest } from '@/services/meApi';
 
 export default function MyRequestsPage() {
   const { language } = useLanguage();
+  const { showSuccess, showError } = useToast();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
@@ -58,10 +61,10 @@ export default function MyRequestsPage() {
     setCancellingId(reqItem.id);
     try {
       await cancelMyRequest(reqItem.request_type, reqItem.id);
-      alert(language === 'ar' ? 'تم إلغاء الطلب بنجاح' : 'Request cancelled successfully');
+      showSuccess(language === 'ar' ? 'تم إلغاء الطلب بنجاح' : 'Request cancelled successfully');
       loadRequests();
     } catch (err) {
-      alert('Failed to cancel request: ' + err.message);
+      showError(formatErrorMessage(err, language));
     } finally {
       setCancellingId(null);
     }

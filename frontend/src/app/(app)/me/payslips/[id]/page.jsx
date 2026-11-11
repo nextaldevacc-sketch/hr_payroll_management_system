@@ -15,6 +15,8 @@ import {
 import { StatusPill } from '@/components/primitives/StatusPill';
 import { Button } from '@/components/primitives/form/Button';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
+import { formatErrorMessage } from '@/utils/formatError';
 import { formatCurrency } from '@nextal/shared';
 import { getSalaryRuleNameAr } from '@/i18n/enums';
 import { getMyPayslip, getMyPayslipPdfUrl } from '@/services/meApi';
@@ -43,6 +45,7 @@ export default function MyPayslipDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { language } = useLanguage();
+  const { showError } = useToast();
   const isAr = language === 'ar';
   const payslipId = params?.id;
 
@@ -87,7 +90,7 @@ export default function MyPayslipDetailPage() {
       a.remove();
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      alert((isAr ? 'فشل تحميل ملف PDF: ' : 'Failed to download payslip PDF: ') + err.message);
+      showError(formatErrorMessage(err, language));
     } finally {
       setDownloading(false);
     }

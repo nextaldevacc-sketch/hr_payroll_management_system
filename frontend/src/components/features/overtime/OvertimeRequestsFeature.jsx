@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
+import { useToast } from '../../../context/ToastContext';
+import { formatErrorMessage } from '../../../utils/formatError';
 import {
   Clock,
   Plus,
@@ -33,6 +35,7 @@ const OT_TYPE_LABELS = {
 
 export default function OvertimeRequestsFeature() {
   const { user, language } = useAuth();
+  const { showError, showSuccess } = useToast();
   const isAr = language === 'ar';
 
   const [requests, setRequests] = useState([]);
@@ -108,9 +111,10 @@ export default function OvertimeRequestsFeature() {
     setBulkProcessing(true);
     try {
       await bulkApproveOvertime(Array.from(selectedIds));
+      showSuccess(isAr ? 'تم اعتماد ساعات العمل الإضافي بنجاح' : 'Overtime requests approved successfully');
       loadRequests();
     } catch (err) {
-      alert(err.message || 'Bulk approval failed');
+      showError(formatErrorMessage(err, language) || (isAr ? 'فشل الاعتماد الجماعي' : 'Bulk approval failed'));
     } finally {
       setBulkProcessing(false);
     }
@@ -124,9 +128,10 @@ export default function OvertimeRequestsFeature() {
         otType: customType,
         compensation: customComp,
       });
+      showSuccess(isAr ? 'تم تنفيذ الإجراء بنجاح' : 'Action executed successfully');
       loadRequests();
     } catch (err) {
-      alert(err.message || 'Action failed');
+      showError(formatErrorMessage(err, language) || (isAr ? 'فشل تنفيذ الإجراء' : 'Action failed'));
     }
   };
 
@@ -139,7 +144,7 @@ export default function OvertimeRequestsFeature() {
   const handleConfirmRefusal = async (e) => {
     e.preventDefault();
     if (!refusalReason.trim()) {
-      alert(isAr ? 'سبب الرفض إلزامي' : 'Refusal reason is mandatory');
+      showError(isAr ? 'سبب الرفض إلزامي' : 'Refusal reason is mandatory');
       return;
     }
     setRefusing(true);
@@ -149,9 +154,10 @@ export default function OvertimeRequestsFeature() {
         reason: refusalReason.trim(),
       });
       setRefusalModalOpen(false);
+      showSuccess(isAr ? 'تم رفض الطلب بنجاح' : 'Request refused successfully');
       loadRequests();
     } catch (err) {
-      alert(err.message || 'Refusal failed');
+      showError(formatErrorMessage(err, language) || (isAr ? 'فشل الرفض' : 'Refusal failed'));
     } finally {
       setRefusing(false);
     }

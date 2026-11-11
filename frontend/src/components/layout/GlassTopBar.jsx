@@ -99,7 +99,9 @@ export function GlassTopBar({ onToggleMobileNav }) {
         setIsNotifOpen(false);
         router.push(link);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[Notifications] mark read failed:', e?.message);
+    }
   };
 
   const handleMarkAllRead = async () => {
@@ -107,7 +109,9 @@ export function GlassTopBar({ onToggleMobileNav }) {
       await markAllNotificationsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       setUnreadCount(0);
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[Notifications] mark all read failed:', e?.message);
+    }
   };
 
   const companyDisplayName = isRTL && companyNameAr ? companyNameAr : companyName;

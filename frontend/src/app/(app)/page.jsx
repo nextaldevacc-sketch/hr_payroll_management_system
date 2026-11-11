@@ -18,6 +18,7 @@ import { WeekAheadTile } from '../../components/features/dashboard/WeekAheadTile
 import { QuickActionsTile } from '../../components/features/dashboard/QuickActionsTile';
 import { RecentActivityTile } from '../../components/features/dashboard/RecentActivityTile';
 import { VarianceTile } from '../../components/features/dashboard/VarianceTile';
+import { CompanyOnboardingChecklistTile } from '../../components/features/dashboard/CompanyOnboardingChecklistTile';
 
 import { Drawer } from '../../components/primitives/Drawer';
 import BiometricImportFeature from '../../components/features/attendance/BiometricImportFeature';
@@ -479,6 +480,22 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Onboarding Checklist for Company Admin when initializing company */}
+      {user?.roles?.includes('COMPANY_ADMIN') && headcountData.total === 0 && (
+        <div className="mb-6">
+          <CompanyOnboardingChecklistTile
+            status={{
+              hasProfile: Boolean(companyName),
+              hasVisas: Boolean(selectedVisaId && selectedVisaId !== 'all'),
+              hasBranches: Boolean(selectedVisa),
+              hasDepartments: true,
+              hasRules: true,
+              hasUsers: false,
+            }}
+          />
+        </div>
+      )}
 
       {/* 12-Column Explicit Bento Grid Layout */}
       <BentoGrid id="hr-dashboard-bento-grid" className={!seesSalary ? 'bento-no-salary' : ''}>

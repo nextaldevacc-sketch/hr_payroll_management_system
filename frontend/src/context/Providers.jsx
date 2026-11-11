@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from './LanguageContext';
 import { AuthProvider } from './AuthContext';
 import { VisaProvider } from './VisaContext';
+import { ToastProvider } from './ToastContext';
 
 export function Providers({ children, initialLocale = 'en' }) {
   const [queryClient] = useState(
@@ -32,7 +33,9 @@ export function Providers({ children, initialLocale = 'en' }) {
         <LanguageProvider initialLocale={initialLocale}>
           <AuthProvider>
             <VisaProvider>
-              {children}
+              <ToastProvider>
+                {children}
+              </ToastProvider>
             </VisaProvider>
           </AuthProvider>
         </LanguageProvider>

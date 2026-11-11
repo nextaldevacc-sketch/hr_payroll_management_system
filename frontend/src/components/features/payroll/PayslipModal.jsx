@@ -6,6 +6,8 @@ import { Modal } from '../../primitives/Modal';
 import { StatusPill } from '../../primitives/StatusPill';
 import { downloadPayslipPdf } from '../../../services/payrollApi';
 import { useLanguage } from '../../../context/LanguageContext';
+import { useToast } from '../../../context/ToastContext';
+import { formatErrorMessage } from '../../../utils/formatError';
 import { formatCurrency } from '@nextal/shared';
 import { getSalaryRuleNameAr } from '../../../i18n/enums';
 
@@ -19,6 +21,7 @@ function maskIban(iban) {
 
 export function PayslipModal({ isOpen, onClose, payslip }) {
   const { language } = useLanguage();
+  const { showError, showSuccess } = useToast();
   if (!payslip) return null;
 
   const emp = payslip.employee || {};
@@ -42,8 +45,9 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
   const handleDownloadPdf = async () => {
     try {
       await downloadPayslipPdf(payslip.id, `payslip-${emp.employee_code || payslip.id}.pdf`);
+      showSuccess(language === 'ar' ? 'تم تنزيل كشف الراتب بنجاح' : 'Payslip downloaded successfully');
     } catch (err) {
-      alert(`PDF Download failed: ${err.message}`);
+      showError(formatErrorMessage(err, language) || (language === 'ar' ? 'فشل تحميل ملف كشف الراتب' : 'PDF Download failed'));
     }
   };
 

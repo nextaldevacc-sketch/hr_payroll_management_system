@@ -52,7 +52,9 @@ export function VisaProvider({ children }) {
       try {
         const saved = localStorage.getItem('nextal_selected_visa');
         if (saved) return saved;
-      } catch {}
+      } catch (e) {
+        console.debug('[VisaContext] localStorage read error:', e?.message);
+      }
     }
     return 'all';
   });
@@ -72,7 +74,9 @@ export function VisaProvider({ children }) {
         } else if (!saved) {
           setSelectedVisaIdState(allowAllVisas ? 'all' : (visas[0]?.id || 'all'));
         }
-      } catch {}
+      } catch (e) {
+        console.debug('[VisaContext] localStorage read error:', e?.message);
+      }
     }
   }, [scopedVisaIds, visas, storageKey, allowAllVisas, user?.id]);
 
@@ -83,7 +87,9 @@ export function VisaProvider({ children }) {
         try {
           if (user?.id) localStorage.setItem(storageKey, id);
           localStorage.setItem('nextal_selected_visa', id);
-        } catch {}
+        } catch (e) {
+          console.debug('[VisaContext] localStorage write error:', e?.message);
+        }
       }
     },
     [storageKey, user?.id]

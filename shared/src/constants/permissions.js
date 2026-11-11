@@ -208,7 +208,7 @@ export function canAccessNavArea(userRoles = [], area, seesSalary = false) {
 
   if (area === 'employees') {
     return userRoles.some((r) =>
-      ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER'].includes(r)
+      ['HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'DEPT_MANAGER'].includes(r)
     );
   }
 
@@ -221,7 +221,7 @@ export function canAccessNavArea(userRoles = [], area, seesSalary = false) {
   }
 
   if (area === 'approvals') {
-    return userRoles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'DEPT_MANAGER'].includes(r));
+    return userRoles.some((r) => ['HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'DEPT_MANAGER'].includes(r));
   }
 
   if (area === 'dashboard') {

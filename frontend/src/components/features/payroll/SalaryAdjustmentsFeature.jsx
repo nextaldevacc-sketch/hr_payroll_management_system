@@ -31,12 +31,16 @@ import { Modal } from '../../primitives/Modal';
 import { Select } from '../../primitives/form/Select';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useAuth } from '../../../hooks/useAuth';
+import { useToast } from '../../../context/ToastContext';
+import { formatErrorMessage } from '../../../utils/formatError';
 import { getEnumLabel, formatMonthYear } from '../../../i18n/enums';
 
 export function SalaryAdjustmentsFeature() {
   const queryClient = useQueryClient();
   const { language } = useLanguage();
   const { canAccess } = useAuth();
+  const { showError, showSuccess } = useToast();
+  const isAr = language === 'ar';
 
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -100,9 +104,10 @@ export function SalaryAdjustmentsFeature() {
     mutationFn: approveSalaryAdjustment,
     onSuccess: () => {
       queryClient.invalidateQueries(['salary-adjustments']);
+      showSuccess(isAr ? 'تم اعتماد تسوية الراتب بنجاح' : 'Salary adjustment approved successfully');
     },
     onError: (err) => {
-      alert(`Approval error: ${err.message}`);
+      showError(formatErrorMessage(err, language) || (isAr ? 'فشل اعتماد التسوية' : 'Approval error'));
     },
   });
 
@@ -110,9 +115,10 @@ export function SalaryAdjustmentsFeature() {
     mutationFn: ({ id, reason }) => rejectSalaryAdjustment(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries(['salary-adjustments']);
+      showSuccess(isAr ? 'تم رفض تسوية الراتب' : 'Salary adjustment rejected');
     },
     onError: (err) => {
-      alert(`Rejection error: ${err.message}`);
+      showError(formatErrorMessage(err, language) || (isAr ? 'فشل رفض التسوية' : 'Rejection error'));
     },
   });
 

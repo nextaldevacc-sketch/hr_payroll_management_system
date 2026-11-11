@@ -132,7 +132,9 @@ export function AuthProvider({ children }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-      }).catch(() => {});
+      }).catch((err) => {
+        console.warn('[AuthContext] logout network notification failed:', err?.message);
+      });
     } finally {
       queryClient.clear();
       setUser(null);

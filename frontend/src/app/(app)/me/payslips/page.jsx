@@ -17,6 +17,8 @@ import { Button } from '@/components/primitives/form/Button';
 import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
 import { useVisa } from '@/context/VisaContext';
+import { useToast } from '@/context/ToastContext';
+import { formatErrorMessage } from '@/utils/formatError';
 import { getMyPayslips, getMyPayslip, getMyPayslipPdfUrl } from '@/services/meApi';
 import { formatCurrency } from '@nextal/shared';
 
@@ -35,6 +37,7 @@ function formatPeriodMonth(monthStr, lang) {
 export default function MyPayslipsPage() {
   const { language } = useLanguage();
   const { companyName } = useVisa();
+  const { showError } = useToast();
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPayslip, setSelectedPayslip] = useState(null);
@@ -84,7 +87,7 @@ export default function MyPayslipsPage() {
       a.remove();
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      alert('Failed to download payslip PDF: ' + err.message);
+      showError(formatErrorMessage(err, language));
     } finally {
       setDownloadingId(null);
     }

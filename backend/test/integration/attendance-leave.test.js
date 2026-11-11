@@ -64,8 +64,8 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
     // Login for Company B
     const resB = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: 'admin@horizon.ae', password: testUserPassword });
-    assert.equal(resB.status, 200, 'Login failed for admin@horizon.ae');
+      .send({ email: 'hr@horizon.ae', password: testUserPassword });
+    assert.equal(resB.status, 200, 'Login failed for hr@horizon.ae');
     employeeBToken = resB.body.token;
 
     // 3. Fetch Test Employees & Shifts

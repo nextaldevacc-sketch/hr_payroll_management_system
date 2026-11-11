@@ -21,6 +21,7 @@ import { ListDivided } from '@/components/primitives/ListDivided';
 import { CalloutBar } from '@/components/primitives/CalloutBar';
 import { formatCurrency } from '@nextal/shared';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
 import {
   Sparkles,
   Sun,
@@ -41,6 +42,7 @@ import {
 export default function StyleguidePage() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { language, toggleLanguage, isRTL } = useLanguage();
+  const { showSuccess } = useToast();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -415,7 +417,6 @@ export default function StyleguidePage() {
           <DataTable
             columns={columns}
             data={workedExamplesData}
-            onRowClick={(row) => alert(`Selected: ${row.employee}`)}
           />
         </GlassCard>
       </section>
@@ -542,7 +543,14 @@ export default function StyleguidePage() {
           <Button variant="outline" size="sm" onClick={() => setIsModalOpen(false)}>
             Dismiss
           </Button>
-          <Button variant="primary" size="sm" onClick={() => setIsModalOpen(false)}>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              showSuccess('Demo action confirmed successfully!');
+              setIsModalOpen(false);
+            }}
+          >
             Confirm Action
           </Button>
         </div>

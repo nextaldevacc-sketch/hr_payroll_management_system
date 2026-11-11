@@ -8,7 +8,6 @@ router.use(authenticate);
 function authorizeLeave(allowedRoles = []) {
   return (req, res, next) => {
     const roles = req.user.roles || [];
-    if (roles.includes('COMPANY_ADMIN')) return next();
     const hasRole = roles.some((r) => allowedRoles.includes(r));
     if (!hasRole) {
       return res.status(403).json({
@@ -27,26 +26,26 @@ router.get('/types', leaveController.listLeaveTypes);
 // 2. Leave Balances
 router.get(
   '/balances',
-  authorizeLeave(['EMPLOYEE', 'HR_OFFICER', 'HR_MANAGER', 'DEPT_MANAGER', 'COMPANY_ADMIN']),
+  authorizeLeave(['EMPLOYEE', 'HR_OFFICER', 'HR_MANAGER', 'DEPT_MANAGER', 'PAYROLL_OFFICER', 'GM']),
   leaveController.getLeaveBalances
 );
 
 // 3. Leave Requests
 router.get(
   '/requests',
-  authorizeLeave(['EMPLOYEE', 'HR_OFFICER', 'HR_MANAGER', 'DEPT_MANAGER', 'GM', 'COMPANY_ADMIN']),
+  authorizeLeave(['EMPLOYEE', 'HR_OFFICER', 'HR_MANAGER', 'DEPT_MANAGER', 'GM', 'PAYROLL_OFFICER']),
   leaveController.listLeaveRequests
 );
 
 router.post(
   '/requests',
-  authorizeLeave(['EMPLOYEE', 'HR_OFFICER', 'HR_MANAGER', 'COMPANY_ADMIN']),
+  authorizeLeave(['EMPLOYEE', 'HR_OFFICER', 'HR_MANAGER']),
   leaveController.requestLeave
 );
 
 router.post(
   '/requests/:id/action',
-  authorizeLeave(['DEPT_MANAGER', 'HR_OFFICER', 'HR_MANAGER', 'GM', 'EMPLOYEE', 'COMPANY_ADMIN']),
+  authorizeLeave(['DEPT_MANAGER', 'HR_OFFICER', 'HR_MANAGER', 'GM', 'EMPLOYEE']),
   leaveController.actOnLeave
 );
 
