@@ -101,10 +101,11 @@ export function OffboardingFeature() {
   const userRoles = useMemo(() => {
     return Array.isArray(user?.roles) ? user.roles : (user?.role ? [user.role] : []);
   }, [user]);
-  const isPayroll = userRoles.includes('PAYROLL_OFFICER') || userRoles.includes('COMPANY_ADMIN');
-  const isHrMgr = userRoles.includes('HR_MANAGER') || userRoles.includes('COMPANY_ADMIN');
-  const isGm = userRoles.includes('GM') || userRoles.includes('COMPANY_ADMIN');
-  const isFinance = userRoles.includes('FINANCE') || userRoles.includes('COMPANY_ADMIN');
+  const canInitiate = userRoles.some((r) => ['HR_OFFICER', 'HR_MANAGER'].includes(r));
+  const isPayroll = userRoles.includes('PAYROLL_OFFICER');
+  const isHrMgr = userRoles.includes('HR_MANAGER');
+  const isGm = userRoles.includes('GM');
+  const isFinance = userRoles.includes('FINANCE');
 
   const [activeTab, setActiveTab] = useState('list'); // 'list' | 'clearance' | 'settlement'
   const [separations, setSeparations] = useState([]);
@@ -468,14 +469,16 @@ export function OffboardingFeature() {
             </>
           )}
 
-          <button
-            id="btn-open-new-separation"
-            onClick={() => setIsInitiateModalOpen(true)}
-            className="px-4 py-2 text-sm font-bold rounded-lg bg-primary text-black hover:opacity-90 flex items-center gap-2 shadow-sm transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{t('offboarding.newSeparation')}</span>
-          </button>
+          {canInitiate && (
+            <button
+              id="btn-open-new-separation"
+              onClick={() => setIsInitiateModalOpen(true)}
+              className="px-4 py-2 text-sm font-bold rounded-lg bg-primary text-black hover:opacity-90 flex items-center gap-2 shadow-sm transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{t('offboarding.newSeparation')}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -949,7 +952,7 @@ export function OffboardingFeature() {
                       {task.note && <div className="italic">{translateNote(task.note, language)}</div>}
                     </div>
 
-                    {task.status !== 'Done' && (
+                    {task.status !== 'Done' && canInitiate && (
                       <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                         <button
                           id={`btn-task-done-${task.task_type.toLowerCase().replace(/_/g, '-')}`}

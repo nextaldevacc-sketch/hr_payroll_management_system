@@ -36,14 +36,9 @@ export default function AttendanceReviewFeature({ onConfirmed }) {
   const [successMessage, setSuccessMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
-  const isHRRole =
-    user?.role === 'SUPER_ADMIN' ||
-    user?.role === 'COMPANY_ADMIN' ||
-    user?.role === 'HR_MANAGER' ||
-    user?.role === 'HR_OFFICER' ||
-    user?.roles?.includes('HR_OFFICER') ||
-    user?.roles?.includes('HR_MANAGER');
-  const isManagerRole = isHRRole || user?.role === 'DEPT_MANAGER' || user?.roles?.includes('DEPT_MANAGER');
+  const userRoles = user?.roles || (user?.role ? [user.role] : []);
+  const isHRRole = userRoles.some((r) => ['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER'].includes(r));
+  const isDeptManagerRole = userRoles.some((r) => ['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPT_MANAGER'].includes(r));
 
   const loadReviewStatus = async () => {
     setLoading(true);
@@ -269,7 +264,7 @@ export default function AttendanceReviewFeature({ onConfirmed }) {
             type="button"
             id="confirm-dept-btn"
             data-testid="confirm-dept-btn"
-            disabled={submitting || !selectedDeptId}
+            disabled={submitting || !selectedDeptId || !isDeptManagerRole}
             onClick={handleManagerConfirm}
             className="w-full py-2.5 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-500 transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
           >

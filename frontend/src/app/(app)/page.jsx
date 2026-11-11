@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { BentoGrid } from '../../components/primitives/BentoGrid';
 import { LivePayrollHeroTile } from '../../components/features/dashboard/LivePayrollHeroTile';
@@ -267,6 +267,15 @@ export default function DashboardPage() {
     { id: 'leave', label: 'Apply Leave', icon: 'Calendar' },
     { id: 'payrun', label: 'Pay Run', icon: 'DollarSign' },
   ];
+
+  const visibleQuickActions = useMemo(() => {
+    return defaultQuickActions.filter((action) => {
+      if (action.id === 'import') return canImportPunches;
+      if (action.id === 'new-emp') return canAccess('employees', 'create');
+      if (action.id === 'payrun') return canAccess('pay_runs', 'prepare');
+      return true;
+    });
+  }, [canImportPunches, canAccess, seesSalary]);
 
   const defaultVariance = {
     currentMonthNet: 0,
@@ -554,7 +563,7 @@ export default function DashboardPage() {
         />
 
         <QuickActionsTile
-          data={defaultQuickActions}
+          data={visibleQuickActions}
           onAction={handleQuickAction}
         />
 

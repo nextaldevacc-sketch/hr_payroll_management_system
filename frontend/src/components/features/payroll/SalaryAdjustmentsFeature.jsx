@@ -30,11 +30,13 @@ import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
 import { Select } from '../../primitives/form/Select';
 import { useLanguage } from '../../../context/LanguageContext';
+import { useAuth } from '../../../hooks/useAuth';
 import { getEnumLabel, formatMonthYear } from '../../../i18n/enums';
 
 export function SalaryAdjustmentsFeature() {
   const queryClient = useQueryClient();
   const { language } = useLanguage();
+  const { canAccess } = useAuth();
 
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -161,19 +163,21 @@ export function SalaryAdjustmentsFeature() {
           </div>
         </div>
 
-        <button
-          id="btn-open-create-adjustment"
-          onClick={() => {
-            if (employees.length && !createForm.employee_id) {
-              setCreateForm((prev) => ({ ...prev, employee_id: employees[0].id }));
-            }
-            setIsCreateModalOpen(true);
-          }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-black hover:opacity-95 transition-all shadow-md active:scale-95"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{language === 'ar' ? 'إضافة تسوية جديدة' : 'Create Adjustment'}</span>
-        </button>
+        {canAccess('salary_adjustments', 'prepare') && (
+          <button
+            id="btn-open-create-adjustment"
+            onClick={() => {
+              if (employees.length && !createForm.employee_id) {
+                setCreateForm((prev) => ({ ...prev, employee_id: employees[0].id }));
+              }
+              setIsCreateModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-black hover:opacity-95 transition-all shadow-md active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{language === 'ar' ? 'إضافة تسوية جديدة' : 'Create Adjustment'}</span>
+          </button>
+        )}
       </div>
 
       {/* KPI Cards */}
@@ -332,7 +336,7 @@ export function SalaryAdjustmentsFeature() {
                         <StatusPill status={adj.status} />
                       </td>
                       <td className="py-3.5 px-4 text-center">
-                        {adj.status === 'Pending' ? (
+                        {adj.status === 'Pending' && canAccess('salary_adjustments', 'approve') ? (
                           <div className="flex items-center justify-center gap-1.5">
                             <button
                               id={`btn-approve-adj-${adj.id}`}
@@ -354,7 +358,7 @@ export function SalaryAdjustmentsFeature() {
                             </button>
                           </div>
                         ) : (
-                          <span className="text-[11px] text-text-muted italic">{getEnumLabel('pay_run_status', 'Locked', language)}</span>
+                          <span className="text-[11px] text-text-muted italic">{getEnumLabel('pay_run_status', adj.status === 'Pending' ? 'Pending' : 'Locked', language)}</span>
                         )}
                       </td>
                     </tr>

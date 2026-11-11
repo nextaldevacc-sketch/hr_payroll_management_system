@@ -270,7 +270,7 @@ export function PayRunDetailFeature() {
           {/* Action Toolbar */}
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Calculation Button: Payroll Officer only */}
-            {(isPayrollOfficer || isCompanyAdmin) && !isLockedOrPaid && (
+            {isPayrollOfficer && !isLockedOrPaid && (
               <button
                 id="btn-calculate-pay-run"
                 onClick={() => calcMutation.mutate()}
@@ -284,7 +284,7 @@ export function PayRunDetailFeature() {
             )}
 
             {/* Validation Button: HR Manager only */}
-            {(isHrManager || isCompanyAdmin) && payRun.status === 'Calculated' && (
+            {isHrManager && payRun.status === 'Calculated' && (
               <button
                 id="btn-validate-pay-run"
                 onClick={() => validateMutation.mutate()}
@@ -297,7 +297,7 @@ export function PayRunDetailFeature() {
             )}
 
             {/* Lock / Approve Button: GM only */}
-            {(isGm || isCompanyAdmin) && payRun.status === 'Validated' && (
+            {isGm && payRun.status === 'Validated' && (
               <button
                 id="btn-lock-pay-run"
                 onClick={() => lockMutation.mutate()}
@@ -311,7 +311,7 @@ export function PayRunDetailFeature() {
             )}
 
             {/* Mark as Paid Button: Finance only */}
-            {(isFinance || isCompanyAdmin) && payRun.status === 'Locked' && (
+            {isFinance && payRun.status === 'Locked' && (
               <button
                 id="btn-pay-pay-run"
                 onClick={() => payMutation.mutate()}

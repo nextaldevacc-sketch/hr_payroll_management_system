@@ -66,7 +66,8 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
   const [refusing, setRefusing] = useState(false);
 
   const userRoles = user?.roles || (user?.role ? [user.role] : []);
-  const canApprove = userRoles.some((r) => ['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'DEPT_MANAGER'].includes(r));
+  const canApprove = userRoles.some((r) => ['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'DEPT_MANAGER', 'GM'].includes(r));
+  const canCreateLeave = userRoles.some((r) => ['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'EMPLOYEE'].includes(r));
 
   const loadData = async () => {
     setLoading(true);
@@ -280,16 +281,18 @@ export default function LeaveRequestsFeature({ activeTab = 'all', onTabChange })
             </div>
           </div>
 
-          <button
-            type="button"
-            id="new-leave-request-btn"
-            data-testid="new-leave-request-btn"
-            onClick={handleOpenNewRequest}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-on-primary hover:opacity-90 transition-opacity shadow-md flex items-center gap-1.5"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>{isAr ? 'تقديم طلب إجازة جديد' : 'New Leave Request'}</span>
-          </button>
+          {canCreateLeave && (
+            <button
+              type="button"
+              id="new-leave-request-btn"
+              data-testid="new-leave-request-btn"
+              onClick={handleOpenNewRequest}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-on-primary hover:opacity-90 transition-opacity shadow-md flex items-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{isAr ? 'تقديم طلب إجازة جديد' : 'New Leave Request'}</span>
+            </button>
+          )}
         </div>
       </GlassCard>
 

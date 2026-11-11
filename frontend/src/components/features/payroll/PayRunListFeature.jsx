@@ -20,6 +20,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useVisa } from '../../../context/VisaContext';
 import { useLanguage } from '../../../context/LanguageContext';
+import { useAuth } from '../../../hooks/useAuth';
 import { fetchPayRuns, createPayRun } from '../../../services/payrollApi';
 import { fetchEmployeeMetaOptions } from '../../../services/employeesApi';
 import { GlassCard } from '../../primitives/GlassCard';
@@ -33,6 +34,7 @@ export function PayRunListFeature() {
   const queryClient = useQueryClient();
   const { selectedVisaId, setSelectedVisaId } = useVisa();
   const { language, isRTL } = useLanguage();
+  const { canAccess } = useAuth();
 
   const [visaFilter, setVisaFilter] = useState(
     selectedVisaId === 'all' || !selectedVisaId ? '' : selectedVisaId
@@ -134,20 +136,22 @@ export function PayRunListFeature() {
             <SlidersHorizontal className="w-4 h-4 text-primary" />
             <span>{language === 'ar' ? 'تعديلات الرواتب' : 'Salary Adjustments'}</span>
           </Link>
-          <button
-            id="btn-open-create-pay-run"
-            onClick={() => {
-              const defaultVisaId = (selectedVisaId && selectedVisaId !== 'all')
-                ? selectedVisaId
-                : (metaOptions?.visas?.[0]?.id || '');
-              setCreateForm((prev) => ({ ...prev, company_visa_id: defaultVisaId }));
-              setIsCreateModalOpen(true);
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-black hover:opacity-95 transition-all shadow-md active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{language === 'ar' ? 'إنشاء مسير رواتب' : 'Create Pay Run'}</span>
-          </button>
+          {canAccess('pay_runs', 'prepare') && (
+            <button
+              id="btn-open-create-pay-run"
+              onClick={() => {
+                const defaultVisaId = (selectedVisaId && selectedVisaId !== 'all')
+                  ? selectedVisaId
+                  : (metaOptions?.visas?.[0]?.id || '');
+                setCreateForm((prev) => ({ ...prev, company_visa_id: defaultVisaId }));
+                setIsCreateModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-primary text-black hover:opacity-95 transition-all shadow-md active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{language === 'ar' ? 'إنشاء مسير رواتب' : 'Create Pay Run'}</span>
+            </button>
+          )}
         </div>
       </div>
 

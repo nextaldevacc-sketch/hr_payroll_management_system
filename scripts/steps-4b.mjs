@@ -57,6 +57,7 @@ export async function runWorkflows4B({
   console.log(`======================================================`);
 
   const dashboardFixtureCsv = path.resolve('backend/test/fixtures/biometric-dashboard-sample.csv');
+  const dashboardOfficerCsv = path.resolve('backend/test/fixtures/biometric-dashboard-hrofficer.csv');
 
   // 7.3.10: HR Manager imports biometric CSV via Dashboard Quick Action drawer
   await executeStep({
@@ -94,6 +95,105 @@ export async function runWorkflows4B({
 
       await page.screenshot({ path: shotPath, fullPage: true });
       return 'Dashboard Quick Action verified: BiometricImportFeature opened in drawer, attached CSV processed, and import result summary confirmed.';
+    },
+  });
+
+  // 7.3.11: HR Officer imports biometric punches via Dashboard quick action; HR Manager accesses Attendance import tab
+  await executeStep({
+    wf: '7.3',
+    no: 11,
+    role: 'HR_OFFICER',
+    email: 'hr.officer@gulftech.ae',
+    action: 'HR Officer imports via Dashboard quick action; HR Manager accesses Attendance tab',
+    expect: 'HR Officer completes Dashboard import; HR Manager sees and opens Attendance tab',
+    runFn: async (page, shotPath) => {
+      // 1. HR Officer imports through Dashboard quick action
+      await login(page, 'hr.officer@gulftech.ae');
+      await safeGoto(page, `http://localhost:${WEB_PORT}/`);
+      await page.waitForTimeout(1500);
+
+      const officerImportBtn = await page.waitForSelector('#dashboard-import-punches-btn, #quick-action-import, [data-testid="quick-action-import"]', { timeout: 10000 });
+      await officerImportBtn.click();
+      await page.waitForTimeout(1000);
+
+      const fileInput = await page.waitForSelector('[data-testid="biometric-file-input"]', { state: 'attached', timeout: 10000 });
+      await fileInput.setInputFiles(dashboardOfficerCsv);
+      await page.waitForTimeout(500);
+
+      const submitBtn = await page.waitForSelector('[data-testid="start-import-btn"]', { timeout: 10000 });
+      await submitBtn.click();
+
+      await page.waitForSelector('[data-testid="import-results-summary"]', { timeout: 30000 });
+
+      // HR Officer verifies Attendance tab
+      await safeGoto(page, `http://localhost:${WEB_PORT}/attendance`);
+      await page.waitForTimeout(1500);
+      const officerTab = await page.waitForSelector('#tab-biometric-import', { state: 'visible', timeout: 10000 });
+      if (!officerTab) throw new Error('HR Officer cannot see #tab-biometric-import on /attendance');
+
+      // 2. HR Manager verifies Attendance tab
+      await login(page, 'hr.mgr@gulftech.ae');
+      await safeGoto(page, `http://localhost:${WEB_PORT}/attendance`);
+      await page.waitForTimeout(1500);
+
+      const hrTab = await page.waitForSelector('#tab-biometric-import', { state: 'visible', timeout: 10000 });
+      if (!hrTab) {
+        throw new Error('HR Manager cannot see #tab-biometric-import on /attendance');
+      }
+      await hrTab.click();
+      await page.waitForSelector('[data-testid="biometric-file-input"]', { state: 'attached', timeout: 10000 });
+
+      await page.screenshot({ path: shotPath, fullPage: true });
+      return 'HR Officer successfully imported punches via Dashboard; HR Officer and HR Manager confirmed Attendance Biometric Import tab access.';
+    },
+  });
+
+  // 7.3.12: Access control: PAYROLL_OFFICER, GM, and FINANCE see neither Dashboard Import Punches button nor Attendance tab
+  await executeStep({
+    wf: '7.3',
+    no: 12,
+    role: 'PAYROLL_OFFICER',
+    email: 'payroll@gulftech.ae',
+    action: 'Restricted roles (Payroll, GM, Finance) see zero biometric import controls',
+    expect: 'Neither Dashboard import buttons nor Attendance biometric tab rendered for Payroll, GM, and Finance',
+    runFn: async (page, shotPath) => {
+      const rolesToCheck = [
+        { role: 'PAYROLL_OFFICER', email: 'payroll@gulftech.ae' },
+        { role: 'GM', email: 'gm@gulftech.ae' },
+        { role: 'FINANCE', email: 'finance@gulftech.ae' },
+      ];
+
+      for (const { role, email } of rolesToCheck) {
+        await login(page, email);
+
+        // Check Dashboard
+        await safeGoto(page, `http://localhost:${WEB_PORT}/`);
+        await page.waitForTimeout(1000);
+
+        const dashBtn = await page.$('#dashboard-import-punches-btn');
+        const tileBtn = await page.$('#quick-action-import');
+        if (dashBtn) {
+          const isVisible = await dashBtn.isVisible();
+          if (isVisible) throw new Error(`Permission leak: ${role} sees #dashboard-import-punches-btn on Dashboard`);
+        }
+        if (tileBtn) {
+          const isVisible = await tileBtn.isVisible();
+          if (isVisible) throw new Error(`Permission leak: ${role} sees #quick-action-import on Dashboard`);
+        }
+
+        // Check Attendance page (if role has attendance access)
+        await safeGoto(page, `http://localhost:${WEB_PORT}/attendance`);
+        await page.waitForTimeout(1000);
+
+        const importTab = await page.$('#tab-biometric-import');
+        if (importTab) {
+          const isVisible = await importTab.isVisible();
+          if (isVisible) throw new Error(`Permission leak: ${role} sees #tab-biometric-import on /attendance`);
+        }
+      }
+
+      await page.screenshot({ path: shotPath, fullPage: false });
+      return 'Strict role separation verified: PAYROLL_OFFICER, GM, and FINANCE see zero biometric import controls on Dashboard and Attendance tab.';
     },
   });
 

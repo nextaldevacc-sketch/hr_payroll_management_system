@@ -26,7 +26,7 @@ import { Select } from '../../primitives/form/Select';
 import { getEnumLabel, getVisaNameAr } from '../../../i18n/enums';
 
 export function EmployeeListFeature() {
-  const { user } = useAuth();
+  const { user, canAccess } = useAuth();
   const { isRTL, language, t } = useLanguage();
   const { selectedVisaId, setSelectedVisaId } = useVisa();
 
@@ -189,14 +189,16 @@ export function EmployeeListFeature() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/employees/new"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-[var(--on-primary)] hover:bg-primary-hover font-semibold text-sm shadow-md transition-all active:scale-95"
-            id="btn-new-employee"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>{t('employees.newEmployee', 'New Employee')}</span>
-          </Link>
+          {canAccess('employees', 'create') && (
+            <Link
+              href="/employees/new"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-[var(--on-primary)] hover:bg-primary-hover font-semibold text-sm shadow-md transition-all active:scale-95"
+              id="btn-new-employee"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>{t('employees.newEmployee', 'New Employee')}</span>
+            </Link>
+          )}
         </div>
       </div>
 
