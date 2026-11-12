@@ -687,7 +687,7 @@ export default function ComplianceFeature() {
                           >
                             <div>
                               <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                                {log.action}
+                                {getEnumLabel('audit_action', log.action, language)}
                               </span>
                               <span className="text-slate-500 dark:text-slate-400 ml-2">
                                 by {log.user?.email || 'SYSTEM'}

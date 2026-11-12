@@ -17,5 +17,6 @@ router.get('/me', optionalAuthenticate, authController.getCurrentUser);
 router.post('/forgot-password', validate(forgotPasswordSchema), authController.forgotPassword);
 router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
 router.post('/set-password-invite', validate(setPasswordInviteSchema), authController.setPasswordFromInvite);
+router.post('/change-password', authenticate, authController.changePassword);
 
 export default router;

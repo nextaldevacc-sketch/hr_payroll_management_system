@@ -2,7 +2,7 @@
 
 > **Role Code**: `COMPANY_ADMIN`  
 > **Target Audience**: Corporate Operations Directors, IT Managers, HR Directors  
-> **Demo Login**: `admin@gulftech.ae` / `Nextal@2026!`  
+> **Account Provisioning**: Bootstrapped via setup CLI (`npm run setup:company`) with one-time temporary password.  
 > **Salary Visibility**: **No** (Compensation and salary figures are masked)
 
 ---
@@ -39,8 +39,8 @@ The **Company Administrator** is the primary tenant administrator for the enterp
 
 ### 2.3 User Management & Role Assignment
 1. Navigate to **Users & Roles** (`/settings/users`).
-2. Click **Invite User**. Enter user's work email and assign desired role.
-3. System generates an invite link and sends an invitation email.
+2. Click **Invite User**. Enter user's full name, work email, assign role, and scope (Company / Visa / Branch / Department).
+3. The UI presents a one-time temporary password modal with quick-copy actions. Share this temporary credential securely with the user; they will be prompted to set a permanent password upon first login.
 
 ### 2.4 Audit Log Review
 1. Navigate to **Audit** (`/audit`).

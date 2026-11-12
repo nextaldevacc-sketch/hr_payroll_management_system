@@ -26,6 +26,24 @@ export class AuthService {
     return await bcrypt.compare(password, hash);
   }
 
+  generateToken(user, roles = [], scopes = [], seesSalary = false) {
+    const tokenPayload = {
+      userId: user.id,
+      email: user.email,
+      companyId: user.company_id,
+      isPlatformAdmin: user.is_platform_admin,
+      employeeId: user.employee_id,
+      roles,
+      scopes,
+      seesSalary,
+      tokenVersion: user.token_version || 1,
+    };
+
+    return jwt.sign(tokenPayload, JWT_SECRET, {
+      expiresIn: SESSION_DURATION,
+    });
+  }
+
   /**
    * Log in a user with email and password
    */
@@ -267,6 +285,7 @@ export class AuthService {
         visas: user.company?.company_visas || [],
         is_platform_admin: user.is_platform_admin,
         status: updatedUser.status,
+        must_change_password: updatedUser.must_change_password ?? false,
         employee_id: user.employee_id,
         employee: user.employee,
         roles,
@@ -395,6 +414,7 @@ export class AuthService {
       data: {
         password_hash: passwordHash,
         status: 'Active',
+        must_change_password: false,
         failed_logins: 0,
         locked_until: null,
         token_version: { increment: 1 },
@@ -527,6 +547,7 @@ export class AuthService {
         failed_logins: 0,
         locked_until: null,
         status: 'Active',
+        must_change_password: false,
         token_version: { increment: 1 },
       },
     });
@@ -547,6 +568,121 @@ export class AuthService {
     return {
       status: 'success',
       message: 'Password reset successfully. You can now log in with your new credentials.',
+    };
+  }
+
+  /**
+   * Change password (forced first login or self-service password update)
+   * Invalidates existing session token_version and returns fresh session
+   */
+  async changePassword({ userId, currentPassword = null, newPassword }) {
+    if (!userId || !newPassword) {
+      const err = new Error('User ID and new password are required');
+      err.status = 400;
+      err.code = 'VALIDATION_ERROR';
+      throw err;
+    }
+
+    if (newPassword.length < 10 || !/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+      const err = new Error('Password must be at least 10 characters and contain letters and numbers');
+      err.status = 400;
+      err.code = 'WEAK_PASSWORD';
+      throw err;
+    }
+
+    const user = await this.prisma.$base().users.findUnique({
+      where: { id: userId },
+      include: {
+        company: {
+          include: { company_visas: true },
+        },
+        user_roles: {
+          include: { role: true },
+        },
+        employee: true,
+      },
+    });
+
+    if (!user) {
+      const err = new Error('User account not found');
+      err.status = 404;
+      err.code = 'USER_NOT_FOUND';
+      throw err;
+    }
+
+    if (currentPassword) {
+      const isCurrentValid = await this.verifyPassword(currentPassword, user.password_hash);
+      if (!isCurrentValid) {
+        const err = new Error('Current password is incorrect');
+        err.status = 400;
+        err.code = 'INVALID_CREDENTIALS';
+        throw err;
+      }
+      if (currentPassword === newPassword) {
+        const err = new Error('New password must be different from current password');
+        err.status = 400;
+        err.code = 'SAME_PASSWORD';
+        throw err;
+      }
+    }
+
+    const passwordHash = await this.hashPassword(newPassword);
+    const newVersion = (user.token_version || 1) + 1;
+
+    const updatedUser = await this.prisma.$base().users.update({
+      where: { id: userId },
+      data: {
+        password_hash: passwordHash,
+        must_change_password: false,
+        status: 'Active',
+        token_version: newVersion,
+        failed_logins: 0,
+        locked_until: null,
+      },
+    });
+
+    invalidateUserSession(userId);
+
+    if (user.company_id) {
+      await auditService.log({
+        companyId: user.company_id,
+        userId: user.id,
+        action: 'CHANGE_PASSWORD',
+        tableName: 'users',
+        recordId: user.id,
+        newValues: { status: 'Active', must_change_password: false, token_version: newVersion },
+      });
+    }
+
+    const roles = user.user_roles.map((ur) => ur.role.code);
+    const SALARY_ROLES = ['HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'FINANCE'];
+    const seesSalary = user.user_roles.some((ur) => SALARY_ROLES.includes(ur.role.code));
+
+    const token = this.generateToken(updatedUser, roles, [], seesSalary);
+
+    return {
+      status: 'success',
+      message: 'Password changed successfully',
+      token,
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: user.employee?.name || user.email.split('@')[0],
+        arabic_name: user.employee?.arabic_name || null,
+        company_id: user.company_id,
+        company_name: user.company?.name || 'Nextal Platform',
+        company_name_ar: user.company?.name_ar || null,
+        company_status: user.company?.status || 'Active',
+        visas: user.company?.company_visas || [],
+        is_platform_admin: user.is_platform_admin,
+        status: updatedUser.status,
+        must_change_password: false,
+        employee_id: user.employee_id,
+        employee: user.employee,
+        roles,
+        role: roles[0] || null,
+        sees_salary: seesSalary,
+      },
     };
   }
 }

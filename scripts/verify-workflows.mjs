@@ -16,19 +16,29 @@ process.env.DATABASE_URL_OVERRIDE = 'postgresql://postgres:postgres@127.0.0.1:54
 
 import { spawn, spawnSync, execSync } from 'node:child_process';
 import http from 'node:http';
+import net from 'node:net';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { chromium } from 'playwright';
 import { PrismaClient } from '@prisma/client';
 import { runWorkflows4B, ahmedPayslipRenderedLines } from './steps-4b.mjs';
 import { runWorkflows4C, verified4CSettlementLines } from './steps-4c.mjs';
+import { runWorkflowsFresh } from './steps-fresh.mjs';
 
 const reportsDir = path.resolve(rootDir, 'docs/reports');
 const shotsDir = path.resolve(reportsDir, 'screenshots/workflow');
 
 const API_PORT = 5000;
-const WEB_PORT = 3100;
+let WEB_PORT = Number(process.env.WEB_PORT) || 3100;
 const TEST_DB_URL = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
+
+function canBindPort(port) {
+  return new Promise((resolve) => {
+    const srv = net.createServer();
+    srv.once('error', () => resolve(false));
+    srv.listen(port, '0.0.0.0', () => srv.close(() => resolve(true)));
+  });
+}
 
 const prisma = new PrismaClient({
   datasources: { db: { url: TEST_DB_URL } },
@@ -108,14 +118,23 @@ async function logout(page) {
 }
 
 async function login(page, email, password = 'Nextal@2026!') {
-  await logout(page);
-  await safeGoto(page, `http://localhost:${WEB_PORT}/login`);
-  await page.waitForSelector('input[type="email"]', { timeout: 15000 });
-  await page.fill('input[type="email"]', email);
-  await page.fill('input[type="password"]', password);
-  await page.click('button[type="submit"]');
-  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20000 });
-  await page.waitForTimeout(1000);
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await logout(page);
+      await safeGoto(page, `http://localhost:${WEB_PORT}/login`);
+      await page.waitForSelector('input[type="email"]', { timeout: 15000 });
+      await page.fill('input[type="email"]', email);
+      await page.fill('input[type="password"]', password);
+      await page.click('button[type="submit"]');
+      await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20000 });
+      await page.waitForTimeout(1000);
+      return;
+    } catch (e) {
+      if (attempt === 3) throw e;
+      // Retry on transient network errors (e.g. ERR_NETWORK_IO_SUSPENDED during server compile)
+      await page.waitForTimeout(2000);
+    }
+  }
 }
 
 async function assertPageClean(page, role, stepContext = '') {
@@ -161,7 +180,7 @@ async function runStepRunner() {
   });
   execSync('node prisma/seed/index.js', {
     cwd: apiDir,
-    env: { ...process.env, DATABASE_URL: TEST_DB_URL, NODE_ENV: 'test' },
+    env: { ...process.env, DATABASE_URL: TEST_DB_URL, NODE_ENV: 'test', SEED_MODE: 'demo' },
     stdio: 'inherit',
   });
   console.log(`[setup] Test database initialized successfully.`);
@@ -172,7 +191,7 @@ async function runStepRunner() {
 
   // 3. Spawn backend server
   console.log(`[setup] Spawning backend API server on port ${API_PORT}...`);
-  const apiProc = spawn(process.execPath, ['src/server.js'], {
+  let apiProc = spawn(process.execPath, ['src/server.js'], {
     cwd: apiDir,
     env: {
       ...process.env,
@@ -186,14 +205,38 @@ async function runStepRunner() {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
-  apiProc.stdout.on('data', (d) => {
-    const s = d.toString();
-    if (s.includes('Server running') || s.includes('Listening')) console.log(`  [API] ${s.trim()}`);
-  });
-  apiProc.stderr.on('data', (d) => {
-    const s = d.toString();
-    if (!s.includes('ExperimentalWarning')) console.error(`  [API ERR] ${s.trim()}`);
-  });
+  const attachApiLogs = (proc) => {
+    proc.stdout.on('data', (d) => {
+      const s = d.toString();
+      if (s.includes('Server running') || s.includes('Listening')) console.log(`  [API] ${s.trim()}`);
+    });
+    proc.stderr.on('data', (d) => {
+      const s = d.toString();
+      if (!s.includes('ExperimentalWarning')) console.error(`  [API ERR] ${s.trim()}`);
+    });
+  };
+  attachApiLogs(apiProc);
+
+  const restartApi = async () => {
+    try { apiProc.kill('SIGKILL'); } catch {}
+    killPort(API_PORT);
+    apiProc = spawn(process.execPath, ['src/server.js'], {
+      cwd: apiDir,
+      env: {
+        ...process.env,
+        PORT: String(API_PORT),
+        DATABASE_URL: TEST_DB_URL,
+        DATABASE_URL_TEST: TEST_DB_URL,
+        NODE_ENV: 'development',
+        FEATURE_PLATFORM_ADMIN: 'false',
+        RATE_LIMIT_MAX: '10000',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    attachApiLogs(apiProc);
+    await waitForHttp(`http://localhost:${API_PORT}/api/v1/health`);
+    console.log(`  [API] Backend API server restarted on port ${API_PORT}`);
+  };
 
   // 4. Spawn frontend server
   console.log(`[setup] Spawning frontend web server on port ${WEB_PORT}...`);
@@ -351,12 +394,18 @@ async function runStepRunner() {
         const invitedAdmin = await prisma.$base().users.findUnique({
           where: { email: testCoAdminEmail },
         });
-        if (!invitedAdmin || invitedAdmin.status !== 'Invited') {
-          throw new Error(`Admin user not in 'Invited' state (found: ${invitedAdmin?.status})`);
+        if (!invitedAdmin || invitedAdmin.status !== 'Active' || !invitedAdmin.must_change_password) {
+          throw new Error(`Admin user not provisioned in Active + must_change_password state (found status: ${invitedAdmin?.status}, must_change_password: ${invitedAdmin?.must_change_password})`);
+        }
+        const inviteTokenRec = await prisma.$base().auth_tokens.findFirst({
+          where: { user_id: invitedAdmin.id, purpose: 'invite' },
+        });
+        if (!inviteTokenRec) {
+          throw new Error('Invite token record not created in auth_tokens');
         }
 
         await safeGoto(page, `http://localhost:${WEB_PORT}/login`);
-        return `Company '${createdCo.name}' (ID: ${createdCo.id}) provisioned with admin '${testCoAdminEmail}' in Invited state`;
+        return `Company '${createdCo.name}' (ID: ${createdCo.id}) provisioned with admin '${testCoAdminEmail}' (Active, must_change_password: true, invite token issued)`;
       },
     });
 
@@ -2261,6 +2310,20 @@ async function runStepRunner() {
       assertPageClean,
     });
 
+    // Run Fresh Install Workflows: Fresh.1 to Fresh.12
+    await runWorkflowsFresh({
+      executeStep,
+      login,
+      logout,
+      safeGoto,
+      prisma,
+      API_PORT,
+      WEB_PORT,
+      shotsDir,
+      assertPageClean,
+      restartApi,
+    });
+
   } finally {
     await browser.close();
 
@@ -2383,6 +2446,19 @@ async function runStepRunner() {
     reportMd += `- Dual-control document verification: Uploader/owner strictly forbidden from self-verification (403 SELF_VERIFICATION_FORBIDDEN); HR verification enforced with immutable version snapshot (7.7.7).\n`;
     reportMd += `- Data encryption at rest: File payload encrypted with NEXTAL_ENC_V1 header on disk; decrypted seamlessly on authorized download (7.7.8).\n`;
     reportMd += `- Role-based privacy & visa isolation: HR Officer views document status without salary figures; scoped DIFC user sees only Visa 02 documents (7.7.9).\n\n`;
+
+    reportMd += `### Workflow FRESH: Clean Install End-to-End Execution (Steps 1–12)\n`;
+    reportMd += `- Organization bootstrapped via setup:company with UAE statutory defaults and mandatory must_change_password.\n`;
+    reportMd += `- Company Admin first login forced redirect to /change-password; sets permanent credentials; lands on onboarding checklist.\n`;
+    reportMd += `- Multi-visa & branch topology configured in settings drawers (Visa 02 + Abu Dhabi Hub).\n`;
+    reportMd += `- Organizational hierarchy provisioned with Lead Systems Engineer position.\n`;
+    reportMd += `- 6 enterprise roles invited via UI; one-time credentials modal captures temporary passwords; each role logs in and updates password.\n`;
+    reportMd += `- Employee master created (Tariq Al-Mansouri, EMP-DXB-001); dual-control verification; contract approved (Gross 22,000 AED); IBAN & passport linked; active status confirmed.\n`;
+    reportMd += `- Biometric punch logs ingested via real Dashboard quick action file importer.\n`;
+    reportMd += `- Four-eye segregation payroll executed: October 2026 calculated (22,000.00 AED Net), approved by Finance & GM, disbursed by Payroll.\n`;
+    reportMd += `- WPS SIF file dispatched with exact wage total checksum parity.\n`;
+    reportMd += `- Bulk-created employee login allows Tariq to log in and inspect personal October payslip.\n`;
+    reportMd += `- Separation initiated and final settlement prepared: Under-1-year tenure statutory invariant asserted (Gratuity 0.00 AED).\n\n`;
 
     if (ahmedPayslipRenderedLines.length > 0) {
       reportMd += `## 4. Ahmed Mansoor Verified Payslip Lines (November 2026)\n\n`;

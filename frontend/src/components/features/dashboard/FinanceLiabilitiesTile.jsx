@@ -11,17 +11,17 @@ import { useLanguage } from '../../../context/LanguageContext';
 export function FinanceLiabilitiesTile({ data, onClick }) {
   const { language, t } = useLanguage();
   const gratuity = data?.gratuity || {
-    totalAccrued: 482650.00,
-    monthDelta: 14200.00,
-    deltaPercent: '+3.0%',
-    isPositive: true
+    totalAccrued: Number(data?.gratuityLiabilityEst || 0),
+    monthDelta: 0,
+    deltaPercent: '0%',
+    isPositive: true,
   };
 
   const leaveLiability = data?.leaveLiability || {
-    totalAccrued: 128400.00,
-    monthDelta: 2850.00,
-    deltaPercent: '+2.3%',
-    isPositive: true
+    totalAccrued: Number(data?.leaveEncashmentEst || 0),
+    monthDelta: 0,
+    deltaPercent: '0%',
+    isPositive: true,
   };
 
   return (

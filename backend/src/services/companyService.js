@@ -119,14 +119,15 @@ export class CompanyService {
     default_cutoff_day = 25,
     platformUserId = null,
   }) {
-    if (!name || !trade_license_no || !admin_email || !mol_establishment_id) {
-      const err = new Error('Name, trade license, admin email, and MOL establishment ID are required');
+    if (!name || !trade_license_no || !admin_email) {
+      const err = new Error('Name, trade license, and admin email are required');
       err.status = 400;
       err.code = 'VALIDATION_ERROR';
       throw err;
     }
 
     const cleanEmail = admin_email.trim().toLowerCase();
+    const cleanMolId = (mol_establishment_id || `MOL-${trade_license_no.replace(/[^A-Za-z0-9]/g, '')}`).slice(0, 20);
 
     // Check email uniqueness
     const existingUser = await this.prisma.$base().users.findUnique({
@@ -169,7 +170,7 @@ export class CompanyService {
       data: {
         company_id: company.id,
         name: `Visa 01 (${emirate} MOHRE)`,
-        mol_establishment_id,
+        mol_establishment_id: cleanMolId,
         bank_routing_code,
         emirate,
       },
@@ -219,7 +220,7 @@ export class CompanyService {
       },
     });
 
-    await this.prisma.$base().attendance_policies.create({
+    const policy = await this.prisma.$base().attendance_policies.create({
       data: {
         company_id: company.id,
         name: 'UAE Statutory Attendance Policy',
@@ -230,6 +231,15 @@ export class CompanyService {
         night_start: '22:00:00',
         night_end: '04:00:00',
       },
+    });
+
+    await this.prisma.$base().penalty_steps.createMany({
+      data: [
+        { company_id: company.id, policy_id: policy.id, applies_to: 'Late', occurrence_from: 1, min_minutes: 15, penalty_type: 'Warning', penalty_value: 0.00 },
+        { company_id: company.id, policy_id: policy.id, applies_to: 'Late', occurrence_from: 2, min_minutes: 15, penalty_type: 'Warning', penalty_value: 0.00 },
+        { company_id: company.id, policy_id: policy.id, applies_to: 'Late', occurrence_from: 3, min_minutes: 15, penalty_type: 'DeductionFraction', penalty_value: 0.25 },
+        { company_id: company.id, policy_id: policy.id, applies_to: 'Late', occurrence_from: 4, min_minutes: 15, penalty_type: 'DeductionFraction', penalty_value: 0.50 },
+      ],
     });
 
     // 5. Create UAE standard leave types & accrual plan
@@ -348,13 +358,88 @@ export class CompanyService {
       });
     }
 
-    // 7. Get or verify Company Admin role
-    const adminRole = await this.prisma.$base().roles.findUnique({
-      where: { code: 'COMPANY_ADMIN' },
-    });
+    // 7. Get or verify roles catalog
+    const allRoles = await this.prisma.$base().roles.findMany();
+    const rolesMap = {};
+    for (const r of allRoles) rolesMap[r.code] = r;
 
-    // 8. Create Company Admin user (status: Invited)
-    const tempPassword = crypto.randomBytes(8).toString('hex') + 'A1!';
+    // 7b. Seed default approval flows (Leave, Overtime, PayRun, Separation)
+    if (rolesMap['DEPT_MANAGER'] && rolesMap['HR_OFFICER'] && rolesMap['GM'] && rolesMap['HR_MANAGER'] && rolesMap['FINANCE']) {
+      const leaveFlow = await this.prisma.$base().approval_flows.create({
+        data: {
+          company_id: company.id,
+          request_type: 'LEAVE',
+          name: 'Standard Leave Approval Flow',
+          priority: 1,
+          is_active: true,
+        },
+      });
+      await this.prisma.$base().approval_flow_steps.createMany({
+        data: [
+          { company_id: company.id, flow_id: leaveFlow.id, step_no: 1, role_id: rolesMap['DEPT_MANAGER'].id, approver_rule: 'SpecificRole' },
+          { company_id: company.id, flow_id: leaveFlow.id, step_no: 2, role_id: rolesMap['HR_OFFICER'].id, approver_rule: 'SpecificRole' },
+          { company_id: company.id, flow_id: leaveFlow.id, step_no: 3, role_id: rolesMap['GM'].id, approver_rule: 'SpecificRole' },
+        ],
+      });
+
+      const otFlow = await this.prisma.$base().approval_flows.create({
+        data: {
+          company_id: company.id,
+          request_type: 'Overtime',
+          name: 'Overtime Approval Flow',
+          priority: 1,
+          is_active: true,
+        },
+      });
+      await this.prisma.$base().approval_flow_steps.create({
+        data: {
+          company_id: company.id,
+          flow_id: otFlow.id,
+          step_no: 1,
+          role_id: rolesMap['HR_MANAGER'].id,
+          approver_rule: 'SpecificRole',
+        },
+      });
+
+      const payRunFlow = await this.prisma.$base().approval_flows.create({
+        data: {
+          company_id: company.id,
+          request_type: 'PayRun',
+          name: 'Pay Run Signoff Flow',
+          priority: 1,
+          is_active: true,
+        },
+      });
+      await this.prisma.$base().approval_flow_steps.createMany({
+        data: [
+          { company_id: company.id, flow_id: payRunFlow.id, step_no: 1, role_id: rolesMap['FINANCE'].id, approver_rule: 'SpecificRole' },
+          { company_id: company.id, flow_id: payRunFlow.id, step_no: 2, role_id: rolesMap['GM'].id, approver_rule: 'SpecificRole' },
+        ],
+      });
+
+      const sepFlow = await this.prisma.$base().approval_flows.create({
+        data: {
+          company_id: company.id,
+          request_type: 'Separation',
+          name: 'Separation & Exit Approval Flow',
+          priority: 1,
+          is_active: true,
+        },
+      });
+      await this.prisma.$base().approval_flow_steps.create({
+        data: {
+          company_id: company.id,
+          flow_id: sepFlow.id,
+          step_no: 1,
+          role_id: rolesMap['HR_MANAGER'].id,
+          approver_rule: 'SpecificRole',
+        },
+      });
+    }
+
+    // 8. Create Company Admin user (status: Active, must_change_password: true)
+    const adminRole = rolesMap['COMPANY_ADMIN'];
+    const tempPassword = 'Tmp!' + crypto.randomBytes(6).toString('hex') + 'A9';
     const passwordHash = await authService.hashPassword(tempPassword);
 
     const adminUser = await this.prisma.$base().users.create({
@@ -362,7 +447,8 @@ export class CompanyService {
         company_id: company.id,
         email: cleanEmail,
         password_hash: passwordHash,
-        status: 'Invited',
+        status: 'Active',
+        must_change_password: true,
       },
     });
 
@@ -395,7 +481,9 @@ export class CompanyService {
         id: adminUser.id,
         email: adminUser.email,
         status: adminUser.status,
+        must_change_password: adminUser.must_change_password,
       },
+      tempPassword,
       inviteToken,
       inviteUrl: `/login?tab=invite&token=${inviteToken}`,
     };

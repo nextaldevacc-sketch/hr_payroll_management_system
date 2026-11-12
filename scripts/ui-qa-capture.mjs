@@ -12,7 +12,7 @@ const apiDir = path.resolve(rootDir, 'backend');
 const webDir = path.resolve(rootDir, 'frontend');
 
 const API_PORT = 5000;
-const WEB_PORT = 3100;
+let WEB_PORT = Number(process.env.WEB_PORT) || 3102;
 
 const reportsDir = path.resolve(rootDir, 'docs/reports');
 const shotsDir = path.resolve(reportsDir, 'screenshots/qa');
@@ -271,12 +271,12 @@ async function main() {
   console.log(`[setup] Resetting and seeding isolated test database: ${TEST_DB_URL}`);
   execSync('npx prisma migrate reset --schema prisma/schema.prisma --force --skip-seed --skip-generate', {
     cwd: apiDir,
-    env: { ...process.env, DATABASE_URL: TEST_DB_URL, NODE_ENV: 'test' },
+    env: { ...process.env, DATABASE_URL: TEST_DB_URL, NODE_ENV: 'test', SEED_MODE: 'demo' },
     stdio: 'inherit',
   });
   execSync('node prisma/seed/index.js', {
     cwd: apiDir,
-    env: { ...process.env, DATABASE_URL: TEST_DB_URL, NODE_ENV: 'test' },
+    env: { ...process.env, DATABASE_URL: TEST_DB_URL, NODE_ENV: 'test', SEED_MODE: 'demo' },
     stdio: 'inherit',
   });
   console.log(`[setup] Test database initialized successfully.`);

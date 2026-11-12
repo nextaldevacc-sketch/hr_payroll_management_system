@@ -85,7 +85,18 @@ export function GlassTopBar({ onToggleMobileNav }) {
     setMounted(true);
     loadNotifications();
     const interval = setInterval(loadNotifications, 30000);
-    return () => clearInterval(interval);
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setIsCompanyDropdownOpen(false);
+        setIsNotifOpen(false);
+        setIsUserMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('keydown', handleEscape);
+    };
   }, []);
 
   const handleMarkRead = async (id, link) => {

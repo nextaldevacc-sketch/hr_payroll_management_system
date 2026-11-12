@@ -32,10 +32,12 @@ export function PendingApprovalsTile({ data, onClick, onApproveItem, onOpenItem 
       title={t('dashboard.pendingApprovals.title')}
       subtitle={t('dashboard.pendingApprovals.subtitle')}
       badge={
-        <span className="text-xs text-text-muted flex items-center gap-1 group-hover:text-primary transition-colors">
-          {t('common.viewAll')}
-          <ChevronRight className="w-3.5 h-3.5 rtl:-scale-x-100" />
-        </span>
+        onClick ? (
+          <span className="text-xs text-text-muted flex items-center gap-1 group-hover:text-primary transition-colors">
+            {t('common.viewAll')}
+            <ChevronRight className="w-3.5 h-3.5 rtl:-scale-x-100" />
+          </span>
+        ) : null
       }
     >
       <div className="space-y-3">

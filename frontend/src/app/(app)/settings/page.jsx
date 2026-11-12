@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Settings,
@@ -151,6 +151,25 @@ export default function SettingsPage() {
 
   // Active Open Drawer (null | 'profile' | 'branches' | 'departments_jobs' | 'shifts_policies' | 'leave_accruals' | 'holidays' | 'salary_rules' | 'approvals' | 'payroll_alerts')
   const [activeDrawer, setActiveDrawer] = useState(null);
+  const [companyDrawerTab, setCompanyDrawerTab] = useState('profile');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    if (tab === 'company') {
+      setCompanyDrawerTab('profile');
+      setActiveDrawer('profile');
+    } else if (tab === 'visas') {
+      setCompanyDrawerTab('visas');
+      setActiveDrawer('profile');
+    } else if (tab === 'branches') {
+      setActiveDrawer('branches');
+    } else if (tab === 'departments') {
+      setActiveDrawer('departments_jobs');
+    } else if (tab === 'rules') {
+      setActiveDrawer('salary_rules');
+    }
+  }, []);
 
   // Modals state
   const [versionModalState, setVersionModalState] = useState({ isOpen: false, entity: '', versions: [] });
@@ -180,7 +199,7 @@ export default function SettingsPage() {
             id: 'v1',
             version: 1,
             effective_from: '2026-01-01',
-            changed_by: user?.name || 'Maryam Al-Nuaimi',
+            changed_by: user?.name || user?.email || 'System',
             summary: language === 'ar' ? 'الإصدار المعتمد للنظام' : 'Statutory baseline version',
             created_at: new Date().toISOString(),
           },
@@ -195,7 +214,7 @@ export default function SettingsPage() {
             id: 'v1',
             version: 1,
             effective_from: '2026-01-01',
-            changed_by: user?.name || 'Maryam Al-Nuaimi',
+            changed_by: user?.name || user?.email || 'System',
             summary: language === 'ar' ? 'الإصدار المعتمد للنظام' : 'Statutory baseline version',
             created_at: new Date().toISOString(),
           },
@@ -566,6 +585,7 @@ export default function SettingsPage() {
         onClose={() => setActiveDrawer(null)}
         companyProfile={companyProfile}
         canEdit={isHrOrAdmin}
+        initialTab={companyDrawerTab}
         onSave={handleSaveCompanyProfile}
         onDeleteBlocked={handleDeleteBlocked}
       />

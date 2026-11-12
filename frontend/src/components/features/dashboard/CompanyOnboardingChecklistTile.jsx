@@ -69,7 +69,7 @@ export function CompanyOnboardingChecklistTile({ status = {}, onAction }) {
       descEn: 'Invite HR Manager, Payroll Officer, and department managers',
       descAr: 'دعوة مدير الموارد البشرية ومسؤول الرواتب والمدراء',
       icon: UserPlus,
-      href: '/settings?tab=users',
+      href: '/settings/users',
       completed: Boolean(status.hasUsers),
     },
   ];

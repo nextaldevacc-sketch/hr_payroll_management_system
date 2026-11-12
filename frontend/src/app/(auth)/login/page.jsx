@@ -56,6 +56,11 @@ export default function LoginPage() {
     try {
       const result = await login(email, password);
 
+      if (result.user?.must_change_password) {
+        router.replace('/change-password');
+        return;
+      }
+
       // Validate relative safe destination
       let destination = result.defaultLanding || '/';
       if (nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')) {

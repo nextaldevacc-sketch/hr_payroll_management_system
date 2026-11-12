@@ -483,9 +483,11 @@ export function OffboardingFeature() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6">
+      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6" role="tablist">
         <button
           id="tab-separations-list"
+          role="tab"
+          aria-selected={activeTab === 'list'}
           onClick={() => setActiveTab('list')}
           className={`pb-3 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${
             activeTab === 'list'
@@ -504,6 +506,8 @@ export function OffboardingFeature() {
           <>
             <button
               id="tab-clearance-checklist"
+              role="tab"
+              aria-selected={activeTab === 'clearance'}
               onClick={() => setActiveTab('clearance')}
               className={`pb-3 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${
                 activeTab === 'clearance'
@@ -521,6 +525,8 @@ export function OffboardingFeature() {
             {seesSalary && (
               <button
                 id="tab-settlement-view"
+                role="tab"
+                aria-selected={activeTab === 'settlement'}
                 onClick={() => setActiveTab('settlement')}
                 className={`pb-3 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${
                   activeTab === 'settlement'
@@ -582,6 +588,7 @@ export function OffboardingFeature() {
               {['ALL', 'PENDING', 'APPROVED', 'COMPLETED'].map((st) => (
                 <button
                   key={st}
+                  aria-pressed={filterStatus === st}
                   onClick={() => setFilterStatus(st)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                     filterStatus === st

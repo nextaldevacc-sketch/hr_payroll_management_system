@@ -52,8 +52,8 @@ export function ExceptionsTile({ data = [], onSelectException }) {
           {items.slice(0, 3).map((item, idx) => (
             <InsetBox
               key={item.id || item.code || idx}
-              interactive
-              onClick={() => onSelectException && onSelectException(item)}
+              interactive={Boolean(onSelectException)}
+              onClick={onSelectException ? () => onSelectException(item) : undefined}
               className="p-2.5 group flex items-center justify-between gap-2.5 text-xs"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">

@@ -7,6 +7,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 import { PrismaClient } from '@prisma/client';
+import { seedSystemData } from './systemData.js';
 import { seedOrganisation } from './organisation.js';
 import { seedDemoUsers } from './demoUsers.js';
 import { seedSettings } from './settings.js';
@@ -18,8 +19,52 @@ import complianceService from '../../src/services/complianceService.js';
 
 const prisma = new PrismaClient();
 
+const allModels = [
+  'companies', 'company_visas', 'branches', 'departments', 'jobs', 'users', 'roles',
+  'user_roles', 'support_access_grants', 'approval_flows', 'approval_flow_steps',
+  'approval_requests', 'approval_actions', 'audit_logs', 'employees', 'contracts',
+  'employee_documents', 'bank_accounts', 'shifts', 'attendance_policies', 'penalty_steps',
+  'device_mappings', 'biometric_imports', 'punches', 'attendance_days', 'attendance_requests',
+  'overtime_requests', 'public_holidays', 'leave_types', 'accrual_plans', 'leave_allocations',
+  'leave_requests', 'salary_structures', 'salary_rules', 'pay_runs', 'pay_run_issues',
+  'payslips', 'payslip_lines', 'salary_adjustments', 'separations', 'clearance_items',
+  'final_settlements', 'separation_tasks'
+];
+
+async function logTableCounts() {
+  console.log('\nCounting rows per table across database...');
+  const counts = {};
+  for (const t of allModels) {
+    if (prisma[t]) {
+      counts[t] = await prisma[t].count();
+      console.log(`  ${t.padEnd(25)}: ${counts[t]} rows`);
+    }
+  }
+  return counts;
+}
+
 export async function main() {
-  console.log('--- Starting Nextal HR & Payroll Modular Database Seed ---');
+  const dbUrl = process.env.DATABASE_URL || '';
+  const isDevDb = dbUrl.includes('/nextal_hr_payroll');
+  const isDemoMode = process.env.SEED_MODE === 'demo';
+
+  if (isDemoMode && isDevDb && process.env.FORCE_DEMO_SEED !== 'yes') {
+    console.error('========================================================================');
+    console.error('[SECURITY BLOCK] Refusing to seed demo data into database "nextal_hr_payroll"');
+    console.error('Demo seeding is restricted to automated test databases only.');
+    console.error('To override for development purposes, set FORCE_DEMO_SEED=yes.');
+    console.error('========================================================================');
+    process.exit(1);
+  }
+
+  if (!isDemoMode) {
+    console.log('--- Nextal HR & Payroll Clean System Seed (Default Mode) ---');
+    console.log('Database URL:', dbUrl.replace(/:[^:@]+@/, ':***@'));
+    await seedSystemData(prisma);
+    return await logTableCounts();
+  }
+
+  console.log('--- Starting Nextal HR & Payroll Modular Database Seed (Demo Mode) ---');
 
   // 0. Clean up existing data for fresh idempotent seeding
   console.log('Cleaning existing demo data...');
@@ -116,29 +161,7 @@ export async function main() {
   }
 
   console.log('\n--- Modular Database Seed Completed Successfully ---');
-  console.log('Counting seeded rows per table across database...');
-
-  const allModels = [
-    'companies', 'company_visas', 'branches', 'departments', 'jobs', 'users', 'roles',
-    'user_roles', 'support_access_grants', 'approval_flows', 'approval_flow_steps',
-    'approval_requests', 'approval_actions', 'audit_logs', 'employees', 'contracts',
-    'employee_documents', 'bank_accounts', 'shifts', 'attendance_policies', 'penalty_steps',
-    'device_mappings', 'biometric_imports', 'punches', 'attendance_days', 'attendance_requests',
-    'overtime_requests', 'public_holidays', 'leave_types', 'accrual_plans', 'leave_allocations',
-    'leave_requests', 'salary_structures', 'salary_rules', 'pay_runs', 'pay_run_issues',
-    'payslips', 'payslip_lines', 'salary_adjustments', 'separations', 'clearance_items',
-    'final_settlements', 'separation_tasks'
-  ];
-
-  const counts = {};
-  for (const t of allModels) {
-    if (prisma[t]) {
-      counts[t] = await prisma[t].count();
-      console.log(`  ${t.padEnd(25)}: ${counts[t]} rows`);
-    }
-  }
-
-  return counts;
+  return await logTableCounts();
 }
 
 if (process.argv[1] && process.argv[1].endsWith('index.js')) {
@@ -151,5 +174,3 @@ if (process.argv[1] && process.argv[1].endsWith('index.js')) {
       await prisma.$disconnect();
     });
 }
-
-export default main;

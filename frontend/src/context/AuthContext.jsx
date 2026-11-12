@@ -81,6 +81,15 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('nextal:session-expired', handleSessionExpired);
   }, [router, queryClient]);
 
+  // Force password change guard
+  useEffect(() => {
+    if (user?.must_change_password) {
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/change-password') && !window.location.pathname.startsWith('/login')) {
+        router.replace('/change-password');
+      }
+    }
+  }, [user, router]);
+
   // Log in with email + password via server truth
   const login = useCallback(
     async (email, password) => {

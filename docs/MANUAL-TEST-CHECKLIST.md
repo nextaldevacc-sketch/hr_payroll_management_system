@@ -1,39 +1,51 @@
 # Nextal HR & Payroll Platform - Manual Testing Checklist
 
-> **Version**: v1.0.0-rc3  
+> **Version**: v1.0.0-rc4  
 > **Target Audience**: QA Engineers, Security Auditors, Client Stakeholders  
 > **Specification Reference**: `docs/spec.md` (Sections 1, 5.3, 7.1–7.7, 8.1–8.4, 9, 15)  
 > **Environment**: Web App `http://localhost:3100` & Backend API `http://localhost:5000`
 
 ---
 
-## 1. Persona Accounts & Access Credentials
+## 1. Clean Organization Bootstrap & User Role Provisioning
 
-All demo user accounts share the common password: **`Nextal@2026!`**
+In a fresh installation, the platform begins with **zero users, zero employees, and zero demo data**. The initial organization is bootstrapped via the CLI, and all subsequent enterprise users are invited through the administrative UI.
 
-| Persona | Email | Primary Responsibilities | Statutory Scope | Sees Salary |
-|---------|-------|--------------------------|-----------------|:-----------:|
-| **Platform Administrator** | `platform@nextal.ae` | Multi-tenant company onboarding, tenant licensing | **Phase 2 (Deferred)**. Disabled via `FEATURE_PLATFORM_ADMIN=false`. Provisioning via CLI: `node scripts/create-company.js`. | — |
-| **Company Administrator** | `admin@gulftech.ae` | Organizational setup, department/shift/policy configuration, user accounts, audit view | Company 1 (`Gulf Tech Logistics LLC`) | **No** (Salary masked) |
-| **General Manager (GM)** | `gm@gulftech.ae` | Pay run locking/approval, final settlement sign-off, extended leave approvals | Company 1 (Executive approval) | **Yes** |
-| **HR Manager** | `hr.mgr@gulftech.ae` | Full HR lifecycle, contracts, attendance sign-off, leave approval, pay run validation | Company 1 (Full HR oversight) | **Yes** |
-| **HR Officer** | `hr.officer@gulftech.ae` | Employee creation, document verification, biometric import, cancellation tasks | Company 1 (Company-wide HR) | **No** (Salary masked) |
-| **HR Officer (DIFC Scoped)** | `hr.difc@gulftech.ae` | Scoped HR administration for DIFC Freezone Visa 02 | Scoped to Visa 02 only | **No** (Salary masked) |
-| **Payroll Officer** | `payroll@gulftech.ae` | Pay run calculation, variance justification, contract creation, settlement preparation | Company 1 (Payroll execution) | **Yes** |
-| **Finance Officer** | `finance@gulftech.ae` | WPS SIF export, payment execution (`Mark as Paid`), GL export, settlement disbursement | Company 1 (Disbursement & accounting) | **Yes** |
-| **Department Manager** | `dept.mgr@gulftech.ae` | Operations team attendance review, overtime approvals, 1st step leave approvals | Scoped to Operations team | **No** (Salary masked) |
-| **Employee Self-Service (Ahmed)** | `employee@gulftech.ae` | Personal self-service (`/me/*`), bilingual payslips (own data only), leave submission | Linked to Ahmed Al-Mansoori (`EMP-DXB-043`) | **No** (Own payslip only) |
+### Step 1.1: Bootstrap Clean Organization via CLI
+Run in terminal:
+```bash
+npm run setup:company -- \
+  --name "Apex Global Technologies LLC" \
+  --name-ar "شركة أبيكس للتكنولوجيا العالمية ذ.م.م" \
+  --trade-license "TL-APEX-7777" \
+  --admin-name "Apex Admin" \
+  --admin-email "admin@apextech.ae"
+```
+- Capture the generated **one-time temporary password** (e.g. `Tmp!e8c0ffe3e3f9A9`).
+- Note: This password is shown once and never stored in plaintext.
 
-### Employee Self-Service Logins (Gulf Tech Logistics LLC)
-All 45 employees in Company 1 have individual active logins: `<employee_code_lowercase>@gulftech.ae` with password `Nextal@2026!`:
-- `emp-dxb-001@gulftech.ae` (Tariq Al-Falasi) … `emp-dxb-045@gulftech.ae` (Tariq Mansoor)
-- Spec benchmark employees:
-  - `emp-dxb-040@gulftech.ae` (Zaid Al-Harbi, 11-month service)
-  - `emp-dxb-041@gulftech.ae` (Khalid Al-Marzouqi, resignation test joiner)
-  - `emp-dxb-042@gulftech.ae` (Omar Al-Hashimi, separated leaver)
-  - `emp-dxb-043@gulftech.ae` & `employee@gulftech.ae` (Ahmed Al-Mansoori, October Net AED 7,044.80)
-  - `emp-dxb-044@gulftech.ae` (Sara Al-Nuaimi, separation in progress, Gratuity AED 12,082.19)
-  - `emp-dxb-045@gulftech.ae` (Tariq Mansoor, joins Nov 2026 without bank account for T28)
+### Step 1.2: Administrator First Login & Mandatory Password Change
+1. Open `http://localhost:3100/login`.
+2. Enter `admin@apextech.ae` and the temporary password.
+3. System forces immediate redirect to `/change-password` (`must_change_password: true`).
+4. Enter new permanent password (e.g. `ApexAdmin@2026!`).
+5. Successfully redirects to the Dashboard displaying the **Company Setup & Onboarding Checklist**.
+
+### Step 1.3: Provision Enterprise Team via Users & Roles (`/settings/users`)
+As Company Admin, navigate to **Settings -> Users & Roles** (`/settings/users`) and invite each enterprise persona:
+
+| Persona Role | Recommended Email | Statutory Scope | Sees Salary | Initial Action |
+|---|---|---|:---:|---|
+| **HR Manager** | `hrm@apextech.ae` | Company-wide | **Yes** | Click **Invite User**, select `HR_MANAGER`, capture temporary password from credentials modal. |
+| **HR Officer** | `hro@apextech.ae` | Company-wide / Visa | **No** (Masked) | Click **Invite User**, select `HR_OFFICER`, capture temporary password. |
+| **Payroll Officer** | `payroll@apextech.ae` | Company-wide | **Yes** | Click **Invite User**, select `PAYROLL_OFFICER`, capture temporary password. |
+| **General Manager** | `gm@apextech.ae` | Executive | **Yes** | Click **Invite User**, select `GM`, capture temporary password. |
+| **Finance** | `finance@apextech.ae` | Disbursement | **Yes** | Click **Invite User**, select `FINANCE`, capture temporary password. |
+| **Dept Manager** | `dm@apextech.ae` | Department | **No** (Masked) | Click **Invite User**, select `DEPT_MANAGER`, capture temporary password. |
+
+Each invited user logs in at `http://localhost:3100/login`, completes the mandatory password change on `/change-password`, and activates their account.
+
+*(Note: For automated test suites evaluating pre-computed historical scenarios, the isolated test database `nextal_hr_test` is seeded with demo personas using `SEED_MODE=demo` and password `Nextal@2026!`, as documented in [docs/TESTING.md](TESTING.md)).*
 
 ---
 
@@ -83,14 +95,17 @@ These exact figures are seeded into Gulf Tech Logistics LLC and must be verified
 
 ## 3. Step-by-Step Verification Procedures (Workflows 7.1 – 7.7 & VB)
 
+> [!TIP]
+> **Using Freshly Created Users vs. Seeded Test Benchmarks**: On a clean install initialized in Section 1, execute Workflows 7.1–7.7 using the team users you invited (`@apextech.ae`). When verifying the pre-computed Ahmed/Sara/Omar historical benchmarks in Section 2 against `nextal_hr_test`, use the seeded `@gulftech.ae` accounts listed in `docs/TESTING.md`.
+
 ### Workflow 7.1: Company Onboarding
 1. **CLI Company Provisioning**:
-   - Run in terminal: `node scripts/create-company.js --name "Test Onboarding LLC" --nameAr "شركة تجريبية" --tradeLicense "TL-TEST-99" --adminEmail "admin@testonboarding.ae"`
-   - Expected: Output displays generated company ID and invite URL.
-2. **Company Administrator Invite Acceptance**:
-   - Open browser at invite URL.
-   - Enter new password `Nextal@2026!` and submit.
-   - Expected: Account activated, redirects to `/login`.
+   - Run in terminal: `npm run setup:company -- --name "Test Onboarding LLC" --name-ar "شركة تجريبية" --trade-license "TL-TEST-99" --admin-name "Test Admin" --admin-email "admin@testonboarding.ae"`
+   - Expected: Output displays company ID and one-time temporary password.
+2. **Company Administrator First Login & Password Change**:
+   - Navigate to `http://localhost:3100/login`.
+   - Enter temporary password, intercepted to `/change-password`, set permanent password.
+   - Expected: Account activated, redirects to `/` with Onboarding Checklist.
 3. **Company Profile & Organizational Structure**:
    - Log in as `admin@gulftech.ae`.
    - Open `/settings`.
@@ -108,7 +123,7 @@ These exact figures are seeded into Gulf Tech Logistics LLC and must be verified
    - Verify multi-step approval chains for Leave, Overtime, and Pay Runs.
 7. **User Invitation & Role Delegation**:
    - In `/settings/users`, invite an HR Specialist.
-   - Expected: User account created, invite email dispatched to dev mailer.
+   - Expected: User account created, UI displays one-time temporary credentials modal with copy actions.
 
 ---
 
@@ -146,8 +161,8 @@ These exact figures are seeded into Gulf Tech Logistics LLC and must be verified
    - Expected: Bank account successfully saved.
 8. **Activation & Self-Service Login**:
    - Log in as `hr.mgr@gulftech.ae` -> click **Activate Employee**.
-   - Expected: Status transitions to `Active`. Invite email generated.
-   - Employee opens invite, sets password, and logs in to `/me`.
+   - Expected: Status transitions to `Active`. Self-service employee credentials provisioned (via bulk employee login generator or user invitation).
+   - Employee logs in, changes temporary password at `/change-password`, and opens `/me`.
 
 ---
 

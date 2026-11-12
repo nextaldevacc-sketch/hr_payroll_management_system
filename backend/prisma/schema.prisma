@@ -191,6 +191,7 @@ model users {
   email                   String                  @unique @db.VarChar(255)
   password_hash           String                  @db.VarChar(255)
   is_platform_admin       Boolean                 @default(false)
+  must_change_password    Boolean                 @default(false)
   status                  String                  @default("Active") @db.VarChar(20)
   failed_logins           Int                     @default(0) @db.SmallInt
   locked_until            DateTime?               @db.Timestamptz

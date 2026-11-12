@@ -204,7 +204,7 @@ async function main() {
       let scannedFiles = 0;
       for (const file of files) {
         const fullPath = path.join(STORAGE_DOCS, file);
-        if (fs.statSync(fullPath).isFile()) {
+        if (fs.statSync(fullPath).isFile() && file !== '.gitkeep') {
           scannedFiles++;
           const fd = fs.openSync(fullPath, 'r');
           const headerBuf = Buffer.alloc(ENCRYPTION_MAGIC.length);

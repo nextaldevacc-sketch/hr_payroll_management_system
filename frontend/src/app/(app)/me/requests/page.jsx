@@ -16,6 +16,7 @@ import { Button } from '@/components/primitives/form/Button';
 import { Select } from '@/components/primitives/form/Select';
 import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
+import { getEnumLabel } from '@/i18n/enums';
 import { useToast } from '@/context/ToastContext';
 import { formatErrorMessage } from '@/utils/formatError';
 import { getMyRequests, cancelMyRequest, submitMyRequest } from '@/services/meApi';
@@ -208,7 +209,7 @@ export default function MyRequestsPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`font-bold ${act.action === 'Approve' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                              {act.action}
+                              {getEnumLabel('audit_action', act.action, language)}
                             </span>
                             <span className="text-text-muted text-[10px]">
                               {new Date(act.action_at).toLocaleDateString()}

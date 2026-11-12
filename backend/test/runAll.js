@@ -22,7 +22,7 @@ try {
 
   execSync('node prisma/seed/index.js', {
     cwd: backendDir,
-    env: { ...process.env, DATABASE_URL: testUrl, NODE_ENV: 'test' },
+    env: { ...process.env, DATABASE_URL: testUrl, NODE_ENV: 'test', SEED_MODE: 'demo' },
     stdio: 'inherit',
   });
   console.log(`[test:runner] Isolated test database ready.`);

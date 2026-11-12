@@ -1,16 +1,85 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
+import http from 'node:http';
+import { spawn, execSync } from 'node:child_process';
 import { chromium } from 'playwright';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
+const apiDir = path.resolve(rootDir, 'backend');
+const webDir = path.resolve(rootDir, 'frontend');
+const nextBin = path.resolve(rootDir, 'node_modules/next/dist/bin/next');
 
 const REPORT_MD = path.resolve(rootDir, 'docs/reports/BUG-SWEEP-CRAWL.md');
 const REPORT_JSON = path.resolve(rootDir, 'docs/reports/BUG-SWEEP-CRAWL.json');
 
-const BASE_URL = 'http://localhost:3100';
+const API_PORT = 5000;
+const WEB_PORT = Number(process.env.WEB_PORT) || 3102;
+const BASE_URL = process.env.BASE_URL || `http://localhost:${WEB_PORT}`;
+
+function killPort(port) {
+  try {
+    if (process.platform === 'win32') {
+      const output = execSync(`netstat -ano | findstr :${port}`, {
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'ignore'],
+      });
+      const lines = output.trim().split('\n');
+      const killedPids = new Set();
+      for (const line of lines) {
+        const parts = line.trim().split(/\s+/);
+        const pid = parts[parts.length - 1];
+        if (pid && pid !== '0' && !isNaN(Number(pid)) && !killedPids.has(pid)) {
+          killedPids.add(pid);
+          try {
+            execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' });
+            console.log(`[killPort] Terminated process ${pid} on port ${port}`);
+          } catch {}
+        }
+      }
+    } else {
+      execSync(`lsof -t -i :${port} | xargs -r kill -9`, { stdio: 'ignore' });
+    }
+  } catch {}
+}
+
+function checkHttp(url) {
+  return new Promise((resolve) => {
+    const req = http.get(url, (res) => {
+      res.resume();
+      resolve(res.statusCode < 500);
+    });
+    req.on('error', () => resolve(false));
+    req.setTimeout(1500, () => {
+      req.destroy();
+      resolve(false);
+    });
+  });
+}
+
+function waitForHttp(url, timeoutMs = 45000) {
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    const interval = setInterval(() => {
+      const req = http.get(url, (res) => {
+        res.resume();
+        if (res.statusCode < 500) {
+          clearInterval(interval);
+          resolve();
+        }
+      });
+      req.on('error', () => {
+        if (Date.now() - start > timeoutMs) {
+          clearInterval(interval);
+          reject(new Error(`Timeout waiting for ${url}`));
+        }
+      });
+      req.setTimeout(1000, () => req.destroy());
+    }, 500);
+  });
+}
 
 const ROLES_TO_AUDIT = [
   { role: 'COMPANY_ADMIN', email: 'admin@gulftech.ae', name: 'Company Admin' },
@@ -102,9 +171,66 @@ async function checkForRawTexts(page) {
 async function run() {
   console.log(`[audit-ui-crawl] Starting UI crawler across ${ROLES_TO_AUDIT.length} roles...`);
 
-  const browser = await chromium.launch({ headless: true });
+  let apiProc = null;
+  let webProc = null;
+  let browser = null;
+
+  const TEST_DB_URL = 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
+
+  const apiUp = await checkHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`);
+  if (!apiUp) {
+    console.log(`[audit-ui-crawl] Resetting and seeding test database...`);
+    execSync('npx prisma migrate reset --schema prisma/schema.prisma --force --skip-seed --skip-generate', {
+      cwd: apiDir,
+      env: { ...process.env, DATABASE_URL: TEST_DB_URL, NODE_ENV: 'test' },
+      stdio: 'ignore',
+    });
+    execSync('node prisma/seed/index.js', {
+      cwd: apiDir,
+      env: { ...process.env, DATABASE_URL: TEST_DB_URL, NODE_ENV: 'test', SEED_MODE: 'demo' },
+      stdio: 'ignore',
+    });
+    killPort(API_PORT);
+    console.log(`[audit-ui-crawl] Starting API server on port ${API_PORT}...`);
+    apiProc = spawn(process.execPath, ['src/server.js'], {
+      cwd: apiDir,
+      env: {
+        ...process.env,
+        PORT: String(API_PORT),
+        DATABASE_URL: TEST_DB_URL,
+        DATABASE_URL_TEST: TEST_DB_URL,
+        NODE_ENV: 'development',
+        FEATURE_PLATFORM_ADMIN: 'false',
+        RATE_LIMIT_MAX: '10000',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    await waitForHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`, 30000);
+  }
+
+  const webUp = await checkHttp(`${BASE_URL}/login`);
+  if (!webUp) {
+    killPort(WEB_PORT);
+    console.log(`[audit-ui-crawl] Starting Web server on port ${WEB_PORT}...`);
+    webProc = spawn(process.execPath, [nextBin, 'dev', '-p', String(WEB_PORT)], {
+      cwd: webDir,
+      env: {
+        ...process.env,
+        NODE_ENV: 'development',
+        PORT: String(WEB_PORT),
+        API_ORIGIN: `http://127.0.0.1:${API_PORT}`,
+        NEXT_PUBLIC_API_URL: '/api/v1',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    await waitForHttp(`${BASE_URL}/login`, 45000);
+  }
+
   const crawlResults = [];
   const allBugs = [];
+
+  try {
+    browser = await chromium.launch({ headless: true });
 
   for (const { role, email, name } of ROLES_TO_AUDIT) {
     console.log(`\n======================================================`);
@@ -313,7 +439,13 @@ async function run() {
     }
   }
 
-  await browser.close();
+  } finally {
+    if (browser) await browser.close();
+    if (apiProc) apiProc.kill('SIGTERM');
+    if (webProc) webProc.kill('SIGTERM');
+    killPort(API_PORT);
+    killPort(WEB_PORT);
+  }
 
   // Generate Reports
   const totalAudited = crawlResults.length;

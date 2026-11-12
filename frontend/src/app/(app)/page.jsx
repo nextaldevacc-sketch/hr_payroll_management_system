@@ -30,7 +30,7 @@ import { useVisa } from '../../context/VisaContext';
 import { getDashboardOverview, getDashboardSalary } from '../../services/dashboardApi';
 import { withVisa } from '../../lib/visaQuery';
 import { RouteGuard } from '../../components/common/RouteGuard';
-import { formatCurrency } from '@nextal/shared';
+import { formatCurrency, canAccessNavArea } from '@nextal/shared';
 import {
   Upload,
   Play,
@@ -41,7 +41,14 @@ export default function DashboardPage() {
   const router = useRouter();
   const { t, language } = useLanguage();
   const { user, seesSalary, canAccess } = useAuth();
+  const userRoles = user?.roles || [];
   const canImportPunches = canAccess('attendance', 'edit');
+  const canNavEmployees = canAccessNavArea(userRoles, 'employees', seesSalary);
+  const canNavLeave = canAccessNavArea(userRoles, 'leave', seesSalary);
+  const canNavCompliance = canAccessNavArea(userRoles, 'compliance', seesSalary);
+  const canNavAttendance = canAccessNavArea(userRoles, 'attendance', seesSalary);
+  const canNavPayroll = canAccessNavArea(userRoles, 'payroll', seesSalary);
+  const canNavAudit = canAccessNavArea(userRoles, 'audit', seesSalary);
   const { selectedVisaId, selectedVisa, companyName, companyNameAr } = useVisa();
   const [activeDrawer, setActiveDrawer] = useState(null);
   const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
@@ -100,19 +107,20 @@ export default function DashboardPage() {
         if (canImportPunches) setActiveDrawer('import');
         break;
       case 'new-emp':
-        router.push('/employees');
+        if (canNavEmployees) router.push('/employees');
         break;
       case 'leave':
-        router.push('/leave');
+        if (canNavLeave) router.push('/leave');
+        else if (user?.employee_id) router.push('/me/leave');
         break;
       case 'salary-adj':
-        router.push('/payroll/adjustments');
+        if (canNavPayroll) router.push('/payroll/adjustments');
         break;
       case 'holiday':
-        router.push('/leave');
+        if (canNavLeave) router.push('/leave');
         break;
       case 'payrun':
-        router.push('/payroll');
+        if (canNavPayroll) router.push('/payroll');
         break;
       default:
         break;
@@ -146,11 +154,13 @@ export default function DashboardPage() {
   };
 
   const defaultWps = {
-    percentage: 100,
-    compliant: 0,
+    ready: 0,
     total: 0,
+    percentage: 0,
+    compliant: 0,
     readyCount: 0,
     needsAttentionCount: 0,
+    checks: [],
     issues: [],
   };
 
@@ -169,6 +179,10 @@ export default function DashboardPage() {
     absent: 0,
     onLeave: 0,
     total: 0,
+    presentPercent: 0,
+    latePercent: 0,
+    absentPercent: 0,
+    leavePercent: 0,
   };
 
   const defaultExceptions = {
@@ -180,6 +194,7 @@ export default function DashboardPage() {
 
   const defaultOvertime = {
     totalHours: 0,
+    pendingHours: 0,
     monthNormalHours: 0,
     monthNightHours: 0,
     monthHolidayHours: 0,
@@ -203,7 +218,7 @@ export default function DashboardPage() {
   };
 
   const defaultLivePayroll = {
-    monthYear: 'Current Period',
+    monthYear: new Date().toISOString().slice(0, 7),
     entityName: language === 'ar' ? (companyNameAr || companyName || '') : (companyName || ''),
     visaBadge: getVisaBadge(selectedVisa?.name || 'All Visas'),
     cutoffDays: 0,
@@ -225,27 +240,16 @@ export default function DashboardPage() {
       otherDeductions: 0,
       netToWps: 0,
     },
-    sparkline: [0, 0, 0, 0, 0, 0],
+    sparkline: [],
   };
 
   const defaultPayrollTrend = {
-    months: [
-      { month: 'May', monthAr: 'مايو', gross: 0, net: 0 },
-      { month: 'Jun', monthAr: 'يونيو', gross: 0, net: 0 },
-      { month: 'Jul', monthAr: 'يوليو', gross: 0, net: 0 },
-      { month: 'Aug', monthAr: 'أغسطس', gross: 0, net: 0 },
-      { month: 'Sep', monthAr: 'سبتمبر', gross: 0, net: 0 },
-      { month: 'Oct', monthAr: 'أكتوبر', gross: 0, net: 0, isCurrent: true },
-    ],
+    months: [],
     thresholdMin: 0,
-    thresholdMax: 100000,
+    thresholdMax: 0,
   };
 
-  const defaultDepartmentHeadcount = [
-    { name: 'Operations', nameAr: 'العمليات التشغيلية', count: 0, percentage: 0 },
-    { name: 'Logistics', nameAr: 'اللوجستيات', count: 0, percentage: 0 },
-    { name: 'Management', nameAr: 'الإدارة', count: 0, percentage: 0 },
-  ];
+  const defaultDepartmentHeadcount = [];
 
   const defaultFinanceLiabilities = {
     gratuity: {
@@ -272,36 +276,47 @@ export default function DashboardPage() {
   const visibleQuickActions = useMemo(() => {
     return defaultQuickActions.filter((action) => {
       if (action.id === 'import') return canImportPunches;
-      if (action.id === 'new-emp') return canAccess('employees', 'create');
-      if (action.id === 'payrun') return canAccess('pay_runs', 'prepare');
+      if (action.id === 'new-emp') return canAccess('employees', 'create') && canNavEmployees;
+      if (action.id === 'leave') return canNavLeave || Boolean(user?.employee_id);
+      if (action.id === 'payrun') return canAccess('pay_runs', 'prepare') && canNavPayroll;
       return true;
     });
-  }, [canImportPunches, canAccess, seesSalary]);
+  }, [canImportPunches, canAccess, canNavEmployees, canNavLeave, canNavPayroll, user?.employee_id]);
 
   const defaultVariance = {
     currentMonthNet: 0,
     previousMonthNet: 0,
     diffAmount: 0,
-    diffPercent: 0,
+    diffPercent: '0.0%',
     isPositive: true,
     topChanges: [],
   };
 
   // Map API data to tile schemas, falling back gracefully
-  const headcountData = overviewData?.headcount ? {
-    total: overviewData.headcount.total,
-    joiners: overviewData.headcount.joinersThisMonth || 0,
-    leavers: overviewData.headcount.leaversThisMonth || 0,
-    netCount: overviewData.headcount.joinersThisMonth || 1,
-    netChange: language === 'ar' ? `+${overviewData.headcount.joinersThisMonth || 1} صافي هذا الشهر` : `+${overviewData.headcount.joinersThisMonth || 1} net this month`,
-    nationalityMix: {
-      uaeNationals: Math.round(overviewData.headcount.total * 0.1),
-      expats: Math.round(overviewData.headcount.total * 0.9),
-      gpssaEligible: Math.round(overviewData.headcount.total * 0.1),
-      uaePercent: 10,
-      expatPercent: 90,
-    },
-  } : defaultHeadcount;
+  const headcountData = overviewData?.headcount ? (() => {
+    const total = Number(overviewData.headcount.total || 0);
+    const joiners = Number(overviewData.headcount.joinersThisMonth || 0);
+    const leavers = Number(overviewData.headcount.leaversThisMonth || 0);
+    const netCount = joiners - leavers;
+    const uaeNationals = Number(overviewData.headcount.uaeNationals || 0);
+    const expats = Number(overviewData.headcount.expats ?? Math.max(0, total - uaeNationals));
+    const uaePercent = total > 0 ? Math.round((uaeNationals / total) * 100) : 0;
+    const expatPercent = total > 0 ? Math.max(0, 100 - uaePercent) : 0;
+    return {
+      total,
+      joiners,
+      leavers,
+      netCount,
+      netChange: language === 'ar' ? `${netCount >= 0 ? `+${netCount}` : netCount} صافي هذا الشهر` : `${netCount >= 0 ? `+${netCount}` : netCount} net this month`,
+      nationalityMix: {
+        uaeNationals,
+        expats,
+        gpssaEligible: Number(overviewData.headcount.gpssaEligible || uaeNationals),
+        uaePercent,
+        expatPercent,
+      },
+    };
+  })() : defaultHeadcount;
 
   const pendingApprovalsData = overviewData?.pendingApprovals ? {
     total: overviewData.pendingApprovals.count || 0,
@@ -323,14 +338,35 @@ export default function DashboardPage() {
   } : defaultPendingApprovals;
 
   const wpsData = overviewData?.wpsReadiness ? {
-    percentage: overviewData.wpsReadiness.compliancePct,
-    compliant: overviewData.wpsReadiness.compliantCount,
-    total: overviewData.wpsReadiness.totalCount,
-    readyCount: overviewData.wpsReadiness.compliantCount,
-    needsAttentionCount: overviewData.wpsReadiness.missingIban + overviewData.wpsReadiness.missingRouting,
+    ready: overviewData.wpsReadiness.compliantCount ?? 0,
+    total: overviewData.wpsReadiness.totalCount ?? 0,
+    percentage: overviewData.wpsReadiness.compliancePct ?? 0,
+    compliant: overviewData.wpsReadiness.compliantCount ?? 0,
+    readyCount: overviewData.wpsReadiness.compliantCount ?? 0,
+    needsAttentionCount: (overviewData.wpsReadiness.missingIban || 0) + (overviewData.wpsReadiness.missingRouting || 0),
+    checks: [
+      {
+        key: 'iban',
+        label: language === 'ar' ? 'حساب الآيبان (IBAN) متوفر' : 'IBAN account present',
+        missing: overviewData.wpsReadiness.missingIban || 0,
+        status: (overviewData.wpsReadiness.missingIban || 0) > 0 ? 'warning' : 'success',
+      },
+      {
+        key: 'routing',
+        label: language === 'ar' ? 'رمز التوجيه المصرفي متوفر' : 'Bank routing code present',
+        missing: overviewData.wpsReadiness.missingRouting || 0,
+        status: (overviewData.wpsReadiness.missingRouting || 0) > 0 ? 'warning' : 'success',
+      },
+      {
+        key: 'personId',
+        label: language === 'ar' ? 'بطاقة العمل / رقم المنشأة متوفر' : 'Labour Card / Person ID present',
+        missing: overviewData.wpsReadiness.missingPersonId || 0,
+        status: (overviewData.wpsReadiness.missingPersonId || 0) > 0 ? 'warning' : 'success',
+      },
+    ],
     issues: [
-      { field: 'IBAN', count: overviewData.wpsReadiness.missingIban, label: 'Missing primary IBAN', severity: 'danger' },
-      { field: 'Bank Routing', count: overviewData.wpsReadiness.missingRouting, label: 'Routing code unverified', severity: 'warning' },
+      { field: 'IBAN', count: overviewData.wpsReadiness.missingIban || 0, label: 'Missing primary IBAN', severity: 'danger' },
+      { field: 'Bank Routing', count: overviewData.wpsReadiness.missingRouting || 0, label: 'Routing code unverified', severity: 'warning' },
     ],
   } : defaultWps;
 
@@ -348,13 +384,21 @@ export default function DashboardPage() {
     } : { name: 'None', nameAr: 'لا يوجد', docType: 'None', days: 99 },
   } : defaultExpiringDocs;
 
-  const attendanceData = overviewData?.attendanceToday ? {
-    present: overviewData.attendanceToday.present,
-    late: overviewData.attendanceToday.late,
-    absent: overviewData.attendanceToday.absent,
-    onLeave: overviewData.attendanceToday.onLeave,
-    total: overviewData.attendanceToday.total,
-  } : defaultAttendance;
+  const attendanceData = overviewData?.attendanceToday ? (() => {
+    const att = overviewData.attendanceToday;
+    const tot = Number(att.total || 0);
+    return {
+      present: att.present || 0,
+      late: att.late || 0,
+      absent: att.absent || 0,
+      onLeave: att.onLeave || 0,
+      total: tot,
+      presentPercent: tot > 0 ? Math.round(((att.present || 0) / tot) * 100) : 0,
+      latePercent: tot > 0 ? Math.round(((att.late || 0) / tot) * 100) : 0,
+      absentPercent: tot > 0 ? Math.round(((att.absent || 0) / tot) * 100) : 0,
+      leavePercent: tot > 0 ? Math.round(((att.onLeave || 0) / tot) * 100) : 0,
+    };
+  })() : defaultAttendance;
 
   const exceptionsData = overviewData?.exceptions ? {
     lateToday: overviewData.exceptions.lateToday,
@@ -369,32 +413,27 @@ export default function DashboardPage() {
 
   const overtimeData = overviewData?.overtimeMonth ? {
     totalHours: overviewData.overtimeMonth.totalHours ?? 0,
+    pendingHours: overviewData.overtimeMonth.pendingHours ?? 0,
     monthNormalHours: overviewData.overtimeMonth.normalHours ?? 0,
     monthNightHours: overviewData.overtimeMonth.nightHours ?? 0,
     monthHolidayHours: overviewData.overtimeMonth.holidayHours ?? 0,
-    types: [
+    types: overviewData.overtimeMonth.totalHours > 0 ? [
       {
         name: 'Normal ×1.25',
         hours: overviewData.overtimeMonth.normalHours ?? 0,
-        percent: overviewData.overtimeMonth.totalHours > 0
-          ? Math.round(((overviewData.overtimeMonth.normalHours || 0) / overviewData.overtimeMonth.totalHours) * 100)
-          : 0,
+        percent: Math.round(((overviewData.overtimeMonth.normalHours || 0) / overviewData.overtimeMonth.totalHours) * 100),
       },
       {
         name: 'Night ×1.5',
         hours: overviewData.overtimeMonth.nightHours ?? 0,
-        percent: overviewData.overtimeMonth.totalHours > 0
-          ? Math.round(((overviewData.overtimeMonth.nightHours || 0) / overviewData.overtimeMonth.totalHours) * 100)
-          : 0,
+        percent: Math.round(((overviewData.overtimeMonth.nightHours || 0) / overviewData.overtimeMonth.totalHours) * 100),
       },
       {
         name: 'Holiday/Rest ×1.5',
         hours: overviewData.overtimeMonth.holidayHours ?? 0,
-        percent: overviewData.overtimeMonth.totalHours > 0
-          ? Math.round(((overviewData.overtimeMonth.holidayHours || 0) / overviewData.overtimeMonth.totalHours) * 100)
-          : 0,
+        percent: Math.round(((overviewData.overtimeMonth.holidayHours || 0) / overviewData.overtimeMonth.totalHours) * 100),
       },
-    ],
+    ] : [],
   } : defaultOvertime;
 
   const weekAheadData = Array.isArray(overviewData?.weekAhead)
@@ -415,7 +454,7 @@ export default function DashboardPage() {
 
   // Live Payroll metrics (only when seesSalary is true)
   const livePayrollData = salaryData?.livePayroll ? {
-    monthYear: salaryData.livePayroll.period || 'October 2026',
+    monthYear: salaryData.livePayroll.period || new Date().toISOString().slice(0, 7),
     entityName: language === 'ar' ? (companyNameAr || companyName || '') : (companyName || ''),
     visaBadge: getVisaBadge(selectedVisa?.name || salaryData.livePayroll.visaName || 'All Visas'),
     cutoffDays: 4,
@@ -437,7 +476,7 @@ export default function DashboardPage() {
       otherDeductions: Number(salaryData.livePayroll?.figures?.deductions || 0),
       netToWps: Number(salaryData.livePayroll?.figures?.net || 0),
     },
-    sparkline: salaryData.livePayroll?.sparkline?.length > 0 ? salaryData.livePayroll.sparkline : [0, 0, 0, 0, 0, 0],
+    sparkline: Array.isArray(salaryData.livePayroll?.sparkline) ? salaryData.livePayroll.sparkline : [],
   } : defaultLivePayroll;
 
   return (
@@ -485,12 +524,12 @@ export default function DashboardPage() {
       {user?.roles?.includes('COMPANY_ADMIN') && headcountData.total === 0 && (
         <div className="mb-6">
           <CompanyOnboardingChecklistTile
-            status={{
+            status={overviewData?.onboarding || {
               hasProfile: Boolean(companyName),
-              hasVisas: Boolean(selectedVisaId && selectedVisaId !== 'all'),
-              hasBranches: Boolean(selectedVisa),
-              hasDepartments: true,
-              hasRules: true,
+              hasVisas: Boolean(selectedVisa),
+              hasBranches: false,
+              hasDepartments: false,
+              hasRules: false,
               hasUsers: false,
             }}
           />
@@ -503,80 +542,91 @@ export default function DashboardPage() {
         {seesSalary && (
           <LivePayrollHeroTile
             data={livePayrollData}
-            onClick={() => router.push('/payroll')}
-            onOpenValidation={() => router.push('/payroll')}
+            onClick={canNavPayroll ? () => router.push('/payroll') : undefined}
+            onOpenValidation={canNavPayroll ? () => router.push('/payroll') : undefined}
+            onRefresh={() => Promise.all([loadOverview(), loadSalary()])}
           />
         )}
 
         <HeadcountTile
           data={headcountData}
-          onClick={() => router.push('/employees')}
+          onClick={canNavEmployees ? () => router.push('/employees') : undefined}
         />
 
         <PendingApprovalsTile
           data={pendingApprovalsData}
-          onClick={() => router.push('/leave')}
-          onApproveItem={() => router.push('/leave')}
-          onOpenItem={() => router.push('/leave')}
+          onClick={canNavLeave ? () => router.push('/leave') : undefined}
+          onApproveItem={canNavLeave ? () => router.push('/leave') : undefined}
+          onOpenItem={canNavLeave ? () => router.push('/leave') : undefined}
         />
 
         <WpsReadinessTile
           data={wpsData}
-          onClick={() => router.push('/compliance')}
-          onFilterMissing={() => router.push('/compliance')}
+          onClick={canNavCompliance ? () => router.push('/compliance') : undefined}
+          onFilterMissing={canNavCompliance ? () => router.push('/compliance') : undefined}
         />
 
         <DocumentsExpiryTile
           data={expiringDocsData}
-          onClick={() => router.push('/employees')}
+          onClick={canNavEmployees ? () => router.push('/employees') : undefined}
         />
 
         {/* Row 3: exc (4x1), att (4x1), ot (4x1) */}
         <ExceptionsTile
           data={exceptionsData}
-          onSelectException={() => router.push('/attendance')}
-          onClick={() => router.push('/attendance')}
+          onSelectException={canNavAttendance ? () => router.push('/attendance') : undefined}
+          onClick={canNavAttendance ? () => router.push('/attendance') : undefined}
         />
 
         <AttendanceSegmentTile
           data={attendanceData}
-          onClick={() => router.push('/attendance')}
+          onClick={canNavAttendance ? () => router.push('/attendance') : undefined}
         />
 
         <OvertimeTile
           data={overtimeData}
-          onClick={() => router.push('/attendance')}
+          onClick={canNavAttendance ? () => router.push('/attendance') : undefined}
         />
 
         {/* Row 4: trend (6x1), dept (3x1), liab (3x1) for salary roles; dept (6x1) for non-salary */}
         {seesSalary ? (
           <>
             <PayrollTrendTile
-              data={overviewData?.payrollTrend || defaultPayrollTrend}
-              onClick={() => router.push('/payroll')}
+              data={salaryData?.payrollTrend || defaultPayrollTrend}
+              onClick={canNavPayroll ? () => router.push('/payroll') : undefined}
             />
 
             <DepartmentChartTile
-              data={Array.isArray(overviewData?.departmentHeadcount) ? overviewData.departmentHeadcount : defaultDepartmentHeadcount}
-              onClick={() => router.push('/employees')}
+              data={
+                Array.isArray(overviewData?.departmentHeadcount)
+                  ? overviewData.departmentHeadcount
+                  : (Array.isArray(salaryData?.departmentHeadcount)
+                      ? salaryData.departmentHeadcount
+                      : defaultDepartmentHeadcount)
+              }
+              onClick={canNavEmployees ? () => router.push('/employees') : undefined}
             />
 
             <FinanceLiabilitiesTile
-              data={overviewData?.financeLiabilities || defaultFinanceLiabilities}
-              onClick={() => router.push('/payroll')}
+              data={salaryData?.financeLiabilities || defaultFinanceLiabilities}
+              onClick={canNavPayroll ? () => router.push('/payroll') : undefined}
             />
           </>
         ) : (
           <DepartmentChartTile
-            data={Array.isArray(overviewData?.departmentHeadcount) ? overviewData.departmentHeadcount : defaultDepartmentHeadcount}
-            onClick={() => router.push('/employees')}
+            data={
+              Array.isArray(overviewData?.departmentHeadcount)
+                ? overviewData.departmentHeadcount
+                : defaultDepartmentHeadcount
+            }
+            onClick={canNavEmployees ? () => router.push('/employees') : undefined}
           />
         )}
 
         {/* Row 5: week (8x1), quick (4x1) */}
         <WeekAheadTile
           data={weekAheadData}
-          onClick={() => router.push('/leave')}
+          onClick={canNavLeave ? () => router.push('/leave') : undefined}
         />
 
         <QuickActionsTile
@@ -587,7 +637,7 @@ export default function DashboardPage() {
         {/* Row 6: audit (8x1), var (4x1 if seesSalary) */}
         <RecentActivityTile
           data={recentActivityData}
-          onClick={() => router.push('/audit')}
+          onClick={canNavAudit ? () => router.push('/audit') : undefined}
         />
 
         {seesSalary && (
@@ -603,7 +653,7 @@ export default function DashboardPage() {
         <Modal
           isOpen={isPayrollModalOpen}
           onClose={() => setIsPayrollModalOpen(false)}
-          title="October 2026 Pay Run Overview"
+          title={`${livePayrollData.monthYear} Pay Run Overview`}
           subtitle={`${selectedVisa ? `${selectedVisa.name} · ${selectedVisa.mol_establishment_id || ''}` : 'All Company Visas'} · ${companyName || 'Company'}`}
           maxWidth="max-w-2xl"
         >

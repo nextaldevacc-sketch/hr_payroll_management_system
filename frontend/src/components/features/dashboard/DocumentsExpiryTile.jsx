@@ -26,10 +26,12 @@ export function DocumentsExpiryTile({ data, onClick }) {
       title={t('dashboard.expiringDocs.title')}
       subtitle={language === 'ar' ? 'التأشيرة، الهوية الإماراتية، بطاقة العمل' : 'Visa, Emirates ID, Labour Card'}
       badge={
-        <span className="text-xs text-text-muted flex items-center gap-1 group-hover:text-primary transition-colors">
-          {t('common.viewAll')}
-          <ChevronRight className="w-3.5 h-3.5 rtl:-scale-x-100" />
-        </span>
+        onClick ? (
+          <span className="text-xs text-text-muted flex items-center gap-1 group-hover:text-primary transition-colors">
+            {t('common.viewAll')}
+            <ChevronRight className="w-3.5 h-3.5 rtl:-scale-x-100" />
+          </span>
+        ) : null
       }
     >
       <div className="space-y-3">

@@ -46,6 +46,8 @@ export function UsersAndRolesFeature() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState(null);
+  const [createdInviteDetails, setCreatedInviteDetails] = useState(null);
+  const [copiedField, setCopiedField] = useState(null);
 
   // Invite Form State
   const [inviteEmail, setInviteEmail] = useState('');
@@ -153,7 +155,7 @@ export function UsersAndRolesFeature() {
     if (!inviteEmail) return;
 
     try {
-      await request('/users/invite', {
+      const res = await request('/users/invite', {
         method: 'POST',
         body: JSON.stringify({
           email: inviteEmail,
@@ -167,6 +169,12 @@ export function UsersAndRolesFeature() {
 
       await loadUsers();
       setIsInviteModalOpen(false);
+      setCreatedInviteDetails({
+        email: inviteEmail,
+        roles: selectedRoles,
+        tempPassword: res?.tempPassword || res?.data?.tempPassword || res?.data?.data?.tempPassword,
+        inviteUrl: res?.inviteUrl || res?.data?.inviteUrl || res?.data?.data?.inviteUrl,
+      });
       setInviteEmail('');
       setSelectedRoles(['EMPLOYEE']);
       setAlertMessage({
@@ -184,39 +192,61 @@ export function UsersAndRolesFeature() {
     }
   };
 
-  const handleBulkCreateLogins = () => {
-    const unlinkedCount = 35; // Remaining employees from the 42
-    setBulkResult({
-      totalEligible: unlinkedCount,
-      createdCount: unlinkedCount,
-      defaultRole: 'EMPLOYEE',
-      sampleEmail: 'emp_12@company.ae',
-    });
-    setAlertMessage({
-      type: 'success',
-      text:
-        locale === 'ar'
-          ? `تم إنشاء ${unlinkedCount} حساب دخول جديد للموظفين غير المسجلين بنجاح.`
-          : `Bulk employee account creation complete: ${unlinkedCount} logins generated.`,
-    });
-    setIsBulkModalOpen(false);
+  const handleBulkCreateLogins = async () => {
+    try {
+      const res = await request('/users/bulk-create-employees', {
+        method: 'POST',
+      });
+      await loadUsers();
+      const createdUsers = Array.isArray(res?.users) ? res.users : [];
+      const createdCount = res?.created_count ?? createdUsers.length;
+      const totalEligible = res?.total_eligible ?? createdCount;
+
+      setBulkResult({
+        totalEligible,
+        createdCount,
+        users: createdUsers,
+        errors: Array.isArray(res?.errors) ? res.errors : [],
+      });
+      setAlertMessage({
+        type: 'success',
+        text:
+          locale === 'ar'
+            ? `تم إنشاء ${createdCount} حساب دخول جديد للموظفين بنجاح.`
+            : `Bulk employee account creation complete: ${createdCount} login(s) generated.`,
+      });
+      setIsBulkModalOpen(false);
+    } catch (err) {
+      setAlertMessage({
+        type: 'error',
+        text: err.message || (locale === 'ar' ? 'فشل إنشاء حسابات الموظفين' : 'Failed to create employee logins'),
+      });
+    }
   };
 
-  const handleToggleUserStatus = (userId) => {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id === userId) {
-          const nextStatus = u.status === 'Active' ? 'Disabled' : 'Active';
-          return {
-            ...u,
-            status: nextStatus,
-            is_locked: false,
-            failed_logins: nextStatus === 'Active' ? 0 : u.failed_logins,
-          };
-        }
-        return u;
-      })
-    );
+  const handleToggleUserStatus = async (userId) => {
+    const target = users.find((u) => u.id === userId);
+    if (!target) return;
+    const nextStatus = target.status === 'Active' ? 'Disabled' : 'Active';
+    try {
+      await request(`/users/${userId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      await loadUsers();
+      setAlertMessage({
+        type: 'success',
+        text:
+          locale === 'ar'
+            ? `تم تحديث حالة المستخدم ${target.email} إلى ${nextStatus}.`
+            : `Updated status for ${target.email} to ${nextStatus}.`,
+      });
+    } catch (err) {
+      setAlertMessage({
+        type: 'error',
+        text: err.message || (locale === 'ar' ? 'فشل تحديث حالة المستخدم' : 'Failed to update user status'),
+      });
+    }
   };
 
   const filteredUsers = users.filter((u) => {
@@ -636,6 +666,112 @@ export function UsersAndRolesFeature() {
           </div>
         )}
 
+        {/* Credentials / One-Time Password Modal */}
+        {createdInviteDetails && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <div
+              className="w-full max-w-lg rounded-2xl p-6 border shadow-2xl space-y-4"
+              style={{
+                background: 'var(--bg-surface)',
+                borderColor: 'var(--glass-border)',
+              }}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+                <h3 className="font-bold text-base gold-heading flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  <span>{locale === 'ar' ? 'تم إنشاء دعوة المستخدم بنجاح' : 'User Account & Invitation Created'}</span>
+                </h3>
+                <button
+                  data-testid="close-invite-credentials-modal"
+                  onClick={() => setCreatedInviteDetails(null)}
+                  className="hover:opacity-75"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <p style={{ color: 'var(--text-secondary)' }}>
+                  {locale === 'ar'
+                    ? `تم تجهيز بيانات الدخول للمستخدم ${createdInviteDetails.email}. شارك كلمة المرور المؤقتة أو رابط الدعوة مع المستخدم:`
+                    : `Credentials provisioned for ${createdInviteDetails.email}. Share the temporary password or invite link below:`}
+                </p>
+
+                {createdInviteDetails.tempPassword && (
+                  <div className="p-3 rounded-xl border border-border/60 bg-well space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-slate-400">{locale === 'ar' ? 'كلمة المرور المؤقتة:' : 'One-Time Temporary Password:'}</span>
+                      <button
+                        type="button"
+                        data-testid="copy-temp-password"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(createdInviteDetails.tempPassword);
+                          setCopiedField('password');
+                          setTimeout(() => setCopiedField(null), 2000);
+                        }}
+                        className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>{copiedField === 'password' ? (locale === 'ar' ? 'تم النسخ!' : 'Copied!') : (locale === 'ar' ? 'نسخ' : 'Copy')}</span>
+                      </button>
+                    </div>
+                    <div
+                      data-testid="display-temp-password"
+                      className="font-mono text-sm tracking-wide p-2 rounded-lg bg-surface border border-border font-bold text-emerald-400 select-all"
+                    >
+                      {createdInviteDetails.tempPassword}
+                    </div>
+                  </div>
+                )}
+
+                {createdInviteDetails.inviteUrl && (
+                  <div className="p-3 rounded-xl border border-border/60 bg-well space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-slate-400">{locale === 'ar' ? 'رابط تفعيل الحساب:' : 'One-Time Invite URL:'}</span>
+                      <button
+                        type="button"
+                        data-testid="copy-invite-link"
+                        onClick={() => {
+                          const fullUrl = (typeof window !== 'undefined' ? window.location.origin : '') + createdInviteDetails.inviteUrl;
+                          navigator.clipboard?.writeText(fullUrl);
+                          setCopiedField('link');
+                          setTimeout(() => setCopiedField(null), 2000);
+                        }}
+                        className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>{copiedField === 'link' ? (locale === 'ar' ? 'تم النسخ!' : 'Copied!') : (locale === 'ar' ? 'نسخ' : 'Copy')}</span>
+                      </button>
+                    </div>
+                    <div className="font-mono text-[11px] p-2 rounded-lg bg-surface border border-border text-slate-300 break-all select-all">
+                      {createdInviteDetails.inviteUrl}
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-[11px]">
+                  {locale === 'ar'
+                    ? 'ملاحظة أمنية: سيُطلب من المستخدم تغيير كلمة المرور المؤقتة فور تسجيل الدخول الأول.'
+                    : 'Security notice: The user will be required to set a permanent password upon first login (must_change_password).'}
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  data-testid="done-invite-credentials-btn"
+                  aria-label="Close credentials modal"
+                  onClick={() => setCreatedInviteDetails(null)}
+                  className="px-4 py-2 rounded-xl font-bold shadow-md"
+                  style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}
+                >
+                  {locale === 'ar' ? 'تم' : 'Done'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Bulk Create Logins Modal */}
         {isBulkModalOpen && (
           <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -668,16 +804,16 @@ export function UsersAndRolesFeature() {
                   }}
                 >
                   <div className="flex justify-between">
-                    <span style={{ color: 'var(--text-tertiary)' }}>Eligible Employees:</span>
-                    <span className="font-bold">35 unlinked</span>
+                    <span style={{ color: 'var(--text-tertiary)' }}>{locale === 'ar' ? 'النطاق:' : 'Scope:'}</span>
+                    <span className="font-bold">{locale === 'ar' ? 'الموظفون النشطون بدون حساب' : 'Unlinked active employees'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span style={{ color: 'var(--text-tertiary)' }}>Assigned Role:</span>
+                    <span style={{ color: 'var(--text-tertiary)' }}>{locale === 'ar' ? 'الدور المعين:' : 'Assigned Role:'}</span>
                     <span className="font-semibold text-amber-400">EMPLOYEE (Self-Service)</span>
                   </div>
                   <div className="flex justify-between">
-                    <span style={{ color: 'var(--text-tertiary)' }}>Initial Status:</span>
-                    <span className="text-sky-400 font-semibold">Invited</span>
+                    <span style={{ color: 'var(--text-tertiary)' }}>{locale === 'ar' ? 'سياسة الدخول:' : 'Login Policy:'}</span>
+                    <span className="text-sky-400 font-semibold">{locale === 'ar' ? 'تغيير كلمة المرور عند أول دخول' : 'Active (Change password on first login)'}</span>
                   </div>
                 </div>
 
@@ -688,7 +824,7 @@ export function UsersAndRolesFeature() {
                     className="px-4 py-2 rounded-xl border"
                     style={{ borderColor: 'var(--border-subtle)' }}
                   >
-                    Cancel
+                    {locale === 'ar' ? 'إلغاء' : 'Cancel'}
                   </button>
                   <button
                     type="button"
@@ -696,7 +832,84 @@ export function UsersAndRolesFeature() {
                     className="px-4 py-2 rounded-xl font-bold shadow-md"
                     style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}
                   >
-                    Generate Logins
+                    {locale === 'ar' ? 'إنشاء الحسابات' : 'Generate Logins'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Create Result / Credentials Modal */}
+        {bulkResult && (
+          <div
+            data-testid="bulk-credentials-modal"
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <div
+              className="w-full max-w-lg rounded-2xl p-6 border shadow-2xl space-y-4"
+              style={{
+                background: 'var(--bg-surface)',
+                borderColor: 'var(--glass-border)',
+              }}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+                <h3 className="font-bold text-base gold-heading flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  <span>{locale === 'ar' ? 'ملخص إنشاء حسابات الموظفين' : 'Bulk Employee Logins Created'}</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setBulkResult(null)}
+                  className="hover:opacity-75"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <p style={{ color: 'var(--text-secondary)' }}>
+                  {locale === 'ar'
+                    ? `تم إنشاء ${bulkResult.createdCount} حساب دخول جديد من أصل ${bulkResult.totalEligible} موظف مؤهل.`
+                    : `Generated ${bulkResult.createdCount} login account(s) out of ${bulkResult.totalEligible} eligible employee(s).`}
+                </p>
+
+                {Array.isArray(bulkResult.users) && bulkResult.users.length > 0 && (
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {bulkResult.users.map((cu) => (
+                      <div
+                        key={cu.userId}
+                        data-testid="bulk-created-user-row"
+                        data-email={cu.email}
+                        className="p-3 rounded-xl border border-border/60 bg-well flex items-center justify-between gap-2"
+                      >
+                        <div>
+                          <div className="font-semibold text-text">{cu.email}</div>
+                          <div className="text-[11px] font-mono text-text-muted">{cu.employeeCode}</div>
+                        </div>
+                        <div className="text-end">
+                          <span
+                            data-testid="bulk-temp-password"
+                            data-email={cu.email}
+                            className="font-mono font-bold text-emerald-400 select-all"
+                          >
+                            {cu.tempPassword}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    data-testid="done-bulk-credentials-btn"
+                    onClick={() => setBulkResult(null)}
+                    className="px-4 py-2 rounded-xl font-bold shadow-md"
+                    style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}
+                  >
+                    {locale === 'ar' ? 'تم' : 'Done'}
                   </button>
                 </div>
               </div>

@@ -65,12 +65,12 @@ export default function MyHomePage() {
     : (user?.name || user?.employee?.name || 'Employee');
 
   const leave = {
-    annualRemaining: data?.leaveBalance?.annualRemaining ?? 24,
-    annualAllocated: data?.leaveBalance?.annualAllocated ?? 30,
-    annualTaken: data?.leaveBalance?.annualTaken ?? 6,
+    annualRemaining: data?.leaveBalance?.annualRemaining ?? 0,
+    annualAllocated: data?.leaveBalance?.annualAllocated ?? 0,
+    annualTaken: data?.leaveBalance?.annualTaken ?? 0,
   };
-  const payday = data?.payday || { lastNetPay: null, lastPayMonth: null, nextPayday: '2026-10-28' };
-  const attendance = data?.attendanceSummary || { presentDays: 20, lateDays: 1, absentDays: 0, totalHoursWorked: 160 };
+  const payday = data?.payday || { lastNetPay: null, lastPayMonth: null, nextPayday: null };
+  const attendance = data?.attendanceSummary || { presentDays: 0, lateDays: 0, absentDays: 0, totalHoursWorked: 0 };
 
   return (
     <div id="my-home-container" className="space-y-6 animate-fadeIn pb-12 max-w-full overflow-x-hidden">
@@ -91,16 +91,22 @@ export default function MyHomePage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <Link href="/me/requests">
-            <Button size="sm" variant="outline" icon={<Send className="w-3.5 h-3.5" />}>
-              {language === 'ar' ? 'تقديم طلب' : 'New Request'}
-            </Button>
-          </Link>
-          <Link href="/me/payslips">
-            <Button size="sm" variant="primary" icon={<Wallet className="w-3.5 h-3.5" />}>
-              {language === 'ar' ? 'عرض الرواتب' : 'My Payslips'}
-            </Button>
-          </Link>
+          <Button
+            size="sm"
+            variant="outline"
+            icon={<Send className="w-3.5 h-3.5" />}
+            onClick={() => router.push('/me/requests')}
+          >
+            {language === 'ar' ? 'تقديم طلب' : 'New Request'}
+          </Button>
+          <Button
+            size="sm"
+            variant="primary"
+            icon={<Wallet className="w-3.5 h-3.5" />}
+            onClick={() => router.push('/me/payslips')}
+          >
+            {language === 'ar' ? 'عرض الرواتب' : 'My Payslips'}
+          </Button>
         </div>
       </div>
 
@@ -126,7 +132,7 @@ export default function MyHomePage() {
             <div className="w-full bg-border/40 h-2 rounded-full mt-3 overflow-hidden">
               <div
                 className="bg-primary h-full rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.round((leave.annualRemaining / (leave.annualAllocated || 30)) * 100))}%` }}
+                style={{ width: `${leave.annualAllocated > 0 ? Math.min(100, Math.round((leave.annualRemaining / leave.annualAllocated) * 100)) : 0}%` }}
               />
             </div>
             <p className="text-[11px] text-text-muted mt-2">

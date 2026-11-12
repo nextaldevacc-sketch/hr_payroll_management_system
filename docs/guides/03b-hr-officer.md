@@ -2,7 +2,7 @@
 
 > **Role Code**: `HR_OFFICER`  
 > **Target Audience**: Human Resources Officers, Personnel Administrators  
-> **Demo Login**: `hr.officer@gulftech.ae` (Company-wide) or `hr.difc@gulftech.ae` (DIFC Scoped) / `Nextal@2026!`  
+> **Account Provisioning**: Invited by Company Administrator via Users & Roles (`/settings/users`) with temporary credentials.  
 > **Salary Visibility**: **No** (All salary, wage, and compensation figures are strictly masked)
 
 ---

@@ -1,8 +1,8 @@
 # Platform Admin User Guide (Phase 2 - Deferred)
 
 > **Role Code**: `PLATFORM_ADMIN`  
-> **Status**: **Phase 2 (Deferred)** — Disabled in Release Candidate 3 (`FEATURE_PLATFORM_ADMIN=false`)  
-> **Company Provisioning**: Performed via CLI: `node scripts/create-company.js`
+> **Status**: **Phase 2 (Deferred)** — Disabled in Release Candidate 4 (`FEATURE_PLATFORM_ADMIN=false`)  
+> **Company Provisioning**: Performed via CLI: `npm run setup:company -- ...`
 
 ---
 
@@ -16,21 +16,22 @@ Per product release decisions, the multi-tenant Platform Administrator web inter
 ---
 
 ## 2. CLI Provisioning Workflow (Current Release)
-In Release Candidate 3, tenant onboarding and company provisioning are performed directly through the administrative CLI:
+In Release Candidate 4, tenant onboarding and company provisioning are performed directly through the administrative CLI:
 
 ```bash
-node scripts/create-company.js \
+npm run setup:company -- \
   --name "New Enterprise LLC" \
-  --nameAr "شركة المؤسسة الجديدة ذ.م.م" \
-  --tradeLicense "TL-DXB-10020" \
-  --adminEmail "admin@newenterprise.ae"
+  --name-ar "شركة المؤسسة الجديدة ذ.م.م" \
+  --trade-license "TL-DXB-10020" \
+  --admin-name "Corporate Admin" \
+  --admin-email "admin@newenterprise.ae"
 ```
 
 ### What the CLI Provisions:
 1. **Company Entity**: Legal name in English and Arabic, trade license, statutory defaults (cut-off day 25th, variance threshold 5%, absence divisor `÷30`).
 2. **Default Sponsoring Visa & Branch**: Standard onshore MOHRE establishment configuration.
 3. **Statutory Salary Rules & Structures**: Provisions all 17 Section 8.1 salary rules and approval settings.
-4. **Company Administrator Invitation**: Creates the `COMPANY_ADMIN` user and generates a secure one-time invite URL dispatched to `backend/storage/email-dev/`.
+4. **Company Administrator Bootstrap**: Creates the `COMPANY_ADMIN` user and prints a secure one-time temporary password directly to stdout (written nowhere else), requiring an immediate password change at `/change-password` on first login.
 
 ---
 

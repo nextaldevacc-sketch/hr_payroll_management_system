@@ -43,7 +43,13 @@ export class DashboardService {
           status: 'Active',
           ...(scopeWhere || {}),
         },
-        select: { id: true, company_visa_id: true, joining_date: true },
+        select: {
+          id: true,
+          company_visa_id: true,
+          joining_date: true,
+          residency_type: true,
+          mohre_person_id: true,
+        },
       }),
       this.prisma.$base().company_visas.findMany({
         where: visaWhere,
@@ -52,6 +58,8 @@ export class DashboardService {
     ]);
 
     const totalHeadcount = employees.length;
+    const uaeNationalsCount = employees.filter((e) => /uae|national|emirati/i.test(e.residency_type || '')).length;
+    const expatsCount = Math.max(0, totalHeadcount - uaeNationalsCount);
     const visaCounts = visas.map((v) => ({
       id: v.id,
       name: v.name,
@@ -85,13 +93,16 @@ export class DashboardService {
       select: { employee_id: true, iban: true, routing_code: true },
     });
 
-    const activeEmpIds = new Set(employees.map((e) => e.id));
     let compliantCount = 0;
     let missingIbanCount = 0;
     let missingRoutingCount = 0;
+    let missingPersonIdCount = 0;
 
-    for (const empId of activeEmpIds) {
-      const ba = bankAccounts.find((b) => b.employee_id === empId);
+    for (const emp of employees) {
+      if (!emp.mohre_person_id || String(emp.mohre_person_id).trim() === '') {
+        missingPersonIdCount++;
+      }
+      const ba = bankAccounts.find((b) => b.employee_id === emp.id);
       if (!ba || !ba.iban || ba.iban.trim() === '') {
         missingIbanCount++;
       } else if (!ba.routing_code || ba.routing_code.trim() === '') {
@@ -104,9 +115,10 @@ export class DashboardService {
     const wpsReadiness = {
       compliantCount,
       totalCount: totalHeadcount,
-      compliancePct: totalHeadcount > 0 ? Math.round((compliantCount / totalHeadcount) * 100) : 100,
+      compliancePct: totalHeadcount > 0 ? Math.round((compliantCount / totalHeadcount) * 100) : 0,
       missingIban: missingIbanCount,
       missingRouting: missingRoutingCount,
+      missingPersonId: missingPersonIdCount,
     };
 
     // 4. Documents Expiry
@@ -203,6 +215,94 @@ export class DashboardService {
       else totalOtNormal += h;
     }
 
+    // 6b. Pending Overtime Hours & Missing Punches (real counts, never hardcoded)
+    const empFilterForDays =
+      scopeWhere && Object.keys(scopeWhere).length > 0
+        ? { employee: scopeWhere }
+        : (validVisa ? { employee: { company_visa_id: validVisa } } : {});
+
+    const [
+      pendingOtAgg,
+      missingPunchesCount,
+      leaversCount,
+      depts,
+      companyRecord,
+      visasTotalCount,
+      branchesTotalCount,
+      jobsTotalCount,
+      rulesTotalCount,
+      usersActiveCount,
+    ] = await Promise.all([
+      this.prisma.$base().overtime_requests.aggregate({
+        where: { company_id: companyId, status: 'Pending', ...empFilterForDays },
+        _sum: { hours: true },
+      }),
+      this.prisma.$base().attendance_days.count({
+        where: {
+          company_id: companyId,
+          work_date: { gte: startOfMonth, lte: endOfMonth },
+          exception_codes: { has: 'MISSING_PUNCH' },
+          ...empFilterForDays,
+        },
+      }),
+      this.prisma.$base().separations.count({
+        where: {
+          company_id: companyId,
+          last_working_day: { gte: startOfMonth, lte: endOfMonth },
+          ...empFilterForDays,
+        },
+      }),
+      this.prisma.$base().departments.findMany({
+        where: { company_id: companyId },
+        select: {
+          name: true,
+          name_ar: true,
+          contracts: {
+            where: {
+              status: 'Active',
+              employee: {
+                company_id: companyId,
+                status: 'Active',
+                ...(scopeWhere || {}),
+              },
+            },
+            select: { employee_id: true },
+          },
+        },
+      }),
+      this.prisma.$base().companies.findUnique({
+        where: { id: companyId },
+        select: { name: true, trade_license_no: true },
+      }),
+      this.prisma.$base().company_visas.count({ where: { company_id: companyId } }),
+      this.prisma.$base().branches.count({ where: { company_id: companyId } }),
+      this.prisma.$base().jobs.count({ where: { company_id: companyId } }),
+      this.prisma.$base().salary_rules.count({ where: { company_id: companyId } }),
+      this.prisma.$base().users.count({ where: { company_id: companyId, status: 'Active' } }),
+    ]);
+
+    const pendingOtHours = Number(Number(pendingOtAgg?._sum?.hours || 0).toFixed(1));
+    const totalDeptEmps = depts.reduce((sum, d) => sum + d.contracts.length, 0);
+    const departmentHeadcount = depts.map((d) => ({
+      name: d.name,
+      nameAr: d.name_ar || d.name,
+      count: d.contracts.length,
+      percentage: totalDeptEmps > 0 ? Math.round((d.contracts.length / totalDeptEmps) * 100) : 0,
+    }));
+
+    const onboarding = {
+      hasProfile: Boolean(
+        companyRecord?.name &&
+        companyRecord?.trade_license_no &&
+        companyRecord.trade_license_no !== 'TL-000000'
+      ),
+      hasVisas: visasTotalCount > 0,
+      hasBranches: branchesTotalCount > 0,
+      hasDepartments: depts.length > 0 && jobsTotalCount > 0,
+      hasRules: rulesTotalCount > 0,
+      hasUsers: usersActiveCount > 1,
+    };
+
     // 7. Week Ahead (Holidays & Leaves in next 7 days)
     const next7d = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const upcomingLeaves = await this.prisma.$base().leave_requests.findMany({
@@ -234,7 +334,10 @@ export class DashboardService {
       headcount: {
         total: totalHeadcount,
         joinersThisMonth,
-        leaversThisMonth: 0,
+        leaversThisMonth: leaversCount,
+        uaeNationals: uaeNationalsCount,
+        expats: expatsCount,
+        gpssaEligible: uaeNationalsCount,
         visas: visaCounts,
       },
       pendingApprovals: {
@@ -258,14 +361,17 @@ export class DashboardService {
       exceptions: {
         lateToday: lateCount,
         absentToday: absentCount,
-        missingPunchesThisMonth: 2,
+        missingPunchesThisMonth: missingPunchesCount,
       },
       overtimeMonth: {
         normalHours: Number(totalOtNormal.toFixed(1)),
         nightHours: Number(totalOtNight.toFixed(1)),
         holidayHours: Number(totalOtHoliday.toFixed(1)),
         totalHours: Number((totalOtNormal + totalOtNight + totalOtHoliday).toFixed(1)),
+        pendingHours: pendingOtHours,
       },
+      departmentHeadcount,
+      onboarding,
       weekAhead: {
         leavesCount: upcomingLeaves.length,
         leaves: upcomingLeaves.map((l) => ({
@@ -339,17 +445,19 @@ export class DashboardService {
     const sparkline = payRuns
       .slice()
       .reverse()
-      .map((r) => {
+      .map((r, idx, arr) => {
         const totalNet = r.payslips.reduce((acc, p) => acc + Number(p.net || 0), 0);
+        const totalGross = r.payslips.reduce((acc, p) => acc + Number(p.gross || 0), 0);
         const m = r.period_month instanceof Date ? r.period_month.toISOString().slice(0, 7) : String(r.period_month).slice(0, 7);
-        return { month: m, net: totalNet };
+        return { month: m, monthAr: m, gross: totalGross, net: totalNet, isCurrent: idx === arr.length - 1 };
       });
 
     // Variance comparison with prior run
+    let priorTotalNet = 0;
     let varianceNetDiff = 0;
     let variancePct = 0;
     if (priorRun && priorRun.payslips.length > 0) {
-      const priorTotalNet = priorRun.payslips.reduce((acc, p) => acc + Number(p.net || 0), 0);
+      priorTotalNet = priorRun.payslips.reduce((acc, p) => acc + Number(p.net || 0), 0);
       const currentNetNum = netTotal.toNumber();
       varianceNetDiff = currentNetNum - priorTotalNet;
       variancePct = priorTotalNet > 0 ? (varianceNetDiff / priorTotalNet) * 100 : 0;
@@ -366,16 +474,24 @@ export class DashboardService {
       },
     });
 
+    const totalDeptContracts = departments.reduce((sum, d) => sum + d.contracts.length, 0);
     const departmentHeadcount = departments.map((d) => ({
       name: d.name,
+      nameAr: d.name_ar || d.name,
       count: d.contracts.length,
+      percentage: totalDeptContracts > 0 ? Math.round((d.contracts.length / totalDeptContracts) * 100) : 0,
       totalBasic: d.contracts.reduce((sum, c) => sum + Number(c.basic || 0), 0),
     }));
+
+    const gratuityTotal = empCount * 12500;
+    const leaveEncashTotal = empCount * 2200;
+    const latestPeriod = latestRun ? latestRun.period_month.toISOString().slice(0, 7) : new Date().toISOString().slice(0, 7);
+    const priorPeriod = priorRun ? priorRun.period_month.toISOString().slice(0, 7) : null;
 
     return {
       livePayroll: {
         id: latestRun?.id || null,
-        period: latestRun ? latestRun.period_month.toISOString().slice(0, 7) : '2026-10',
+        period: latestPeriod,
         status: latestRun?.status || 'Draft',
         visaName: latestRun?.company_visa?.name || 'All Visas',
         employeeCount: empCount,
@@ -387,17 +503,41 @@ export class DashboardService {
         blockingIssuesCount: latestRun?.issues?.length || 0,
         sparkline,
       },
-      payrollTrend: sparkline,
+      payrollTrend: {
+        months: sparkline,
+        thresholdMin: 0,
+        thresholdMax: sparkline.length > 0 ? Math.max(...sparkline.map((s) => s.gross)) * 1.05 : 0,
+      },
       departmentHeadcount,
       financeLiabilities: {
         unpaidNetLiability: latestRun?.status !== 'Paid' ? netTotal.toFixed(2) : '0.00',
-        gratuityLiabilityEst: (empCount * 12500).toFixed(2),
-        leaveEncashmentEst: (empCount * 2200).toFixed(2),
+        gratuityLiabilityEst: gratuityTotal.toFixed(2),
+        leaveEncashmentEst: leaveEncashTotal.toFixed(2),
+        gratuity: {
+          totalAccrued: gratuityTotal,
+          monthDelta: 0,
+          deltaPercent: '0%',
+          isPositive: true,
+        },
+        leaveLiability: {
+          totalAccrued: leaveEncashTotal,
+          monthDelta: 0,
+          deltaPercent: '0%',
+          isPositive: true,
+        },
       },
       variance: {
+        currentMonthNet: netTotal.toNumber(),
+        previousMonthNet: priorTotalNet,
         diffAed: varianceNetDiff.toFixed(2),
+        diffAmount: Math.abs(varianceNetDiff),
         diffPct: variancePct.toFixed(2),
+        diffPercent: `${variancePct >= 0 ? '+' : ''}${variancePct.toFixed(1)}%`,
+        isPositive: varianceNetDiff >= 0,
         flaggedCount: latestRun?.payslips?.filter((p) => p.is_variance_flagged)?.length || 0,
+        periodLabel: priorPeriod ? `${latestPeriod} vs ${priorPeriod}` : latestPeriod,
+        periodLabelAr: priorPeriod ? `${latestPeriod} مقابل ${priorPeriod}` : latestPeriod,
+        topChanges: [],
       },
     };
   }

@@ -127,7 +127,7 @@ export class UserService {
     }
 
     // Default temporary password
-    const tempPassword = crypto.randomBytes(8).toString('hex') + 'A1!';
+    const tempPassword = 'Tmp!' + crypto.randomBytes(6).toString('hex') + 'A9';
     const passwordHash = await authService.hashPassword(tempPassword);
 
     const user = await this.prisma.$base().users.create({
@@ -136,7 +136,8 @@ export class UserService {
         email: cleanEmail,
         employee_id: employeeId || null,
         password_hash: passwordHash,
-        status: 'Invited',
+        status: 'Active',
+        must_change_password: true,
         created_by: invitedBy,
       },
     });
@@ -198,6 +199,7 @@ export class UserService {
       },
       inviteToken,
       inviteUrl: `/login?tab=invite&token=${inviteToken}`,
+      tempPassword,
     };
   }
 
@@ -276,12 +278,15 @@ export class UserService {
    * Bulk-create employee logins for employees without user accounts
    */
   async bulkCreateEmployeeLogins({ companyId, createdBy }) {
-    // 1. Find all active employees in this company without a linked user
+    // 1. Find all active employees in this company without a linked user or with uninitialized invite
     const employeesWithoutUsers = await this.prisma.$base().employees.findMany({
       where: {
         company_id: companyId,
         status: 'Active',
-        user: null,
+        OR: [
+          { user: null },
+          { user: { password_hash: 'UNINITIALIZED_INVITE' } },
+        ],
       },
       select: {
         id: true,
@@ -315,6 +320,48 @@ export class UserService {
         });
 
         if (existing) {
+          if (existing.password_hash === 'UNINITIALIZED_INVITE') {
+            const tempPassword = 'Tmp!' + crypto.randomBytes(6).toString('hex') + 'A9';
+            const passwordHash = await authService.hashPassword(tempPassword);
+            await this.prisma.$base().users.update({
+              where: { id: existing.id },
+              data: {
+                password_hash: passwordHash,
+                must_change_password: true,
+                status: 'Active',
+                employee_id: emp.id,
+              },
+            });
+
+            // Ensure EMPLOYEE role is assigned
+            const existingRole = await this.prisma.$base().user_roles.findFirst({
+              where: { user_id: existing.id, role_id: employeeRole.id },
+            });
+            if (!existingRole) {
+              await this.prisma.$base().user_roles.create({
+                data: {
+                  company_id: companyId,
+                  user_id: existing.id,
+                  role_id: employeeRole.id,
+                  scope_type: 'Self',
+                  created_by: createdBy,
+                },
+              });
+            }
+
+            const token = await authService.generateInviteToken(existing);
+            createdUsers.push({
+              userId: existing.id,
+              employeeId: emp.id,
+              employeeCode: emp.employee_code,
+              email: existing.email,
+              tempPassword,
+              inviteToken: token,
+              inviteUrl: `/login?tab=invite&token=${token}`,
+            });
+            continue;
+          }
+
           // Link employee if unlinked
           if (!existing.employee_id) {
             await this.prisma.$base().users.update({
@@ -325,7 +372,7 @@ export class UserService {
           continue;
         }
 
-        const tempPassword = crypto.randomBytes(8).toString('hex') + 'A1!';
+        const tempPassword = 'Tmp!' + crypto.randomBytes(6).toString('hex') + 'A9';
         const passwordHash = await authService.hashPassword(tempPassword);
 
         const newUser = await this.prisma.$base().users.create({
@@ -334,7 +381,8 @@ export class UserService {
             employee_id: emp.id,
             email,
             password_hash: passwordHash,
-            status: 'Invited',
+            status: 'Active',
+            must_change_password: true,
             created_by: createdBy,
           },
         });
@@ -351,12 +399,13 @@ export class UserService {
 
         const token = await authService.generateInviteToken(newUser);
         createdUsers.push({
-          id: newUser.id,
-          employee_id: emp.id,
-          name: emp.name,
-          email: newUser.email,
-          invite_token: token,
-          invite_url: `/login?tab=invite&token=${token}`,
+          userId: newUser.id,
+          employeeId: emp.id,
+          employeeCode: emp.employee_code,
+          email,
+          tempPassword,
+          inviteToken: token,
+          inviteUrl: `/login?tab=invite&token=${token}`,
         });
       } catch (err) {
         errors.push({ employee_id: emp.id, email, error: err.message });

@@ -2,7 +2,7 @@
 
 > **Role Code**: `GM`  
 > **Target Audience**: General Managers, Managing Directors, Chief Operating Officers  
-> **Demo Login**: `gm@gulftech.ae` / `Nextal@2026!`  
+> **Account Provisioning**: Invited by Company Administrator via Users & Roles (`/settings/users`) with temporary credentials.  
 > **Salary Visibility**: **Yes** (Executive Oversight & Final Approval Access)
 
 ---

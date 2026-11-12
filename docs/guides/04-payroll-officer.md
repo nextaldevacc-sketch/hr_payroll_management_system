@@ -2,7 +2,7 @@
 
 > **Role Code**: `PAYROLL_OFFICER`  
 > **Target Audience**: Payroll Specialists, Compensation & Benefits Analysts  
-> **Demo Login**: `payroll@gulftech.ae` / `Nextal@2026!`  
+> **Account Provisioning**: Invited by Company Administrator via Users & Roles (`/settings/users`) with temporary credentials.  
 > **Salary Visibility**: **Yes** (Full Payroll & Salary Computation Access)
 
 ---

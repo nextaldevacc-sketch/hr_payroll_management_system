@@ -1,6 +1,5 @@
 import reportService from '../services/reportService.js';
-import { generatePayrollRegisterExcel, generateVarianceReportExcel } from '../lib/reports/payrollReportGenerator.js';
-import prisma from '../lib/prisma.js';
+import payrollService from '../services/payrollService.js';
 
 export const reportController = {
   /**
@@ -186,40 +185,8 @@ export const reportController = {
         throw err;
       }
 
-      const payRun = await prisma.$base().pay_runs.findUnique({
-        where: { id: payRunId },
-        include: {
-          company: true,
-          company_visa: true,
-          payslips: {
-            include: {
-              employee: {
-                select: { id: true, name: true, employee_code: true, department: true },
-              },
-              lines: { include: { salary_rule: true } },
-            },
-          },
-        },
-      });
-
-      if (!payRun || payRun.company_id !== companyId) {
-        const err = new Error('Pay run not found');
-        err.status = 404;
-        throw err;
-      }
-
-      const buffer = await generatePayrollRegisterExcel({
-        payRun,
-        company: payRun.company,
-        companyVisa: payRun.company_visa,
-        payslips: payRun.payslips,
-      });
-
-      const periodStr = typeof payRun.period_month === 'string'
-        ? payRun.period_month.slice(0, 7)
-        : new Date(payRun.period_month).toISOString().slice(0, 7);
-
-      const filename = `payroll_register_${payRun.company_visa?.visa_name || 'visa'}_${periodStr}.xlsx`;
+      const buffer = await payrollService.getPayrollRegisterExcel(companyId, payRunId, req.user);
+      const filename = `payroll_register_${payRunId.slice(0, 8)}.xlsx`;
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(buffer);
@@ -242,39 +209,8 @@ export const reportController = {
         throw err;
       }
 
-      const payRun = await prisma.$base().pay_runs.findUnique({
-        where: { id: payRunId },
-        include: {
-          company: true,
-          company_visa: true,
-          payslips: {
-            include: {
-              employee: {
-                select: { id: true, name: true, employee_code: true, department: true },
-              },
-            },
-          },
-        },
-      });
-
-      if (!payRun || payRun.company_id !== companyId) {
-        const err = new Error('Pay run not found');
-        err.status = 404;
-        throw err;
-      }
-
-      const buffer = await generateVarianceReportExcel({
-        payRun,
-        company: payRun.company,
-        companyVisa: payRun.company_visa,
-        payslips: payRun.payslips,
-      });
-
-      const periodStr = typeof payRun.period_month === 'string'
-        ? payRun.period_month.slice(0, 7)
-        : new Date(payRun.period_month).toISOString().slice(0, 7);
-
-      const filename = `variance_report_${payRun.company_visa?.visa_name || 'visa'}_${periodStr}.xlsx`;
+      const buffer = await payrollService.getVarianceReportExcel(companyId, payRunId, req.user);
+      const filename = `variance_report_${payRunId.slice(0, 8)}.xlsx`;
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(buffer);

@@ -111,5 +111,32 @@ npm test --workspace=frontend
 > - Never change the database schema or data by hand.
 > - Never bypass a trigger or the status flow, not even temporarily.
 > - Schema changes go in a NEW Prisma migration. Applied migration files are never edited.
-> - Demo data comes only from backend/prisma/seed/.
+> - Demo data comes only from backend/prisma/seed/ (locked behind SEED_MODE=demo).
 > - Test data is created inside the test that needs it.
+
+---
+
+## 4. Automated Test Database Only: Evaluation Personas & Credentials
+
+The demo accounts and evaluation dataset exist **exclusively in the automated test database** (`DATABASE_URL_TEST`, default: `nextal_hr_test`), populated during automated test runs with `SEED_MODE=demo`. The production database (`nextal_hr_payroll`) remains completely unseeded with zero demo records.
+
+> [!NOTE]
+> **Demo Password for all test personas below (Automated Test DB Only):** `Nextal@2026!`
+
+| Role | Persona Name | Email | Sees Salary | Test Scope & Invariants Tested |
+|---|---|---|:---:|---|
+| **Platform Admin** | Platform Superadmin | `platform@nextal.ae` | — | **Deferred (Phase 2)**. Disabled via `FEATURE_PLATFORM_ADMIN=false`. Returns 403. |
+| **Company Admin** | Tariq Al-Hashemi | `admin@gulftech.ae` | **No** | Company settings, visas, branches, departments, jobs, shift policies, users. **Salary masked.** |
+| **HR Manager** | Maryam Al-Nuaimi | `hr.mgr@gulftech.ae` | **Yes** | Full HR lifecycle, contracts, attendance sign-off, leave approvals, pay run validation. |
+| **HR Officer** | Saeed Al-Ketbi | `hr.officer@gulftech.ae` | **No** | Employee creation, document verification, biometric import, cancellation tasks. **Salary masked.** |
+| **HR Officer (DIFC)** | Saeed Al-Ketbi (DIFC) | `hr.difc@gulftech.ae` | **No** | Scoped to Visa 02 (DIFC Freezone) only. Zero cross-visa leakage. |
+| **Payroll Officer** | Zaid Al-Marzooqi | `payroll@gulftech.ae` | **Yes** | Pay run calculation, variable inputs, variance documentation, PDF payslip generation. |
+| **Dept Manager** | Mansour Al-Ketbi | `dept.mgr@gulftech.ae` | **No** | Operations team attendance, overtime review, 1st leave approval. **Salary masked.** |
+| **General Manager** | Rashid Al-Falasi | `gm@gulftech.ae` | **Yes** | Final executive approval on pay runs, final settlements, and extended leaves (> 5 days). |
+| **Finance** | Hassan Al-Balooshi | `finance@gulftech.ae` | **Yes** | WPS SIF export, pay run payment (`Mark as Paid`), accounting GL journal export, settlement disbursement. |
+| **Employee** | Ahmed Al-Mansoori | `employee@gulftech.ae` | **No** | Self-service (`/me/*`): personal profile, bilingual payslips (own data only), punch records, leave submission. |
+
+### Employee Self-Service Test Logins
+All 45 test employees of Gulf Tech Logistics LLC have individual logins in the test database:
+`<employee_code_lowercase>@gulftech.ae` (e.g. `emp-dxb-001@gulftech.ae` … `emp-dxb-045@gulftech.ae`), password `Nextal@2026!`.
+

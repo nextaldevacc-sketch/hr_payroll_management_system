@@ -2,7 +2,7 @@
 
 > **Role Code**: `HR_MANAGER`  
 > **Target Audience**: Human Resources Managers, People Operations Directors  
-> **Demo Login**: `hr.mgr@gulftech.ae` / `Nextal@2026!`  
+> **Account Provisioning**: Invited by Company Administrator via Users & Roles (`/settings/users`) with temporary credentials.  
 > **Salary Visibility**: **Yes** (Full HR & Statutory Salary Access)
 
 ---

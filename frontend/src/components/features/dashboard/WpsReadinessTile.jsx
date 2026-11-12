@@ -9,9 +9,9 @@ import { useLanguage } from '../../../context/LanguageContext';
 
 export function WpsReadinessTile({ data, onClick, onFilterMissing }) {
   const { t, language } = useLanguage();
-  const ready = data?.ready || 40;
-  const total = data?.total || 42;
-  const percentage = Math.round((ready / total) * 100);
+  const ready = Number(data?.ready ?? 0);
+  const total = Number(data?.total ?? 0);
+  const percentage = total > 0 ? Math.round((ready / total) * 100) : 0;
 
   // SVG circular progress ring calculations
   const size = 52;
@@ -21,9 +21,9 @@ export function WpsReadinessTile({ data, onClick, onFilterMissing }) {
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-  const checks = data?.checks || [
-    { key: 'iban', label: language === 'ar' ? 'حساب الآيبان (IBAN) متوفر' : 'IBAN account present', missing: 1, status: 'warning' },
-    { key: 'routing', label: language === 'ar' ? 'رمز التوجيه المصرفي متوفر' : 'Bank routing code present', missing: 1, status: 'warning' },
+  const checks = Array.isArray(data?.checks) && data.checks.length > 0 ? data.checks : [
+    { key: 'iban', label: language === 'ar' ? 'حساب الآيبان (IBAN) متوفر' : 'IBAN account present', missing: 0, status: 'success' },
+    { key: 'routing', label: language === 'ar' ? 'رمز التوجيه المصرفي متوفر' : 'Bank routing code present', missing: 0, status: 'success' },
     { key: 'personId', label: language === 'ar' ? 'بطاقة العمل / رقم المنشأة متوفر' : 'Labour Card / Person ID present', missing: 0, status: 'success' },
   ];
 
@@ -86,42 +86,52 @@ export function WpsReadinessTile({ data, onClick, onFilterMissing }) {
 
         {/* 3 Check Rows - fill height, 1px var(--border) divider between rows, no boxes */}
         <ListDivided className="text-xs flex-1 flex flex-col justify-around mt-3 border-t border-border">
-          {checks.map((check) => (
-            <button
-              key={check.key}
-              onClick={(e) => {
-                e.stopPropagation();
-                onFilterMissing && onFilterMissing(check.key);
-              }}
-              className="w-full flex items-center justify-between py-2 px-1 hover:bg-black/5 dark:hover:bg-inset-hover transition-colors text-start group rounded-lg"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                {check.missing === 0 ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-secondary flex-shrink-0" />
-                ) : (
-                  <AlertTriangle className="w-3.5 h-3.5 text-warning-text flex-shrink-0" />
-                )}
-                <span className="text-[11px] text-text-muted group-hover:text-text transition-colors truncate">
-                  {check.label}
-                </span>
-              </div>
+          {checks.map((check) => {
+            const RowTag = onFilterMissing ? 'button' : 'div';
+            return (
+              <RowTag
+                key={check.key}
+                type={onFilterMissing ? 'button' : undefined}
+                onClick={onFilterMissing ? (e) => {
+                  e.stopPropagation();
+                  onFilterMissing(check.key);
+                } : undefined}
+                className={`w-full flex items-center justify-between py-2 px-1 text-start group rounded-lg ${
+                  onFilterMissing ? 'hover:bg-black/5 dark:hover:bg-inset-hover transition-colors cursor-pointer' : ''
+                }`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  {check.missing === 0 ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-secondary flex-shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-3.5 h-3.5 text-warning-text flex-shrink-0" />
+                  )}
+                  <span className="text-[11px] text-text-muted group-hover:text-text transition-colors truncate">
+                    {check.label}
+                  </span>
+                </div>
 
-              <div className="flex items-center gap-1 flex-shrink-0 ms-2">
-                <span
-                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    check.missing === 0
-                      ? 'bg-secondary-wash text-secondary-text'
-                      : 'bg-warning-wash text-warning-text'
-                  }`}
-                >
-                  {check.missing === 0
-                    ? (language === 'ar' ? 'مكتمل' : 'All 42 valid')
-                    : (language === 'ar' ? `${check.missing} ناقص` : `${check.missing} missing`)}
-                </span>
-                <ChevronRight className="w-3 h-3 text-text-muted group-hover:text-text rtl:-scale-x-100" />
-              </div>
-            </button>
-          ))}
+                <div className="flex items-center gap-1 flex-shrink-0 ms-2">
+                  <span
+                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      check.missing === 0
+                        ? 'bg-secondary-wash text-secondary-text'
+                        : 'bg-warning-wash text-warning-text'
+                    }`}
+                  >
+                    {check.missing === 0
+                      ? (total === 0
+                          ? (language === 'ar' ? 'لا يوجد موظفون' : 'No employees yet')
+                          : (language === 'ar' ? `جميع ${total} مكتمل` : `All ${total} valid`))
+                      : (language === 'ar' ? `${check.missing} ناقص` : `${check.missing} missing`)}
+                  </span>
+                  {onFilterMissing && (
+                    <ChevronRight className="w-3 h-3 text-text-muted group-hover:text-text rtl:-scale-x-100" />
+                  )}
+                </div>
+              </RowTag>
+            );
+          })}
         </ListDivided>
       </div>
     </BentoTile>

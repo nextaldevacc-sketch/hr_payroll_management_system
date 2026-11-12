@@ -20,18 +20,18 @@ const REASON_MAP_AR = {
 
 export function VarianceTile({ data, onClick }) {
   const { t, language } = useLanguage();
-  const rawTopChanges = (data?.topChanges && data.topChanges.length > 0)
-    ? data.topChanges
-    : [
-        { employee: 'Elena Rostova', employeeAr: 'إيلينا روستوفا', diff: '+8,500.00', reason: 'New hire', reasonAr: 'تعيين جديد', warning: false },
-        { employee: 'Ahmed Mansoor', employeeAr: 'أحمد منصور', diff: '+2,120.00', reason: 'Approved OT', reasonAr: 'عمل إضافي معتمد', warning: false },
-        { employee: 'Zayed Al-Ameri', employeeAr: 'زايد العامري', diff: '-1,450.00', reason: 'Unpaid leave', reasonAr: 'إجازة غير مدفوعة', warning: false },
-      ];
+  const rawTopChanges = Array.isArray(data?.topChanges) ? data.topChanges : [];
 
   const topChanges = rawTopChanges.map((item) => ({
     ...item,
     reasonLabel: language === 'ar' ? (item.reasonAr || REASON_MAP_AR[item.reason] || item.reason) : item.reason,
   }));
+
+  const diffNumeric = Number(data?.diffAmount ?? data?.diffAed ?? 0);
+  const diffPrefix = diffNumeric === 0 ? '' : (data?.isPositive !== false ? '+' : '-');
+  const subtitleText = data?.periodLabel
+    ? (language === 'ar' ? (data.periodLabelAr || data.periodLabel) : data.periodLabel)
+    : (language === 'ar' ? 'مقارنة الشهر الحالي بالسابق' : 'Month-over-month comparison');
 
   return (
     <BentoTile
@@ -52,7 +52,7 @@ export function VarianceTile({ data, onClick }) {
         </IconWell>
       }
       title={t('dashboard.variance.title')}
-      subtitle={language === 'ar' ? 'أكتوبر مقابل سبتمبر ٢٠٢٦' : 'October vs September 2026'}
+      subtitle={subtitleText}
     >
       <div className="space-y-2.5">
         {/* Net this month vs last with AED and % difference */}
@@ -81,8 +81,8 @@ export function VarianceTile({ data, onClick }) {
             >
               <ArrowUpRight className="w-3.5 h-3.5" />
               <bdi className="tabular-nums">
-                +{formatCurrency(data.diffAmount ?? data.diffAed ?? 0, 'AED', language)}{' '}
-                {(data.diffPercent != null || data.diffPct != null) ? `(${data.diffPercent ?? data.diffPct}%)` : '(+0.0%)'}
+                {diffPrefix}{formatCurrency(Math.abs(diffNumeric), 'AED', language)}{' '}
+                {(data.diffPercent != null || data.diffPct != null) ? `(${data.diffPercent ?? data.diffPct}%)` : '(0.0%)'}
               </bdi>
             </div>
           </div>
@@ -93,31 +93,37 @@ export function VarianceTile({ data, onClick }) {
           <span className="text-[10px] uppercase font-bold text-text-muted block">
             {language === 'ar' ? 'أبرز أسباب الفروقات' : 'Top Variance Drivers'}
           </span>
-          {topChanges.map((item, idx) => (
-            <InsetBox
-              key={idx}
-              className="flex items-center justify-between py-1.5 px-2.5 text-xs"
-            >
-              <div className="flex items-center gap-1.5 min-w-0">
-                {item.warning && (
-                  <AlertCircle className="w-3 h-3 text-warning-text flex-shrink-0" />
-                )}
-                <span className="font-semibold text-text truncate">
-                  {language === 'ar' ? (item.employeeAr || item.employee) : item.employee}
-                </span>
-                <span className="text-[10px] text-text-muted truncate">
-                  · {item.reasonLabel}
-                </span>
-              </div>
-              <bdi
-                className={`text-[11px] font-bold tabular-nums ms-2 ${
-                  item.diff.startsWith('+') ? 'text-secondary-text' : 'text-danger-text'
-                }`}
+          {topChanges.length === 0 ? (
+            <p className="text-[11px] text-text-muted py-1">
+              {language === 'ar' ? 'لا توجد فروقات مسجلة' : 'No variance drivers yet'}
+            </p>
+          ) : (
+            topChanges.map((item, idx) => (
+              <InsetBox
+                key={idx}
+                className="flex items-center justify-between py-1.5 px-2.5 text-xs"
               >
-                {item.diff}
-              </bdi>
-            </InsetBox>
-          ))}
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {item.warning && (
+                    <AlertCircle className="w-3 h-3 text-warning-text flex-shrink-0" />
+                  )}
+                  <span className="font-semibold text-text truncate">
+                    {language === 'ar' ? (item.employeeAr || item.employee) : item.employee}
+                  </span>
+                  <span className="text-[10px] text-text-muted truncate">
+                    · {item.reasonLabel}
+                  </span>
+                </div>
+                <bdi
+                  className={`text-[11px] font-bold tabular-nums ms-2 ${
+                    item.diff.startsWith('+') ? 'text-secondary-text' : 'text-danger-text'
+                  }`}
+                >
+                  {item.diff}
+                </bdi>
+              </InsetBox>
+            ))
+          )}
         </div>
       </div>
     </BentoTile>

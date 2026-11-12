@@ -41,11 +41,13 @@ export default function AttendancePage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 bg-surface/80 border border-border/80 p-1 rounded-2xl text-xs backdrop-blur-md overflow-x-auto max-w-full">
+        <div role="tablist" className="flex items-center gap-1.5 bg-surface/80 border border-border/80 p-1 rounded-2xl text-xs backdrop-blur-md overflow-x-auto max-w-full">
           <button
             type="button"
             id="tab-attendance-grid"
             data-testid="tab-attendance-grid"
+            role="tab"
+            aria-selected={activeTab === 'grid'}
             onClick={() => setActiveTab('grid')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-colors flex items-center gap-2 ${
               activeTab === 'grid'
@@ -62,6 +64,8 @@ export default function AttendancePage() {
             type="button"
             id="tab-biometric-import"
             data-testid="tab-biometric-import"
+            role="tab"
+            aria-selected={activeTab === 'import'}
             onClick={() => setActiveTab('import')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-colors flex items-center gap-2 ${
               activeTab === 'import'
@@ -78,6 +82,8 @@ export default function AttendancePage() {
             type="button"
             id="tab-missing-punches"
             data-testid="tab-missing-punches"
+            role="tab"
+            aria-selected={activeTab === 'queue'}
             onClick={() => setActiveTab('queue')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-colors flex items-center gap-2 ${
               activeTab === 'queue'
@@ -89,10 +95,13 @@ export default function AttendancePage() {
             <span>{isAr ? 'البصمات المفقودة' : 'Missing Punches'}</span>
           </button>
 
+          {(canAccess('overtime', 'view') || canAccess('overtime', 'approve_team')) && (
           <button
             type="button"
             id="tab-overtime-requests"
             data-testid="tab-overtime-requests"
+            role="tab"
+            aria-selected={activeTab === 'overtime'}
             onClick={() => setActiveTab('overtime')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-colors flex items-center gap-2 ${
               activeTab === 'overtime'
@@ -103,11 +112,14 @@ export default function AttendancePage() {
             <Zap className="w-3.5 h-3.5" />
             <span>{isAr ? 'العمل الإضافي' : 'Overtime'}</span>
           </button>
+          )}
 
           <button
             type="button"
             id="tab-attendance-review"
             data-testid="tab-attendance-review"
+            role="tab"
+            aria-selected={activeTab === 'review'}
             onClick={() => setActiveTab('review')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-colors flex items-center gap-2 ${
               activeTab === 'review'
@@ -125,7 +137,7 @@ export default function AttendancePage() {
       {activeTab === 'grid' && <AttendanceGridFeature />}
       {activeTab === 'import' && canAccess('attendance', 'edit') && <BiometricImportFeature />}
       {activeTab === 'queue' && <MissingPunchQueueFeature />}
-      {activeTab === 'overtime' && <OvertimeRequestsFeature />}
+      {activeTab === 'overtime' && (canAccess('overtime', 'view') || canAccess('overtime', 'approve_team')) && <OvertimeRequestsFeature />}
       {activeTab === 'review' && <AttendanceReviewFeature />}
     </div>
   </RouteGuard>

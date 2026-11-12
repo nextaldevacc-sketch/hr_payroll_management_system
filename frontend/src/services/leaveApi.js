@@ -6,7 +6,8 @@ export async function getLeaveTypes() {
 
 export async function getLeaveBalances(params = {}) {
   const query = new URLSearchParams();
-  if (params.employeeId) query.append('employeeId', params.employeeId);
+  const empId = params.employee_id || params.employeeId;
+  if (empId) query.append('employee_id', empId);
   if (params.year) query.append('year', params.year);
   if (params.company_visa_id) query.append('company_visa_id', params.company_visa_id);
   if (params.companyVisaId) query.append('company_visa_id', params.companyVisaId);

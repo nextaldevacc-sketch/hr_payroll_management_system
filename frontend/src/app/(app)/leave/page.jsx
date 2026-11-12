@@ -15,7 +15,8 @@ import PublicHolidayCalendarFeature from '@/components/features/holidays/PublicH
 import { RouteGuard } from '@/components/common/RouteGuard';
 
 export default function LeavePage() {
-  const { user, language } = useAuth();
+  const { user, language, canAccess } = useAuth();
+  const canViewHolidays = canAccess('settings', 'view') || (user?.roles || []).includes('HR_OFFICER');
   const isAr = language === 'ar';
 
   const [activeTab, setActiveTab] = useState('requests'); // 'requests' | 'inbox' | 'balances' | 'holidays'
@@ -38,11 +39,13 @@ export default function LeavePage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 bg-surface/80 border border-border/80 p-1 rounded-2xl text-xs backdrop-blur-md overflow-x-auto max-w-full">
+        <div role="tablist" className="flex items-center gap-1.5 bg-surface/80 border border-border/80 p-1 rounded-2xl text-xs backdrop-blur-md overflow-x-auto max-w-full">
           <button
             type="button"
             id="tab-leave-requests"
             data-testid="tab-leave-requests"
+            role="tab"
+            aria-selected={activeTab === 'requests'}
             onClick={() => setActiveTab('requests')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-colors flex items-center gap-2 ${
               activeTab === 'requests'
@@ -58,6 +61,8 @@ export default function LeavePage() {
             type="button"
             id="tab-approval-inbox"
             data-testid="tab-approval-inbox"
+            role="tab"
+            aria-selected={activeTab === 'inbox'}
             onClick={() => setActiveTab('inbox')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-colors flex items-center gap-2 ${
               activeTab === 'inbox'
@@ -73,6 +78,8 @@ export default function LeavePage() {
             type="button"
             id="tab-leave-balances"
             data-testid="tab-leave-balances"
+            role="tab"
+            aria-selected={activeTab === 'balances'}
             onClick={() => setActiveTab('balances')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-colors flex items-center gap-2 ${
               activeTab === 'balances'
@@ -84,10 +91,13 @@ export default function LeavePage() {
             <span>{isAr ? 'الأرصدة والاستحقاقات' : 'Statutory Balances'}</span>
           </button>
 
+          {canViewHolidays && (
           <button
             type="button"
             id="tab-public-holidays"
             data-testid="tab-public-holidays"
+            role="tab"
+            aria-selected={activeTab === 'holidays'}
             onClick={() => setActiveTab('holidays')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-colors flex items-center gap-2 ${
               activeTab === 'holidays'
@@ -98,6 +108,7 @@ export default function LeavePage() {
             <Calendar className="w-3.5 h-3.5" />
             <span>{isAr ? 'العطلات الرسمية' : 'Public Holidays'}</span>
           </button>
+          )}
         </div>
       </div>
 
@@ -105,7 +116,7 @@ export default function LeavePage() {
       {activeTab === 'requests' && <LeaveRequestsFeature activeTab="all" />}
       {activeTab === 'inbox' && <LeaveRequestsFeature activeTab="inbox" />}
       {activeTab === 'balances' && <LeaveBalancesFeature />}
-      {activeTab === 'holidays' && <PublicHolidayCalendarFeature />}
+      {activeTab === 'holidays' && canViewHolidays && <PublicHolidayCalendarFeature />}
     </div>
   </RouteGuard>
 );

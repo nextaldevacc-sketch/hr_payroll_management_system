@@ -1086,7 +1086,7 @@ export function EmployeeProfileFeature({ id } = {}) {
                         {new Date(log.created_at).toLocaleString('en-GB')}
                       </td>
                       <td className="py-3 px-4 font-semibold text-primary">
-                        {log.action}
+                        {getEnumLabel('audit_action', log.action, language)}
                       </td>
                       <td className="py-3 px-4 text-text">
                         {log.user?.email || log.actor || 'System'}

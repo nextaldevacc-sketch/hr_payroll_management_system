@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import { PERMISSIONS_MATRIX } from '../../../shared/src/constants/permissions.js';
 
 /**
  * Seed Module: Demo Users & Roles
@@ -18,15 +19,17 @@ export async function seedDemoUsers(prisma, { company1, company2, depts1, visas1
 
   const rolesMap = {};
   for (const r of roleDefs) {
-    const role = await prisma.roles.create({
-      data: { code: r.code, name: r.name, sees_salary: r.sees_salary },
+    const role = await prisma.roles.upsert({
+      where: { code: r.code },
+      create: { code: r.code, name: r.name, sees_salary: r.sees_salary, permissions: PERMISSIONS_MATRIX[r.code] || {} },
+      update: { name: r.name, sees_salary: r.sees_salary, permissions: PERMISSIONS_MATRIX[r.code] || {} },
     });
     rolesMap[r.code] = role;
   }
 
   const passwordHash = await bcrypt.hash('Nextal@2026!', 10);
 
-  // Platform Admin
+  // Platform Admin (Disabled feature flag check in authService returns 403 FEATURE_DISABLED)
   console.log('Seeding Platform Admin user...');
   const userPlatformAdmin = await prisma.users.create({
     data: {

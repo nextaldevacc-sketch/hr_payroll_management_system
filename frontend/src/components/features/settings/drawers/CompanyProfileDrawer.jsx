@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Drawer } from '../../../primitives/Drawer';
 import { Select } from '../../../primitives/form/Select';
 import { Building2, FileText, CreditCard, ShieldCheck, Plus, Check, Globe, Upload, AlertTriangle, Coins, Trash2 } from 'lucide-react';
@@ -14,14 +15,22 @@ export function CompanyProfileDrawer({
   company,
   companyProfile,
   canEdit = true,
+  initialTab = 'profile',
   onSave,
   onDeleteBlocked,
 }) {
   const comp = company || companyProfile;
   const { isRTL, language } = useLanguage();
   const { showSuccess, showError } = useToast();
-  const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'visas' | 'pension'
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState(initialTab || 'profile'); // 'profile' | 'visas' | 'pension'
   const [logoPreview, setLogoPreview] = useState(comp?.logo_url || null);
+
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   const handleLogoUpload = (e) => {
     const file = e.target.files?.[0];
@@ -118,6 +127,7 @@ export function CompanyProfileDrawer({
       setVisas([...visas, normalized]);
       setNewVisa({ name: '', name_ar: '', mohre_employer_id: '', bank_routing_code: '', pension_fund: 'GPSSA' });
       setIsAddingVisa(false);
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
     } catch (err) {
       const field = err.field || (err.code === 'DUPLICATE_MOL_ID' ? 'mol_establishment_id' : null);
       if (field) {
@@ -342,6 +352,7 @@ export function CompanyProfileDrawer({
                             } else {
                               deleteCompanyVisa(v.id).then(() => {
                                 setVisas(visas.filter((item) => item.id !== v.id));
+                                queryClient.invalidateQueries({ queryKey: ['settings'] });
                               });
                             }
                           }}

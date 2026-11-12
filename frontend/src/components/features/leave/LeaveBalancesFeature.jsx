@@ -16,36 +16,75 @@ import {
 } from 'lucide-react';
 import { GlassCard } from '../../primitives/GlassCard';
 import { getLeaveBalances } from '../../../services/leaveApi';
+import { fetchEmployees } from '../../../services/employeesApi';
+import { useVisa } from '../../../context/VisaContext';
+import { withVisa } from '../../../lib/visaQuery';
 
 export default function LeaveBalancesFeature() {
-  const { user, language } = useAuth();
+  const { user, language, canAccess } = useAuth();
+  const { selectedVisaId } = useVisa();
   const isAr = language === 'ar';
 
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(user?.employee_id || '');
   const [balances, setBalances] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let active = true;
     async function loadBalances() {
       setLoading(true);
+      setError(null);
       try {
-        const data = await getLeaveBalances();
-        setBalances(data);
+        let targetEmployeeId = selectedEmployeeId || user?.employee_id || '';
+        if (canAccess('employees', 'view')) {
+          const empRes = await fetchEmployees(withVisa({ limit: 50 }, selectedVisaId));
+          const empList = Array.isArray(empRes?.data)
+            ? empRes.data
+            : (Array.isArray(empRes?.employees) ? empRes.employees : []);
+          if (!active) return;
+          setEmployees(empList);
+          if (!targetEmployeeId || (empList.length > 0 && !empList.some((e) => e.id === targetEmployeeId))) {
+            targetEmployeeId = empList[0]?.id || '';
+            if (targetEmployeeId && targetEmployeeId !== selectedEmployeeId) {
+              setSelectedEmployeeId(targetEmployeeId);
+            }
+          }
+        }
+
+        if (!targetEmployeeId) {
+          if (active) setBalances(null);
+          return;
+        }
+
+        const data = await getLeaveBalances({ employee_id: targetEmployeeId });
+        if (active) setBalances(data);
       } catch (err) {
         console.error('Failed to load leave balances:', err);
-        setError(err.message || 'Failed to load balances');
+        if (active) setError(err.message || 'Failed to load balances');
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
     loadBalances();
-  }, []);
+    return () => { active = false; };
+  }, [selectedEmployeeId, selectedVisaId, user?.employee_id]);
 
+  const balanceRows = Array.isArray(balances?.balances) ? balances.balances : [];
+  const annualRow = balanceRows.find((b) => b.code === 'ANNUAL' || /annual/i.test(b.name || ''));
+  const sickRow = balanceRows.find((b) => b.code === 'SICK' || /sick/i.test(b.name || ''));
+  const sickTaken = Number(balances?.sick_leave?.totalTaken ?? sickRow?.days_taken ?? 0);
   const sickLeave = balances?.sick_leave || {
-    totalTaken: 0,
-    bands: { full: 0, half: 0, unpaid: 0 },
+    totalTaken: sickTaken,
+    bands: {
+      full: Math.min(15, sickTaken),
+      half: Math.min(30, Math.max(0, sickTaken - 15)),
+      unpaid: Math.min(45, Math.max(0, sickTaken - 45)),
+    },
     caps: { full: 15, half: 30, unpaid: 45, maxTotal: 90 },
   };
+  const displayYear = balances?.year || new Date().getFullYear();
 
   return (
     <div className="space-y-6" data-testid="leave-balances-container">
@@ -63,9 +102,25 @@ export default function LeaveBalancesFeature() {
                 : 'Compliant with Articles 29 & 31 of UAE Federal Decree-Law No. 33 of 2021.'}
             </p>
           </div>
-          <span className="text-xs font-mono font-bold px-3 py-1 rounded-xl bg-surface border border-border text-primary">
-            Year 2026
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            {employees.length > 0 && (
+              <select
+                aria-label={isAr ? 'اختر الموظف' : 'Select Employee'}
+                value={selectedEmployeeId}
+                onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                className="px-3 py-1.5 rounded-xl bg-surface border border-border text-xs text-text focus:outline-none focus:ring-2 focus:ring-primary/40"
+              >
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.employee_code} — {isAr ? (emp.arabic_name || emp.name) : emp.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            <span className="text-xs font-mono font-bold px-3 py-1 rounded-xl bg-surface border border-border text-primary">
+              {isAr ? `السنة ${displayYear}` : `Year ${displayYear}`}
+            </span>
+          </div>
         </div>
       </GlassCard>
 
@@ -152,25 +207,25 @@ export default function LeaveBalancesFeature() {
             <div>
               <span className="text-text-muted block text-[11px]">{isAr ? 'المخصص السنوي' : 'Allocated'}</span>
               <span className="text-lg font-mono font-bold text-text">
-                {balances?.annual?.allocated ?? 30}d
+                {annualRow?.days_allocated ?? balances?.annual?.allocated ?? 0}d
               </span>
             </div>
             <div>
               <span className="text-text-muted block text-[11px]">{isAr ? 'مرحل سابق' : 'Carry-Over'}</span>
               <span className="text-lg font-mono font-bold text-text">
-                {balances?.annual?.carryOver ?? 0}d
+                {annualRow?.carry_over_days ?? balances?.annual?.carryOver ?? 0}d
               </span>
             </div>
             <div>
               <span className="text-text-muted block text-[11px]">{isAr ? 'مستخدم' : 'Taken'}</span>
               <span className="text-lg font-mono font-bold text-amber-400">
-                {balances?.annual?.taken ?? 0}d
+                {annualRow?.days_taken ?? balances?.annual?.taken ?? 0}d
               </span>
             </div>
             <div>
               <span className="text-text-muted block text-[11px]">{isAr ? 'الرصيد المتاح' : 'Available'}</span>
               <span className="text-lg font-mono font-bold text-emerald-400">
-                {balances?.annual?.available ?? 30}d
+                {annualRow?.remaining_balance ?? balances?.annual?.available ?? 0}d
               </span>
             </div>
           </div>

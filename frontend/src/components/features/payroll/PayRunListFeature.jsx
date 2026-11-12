@@ -32,7 +32,7 @@ import { formatMonthYear, getVisaNameAr } from '../../../i18n/enums';
 export function PayRunListFeature() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { selectedVisaId, setSelectedVisaId } = useVisa();
+  const { visas, selectedVisaId, setSelectedVisaId } = useVisa();
   const { language, isRTL } = useLanguage();
   const { canAccess } = useAuth();
 
@@ -65,11 +65,13 @@ export function PayRunListFeature() {
       }),
   });
 
-  // Fetch company visas for dropdowns
+  // Fetch company visas for dropdowns (gated to avoid 403 for Finance role)
   const { data: metaOptions } = useQuery({
     queryKey: ['employee-meta-options'],
     queryFn: fetchEmployeeMetaOptions,
+    enabled: canAccess('employees', 'view'),
   });
+  const availableVisas = metaOptions?.visas || visas || [];
 
   const payRuns = Array.isArray(payRunsData)
     ? payRunsData
@@ -142,7 +144,7 @@ export function PayRunListFeature() {
               onClick={() => {
                 const defaultVisaId = (selectedVisaId && selectedVisaId !== 'all')
                   ? selectedVisaId
-                  : (metaOptions?.visas?.[0]?.id || '');
+                  : (availableVisas[0]?.id || '');
                 setCreateForm((prev) => ({ ...prev, company_visa_id: defaultVisaId }));
                 setIsCreateModalOpen(true);
               }}
@@ -164,7 +166,10 @@ export function PayRunListFeature() {
           <div>
             <span className="text-xs text-text-muted font-medium">{language === 'ar' ? 'تاريخ إغلاق الشهر' : 'Monthly Cut-Off'}</span>
             <div className="text-lg font-bold text-text mt-0.5">{language === 'ar' ? 'اليوم 25 من كل شهر' : '25th of Month'}</div>
-            <span className="text-[11px] text-secondary font-semibold">{language === 'ar' ? 'الدورة الحالية: أكتوبر 2026' : 'Active Cycle: Oct 2026'}</span>
+            <span className="text-[11px] text-secondary font-semibold">
+              {language === 'ar' ? 'الدورة الحالية: ' : 'Active Cycle: '}
+              {formatMonthYear(payRuns[0]?.period_month || new Date().toISOString().slice(0, 7), language)}
+            </span>
           </div>
         </GlassCard>
 
@@ -222,6 +227,7 @@ export function PayRunListFeature() {
             {['', 'Draft', 'Calculated', 'Validated', 'Locked', 'Paid'].map((st) => (
               <button
                 key={st}
+                aria-pressed={statusFilter === st}
                 onClick={() => setStatusFilter(st)}
                 className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
                   statusFilter === st
@@ -248,11 +254,11 @@ export function PayRunListFeature() {
               placeholder={language === 'ar' ? 'جميع جهات التأشيرات' : 'All Visa Establishments'}
               options={[
                 { value: '', label: language === 'ar' ? 'جميع جهات التأشيرات' : 'All Visa Establishments' },
-                ...(metaOptions?.visas?.map((v) => ({
+                ...(availableVisas.map((v) => ({
                   value: v.id,
                   label: language === 'ar' ? (v.name_ar || v.name) : v.name,
                   meta: v.mol_establishment_id,
-                })) || []),
+                }))),
               ]}
             />
           </div>
@@ -395,11 +401,11 @@ export function PayRunListFeature() {
               placeholder="Select Visa Establishment..."
               value={createForm.company_visa_id}
               onChange={(e) => setCreateForm({ ...createForm, company_visa_id: e.target.value })}
-              options={metaOptions?.visas?.map((v) => ({
+              options={availableVisas.map((v) => ({
                 value: v.id,
                 label: v.name,
                 meta: `${v.mol_establishment_id} · ${v.bank_routing_code}`,
-              })) || []}
+              }))}
             />
           </div>
 

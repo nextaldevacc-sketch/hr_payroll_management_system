@@ -25,6 +25,7 @@ export function DepartmentChartTile({ data = [], onClick }) {
   // Single gold ramp: 100%, 80%, 62%, 46%, 32% ranked by department size
   const goldRampOpacities = [1.0, 0.80, 0.62, 0.46, 0.32];
   const sortedData = [...data].sort((a, b) => (b.count || 0) - (a.count || 0));
+  const totalEmployees = sortedData.reduce((sum, d) => sum + (Number(d.count) || 0), 0);
 
   return (
     <BentoTile
@@ -37,7 +38,11 @@ export function DepartmentChartTile({ data = [], onClick }) {
         </IconWell>
       }
       title={t('dashboard.deptHeadcount.title')}
-      subtitle={language === 'ar' ? '٤٢ موظفاً عبر ٥ أقسام' : '42 employees in 5 units'}
+      subtitle={
+        language === 'ar'
+          ? `${totalEmployees} موظفاً عبر ${sortedData.length} أقسام`
+          : `${totalEmployees} employees in ${sortedData.length} units`
+      }
     >
       {/* Dense layout, no empty bottom space */}
       <div className="space-y-2">

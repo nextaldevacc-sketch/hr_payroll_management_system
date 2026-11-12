@@ -30,7 +30,7 @@ import { useVisa } from '../../../context/VisaContext';
 import { withVisa } from '../../../lib/visaQuery';
 
 export default function ReportsFeature() {
-  const { user } = useAuth();
+  const { canAccess } = useAuth();
   const { language } = useLanguage();
   const { selectedVisaId } = useVisa();
   const isAr = language === 'ar';
@@ -46,16 +46,8 @@ export default function ReportsFeature() {
   // Headcount dashboard stats
   const [headcountData, setHeadcountData] = useState(null);
 
-  const canSeeSalary = useMemo(() => {
-    const roles = user?.roles || [];
-    return (
-      roles.includes('COMPANY_ADMIN') ||
-      roles.includes('HR_MANAGER') ||
-      roles.includes('PAYROLL_OFFICER') ||
-      roles.includes('GM') ||
-      roles.includes('FINANCE')
-    );
-  }, [user]);
+  const canSeeSalary = canAccess('salary', 'view');
+  const canViewEmployeeReports = canAccess('employees', 'view');
 
   useEffect(() => {
     const init = async () => {
@@ -70,9 +62,13 @@ export default function ReportsFeature() {
           if (lockedRun) setSelectedPayRunId(lockedRun.id);
         }
 
-        // Load headcount dashboard
-        const hcRes = await getHeadcountReport(withVisa({ year: selectedYear }, selectedVisaId));
-        if (hcRes?.data) setHeadcountData(hcRes.data);
+        // Load headcount dashboard only for roles permitted to view employee reports
+        if (canViewEmployeeReports) {
+          const hcRes = await getHeadcountReport(withVisa({ year: selectedYear }, selectedVisaId));
+          if (hcRes?.data) setHeadcountData(hcRes.data);
+        } else {
+          setHeadcountData(null);
+        }
       } catch (err) {
         console.error('Failed to initialize reports hub:', err);
       } finally {
@@ -80,7 +76,7 @@ export default function ReportsFeature() {
       }
     };
     init();
-  }, [canSeeSalary, selectedYear, selectedVisaId]);
+  }, [canSeeSalary, canViewEmployeeReports, selectedYear, selectedVisaId]);
 
   const handleDownload = async (reportId, actionFn) => {
     setDownloadingId(reportId);
@@ -167,7 +163,7 @@ export default function ReportsFeature() {
                 onChange={(e) => setSelectedPayRunId(e.target.value)}
                 options={payRuns.map((r) => ({
                   value: r.id,
-                  label: `${r.company_visa?.visa_name_ar || r.company_visa?.visa_name || (isAr ? 'التأشيرة' : 'Visa')} — ${r.period_month?.slice(0, 7)}`,
+                  label: `${r.company_visa?.name_ar || r.company_visa?.name || r.company_visa?.visa_name || (isAr ? 'التأشيرة' : 'Visa')} — ${r.period_month?.slice(0, 7)}`,
                   chip: isAr ? ({ Paid: 'تم الصرف', Locked: 'مقفل', Validated: 'تم التدقيق', Calculated: 'تم الحساب', Draft: 'مسودة' }[r.status] || r.status) : r.status,
                 }))}
               />
@@ -176,8 +172,8 @@ export default function ReportsFeature() {
         </div>
       </div>
 
-      {/* Headcount Dashboard Banner (if available) */}
-      {headcountData && (
+      {/* Headcount Dashboard Banner (if available & permitted) */}
+      {canViewEmployeeReports && headcountData && (
         <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
@@ -217,70 +213,74 @@ export default function ReportsFeature() {
       {/* Bento Grid: Report Tiles */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* 1. Attendance Report */}
-        <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
-                <Clock className="w-5 h-5" />
+        {canViewEmployeeReports && (
+          <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                  {isAr ? 'إكسل (.xlsx)' : 'Excel (.xlsx)'}
+                </span>
               </div>
-              <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                {isAr ? 'إكسل (.xlsx)' : 'Excel (.xlsx)'}
-              </span>
+              <h3 className="font-semibold text-slate-900 dark:text-white text-base">
+                {isAr ? 'تقرير الحضور والانصراف التفصيلي' : 'Monthly Attendance Report'}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                {isAr
+                  ? 'سجل الحركات اليومية، التأخيرات، الانصراف المبكر، البصمات المفقودة وساعات العمل الإضافي'
+                  : 'Timesheet punches, late arrivals, early departures, missing biometric logs, and approved overtime hours'}
+              </p>
             </div>
-            <h3 className="font-semibold text-slate-900 dark:text-white text-base">
-              {isAr ? 'تقرير الحضور والانصراف التفصيلي' : 'Monthly Attendance Report'}
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              {isAr
-                ? 'سجل الحركات اليومية، التأخيرات، الانصراف المبكر، البصمات المفقودة وساعات العمل الإضافي'
-                : 'Timesheet punches, late arrivals, early departures, missing biometric logs, and approved overtime hours'}
-            </p>
+            <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+              <span className="text-xs text-slate-400 font-mono">{selectedMonth}</span>
+              <button
+                onClick={() => handleDownload('attendance', () => reportsApi.downloadAttendanceReport(withVisa({ month: selectedMonth }, selectedVisaId)))}
+                disabled={downloadingId === 'attendance'}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50"
+              >
+                {downloadingId === 'attendance' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                {isAr ? 'تنزيل التقرير' : 'Download'}
+              </button>
+            </div>
           </div>
-          <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-mono">{selectedMonth}</span>
-            <button
-              onClick={() => handleDownload('attendance', () => reportsApi.downloadAttendanceReport(withVisa({ month: selectedMonth }, selectedVisaId)))}
-              disabled={downloadingId === 'attendance'}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50"
-            >
-              {downloadingId === 'attendance' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-              {isAr ? 'تنزيل التقرير' : 'Download'}
-            </button>
-          </div>
-        </div>
+        )}
 
         {/* 2. Leave Report */}
-        <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2.5 rounded-xl bg-violet-50 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400">
-                <Calendar className="w-5 h-5" />
+        {canViewEmployeeReports && (
+          <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-xl bg-violet-50 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                  {isAr ? 'إكسل (.xlsx)' : 'Excel (.xlsx)'}
+                </span>
               </div>
-              <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                {isAr ? 'إكسل (.xlsx)' : 'Excel (.xlsx)'}
-              </span>
+              <h3 className="font-semibold text-slate-900 dark:text-white text-base">
+                {isAr ? 'تقرير الإجازات والأرصدة' : 'Annual Leave & Balances Report'}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                {isAr
+                  ? 'استحقاقات الإجازات، الرصيد الافتتاحي، المستحق، المستهلك والأرصدة المتبقية'
+                  : 'Annual statutory allocations, opening balances, accrued days, taken leaves, and remaining balances'}
+              </p>
             </div>
-            <h3 className="font-semibold text-slate-900 dark:text-white text-base">
-              {isAr ? 'تقرير الإجازات والأرصدة' : 'Annual Leave & Balances Report'}
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-              {isAr
-                ? 'استحقاقات الإجازات، الرصيد الافتتاحي، المستحق، المستهلك والأرصدة المتبقية'
-                : 'Annual statutory allocations, opening balances, accrued days, taken leaves, and remaining balances'}
-            </p>
+            <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+              <span className="text-xs text-slate-400 font-mono">{selectedYear}</span>
+              <button
+                onClick={() => handleDownload('leave', () => reportsApi.downloadLeaveReport(withVisa({ year: selectedYear }, selectedVisaId)))}
+                disabled={downloadingId === 'leave'}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50"
+              >
+                {downloadingId === 'leave' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                {isAr ? 'تنزيل التقرير' : 'Download'}
+              </button>
+            </div>
           </div>
-          <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-            <span className="text-xs text-slate-400 font-mono">{selectedYear}</span>
-            <button
-              onClick={() => handleDownload('leave', () => reportsApi.downloadLeaveReport(withVisa({ year: selectedYear }, selectedVisaId)))}
-              disabled={downloadingId === 'leave'}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50"
-            >
-              {downloadingId === 'leave' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-              {isAr ? 'تنزيل التقرير' : 'Download'}
-            </button>
-          </div>
-        </div>
+        )}
 
         {/* 3. Accounting Export (CSV) - SALARY ROLE */}
         {canSeeSalary && (
@@ -344,9 +344,9 @@ export default function ReportsFeature() {
               <span className="text-xs text-slate-400 font-mono">
                 {(() => {
                   const run = payRuns.find((r) => r.id === selectedPayRunId);
-                  const vName = run?.company_visa?.visa_name;
+                  const vName = run?.company_visa?.name || run?.company_visa?.visa_name;
                   if (!vName) return isAr ? 'التأشيرة' : 'Visa';
-                  return isAr ? (run?.company_visa?.visa_name_ar || vName.replace('Visa', 'تأشيرة')) : vName;
+                  return isAr ? (run?.company_visa?.name_ar || run?.company_visa?.visa_name_ar || vName.replace('Visa', 'تأشيرة')) : vName;
                 })()}
               </span>
               <button

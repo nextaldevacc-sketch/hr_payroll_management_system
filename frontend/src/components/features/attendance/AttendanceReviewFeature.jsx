@@ -88,13 +88,13 @@ export default function AttendanceReviewFeature({ onConfirmed }) {
     try {
       const res = await confirmManagerAttendance({
         department_id: selectedDeptId,
-        period_from: periodFrom,
-        period_to: periodTo,
+        month: periodFrom ? periodFrom.slice(0, 7) : undefined,
       });
+      const confirmedCount = res?.data?.confirmed_count ?? res?.confirmed_count ?? 0;
       setSuccessMessage(
         isAr
-          ? `تم اعتماد حضور القسم بنجاح (${res.confirmed_count} سجل يومي)`
-          : `Department attendance confirmed (${res.confirmed_count} days updated to ManagerConfirmed)`
+          ? `تم اعتماد حضور القسم بنجاح (${confirmedCount} سجل يومي)`
+          : `Department attendance confirmed (${confirmedCount} days updated to ManagerConfirmed)`
       );
       loadReviewStatus();
       if (onConfirmed) onConfirmed();
@@ -111,13 +111,13 @@ export default function AttendanceReviewFeature({ onConfirmed }) {
     setErrorMessage(null);
     try {
       const res = await confirmHRAttendance({
-        period_from: periodFrom,
-        period_to: periodTo,
+        month: periodFrom ? periodFrom.slice(0, 7) : undefined,
       });
+      const confirmedCount = res?.data?.confirmed_count ?? res?.confirmed_count ?? 0;
       setSuccessMessage(
         isAr
-          ? `تم الاعتماد النهائي للشركة بنجاح (${res.confirmed_count} سجل يومي جاهز لمسير الرواتب)`
-          : `Company attendance confirmed by HR (${res.confirmed_count} days locked & payroll-ready)`
+          ? `تم الاعتماد النهائي للشركة بنجاح (${confirmedCount} سجل يومي جاهز لمسير الرواتب)`
+          : `Company attendance confirmed by HR (${confirmedCount} days locked & payroll-ready)`
       );
       loadReviewStatus();
       if (onConfirmed) onConfirmed();

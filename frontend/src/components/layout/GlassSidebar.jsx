@@ -286,6 +286,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
             type="button"
             onClick={logout}
             title={isAr ? 'تسجيل الخروج' : 'Sign out'}
+            aria-label={isAr ? 'تسجيل الخروج' : 'Sign out'}
             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors shrink-0"
           >
             <LogOut className="w-4 h-4" />

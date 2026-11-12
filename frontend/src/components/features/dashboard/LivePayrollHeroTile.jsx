@@ -18,18 +18,21 @@ import { formatCurrency } from '@nextal/shared';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useAuth } from '../../../context/AuthContext';
 
-export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
+export function LivePayrollHeroTile({ data, onClick, onOpenValidation, onRefresh }) {
   const { t, language } = useLanguage();
   const { seesSalary } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hoveredMonth, setHoveredMonth] = useState(null);
 
-  const manualRefresh = (e) => {
+  const manualRefresh = async (e) => {
     e.stopPropagation();
+    if (!onRefresh || isRefreshing) return;
     setIsRefreshing(true);
-    setTimeout(() => {
+    try {
+      await Promise.resolve(onRefresh());
+    } finally {
       setIsRefreshing(false);
-    }, 500);
+    }
   };
 
   const figures = data?.figures || {};
@@ -77,13 +80,17 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation }) {
         </span>
       }
       headerAction={
-        <button
-          onClick={manualRefresh}
-          title="Refresh calculation"
-          className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-black/5 dark:hover:bg-inset-hover transition-all"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-primary' : ''}`} />
-        </button>
+        onRefresh ? (
+          <button
+            type="button"
+            onClick={manualRefresh}
+            title={language === 'ar' ? 'تحديث الاحتساب' : 'Refresh calculation'}
+            aria-label={language === 'ar' ? 'تحديث الاحتساب' : 'Refresh calculation'}
+            className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-black/5 dark:hover:bg-inset-hover transition-all"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-primary' : ''}`} />
+          </button>
+        ) : null
       }
     >
       <div className="flex-1 flex flex-col justify-between gap-3">

@@ -2,7 +2,7 @@
 
 > **Role Code**: `DEPT_MANAGER`  
 > **Target Audience**: Department Heads, Operations Managers, Engineering Leads  
-> **Demo Login**: `dept.mgr@gulftech.ae` (Operations Department Manager) / `Nextal@2026!`  
+> **Account Provisioning**: Invited by Company Administrator via Users & Roles (`/settings/users`) with temporary credentials.  
 > **Salary Visibility**: **No** (Team salary figures are strictly masked)
 
 ---

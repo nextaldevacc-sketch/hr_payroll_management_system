@@ -10,9 +10,9 @@ import { useLanguage } from '../../../context/LanguageContext';
 
 export function HeadcountTile({ data, onClick }) {
   const { t } = useLanguage();
-  const natMix = data.nationalityMix || { uaeNationals: 4, expats: 38, uaePercent: 9.5, expatPercent: 90.5, gpssaEligible: 4 };
-  const count = data.netCount ?? ((data.joiners || 0) - (data.leavers || 0));
-  const netDisplay = t('dashboard.headcount.netCount', { count: count || 1 });
+  const natMix = data?.nationalityMix || { uaeNationals: 0, expats: 0, uaePercent: 0, expatPercent: 0, gpssaEligible: 0 };
+  const count = data?.netCount ?? ((data?.joiners || 0) - (data?.leavers || 0));
+  const netDisplay = t('dashboard.headcount.netCount', { count });
 
   return (
     <BentoTile

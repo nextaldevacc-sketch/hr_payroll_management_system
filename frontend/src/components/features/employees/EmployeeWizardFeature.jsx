@@ -420,6 +420,23 @@ export function EmployeeWizardFeature() {
               </div>
 
               <div>
+                <label className="block font-semibold text-text mb-1">
+                  {language === 'ar' ? 'تاريخ المباشرة' : 'Joining Date'}
+                </label>
+                <input
+                  id="wizard-input-joining-date"
+                  type="date"
+                  value={personalForm.joining_date}
+                  onChange={(e) => setPersonalForm({ ...personalForm, joining_date: e.target.value })}
+                  className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text font-mono"
+                  required
+                />
+                {fieldErrors.joining_date && (
+                  <span className="text-xs text-danger-text font-medium mt-1 block">{fieldErrors.joining_date}</span>
+                )}
+              </div>
+
+              <div>
                 <Select
                   id="wizard-select-nationality"
                   data-i18n-skip="true"

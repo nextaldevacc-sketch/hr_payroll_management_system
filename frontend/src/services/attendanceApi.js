@@ -46,14 +46,14 @@ export async function resolveMissingPunch(id, data) {
 }
 
 export async function confirmManagerAttendance(data) {
-  return request('/attendance/confirm/manager', {
+  return request('/attendance/review/manager-confirm', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function confirmHRAttendance(data) {
-  return request('/attendance/confirm/hr', {
+  return request('/attendance/review/hr-confirm', {
     method: 'POST',
     body: JSON.stringify(data),
   });

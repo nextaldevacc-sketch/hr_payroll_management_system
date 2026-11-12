@@ -131,6 +131,7 @@ export async function getCurrentUser(req, res, next) {
         visas: user.company?.company_visas || [],
         is_platform_admin: user.is_platform_admin,
         status: user.status,
+        must_change_password: user.must_change_password ?? false,
         employee_id: user.employee_id,
         employee: user.employee,
         roles,
@@ -193,6 +194,30 @@ export async function setPasswordFromInvite(req, res, next) {
   }
 }
 
+export async function changePassword(req, res, next) {
+  try {
+    const userId = req.user.userId || req.user.id;
+    const { current_password, new_password } = req.body;
+    const result = await authService.changePassword({
+      userId,
+      currentPassword: current_password,
+      newPassword: new_password,
+    });
+
+    const isSecure = process.env.COOKIE_SECURE === 'true' || Boolean(req.secure);
+    res.cookie('nextal_token', result.token, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export default {
   login,
   logout,
@@ -200,4 +225,5 @@ export default {
   forgotPassword,
   resetPassword,
   setPasswordFromInvite,
+  changePassword,
 };

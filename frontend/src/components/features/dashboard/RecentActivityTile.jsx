@@ -6,6 +6,7 @@ import { BentoTile } from '../../primitives/BentoTile';
 import { IconWell } from '../../primitives/IconWell';
 import { ListDivided } from '../../primitives/ListDivided';
 import { useLanguage } from '../../../context/LanguageContext';
+import { getEnumLabel } from '../../../i18n/enums';
 
 const ROLE_MAP_AR = {
   Audit: 'تدقيق',
@@ -99,8 +100,22 @@ function translateRole(r, lang) {
   return ROLE_MAP_AR[r] || ROLE_MAP_AR[r.charAt(0).toUpperCase() + r.slice(1).toLowerCase()] || r;
 }
 
+function humanizeIdentifier(raw) {
+  return String(raw || '')
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
 function translateAction(act, lang) {
-  if (lang !== 'ar' || !act) return act;
+  if (!act) return '';
+  const enumMapped = getEnumLabel('audit_action', act, lang);
+  if (enumMapped && enumMapped !== String(act)) {
+    return enumMapped;
+  }
+  if (lang !== 'ar') {
+    return humanizeIdentifier(act);
+  }
   const upper = String(act).toUpperCase().replace(/[\s-]+/g, '_');
   if (ACTION_MAP_AR[upper]) return ACTION_MAP_AR[upper];
   if (ACTION_MAP_AR[act]) return ACTION_MAP_AR[act];
@@ -113,7 +128,10 @@ function translateAction(act, lang) {
 }
 
 function translateTarget(tgt, lang) {
-  if (lang !== 'ar' || !tgt) return tgt;
+  if (!tgt) return '';
+  if (lang !== 'ar') {
+    return /[_-]/.test(String(tgt)) ? humanizeIdentifier(tgt) : tgt;
+  }
   const lower = String(tgt).toLowerCase().replace(/-/g, '_');
   return TARGET_MAP_AR[lower] || TARGET_MAP_AR[tgt] || tgt;
 }
@@ -135,10 +153,12 @@ export function RecentActivityTile({ data = [], onClick }) {
       title={t('dashboard.activity.title')}
       subtitle={language === 'ar' ? 'سجل تدقيق غير قابل للتعديل · طوابع زمنية موثقة' : 'Immutable audit log · tamper-evident timestamps'}
       badge={
-        <span className="text-xs text-text-muted flex items-center gap-1 group-hover:text-primary transition-colors">
-          {t('dashboard.activity.viewAudit')}
-          <ChevronRight className="w-3.5 h-3.5 rtl:-scale-x-100" />
-        </span>
+        onClick ? (
+          <span className="text-xs text-text-muted flex items-center gap-1 group-hover:text-primary transition-colors">
+            {t('dashboard.activity.viewAudit')}
+            <ChevronRight className="w-3.5 h-3.5 rtl:-scale-x-100" />
+          </span>
+        ) : null
       }
     >
       {/* 5 Flat Rows with 1px Dividers: No box around each row */}

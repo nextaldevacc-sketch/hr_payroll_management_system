@@ -88,12 +88,14 @@ export function PayrollTrendTile({ data, onClick }) {
 
               <CartesianGrid stroke={borderVar} strokeDasharray="3 3" vertical={false} />
 
-              <ReferenceArea
-                y1={data?.thresholdMin || 300000}
-                y2={data?.thresholdMax || 350000}
-                fill={tintPrimary}
-                strokeOpacity={0}
-              />
+              {Number(data?.thresholdMax || 0) > 0 && (
+                <ReferenceArea
+                  y1={data?.thresholdMin || 0}
+                  y2={data.thresholdMax}
+                  fill={tintPrimary}
+                  strokeOpacity={0}
+                />
+              )}
 
               <XAxis
                 dataKey={isRTL ? 'monthAr' : 'month'}
@@ -108,8 +110,8 @@ export function PayrollTrendTile({ data, onClick }) {
                 tick={{ fill: textMutedVar, fontSize: 10 }}
                 axisLine={{ stroke: borderVar }}
                 tickLine={false}
-                domain={[280000, 360000]}
-                tickFormatter={(val) => `${val / 1000}k`}
+                domain={['auto', 'auto']}
+                tickFormatter={(val) => `${Math.round(val / 1000)}k`}
               />
 
               <Tooltip content={<CustomTooltip />} />

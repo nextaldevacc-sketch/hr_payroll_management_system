@@ -2,7 +2,7 @@
 
 > **Role Code**: `FINANCE`  
 > **Target Audience**: Financial Controllers, Chief Accountants, Treasury Officers  
-> **Demo Login**: `finance@gulftech.ae` / `Nextal@2026!`  
+> **Account Provisioning**: Invited by Company Administrator via Users & Roles (`/settings/users`) with temporary credentials.  
 > **Salary Visibility**: **Yes** (Disbursement & General Ledger Access)
 
 ---

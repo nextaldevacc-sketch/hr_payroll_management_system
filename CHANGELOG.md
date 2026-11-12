@@ -5,9 +5,24 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ---
 
-## [1.0.0-rc3] - 2026-11-10
+## [1.0.0-rc4] - 2026-11-11
 
-### Release Candidate 3: Clean Handover, Strict Data Isolation & Full Workflow Verification
+### Release Candidate 4: Bug Sweep & Clean Install (Zero Demo Data)
+- **Part 6A: Bug Sweep & Role Matrix Alignment**:
+  - `scripts/audit-ui-static.mjs`: Static scan of all JSX components confirming 0 fake buttons, 0 empty handlers, and 0 dead controls.
+  - `scripts/audit-role-matrix.mjs`: Static cross-check of 38 backend routes against frontend action permissions confirming 0 permission mismatches.
+  - `scripts/audit-ui-crawl.mjs`: Headless browser crawl testing 404 interactive controls across all 9 roles with 0 unhandled errors.
+  - Replaced fake Dashboard quick action drawer with real `BiometricImportFeature` file ingestion.
+  - Wired live `BiometricImportModal` to Attendance page quick action with file upload, summary reconciliation, and role guards.
+  - Enforced `canAccess('attendance', 'edit')` guard on biometric import controls across Dashboard and Attendance pages; verified restricted roles (`PAYROLL_OFFICER`, `GM`, `FINANCE`) see zero import controls.
+- **Part 6B: Clean Install (No Demo Accounts, No Demo Data)**:
+  - **B1 Seeding Split**: Default `npx prisma db seed` seeds exclusively system-level data (8 canonical roles with Section 5.3 permissions matrix). 0 companies, 0 users, 0 employees, 0 demo records. Demo data locked behind `SEED_MODE=demo` with guard refusing execution on production database `nextal_hr_payroll`.
+  - **B2 Company Bootstrap CLI**: `npm run setup:company -- ...` provisions tenant with UAE defaults (cut-off day 25th, variance threshold 5%, absence divisor `÷30`, shift policies, penalty steps, 13 UAE public holidays, 7 leave types, 17 salary rules, and 4 approval flows) and initial Company Administrator account.
+  - **B2 Forced Password Reset**: Added `must_change_password` boolean to `users` table (`20261111200000_add_must_change_password` migration). New users are forced to `/change-password` on first login.
+  - **B3 User Provisioning via UI**: Company Admin invites users through Users & Roles (`/settings/users`). One-time temporary password modal displays credentials with copy actions.
+  - **B4 Fresh Install End-to-End Workflow**: `scripts/steps-fresh.mjs` wired into `verify-workflows.mjs` verifying complete organization lifecycle from empty bootstrap through employee onboarding, biometric punch import, 4-eye payroll execution, WPS SIF export, employee payslip access, and under-1-year tenure gratuity calculation (0.00 AED).
+  - **B5 Dev Database Reset & Storage Cleanup**: Reset `nextal_hr_payroll` with minimal system seed, bootstrapped placeholder "My Company", cleaned orphaned encrypted files under `backend/storage/documents` and `storage/`.
+  - **B6 Documentation Updates**: Updated `README.md`, `docs/TESTING.md`, `docs/MANUAL-TEST-CHECKLIST.md`, role user guides, `KNOWN-LIMITATIONS.md`, and `CHANGELOG.md`.
 - **Strict Salary Leak Protection**:
   - Restored strict salary-leak check in `scripts/verify-workflows.mjs` `assertPageClean` for `HR_OFFICER`, `DEPT_MANAGER`, `EMPLOYEE`, and `COMPANY_ADMIN`.
   - Enforced regex match failing on any money amount written as digits with currency marker in either language: `AED`, `د.إ`, or decimal format (`/(?:AED|د\.\s*إ)\s*[\d,]+(?:\.\d+)?|[\d,]+(?:\.\d+)?\s*(?:AED|د\.\s*إ)/iu`).
@@ -34,11 +49,16 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
   - Zero test-like placeholder names in database.
   - Verified scheduled jobs (expiry, deactivation, accrual) run idempotently against demo DB with zero duplicate alerts or tasks.
 - **Test Suite Pass Rates**:
-  - Backend tests: 287 tests (79 suites, 286 passed, 1 skipped, 0 failed).
+  - Shared tests: 44 tests (100% passed).
+  - Backend tests: 292 tests (80 suites, 291 passed, 1 skipped, 0 failed).
   - Frontend tests: 19 tests (5 suites, 100% passed).
-  - Workflow step runner: 85 steps across 7.1–7.7 and VB (100% passed).
-  - UI visual QA matrix: 132 cells (33 screens × 4 themes/locales/viewports, 100% passed).
+  - Workflow step runner: 100 steps across 7.1–7.7, VB, and FRESH.1–12 (100 / 100 passed, 0 failed).
+  - UI visual QA matrix: 132 cells (33 screens × 4 themes/locales/viewports, 132 / 132 passed, 0 failed).
+  - Static UI scan: 59 items evaluated (0 FAKE, 59 INTENTIONAL, 100% passed).
+  - Role matrix audit: 38 endpoints analyzed (0 discrepancies, 100% passed).
+  - UI Crawler audit: 539 controls tested across 9 roles (0 bugs, 100% passed).
   - FR Traceability: 133 PASS / 4 DEFERRED (Phase 2 Platform Admin) / 0 MISSING.
+  - System Integrity audit: 8 checks (0 violations on clean dev DB and demo test DB).
 
 ---
 

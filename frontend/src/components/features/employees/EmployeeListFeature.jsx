@@ -274,6 +274,7 @@ export function EmployeeListFeature() {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
+                aria-pressed={!statusFilter}
                 onClick={() => { setStatusFilter(''); setPage(1); }}
                 className={clsx(
                   'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
@@ -285,6 +286,7 @@ export function EmployeeListFeature() {
               <button
                 type="button"
                 id="filter-pill-pending-verification"
+                aria-pressed={statusFilter === 'Pre-Joined'}
                 onClick={() => { setStatusFilter('Pre-Joined'); setPage(1); }}
                 className={clsx(
                   'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 border',
@@ -298,6 +300,7 @@ export function EmployeeListFeature() {
               </button>
               <button
                 type="button"
+                aria-pressed={statusFilter === 'Active'}
                 onClick={() => { setStatusFilter('Active'); setPage(1); }}
                 className={clsx(
                   'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',

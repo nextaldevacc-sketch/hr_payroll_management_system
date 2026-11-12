@@ -4,37 +4,39 @@ Enterprise Human Resources and WPS Payroll Management Software engineered for UA
 
 ---
 
-## 1. Quick Start & Setup (< 10 Minutes)
+## 1. First Run & Production Initialization (< 10 Minutes)
 
-### Prerequisites
-- **Node.js**: v20.x or later (`node -v`)
-- **Docker**: For PostgreSQL 16 (`docker compose up -d postgres`)
-- **Git**: Clone or navigate to workspace
+The production release initialises cleanly with **zero demo records, zero demo companies, and zero placeholder users**. All system roles with UAE Section 5.3 permissions are pre-configured.
 
 ### Step 1: Start PostgreSQL
 ```bash
 docker compose up -d postgres
 ```
 
-### Step 2: Install Dependencies & Run Database Migrations
+### Step 2: Apply Database Migrations (Clean Minimal Seed)
 ```bash
-npm install
-npx prisma migrate reset --force --schema=backend/prisma/schema.prisma
+npx prisma migrate reset --force --schema backend/prisma/schema.prisma
 ```
-*(This resets the demo database `nextal_hr_payroll`, applies all Prisma migrations, and executes the seed populating Gulf Tech Logistics LLC: 45 employees, 2 visas, 3 branches, 3 separations, and realistic September/October payroll).*
+*(This resets the database, applies all 12 immutable migrations, and seeds the 8 canonical system roles with Section 5.3 permissions. 0 companies, 0 users, 0 employees).*
 
-### Step 3: Run the Full Test Suite
-The automated test runner executes all unit, integration, and acceptance tests against an isolated test database (`nextal_hr_test`), leaving the demo database untouched:
+### Step 3: Bootstrap Your Organization via CLI
 ```bash
-npm test
+npm run setup:company -- \
+  --name "My Company" \
+  --name-ar "شركتي" \
+  --trade-license "TL-100000" \
+  --admin-name "Admin User" \
+  --admin-email "admin@mycompany.test"
 ```
-**Verification Commands**:
-- `npm test --prefix backend`: Executes 287 backend unit & integration tests against isolated PostgreSQL test database.
-- `npm test --prefix frontend`: Executes 19 frontend Playwright route-protection, session, and i18n tests.
-- `node scripts/verify-workflows.mjs`: Executes all 85 end-to-end workflow steps across spec sections 7.1 to 7.7 and VB.
-- `node scripts/ui-qa-capture.mjs`: Captures 132-cell visual QA matrix (33 screens × 4 theme/locale/viewport combinations).
-- `node scripts/check-integrity.mjs`: Read-only audit verifying mathematical and relational invariants.
-- `node scripts/generate-traceability.js`: Regenerates FR traceability report covering 137 requirements.
+The command automatically provisions:
+- Company tenant record with UAE statutory defaults (cut-off day 25th, variance threshold 5%, absence divisor `÷30`).
+- Primary MOHRE Sponsoring Visa (`MOL-TL100000`) and Main Branch.
+- Standard UAE 48h working shift, 15-minute grace period, and 4-tier unexcused absence penalty rules.
+- 13 UAE Official Public Holidays, 7 statutory leave types, and 17 Section 8.1 salary calculation rules.
+- Company Administrator account with a secure, one-time temporary password (e.g. `Tmp!e8c0ffe3e3f9A9`).
+
+> [!IMPORTANT]
+> The temporary password is displayed in the terminal output once and is **never stored in plaintext**.
 
 ### Step 4: Start Applications
 ```bash
@@ -46,34 +48,44 @@ npm run dev --workspace=frontend
 ```
 - **Web Application**: `http://localhost:3100`
 - **API Documentation (Swagger)**: `http://localhost:5000/api/docs`
-- **API Healthcheck**: `http://localhost:5000/health`
+- **API Healthcheck**: `http://localhost:5000/api/v1/health`
+
+### Step 5: Administrator First Login & Password Initialization
+1. Navigate to `http://localhost:3100/login`.
+2. Enter the administrator email and the one-time temporary password.
+3. The platform automatically intercepts the session and forces a redirect to `/change-password` (`must_change_password`).
+4. Set a strong permanent password (minimum 10 characters with mixed case and digits).
+5. Upon confirmation, land on the Dashboard displaying the **Company Setup & Onboarding Checklist**:
+   - Step 1: Corporate Profile & Trading License
+   - Step 2: Sponsoring Visas & MOHRE Establishment IDs
+   - Step 3: Operating Branches & Workplace Locations
+   - Step 4: Administrative Departments & Job Positions
+   - Step 5: Statutory Rules, Leave Policies & Approval Workflows
+   - Step 6: Invite Team & Assign Roles (`/settings/users`)
 
 ---
 
-## 2. Demo User Credentials
+## 2. Automated Test Suite & Audit Scripts
 
-All demo accounts belong to **Gulf Tech Logistics LLC** (Primary Demo Company) with active credentials for immediate role evaluation.
+All automated tests and workflow verifications execute strictly against an isolated test database (`nextal_hr_test`), leaving the primary production database untouched.
 
-> [!NOTE]
-> **Demo Password for all accounts below:** `Nextal@2026!`
-> (This password is for evaluation and testing purposes only.)
+```bash
+# Run full automated test suite
+npm test
+```
 
-| Role | Name | Email | Sees Salary | Permissions & Primary Scope |
-|---|---|---|:---:|---|
-| **Platform Admin** | Platform Superadmin | `platform@nextal.ae` | — | **Deferred (Phase 2)**. Disabled via `FEATURE_PLATFORM_ADMIN=false`. Provisioning is handled via CLI: `node scripts/create-company.js`. |
-| **Company Admin** | Tariq Al-Hashemi | `admin@gulftech.ae` | **No** | Company settings, visas, branches, departments, jobs, shift policies, user accounts. **Salary fields strictly masked.** |
-| **HR Manager** | Maryam Al-Nuaimi | `hr.mgr@gulftech.ae` | **Yes** | Full HR lifecycle, contracts, attendance sign-off, leave approvals, pay run validation. |
-| **HR Officer** | Saeed Al-Ketbi | `hr.officer@gulftech.ae` | **No** | Employee creation, document verification, biometric import, cancellation tasks. **Salary masked.** |
-| **HR Officer (DIFC)** | Saeed Al-Ketbi (DIFC) | `hr.difc@gulftech.ae` | **No** | Scoped to Visa 02 (DIFC Freezone) only. Sees only DIFC employees and records. |
-| **Payroll Officer** | Zaid Al-Marzooqi | `payroll@gulftech.ae` | **Yes** | Pay run calculation, variable inputs, variance documentation, PDF payslip generation. |
-| **Dept Manager** | Mansour Al-Ketbi | `dept.mgr@gulftech.ae` | **No** | Operations team attendance, overtime review, 1st leave approval. **Salary masked.** |
-| **General Manager** | Rashid Al-Falasi | `gm@gulftech.ae` | **Yes** | Final executive approval on pay runs, final settlements, and extended leaves (> 5 days). |
-| **Finance** | Hassan Al-Balooshi | `finance@gulftech.ae` | **Yes** | WPS SIF export, pay run payment (`Mark as Paid`), accounting GL journal export, settlement disbursement. |
-| **Employee** | Ahmed Al-Mansoori | `employee@gulftech.ae` | **No** | Self-service (`/me/*`): personal profile, bilingual payslips (own data only), punch records, leave submission. |
+### Verification Scripts:
+- `npm test --prefix backend`: Executes 287 backend unit & integration tests against isolated PostgreSQL test database.
+- `npm test --prefix frontend`: Executes 19 frontend Playwright route-protection, session, and i18n tests.
+- `node scripts/verify-workflows.mjs`: Executes all 100 end-to-end workflow steps across spec sections 7.1 to 7.7, VB, and the Fresh Install lifecycle (Fresh.1–Fresh.12).
+- `node scripts/ui-qa-capture.mjs`: Captures 132-cell visual QA matrix (33 screens × 4 theme/locale/viewport combinations).
+- `node scripts/check-integrity.mjs`: Read-only audit verifying mathematical and relational invariants (passes on clean empty company and demo test DB).
+- `node scripts/generate-traceability.js`: Regenerates FR traceability report covering 137 requirements.
+- `node scripts/audit-ui-static.mjs`: Scans frontend code for fake controls or dead click handlers.
+- `node scripts/audit-role-matrix.mjs`: Verifies zero permission mismatches between frontend navigation and backend routes.
+- `node scripts/audit-ui-crawl.mjs`: End-to-end crawler validating interactive controls across all 9 roles.
 
-### Employee Self-Service Logins
-In addition to the primary role personas above, all 45 employees of Gulf Tech Logistics LLC have individual self-service logins:
-`<employee_code_lowercase>@gulftech.ae` (e.g. `emp-dxb-001@gulftech.ae` … `emp-dxb-045@gulftech.ae`), password `Nextal@2026!`.
+*(For automated testing personas and test database credentials, refer to [docs/TESTING.md](docs/TESTING.md)).*
 
 ---
 
@@ -100,12 +112,13 @@ In addition to the primary role personas above, all 45 employees of Gulf Tech Lo
 ```
 
 ### Architectural Guarantees:
-1. **Zero Database Drift**: Schema changes occur exclusively through tracked Prisma migrations. Applied migration files are immutable.
-2. **Database-Enforced Status Machine**: Pay runs transition strictly along `Draft -> Calculated -> Validated -> Approved -> Locked -> Paid`. Database triggers prevent backwards movement or tampering with locked payslips.
-3. **Multi-Tenancy Isolation**: All database queries are filtered by `company_id`. Cross-tenant data leaks are mathematically prevented.
-4. **Isolated Test Database**: Automated tests run strictly against `DATABASE_URL_TEST` (`nextal_hr_test`), ensuring the demo database (`nextal_hr_payroll`) maintains 100% clean data integrity.
-5. **At-Rest Document Encryption**: All documents stored on disk are encrypted using AES-256-GCM with a verified `NEXTAL_ENC_V1` magic header and decrypted dynamically on authorized download.
-6. **Strict Non-Salary Data Isolation**: Salary and compensation figures are accessible strictly to four statutory roles (`PAYROLL_OFFICER`, `HR_MANAGER`, `GM`, `FINANCE`). Users in `COMPANY_ADMIN`, `HR_OFFICER`, `DEPT_MANAGER`, and `EMPLOYEE` are mathematically blocked at both API serializer and frontend layers.
+1. **Clean Installation Baseline**: Production setup operates strictly with system metadata only. No synthetic or demo records exist in the production database.
+2. **Zero Database Drift**: Schema changes occur exclusively through tracked Prisma migrations. Applied migration files are immutable.
+3. **Database-Enforced Status Machine**: Pay runs transition strictly along `Draft -> Calculated -> Validated -> Approved -> Locked -> Paid`. Database triggers prevent backwards movement or tampering with locked payslips.
+4. **Multi-Tenancy Isolation**: All database queries are filtered by `company_id`. Cross-tenant data leaks are mathematically prevented.
+5. **Isolated Test Database**: Automated tests run strictly against `DATABASE_URL_TEST` (`nextal_hr_test`), ensuring the production database maintains 100% data integrity.
+6. **At-Rest Document Encryption**: All documents stored on disk are encrypted using AES-256-GCM with a verified `NEXTAL_ENC_V1` magic header and decrypted dynamically on authorized download.
+7. **Strict Non-Salary Data Isolation**: Salary and compensation figures are accessible strictly to four statutory roles (`PAYROLL_OFFICER`, `HR_MANAGER`, `GM`, `FINANCE`). Users in `COMPANY_ADMIN`, `HR_OFFICER`, `DEPT_MANAGER`, and `EMPLOYEE` are mathematically blocked at both API serializer and frontend layers.
 
 ---
 
@@ -114,7 +127,7 @@ In addition to the primary role personas above, all 45 employees of Gulf Tech Lo
 - [Comprehensive Product Specification](docs/spec.md)
 - [System Architecture & Invariants](docs/ARCHITECTURE.md)
 - [Testing Guide & Acceptance Verification](docs/TESTING.md)
-- [Manual Testing Checklist (Workflows 7.1–7.7 & VB)](docs/MANUAL-TEST-CHECKLIST.md)
+- [Manual Testing Checklist (Clean Install & Role Verification)](docs/MANUAL-TEST-CHECKLIST.md)
 - [Role-Based User Guides (8 Roles)](docs/guides/)
 - [Known Limitations & Architecture Notes](KNOWN-LIMITATIONS.md)
 - [Changelog & Version Progression](CHANGELOG.md)
