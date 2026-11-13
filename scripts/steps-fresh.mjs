@@ -284,6 +284,30 @@ export async function runWorkflowsFresh({
       await safeGoto(page, `http://localhost:${WEB_PORT}/settings/users`);
       await page.waitForTimeout(1000);
 
+      // A4 & A8: Assert 0-eligible message on fresh company before employees exist
+      const initialBulkBtn = await page.waitForSelector('button:has-text("Bulk-Create Employee Logins"), button:has-text("إنشاء حسابات مجمعة")', { timeout: 10000 });
+      await initialBulkBtn.click();
+      await page.waitForTimeout(1000);
+      const zeroEligibleMsg = await page.waitForSelector(':has-text("No eligible employees found without a login account"), :has-text("لا يوجد موظفون مؤهلون")', { timeout: 5000 });
+      const addEmpBtn = await page.waitForSelector('#btn-add-employee-from-bulk', { timeout: 5000 });
+      if (!zeroEligibleMsg || !addEmpBtn) throw new Error('Expected 0-eligible bulk modal with Add Employee button on fresh company');
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(500);
+
+      // A5 & A8: Test inviting a user with only the Employee role requires choosing employee record
+      const testInviteBtn = await page.waitForSelector('button:has-text("Invite User"), button:has-text("دعوة مستخدم جديد")', { timeout: 10000 });
+      await testInviteBtn.click();
+      await page.waitForSelector('input[type="email"], input[placeholder*="colleague@"]', { timeout: 5000 });
+      await page.fill('input[type="email"], input[placeholder*="colleague@"]', 'orphan.emp@apextech.ae');
+      // By default EMPLOYEE is checked, verify employee dropdown is visible and link is required
+      await page.waitForSelector('#invite-employee-select', { timeout: 5000 });
+      const sendWithoutEmpBtn = await page.waitForSelector('button:has-text("Send Invitation"), button:has-text("إرسال الدعوة")', { timeout: 5000 });
+      await sendWithoutEmpBtn.click();
+      await page.waitForSelector(':has-text("An Employee role invitation must be linked to an existing employee record"), :has-text("يتطلب دور الموظف فقط الربط بسجل موظف قائم")', { timeout: 5000 });
+      const cancelInviteBtn = await page.waitForSelector('.fixed.inset-0.z-50 button:has-text("Cancel"), .fixed.inset-0.z-50 button:has-text("إلغاء")', { timeout: 5000 });
+      await cancelInviteBtn.click();
+      await page.waitForTimeout(500);
+
       const inviteRoles = [
         { email: 'hrm@apextech.ae', role: 'HR_MANAGER' },
         { email: 'hro@apextech.ae', role: 'HR_OFFICER' },
@@ -712,16 +736,111 @@ export async function runWorkflowsFresh({
     no: 11,
     role: 'EMPLOYEE',
     email: freshState.tariqEmail,
-    action: 'Admin bulk-creates employee logins; Tariq logs in, changes password, views own October payslip',
-    expect: 'Tariq views own payslip (Gross 22,000 AED, Net 22,000 AED); zero access to any other data',
+    action: 'Admin bulk-creates employee logins (asserting 2 eligible, 1 skipped); Tariq logs in, changes password, views own October payslip',
+    expect: 'Bulk create preview shows 2 eligible and 1 skipped (no email); Tariq views own payslip (Gross 22,000 AED, Net 22,000 AED); zero access to any other data',
     runFn: async (page, shotPath) => {
+      // A8: Create 2 additional employees (Salim with email, Rashid without email) so company has 3 employees (2 with email, 1 without)
+      await login(page, 'hro@apextech.ae', 'ApexUser@2026!');
+
+      // Create Salim (with email)
+      const salimEmail = `salim.${Date.now()}@apextech.ae`;
+      await safeGoto(page, `http://localhost:${WEB_PORT}/employees/new`);
+      const createAnotherBtn0 = await page.$('#btn-create-another-employee');
+      if (createAnotherBtn0) {
+        await createAnotherBtn0.click();
+        await page.waitForTimeout(500);
+      }
+      await page.waitForSelector('#wizard-input-emp-code', { timeout: 15000 });
+      await page.waitForFunction(
+        (id) => {
+          const v = document.querySelector('#wizard-select-visa');
+          return v && Array.from(v.options).some((o) => o.value === id);
+        },
+        freshState.visa1Id,
+        { timeout: 15000 }
+      );
+      await page.selectOption('#wizard-select-visa', freshState.visa1Id, { force: true });
+      await page.waitForTimeout(500);
+      await page.selectOption('#wizard-select-branch', freshState.branch1Id, { force: true }).catch(async () => {
+        await page.selectOption('#wizard-select-branch', { index: 0 }, { force: true });
+      });
+      await page.fill('#wizard-input-emp-code', 'EMP-DXB-002');
+      await page.fill('#wizard-input-name', 'Salim Al-Mazroui');
+      await page.fill('#wizard-input-work-email', salimEmail);
+      await page.fill('#wizard-input-joining-date', '2026-10-01');
+      await page.selectOption('#wizard-select-nationality', 'Emirati', { force: true });
+      await page.click('#btn-step1-submit');
+      try {
+        await page.waitForSelector('#btn-create-another-employee', { timeout: 15000 });
+      } catch (err) {
+        const bodyText = await page.innerText('body').catch(() => '');
+        console.error('*** FRESH.11 RASHID SUBMIT FAILED. PAGE CONTENT:\n', bodyText);
+        throw err;
+      }
+
+      // Create Rashid (without email)
+      await page.click('#btn-create-another-employee');
+      await page.waitForTimeout(500);
+      await page.waitForSelector('#wizard-input-emp-code', { timeout: 15000 });
+      await page.waitForFunction(
+        (id) => {
+          const v = document.querySelector('#wizard-select-visa');
+          return v && Array.from(v.options).some((o) => o.value === id);
+        },
+        freshState.visa1Id,
+        { timeout: 15000 }
+      );
+      await page.selectOption('#wizard-select-visa', freshState.visa1Id, { force: true });
+      await page.waitForTimeout(500);
+      await page.selectOption('#wizard-select-branch', freshState.branch1Id, { force: true }).catch(async () => {
+        await page.selectOption('#wizard-select-branch', { index: 0 }, { force: true });
+      });
+      await page.fill('#wizard-input-emp-code', 'EMP-DXB-003');
+      await page.fill('#wizard-input-name', 'Rashid Al-Noor');
+      await page.fill('#wizard-input-work-email', '');
+      await page.fill('#wizard-input-joining-date', '2026-10-01');
+      await page.selectOption('#wizard-select-nationality', 'Filipino', { force: true });
+      await page.click('#btn-step1-submit');
+      try {
+        await page.waitForSelector('#btn-create-another-employee', { timeout: 15000 });
+      } catch (err) {
+        const bodyText = await page.innerText('body').catch(() => '');
+        console.error('*** FRESH.11 RASHID SUBMIT FAILED. PAGE CONTENT:\n', bodyText);
+        throw err;
+      }
+
+      // HR Manager verifies both
+      await login(page, 'hrm@apextech.ae', 'ApexUser@2026!');
+      const newEmps = await prisma.$base().employees.findMany({
+        where: { company_id: freshState.companyId, status: 'Pre-Joined' },
+      });
+      for (const ne of newEmps) {
+        await safeGoto(page, `http://localhost:${WEB_PORT}/employees/${ne.id}`);
+        await page.waitForTimeout(1000);
+        const verifyBtn = await page.$('#btn-verify-approve');
+        if (verifyBtn) {
+          await verifyBtn.click();
+          await page.waitForTimeout(1000);
+        }
+      }
+
       // Admin bulk creates employee login
       await login(page, freshState.adminEmail, freshState.adminPassword);
       await safeGoto(page, `http://localhost:${WEB_PORT}/settings/users`);
       await page.waitForTimeout(1000);
 
-      const bulkBtn = await page.waitForSelector('button:has-text("Bulk-Create Employee Logins"), button:has-text("إنشاء حسابات دخول الموظفين")', { timeout: 10000 });
+      const bulkBtn = await page.waitForSelector('button:has-text("Bulk-Create Employee Logins"), button:has-text("إنشاء حسابات مجمعة")', { timeout: 10000 });
       await bulkBtn.click();
+      await page.waitForTimeout(1000);
+
+      // Assert preview: eligible=2, skipped=1
+      const previewText = await page.innerText('.fixed.inset-0.z-50');
+      if (!previewText.includes('2') || !previewText.includes('1')) {
+        throw new Error(`Bulk create preview did not show eligible=2, skipped=1. Content: ${previewText}`);
+      }
+      if (!previewText.includes('no email') && !previewText.includes('بدون بريد') && !previewText.includes('email')) {
+        throw new Error(`Bulk create preview did not show skipped reason 'no email'. Content: ${previewText}`);
+      }
 
       const confirmBulkBtn = await page.waitForSelector('button:has-text("Generate Logins"), button:has-text("إنشاء الحسابات")', { timeout: 5000 });
       await confirmBulkBtn.click();

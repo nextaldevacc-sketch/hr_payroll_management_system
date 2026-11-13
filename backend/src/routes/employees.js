@@ -28,6 +28,7 @@ router.post('/:id/status', requirePermission('employees', 'edit'), validate(upda
 router.post('/:id/verify', requirePermission('employees', 'verify'), validate(verifyEmployeeSchema), employeeController.verifyEmployee);
 router.get('/:id/activation-check', requirePermission('employees', 'view'), employeeController.getActivationCheck);
 router.post('/:id/activate', requirePermission('employees', 'edit'), employeeController.activateEmployee);
+router.post('/:id/create-login', requirePermission('employees', 'edit'), employeeController.createEmployeeLogin);
 router.post('/:id/branch-change', requirePermission('employees', 'edit'), employeeController.requestBranchChange);
 
 // 3. Contracts & Salary Versions (Role-restricted)

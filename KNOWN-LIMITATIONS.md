@@ -46,7 +46,7 @@
 ---
 
 ## 5. Biometric Hardware Integration
-- **Punch File Ingestion & REST Webhook**: The platform natively ingests raw punch events via standard CSV/Excel bulk upload and REST webhook endpoints (`POST /api/v1/attendance/punch-import`).
+- **Punch File Ingestion & REST Webhook**: The platform natively ingests raw punch events via standard CSV/Excel bulk upload and REST endpoints (`POST /api/v1/attendance/import`).
 - **Direct Socket Protocols (TCP 4370 / Proprietary SDKs)**: Hardware biometric terminals (e.g., legacy ZKTeco, Suprema, Anviz) requiring direct proprietary low-level TCP/IP push or local network polling must use a local network gateway service or the vendor's cloud sync to post standard JSON punches to the Nextal punch API. Direct raw hardware socket listening is intentionally decoupled from the web application container for cloud security.
 
 ---

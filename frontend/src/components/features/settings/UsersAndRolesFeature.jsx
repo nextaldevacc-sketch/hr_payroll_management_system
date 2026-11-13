@@ -61,6 +61,10 @@ export function UsersAndRolesFeature() {
 
   // Bulk creation summary
   const [bulkResult, setBulkResult] = useState(null);
+  const [bulkPreview, setBulkPreview] = useState(null);
+  const [loadingBulkPreview, setLoadingBulkPreview] = useState(false);
+  const [availableEmployees, setAvailableEmployees] = useState([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
 
   useEffect(() => {
     async function loadScopeEntities() {
@@ -84,6 +88,19 @@ export function UsersAndRolesFeature() {
       }
     }
     loadScopeEntities();
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsInviteModalOpen(false);
+        setIsBulkModalOpen(false);
+        setCreatedInviteDetails(null);
+        setBulkResult(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const scopeTargetOptions = React.useMemo(() => {
@@ -150,15 +167,53 @@ export function UsersAndRolesFeature() {
     }
   };
 
+  const handleOpenBulkModal = async () => {
+    setIsBulkModalOpen(true);
+    setLoadingBulkPreview(true);
+    try {
+      const data = await request('/users/bulk-create-preview');
+      setBulkPreview(data);
+    } catch (e) {
+      console.warn('Failed to load bulk preview', e);
+      setBulkPreview(null);
+    } finally {
+      setLoadingBulkPreview(false);
+    }
+  };
+
+  const handleOpenInviteModal = async () => {
+    setIsInviteModalOpen(true);
+    try {
+      const emps = await request('/employees');
+      const list = Array.isArray(emps) ? emps : Array.isArray(emps?.data) ? emps.data : [];
+      setAvailableEmployees(list.filter((e) => e.status === 'Active'));
+    } catch (e) {
+      console.warn('Failed to load employees for invite modal', e);
+    }
+  };
+
   const handleInviteUser = async (e) => {
     e.preventDefault();
     if (!inviteEmail) return;
+
+    const isOnlyEmployeeRole = selectedRoles.length === 1 && selectedRoles[0] === 'EMPLOYEE';
+    if (isOnlyEmployeeRole && !selectedEmployeeId) {
+      setAlertMessage({
+        type: 'error',
+        text:
+          locale === 'ar'
+            ? 'يتطلب دور الموظف فقط الربط بسجل موظف قائم. يرجى اختيار موظف من القائمة.'
+            : 'An Employee role invitation must be linked to an existing employee record. Please select an employee.',
+      });
+      return;
+    }
 
     try {
       const res = await request('/users/invite', {
         method: 'POST',
         body: JSON.stringify({
           email: inviteEmail,
+          employee_id: selectedEmployeeId || undefined,
           role_assignments: selectedRoles.map((code) => ({
             roleCode: code,
             scopeType: ['Company', 'CompanyVisa', 'Branch', 'Department'].includes(scopeType) ? scopeType : 'Company',
@@ -177,6 +232,7 @@ export function UsersAndRolesFeature() {
       });
       setInviteEmail('');
       setSelectedRoles(['EMPLOYEE']);
+      setSelectedEmployeeId('');
       setAlertMessage({
         type: 'success',
         text:
@@ -206,6 +262,7 @@ export function UsersAndRolesFeature() {
         totalEligible,
         createdCount,
         users: createdUsers,
+        skipped: res?.skipped || [],
         errors: Array.isArray(res?.errors) ? res.errors : [],
       });
       setAlertMessage({
@@ -222,6 +279,37 @@ export function UsersAndRolesFeature() {
         text: err.message || (locale === 'ar' ? 'فشل إنشاء حسابات الموظفين' : 'Failed to create employee logins'),
       });
     }
+  };
+
+  const handleDownloadCredentialsCSV = (usersList) => {
+    if (!usersList || usersList.length === 0) return;
+    const headers = ['Employee Code', 'Email', 'Temporary Password', 'Invite URL'];
+    const rows = usersList.map((u) => [
+      `"${u.employeeCode || ''}"`,
+      `"${u.email || ''}"`,
+      `"${u.tempPassword || ''}"`,
+      `"${u.inviteUrl || ''}"`,
+    ]);
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `employee_credentials_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopyAllCredentials = (usersList) => {
+    if (!usersList || usersList.length === 0) return;
+    const text = usersList
+      .map((u) => `Code: ${u.employeeCode || ''} | Email: ${u.email} | Password: ${u.tempPassword}`)
+      .join('\n');
+    navigator.clipboard?.writeText(text);
+    setCopiedField('all');
+    setTimeout(() => setCopiedField(null), 2000);
   };
 
   const handleToggleUserStatus = async (userId) => {
@@ -297,7 +385,7 @@ export function UsersAndRolesFeature() {
                 {locale === 'ar' ? 'إدارة الشركة · المواد 5.1–5.4' : 'Company Administration · Section 5.1–5.4'}
               </span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight gold-heading">
+            <h1 className="text-2xl font-bold tracking-tight text-text">
               {locale === 'ar' ? 'المستخدمون والأدوار ونطاقات الصلاحية' : 'Users, Roles & Scopes'}
             </h1>
             <p className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
@@ -309,8 +397,8 @@ export function UsersAndRolesFeature() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsBulkModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold border flex items-center gap-2 transition-all hover:bg-neutral-800"
+              onClick={handleOpenBulkModal}
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold border flex items-center gap-2 transition-all hover:bg-well"
               style={{
                 background: 'var(--bg-surface)',
                 borderColor: 'var(--border-subtle)',
@@ -323,7 +411,7 @@ export function UsersAndRolesFeature() {
 
             <button
               id="btn-invite-user"
-              onClick={() => setIsInviteModalOpen(true)}
+              onClick={handleOpenInviteModal}
               className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg transition-transform active:scale-95"
               style={{
                 background: 'var(--primary)',
@@ -354,8 +442,8 @@ export function UsersAndRolesFeature() {
               onClick={() => setRoleFilter('ALL')}
               className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border ${
                 roleFilter === 'ALL'
-                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-                  : 'border-transparent text-neutral-400 hover:text-neutral-200'
+                  ? 'bg-amber-500/20 text-amber-500 dark:text-amber-400 border-amber-500/40'
+                  : 'border-transparent text-text-muted hover:text-text'
               }`}
             >
               {locale === 'ar' ? 'الكل' : 'All Roles'}
@@ -366,8 +454,8 @@ export function UsersAndRolesFeature() {
                 onClick={() => setRoleFilter(r.code)}
                 className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all border flex items-center gap-1 ${
                   roleFilter === r.code
-                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-                    : 'border-transparent text-neutral-400 hover:text-neutral-200'
+                    ? 'bg-amber-500/20 text-amber-500 dark:text-amber-400 border-amber-500/40'
+                    : 'border-transparent text-text-muted hover:text-text'
                 }`}
               >
                 <span>{locale === 'ar' ? r.nameAr : r.nameEn}</span>
@@ -383,7 +471,7 @@ export function UsersAndRolesFeature() {
         <div className="space-y-4">
           <div className="relative">
             <Search
-              className={`absolute top-3 w-4 h-4 text-neutral-400 ${isRTL ? 'right-3' : 'left-3'}`}
+              className={`absolute top-3 w-4 h-4 text-text-muted ${isRTL ? 'right-3' : 'left-3'}`}
             />
             <input
               type="text"
@@ -430,13 +518,13 @@ export function UsersAndRolesFeature() {
                     <th className="py-3 px-4 text-end">{locale === 'ar' ? 'الإجراءات' : 'Actions'}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-800">
+                <tbody className="divide-y divide-border">
                   {filteredUsers.map((u) => {
                     const isDisabled = u.status === 'Disabled';
                     const hasSalaryAccess = u.roles.some((r) => r.sees_salary);
 
                     return (
-                      <tr key={u.id} className="hover:bg-neutral-800/40 transition-colors">
+                      <tr key={u.id} className="hover:bg-well/60 transition-colors">
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-2.5">
                             <div
@@ -476,9 +564,9 @@ export function UsersAndRolesFeature() {
                           </div>
                         </td>
 
-                        <td className="py-3.5 px-4" style={{ color: 'var(--text-secondary)' }}>
+                        <td className="py-3.5 px-4 text-text-muted">
                           <span className="inline-flex items-center gap-1 font-mono text-[11px]">
-                            <Layers className="w-3 h-3 text-neutral-400" />
+                            <Layers className="w-3 h-3 text-text-muted" />
                             <span>
                               {getEnumLabel('scope_type', u.roles[0]?.scope_type || 'Company', language)}
                               {u.roles[0]?.scope_name ? ` (${u.roles[0].scope_name})` : ''}
@@ -488,11 +576,11 @@ export function UsersAndRolesFeature() {
 
                         <td className="py-3.5 px-4 text-center">
                           {hasSalaryAccess ? (
-                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/30">
                               {language === 'ar' ? 'مرئي (حماية الأجور)' : 'Visible (WPS)'}
                             </span>
                           ) : (
-                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-800 text-neutral-400">
+                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-medium bg-well text-text-muted border border-border/50">
                               {language === 'ar' ? 'محجوب (محمي)' : 'Hidden (Protected)'}
                             </span>
                           )}
@@ -515,9 +603,13 @@ export function UsersAndRolesFeature() {
                         <td className="py-3.5 px-4 text-end">
                           <button
                             type="button"
+                            disabled={u.id === user?.id || u.email === user?.email}
+                            title={u.id === user?.id || u.email === user?.email ? (locale === 'ar' ? 'لا يمكن تعطيل حسابك الخاص' : 'Cannot disable your own account') : ''}
                             onClick={() => handleToggleUserStatus(u.id)}
                             className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
-                              isDisabled
+                              u.id === user?.id || u.email === user?.email
+                                ? 'opacity-40 cursor-not-allowed border-border text-text-muted'
+                                : isDisabled
                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
                                 : 'bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20'
                             }`}
@@ -546,16 +638,10 @@ export function UsersAndRolesFeature() {
 
         {/* Invite User Modal */}
         {isInviteModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div
-              className="w-full max-w-lg rounded-2xl p-6 border shadow-2xl space-y-4"
-              style={{
-                background: 'var(--bg-surface)',
-                borderColor: 'var(--glass-border)',
-              }}
-            >
-              <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-                <h3 className="font-bold text-base gold-heading">
+          <div className="fixed inset-0 z-50 bg-black/50 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="w-full max-w-lg rounded-2xl p-6 border border-border bg-surface-raised dark:bg-surface shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-border">
+                <h3 className="font-bold text-base text-text">
                   {locale === 'ar' ? 'دعوة مستخدم وتعيين الأدوار ونطاق الصلاحية' : 'Invite User & Assign Roles / Scope'}
                 </h3>
                 <button onClick={() => setIsInviteModalOpen(false)} className="hover:opacity-75">
@@ -564,9 +650,44 @@ export function UsersAndRolesFeature() {
               </div>
 
               <form onSubmit={handleInviteUser} className="space-y-4 text-xs">
+                {selectedRoles.length === 1 && selectedRoles[0] === 'EMPLOYEE' && (
+                  <div className="p-3 rounded-xl bg-well border border-border space-y-2">
+                    <label className="block font-semibold text-text">
+                      {locale === 'ar' ? 'ربط بسجل الموظف (إلزامي لدور الموظف):' : 'Link to Employee Record (Required):'}
+                    </label>
+                    <select
+                      id="invite-employee-select"
+                      value={selectedEmployeeId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        setSelectedEmployeeId(id);
+                        const emp = availableEmployees.find((item) => item.id === id);
+                        if (emp?.work_email) {
+                          setInviteEmail(emp.work_email);
+                        }
+                      }}
+                      className="w-full rounded-xl py-2 px-3 border outline-none bg-surface text-text border-border"
+                    >
+                      <option value="">{locale === 'ar' ? '-- اختر موظفاً من القائمة --' : '-- Select an employee --'}</option>
+                      {availableEmployees.map((emp) => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.name} ({emp.employee_code || emp.employeeCode}) {emp.work_email ? `— ${emp.work_email}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {!selectedEmployeeId && (
+                      <p className="text-[11px] text-amber-800 dark:text-amber-400 font-medium">
+                        {locale === 'ar'
+                          ? 'تنبيه: يتطلب دور الموظف فقط الربط بسجل موظف قائم. يمكنك أيضاً استخدام ميزة "إنشاء حسابات مجمعة للموظفين".'
+                          : 'Note: An Employee-only account must be linked to an existing employee record. You can also generate logins via Bulk-Create.'}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div>
-                  <label className="block mb-1 font-medium" style={{ color: 'var(--text-secondary)' }}>
-                    Work Email Address
+                  <label className="block mb-1 font-medium text-text">
+                    {locale === 'ar' ? 'عنوان البريد الإلكتروني للعمل' : 'Work Email Address'}
                   </label>
                   <input
                     type="email"
@@ -574,14 +695,13 @@ export function UsersAndRolesFeature() {
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
                     placeholder="colleague@company.ae"
-                    className="w-full rounded-xl py-2 px-3 border outline-none font-mono"
-                    style={{ background: 'var(--bg-well)', borderColor: 'var(--border-subtle)' }}
+                    className="w-full rounded-xl py-2 px-3 border outline-none font-mono bg-well text-text border-border"
                   />
                 </div>
 
                 <div>
-                  <label className="block mb-2 font-medium" style={{ color: 'var(--text-secondary)' }}>
-                    Assign Roles (One or More):
+                  <label className="block mb-2 font-medium text-text">
+                    {locale === 'ar' ? 'تعيين الأدوار (دور واحد أو أكثر):' : 'Assign Roles (One or More):'}
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     {COMPANY_ROLES.map((r) => {
@@ -591,7 +711,9 @@ export function UsersAndRolesFeature() {
                           key={r.code}
                           onClick={() => handleToggleRoleSelection(r.code)}
                           className={`p-2.5 rounded-xl border cursor-pointer select-none transition-all flex items-start gap-2 ${
-                            isChecked ? 'bg-amber-500/10 border-amber-500/50' : 'bg-neutral-900 border-neutral-800'
+                            isChecked
+                              ? 'bg-primary/10 border-primary/50 text-text ring-1 ring-primary/20'
+                              : 'bg-well border-border hover:border-border/80 text-text'
                           }`}
                         >
                           <input
@@ -604,12 +726,12 @@ export function UsersAndRolesFeature() {
                             className="mt-0.5 rounded text-amber-500 focus:ring-amber-500"
                           />
                           <label htmlFor={`role-checkbox-${r.code}`} className="cursor-pointer block">
-                            <span className="font-semibold block">{r.nameEn}</span>
-                            <span className="text-[10px] block" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="font-semibold block text-text">{r.nameEn}</span>
+                            <span className="text-[10px] block text-text-muted">
                               {r.nameAr}
                             </span>
                             {r.seesSalary && (
-                              <span className="text-[8px] text-amber-400 font-mono">✓ Sees Salary Figures</span>
+                              <span className="text-[8px] text-amber-800 dark:text-amber-400 font-mono font-medium">✓ Sees Salary Figures</span>
                             )}
                           </label>
                         </div>
@@ -668,16 +790,10 @@ export function UsersAndRolesFeature() {
 
         {/* Credentials / One-Time Password Modal */}
         {createdInviteDetails && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div
-              className="w-full max-w-lg rounded-2xl p-6 border shadow-2xl space-y-4"
-              style={{
-                background: 'var(--bg-surface)',
-                borderColor: 'var(--glass-border)',
-              }}
-            >
-              <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-                <h3 className="font-bold text-base gold-heading flex items-center gap-2">
+          <div className="fixed inset-0 z-50 bg-black/50 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="w-full max-w-lg rounded-2xl p-6 border border-border bg-surface-raised dark:bg-surface shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-border">
+                <h3 className="font-bold text-base text-text flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                   <span>{locale === 'ar' ? 'تم إنشاء دعوة المستخدم بنجاح' : 'User Account & Invitation Created'}</span>
                 </h3>
@@ -691,7 +807,7 @@ export function UsersAndRolesFeature() {
               </div>
 
               <div className="space-y-3 text-xs">
-                <p style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-text-muted">
                   {locale === 'ar'
                     ? `تم تجهيز بيانات الدخول للمستخدم ${createdInviteDetails.email}. شارك كلمة المرور المؤقتة أو رابط الدعوة مع المستخدم:`
                     : `Credentials provisioned for ${createdInviteDetails.email}. Share the temporary password or invite link below:`}
@@ -700,7 +816,7 @@ export function UsersAndRolesFeature() {
                 {createdInviteDetails.tempPassword && (
                   <div className="p-3 rounded-xl border border-border/60 bg-well space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-400">{locale === 'ar' ? 'كلمة المرور المؤقتة:' : 'One-Time Temporary Password:'}</span>
+                      <span className="font-semibold text-text-muted">{locale === 'ar' ? 'كلمة المرور المؤقتة:' : 'One-Time Temporary Password:'}</span>
                       <button
                         type="button"
                         data-testid="copy-temp-password"
@@ -727,7 +843,7 @@ export function UsersAndRolesFeature() {
                 {createdInviteDetails.inviteUrl && (
                   <div className="p-3 rounded-xl border border-border/60 bg-well space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-400">{locale === 'ar' ? 'رابط تفعيل الحساب:' : 'One-Time Invite URL:'}</span>
+                      <span className="font-semibold text-text-muted">{locale === 'ar' ? 'رابط تفعيل الحساب:' : 'One-Time Invite URL:'}</span>
                       <button
                         type="button"
                         data-testid="copy-invite-link"
@@ -743,7 +859,7 @@ export function UsersAndRolesFeature() {
                         <span>{copiedField === 'link' ? (locale === 'ar' ? 'تم النسخ!' : 'Copied!') : (locale === 'ar' ? 'نسخ' : 'Copy')}</span>
                       </button>
                     </div>
-                    <div className="font-mono text-[11px] p-2 rounded-lg bg-surface border border-border text-slate-300 break-all select-all">
+                    <div className="font-mono text-[11px] p-2 rounded-lg bg-surface border border-border text-text break-all select-all">
                       {createdInviteDetails.inviteUrl}
                     </div>
                   </div>
@@ -774,16 +890,10 @@ export function UsersAndRolesFeature() {
 
         {/* Bulk Create Logins Modal */}
         {isBulkModalOpen && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div
-              className="w-full max-w-md rounded-2xl p-6 border shadow-2xl space-y-4"
-              style={{
-                background: 'var(--bg-surface)',
-                borderColor: 'var(--glass-border)',
-              }}
-            >
-              <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-                <h3 className="font-bold text-base gold-heading">
+          <div className="fixed inset-0 z-50 bg-black/50 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="w-full max-w-lg rounded-2xl p-6 border border-border bg-surface-raised dark:bg-surface shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-border">
+                <h3 className="font-bold text-base text-text">
                   {locale === 'ar' ? 'إنشاء حسابات دخول الموظفين مجمعة' : 'Bulk-Create Employee Logins'}
                 </h3>
                 <button onClick={() => setIsBulkModalOpen(false)} className="hover:opacity-75">
@@ -791,51 +901,127 @@ export function UsersAndRolesFeature() {
                 </button>
               </div>
 
-              <div className="space-y-3 text-xs">
-                <p style={{ color: 'var(--text-secondary)' }}>
-                  This action searches for all active employees in <strong>{user?.company_name || 'the company'}</strong> who do not have an active login account, generates a secure account, and assigns the <strong>Employee (Self-Service)</strong> role.
-                </p>
+              {loadingBulkPreview ? (
+                <div className="py-8 text-center text-text-muted space-y-2">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                  <p className="text-xs">{locale === 'ar' ? 'جارٍ فحص الموظفين المؤهلين...' : 'Scanning employee directory...'}</p>
+                </div>
+              ) : bulkPreview && bulkPreview.eligibleCount === 0 ? (
+                <div className="space-y-4 text-xs">
+                  <div className="p-4 rounded-xl bg-well border border-border text-center space-y-2">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <p className="font-bold text-text text-sm">
+                      {locale === 'ar' ? 'لا يوجد موظفون مؤهلون لإنشاء حسابات دخول' : 'No eligible employees found without a login account'}
+                    </p>
+                    <p className="text-text-muted">
+                      {locale === 'ar'
+                        ? 'جميع الموظفين النشطين لديهم حسابات دخول بالفعل أو لم يتم إدخال بريد إلكتروني للعمل.'
+                        : 'All active employees already have active logins or lack a work email address.'}
+                    </p>
+                  </div>
 
-                <div
-                  className="p-3.5 rounded-xl border space-y-1.5"
-                  style={{
-                    background: 'var(--bg-well)',
-                    borderColor: 'var(--border-subtle)',
-                  }}
-                >
-                  <div className="flex justify-between">
-                    <span style={{ color: 'var(--text-tertiary)' }}>{locale === 'ar' ? 'النطاق:' : 'Scope:'}</span>
-                    <span className="font-bold">{locale === 'ar' ? 'الموظفون النشطون بدون حساب' : 'Unlinked active employees'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span style={{ color: 'var(--text-tertiary)' }}>{locale === 'ar' ? 'الدور المعين:' : 'Assigned Role:'}</span>
-                    <span className="font-semibold text-amber-400">EMPLOYEE (Self-Service)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span style={{ color: 'var(--text-tertiary)' }}>{locale === 'ar' ? 'سياسة الدخول:' : 'Login Policy:'}</span>
-                    <span className="text-sky-400 font-semibold">{locale === 'ar' ? 'تغيير كلمة المرور عند أول دخول' : 'Active (Change password on first login)'}</span>
+                  {bulkPreview.skipped && bulkPreview.skipped.length > 0 && (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center text-text-muted font-semibold">
+                        <span>{locale === 'ar' ? 'الموظفون المستبعدون وأسباب الاستبعاد:' : 'Skipped Employees & Reasons:'}</span>
+                        <span className="font-mono text-[11px]">({bulkPreview.skipped.length})</span>
+                      </div>
+                      <div className="max-h-40 overflow-y-auto space-y-1 p-2 rounded-xl bg-well border border-border">
+                        {bulkPreview.skipped.map((s) => (
+                          <div key={s.id} className="flex items-center justify-between py-1 px-1.5 border-b border-border/40 last:border-none">
+                            <span className="font-medium text-text">{s.name} <span className="text-text-muted font-mono text-[10px]">({s.employeeCode})</span></span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface border border-border text-text-muted font-medium">
+                              {s.reason === 'no email'
+                                ? (locale === 'ar' ? 'بدون بريد إلكتروني' : 'No email')
+                                : s.reason === 'already has login'
+                                ? (locale === 'ar' ? 'لديه حساب' : 'Already has login')
+                                : (locale === 'ar' ? 'غير نشط' : 'Inactive')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsBulkModalOpen(false)}
+                      className="px-4 py-2 rounded-xl border border-border text-text font-medium"
+                    >
+                      {locale === 'ar' ? 'إغلاق' : 'Close'}
+                    </button>
+                    <a
+                      href="/employees/new"
+                      id="btn-add-employee-from-bulk"
+                      className="px-4 py-2 rounded-xl font-bold bg-primary text-[var(--on-primary)] flex items-center gap-1.5 shadow-md hover:opacity-90"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>{locale === 'ar' ? 'إضافة موظف جديد' : 'Add Employee'}</span>
+                    </a>
                   </div>
                 </div>
+              ) : (
+                <div className="space-y-3 text-xs">
+                  <p className="text-text-muted">
+                    {locale === 'ar'
+                      ? 'يقوم هذا الإجراء بإنشاء حسابات دخول وتعيين دور الموظف الذاتي للموظفين المؤهلين:'
+                      : 'This action will generate login accounts and assign the Employee (Self-Service) role:'}
+                  </p>
 
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsBulkModalOpen(false)}
-                    className="px-4 py-2 rounded-xl border"
-                    style={{ borderColor: 'var(--border-subtle)' }}
-                  >
-                    {locale === 'ar' ? 'إلغاء' : 'Cancel'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleBulkCreateLogins}
-                    className="px-4 py-2 rounded-xl font-bold shadow-md"
-                    style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}
-                  >
-                    {locale === 'ar' ? 'إنشاء الحسابات' : 'Generate Logins'}
-                  </button>
+                  {bulkPreview && (
+                    <div className="space-y-2">
+                      <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-medium">
+                        ✓ {locale === 'ar'
+                          ? `تم العثور على ${bulkPreview.eligibleCount} موظف مؤهل بدون حساب دخول.`
+                          : `Found ${bulkPreview.eligibleCount} eligible employee(s) without a login.`}
+                      </div>
+
+                      {bulkPreview.eligible && bulkPreview.eligible.length > 0 && (
+                        <div className="max-h-36 overflow-y-auto space-y-1 p-2 rounded-xl bg-well border border-border">
+                          {bulkPreview.eligible.map((emp) => (
+                            <div key={emp.id} className="flex items-center justify-between py-1 px-1.5 border-b border-border/40 last:border-none">
+                              <div>
+                                <span className="font-semibold text-text">{emp.name}</span>
+                                <span className="text-text-muted font-mono text-[10px] ml-1.5">({emp.employeeCode})</span>
+                              </div>
+                              <span className="font-mono text-[11px] text-text-muted">{emp.email}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {bulkPreview.skipped && bulkPreview.skipped.length > 0 && (
+                        <div className="text-[11px] text-text-muted pt-1">
+                          <span>{locale === 'ar' ? `سيتم استبعاد ${bulkPreview.skipped.length} موظف:` : `Skipping ${bulkPreview.skipped.length} employee(s):`} </span>
+                          <span className="italic">
+                            {bulkPreview.skipped.filter((s) => s.reason === 'already has login').length} already have logins, {bulkPreview.skipped.filter((s) => s.reason === 'no email').length} have no email
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsBulkModalOpen(false)}
+                      className="px-4 py-2 rounded-xl border border-border text-text font-medium"
+                    >
+                      {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleBulkCreateLogins}
+                      className="px-4 py-2 rounded-xl font-bold shadow-md bg-primary text-[var(--on-primary)] hover:opacity-90"
+                    >
+                      {locale === 'ar' ? 'إنشاء الحسابات' : 'Generate Logins'}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}
@@ -844,17 +1030,11 @@ export function UsersAndRolesFeature() {
         {bulkResult && (
           <div
             data-testid="bulk-credentials-modal"
-            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/50 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
           >
-            <div
-              className="w-full max-w-lg rounded-2xl p-6 border shadow-2xl space-y-4"
-              style={{
-                background: 'var(--bg-surface)',
-                borderColor: 'var(--glass-border)',
-              }}
-            >
-              <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-                <h3 className="font-bold text-base gold-heading flex items-center gap-2">
+            <div className="w-full max-w-lg rounded-2xl p-6 border border-border bg-surface-raised dark:bg-surface shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-border">
+                <h3 className="font-bold text-base text-text flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                   <span>{locale === 'ar' ? 'ملخص إنشاء حسابات الموظفين' : 'Bulk Employee Logins Created'}</span>
                 </h3>
@@ -868,11 +1048,38 @@ export function UsersAndRolesFeature() {
               </div>
 
               <div className="space-y-3 text-xs">
-                <p style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-text-muted">
                   {locale === 'ar'
                     ? `تم إنشاء ${bulkResult.createdCount} حساب دخول جديد من أصل ${bulkResult.totalEligible} موظف مؤهل.`
                     : `Generated ${bulkResult.createdCount} login account(s) out of ${bulkResult.totalEligible} eligible employee(s).`}
                 </p>
+
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[11px] font-medium">
+                  {locale === 'ar'
+                    ? 'تنبيه أمني: لن تظهر كلمات المرور المؤقتة مرة أخرى بعد إغلاق هذه النافذة. يرجى نسخها أو تحميل ملف CSV الآن.'
+                    : 'Security notice: These one-time credentials will not be shown again once you close this window. Please copy or download the CSV now.'}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    data-testid="copy-all-bulk-btn"
+                    onClick={() => handleCopyAllCredentials(bulkResult.users)}
+                    className="px-3 py-1.5 rounded-lg border border-border bg-well text-text font-semibold flex items-center gap-1.5 hover:bg-surface-raised transition-colors"
+                  >
+                    <Copy className="w-3.5 h-3.5 text-primary" />
+                    <span>{copiedField === 'all' ? (locale === 'ar' ? 'تم النسخ!' : 'Copied!') : (locale === 'ar' ? 'نسخ الكل' : 'Copy All')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="download-bulk-csv-btn"
+                    onClick={() => handleDownloadCredentialsCSV(bulkResult.users)}
+                    className="px-3 py-1.5 rounded-lg border border-primary/40 bg-primary/10 text-primary font-bold flex items-center gap-1.5 hover:bg-primary/20 transition-colors"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{locale === 'ar' ? 'تحميل ملف CSV' : 'Download CSV'}</span>
+                  </button>
+                </div>
 
                 {Array.isArray(bulkResult.users) && bulkResult.users.length > 0 && (
                   <div className="max-h-60 overflow-y-auto space-y-2">
@@ -906,8 +1113,7 @@ export function UsersAndRolesFeature() {
                     type="button"
                     data-testid="done-bulk-credentials-btn"
                     onClick={() => setBulkResult(null)}
-                    className="px-4 py-2 rounded-xl font-bold shadow-md"
-                    style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}
+                    className="px-4 py-2 rounded-xl font-bold shadow-md bg-primary text-[var(--on-primary)] hover:opacity-90"
                   >
                     {locale === 'ar' ? 'تم' : 'Done'}
                   </button>

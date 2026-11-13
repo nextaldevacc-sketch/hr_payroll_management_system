@@ -55,9 +55,10 @@ function killPort(port) {
       const lines = output.trim().split('\n');
       const killedPids = new Set();
       for (const line of lines) {
+        if (!line.includes('LISTENING')) continue;
         const parts = line.trim().split(/\s+/);
         const pid = parts[parts.length - 1];
-        if (pid && pid !== '0' && !isNaN(Number(pid)) && !killedPids.has(pid)) {
+        if (pid && pid !== '0' && Number(pid) !== process.pid && !isNaN(Number(pid)) && !killedPids.has(pid)) {
           killedPids.add(pid);
           try {
             execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' });
@@ -342,6 +343,8 @@ async function runStepRunner() {
   let hrMgrBellCountBefore = 0;
 
   try {
+    const wfFilter = (process.env.WF_FILTER || '').toUpperCase();
+    if (!wfFilter || wfFilter.includes('4A')) {
     // =========================================================================
     // WORKFLOW 7.1: COMPANY ONBOARDING
     // =========================================================================
@@ -2285,8 +2288,10 @@ async function runStepRunner() {
         return 'T10 & T34 Verified: Unapproved OT rolls over to next month; unconfirmed teams held at cut-off';
       },
     });
+    }
 
     // Run Part 4B Workflows: 7.4 (Leave requests) & 7.5 (Monthly payroll)
+    if (!wfFilter || wfFilter.includes('4B')) {
     await runWorkflows4B({
       executeStep,
       login,
@@ -2296,8 +2301,10 @@ async function runStepRunner() {
       WEB_PORT,
       shotsDir,
     });
+    }
 
     // Run Part 4C Workflows: 7.6 (Offboarding & Settlements) & 7.7 (Compliance & Audit)
+    if (!wfFilter || wfFilter.includes('4C')) {
     await runWorkflows4C({
       executeStep,
       login,
@@ -2309,8 +2316,10 @@ async function runStepRunner() {
       shotsDir,
       assertPageClean,
     });
+    }
 
     // Run Fresh Install Workflows: Fresh.1 to Fresh.12
+    if (!wfFilter || wfFilter.includes('FRESH')) {
     await runWorkflowsFresh({
       executeStep,
       login,
@@ -2323,6 +2332,7 @@ async function runStepRunner() {
       assertPageClean,
       restartApi,
     });
+    }
 
   } finally {
     await browser.close();

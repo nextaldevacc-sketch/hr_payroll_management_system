@@ -15,6 +15,7 @@ import {
 import storageService from '../lib/storage.js';
 import auditService from './auditService.js';
 import approvalService from './approvalService.js';
+import authService from './authService.js';
 import {
   hasSalaryAccess,
   hasSensitiveIdAccess,
@@ -1122,6 +1123,129 @@ export class EmployeeService {
       ...result,
       invite_token: inviteToken,
       message: 'Employee activated successfully',
+    };
+  }
+
+  /**
+   * Create or provision login credentials for an individual employee
+   */
+  async createEmployeeLogin(companyId, employeeId, viewer) {
+    const employee = await this.prisma.employees.findFirst({
+      where: { id: employeeId, company_id: companyId },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!employee) {
+      const err = new Error('Employee not found');
+      err.status = 404;
+      throw err;
+    }
+
+    if (!employee.work_email || !employee.work_email.trim()) {
+      const err = new Error('Employee has no work email address. Please update their profile first.');
+      err.status = 400;
+      throw err;
+    }
+
+    const email = employee.work_email.trim().toLowerCase();
+    const employeeRole = await this.prisma.roles.findUnique({
+      where: { code: 'EMPLOYEE' },
+    });
+
+    if (!employeeRole) {
+      const err = new Error('Employee role definition not found');
+      err.status = 500;
+      throw err;
+    }
+
+    const viewerUserId = getViewerUserId(viewer);
+    const tempPassword = 'Tmp!' + crypto.randomBytes(6).toString('hex') + 'A9';
+    const passwordHash = await authService.hashPassword(tempPassword);
+
+    let user = employee.user;
+    if (user && user.password_hash !== 'UNINITIALIZED_INVITE') {
+      const err = new Error('Employee already has an active login account.');
+      err.status = 400;
+      throw err;
+    }
+
+    if (user) {
+      user = await this.prisma.users.update({
+        where: { id: user.id },
+        data: {
+          email,
+          password_hash: passwordHash,
+          must_change_password: true,
+          status: 'Active',
+        },
+      });
+    } else {
+      const existingUser = await this.prisma.users.findUnique({ where: { email } });
+      if (existingUser) {
+        if (existingUser.password_hash === 'UNINITIALIZED_INVITE') {
+          user = await this.prisma.users.update({
+            where: { id: existingUser.id },
+            data: {
+              employee_id: employee.id,
+              password_hash: passwordHash,
+              must_change_password: true,
+              status: 'Active',
+            },
+          });
+        } else {
+          const err = new Error(`Email '${email}' is already associated with another user.`);
+          err.status = 400;
+          throw err;
+        }
+      } else {
+        user = await this.prisma.users.create({
+          data: {
+            company_id: companyId,
+            employee_id: employee.id,
+            email,
+            password_hash: passwordHash,
+            status: 'Active',
+            must_change_password: true,
+            created_by: viewerUserId,
+          },
+        });
+      }
+    }
+
+    const hasRole = await this.prisma.user_roles.findFirst({
+      where: { user_id: user.id, role_id: employeeRole.id },
+    });
+    if (!hasRole) {
+      await this.prisma.user_roles.create({
+        data: {
+          company_id: companyId,
+          user_id: user.id,
+          role_id: employeeRole.id,
+          scope_type: 'Self',
+          created_by: viewerUserId,
+        },
+      });
+    }
+
+    const token = await authService.generateInviteToken(user);
+
+    await auditService.log({
+      companyId,
+      userId: viewerUserId,
+      action: 'CREATE_EMPLOYEE_LOGIN',
+      tableName: 'users',
+      recordId: user.id,
+      newValues: { employeeId: employee.id, email },
+    });
+
+    return {
+      success: true,
+      email,
+      employeeCode: employee.employee_code,
+      tempPassword,
+      inviteUrl: `/login?tab=invite&token=${token}`,
     };
   }
 

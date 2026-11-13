@@ -115,6 +115,18 @@ export class UserService {
 
     const cleanEmail = email.trim().toLowerCase();
 
+    // A5: If only EMPLOYEE role is assigned, an employee record must be linked
+    const isOnlyEmployeeRole = Array.isArray(roleAssignments) &&
+      roleAssignments.length === 1 &&
+      roleAssignments[0].roleCode === 'EMPLOYEE';
+
+    if (isOnlyEmployeeRole && !employeeId) {
+      const err = new Error('Inviting a user with only the Employee role must be linked to an existing employee record.');
+      err.status = 400;
+      err.code = 'EMPLOYEE_LINK_REQUIRED';
+      throw err;
+    }
+
     // Check if email already registered
     const existing = await this.prisma.$base().users.findUnique({
       where: { email: cleanEmail },
@@ -275,26 +287,78 @@ export class UserService {
   }
 
   /**
+   * Preview bulk-create employee logins: returns eligible and skipped employees with reasons
+   */
+  async getBulkCreatePreview({ companyId }) {
+    const allEmployees = await this.prisma.$base().employees.findMany({
+      where: { company_id: companyId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            status: true,
+            password_hash: true,
+          },
+        },
+      },
+      orderBy: { employee_code: 'asc' },
+    });
+
+    const eligible = [];
+    const skipped = [];
+
+    for (const emp of allEmployees) {
+      const hasActiveLogin = emp.user && emp.user.password_hash !== 'UNINITIALIZED_INVITE';
+      if (emp.status === 'Terminated' || emp.status === 'Suspended') {
+        skipped.push({
+          id: emp.id,
+          name: emp.name,
+          employeeCode: emp.employee_code,
+          email: emp.work_email || null,
+          reason: 'inactive',
+        });
+      } else if (hasActiveLogin) {
+        skipped.push({
+          id: emp.id,
+          name: emp.name,
+          employeeCode: emp.employee_code,
+          email: emp.work_email || null,
+          reason: 'already has login',
+        });
+      } else if (!emp.work_email || !emp.work_email.trim()) {
+        skipped.push({
+          id: emp.id,
+          name: emp.name,
+          employeeCode: emp.employee_code,
+          email: null,
+          reason: 'no email',
+        });
+      } else {
+        eligible.push({
+          id: emp.id,
+          name: emp.name,
+          employeeCode: emp.employee_code,
+          email: emp.work_email.trim(),
+        });
+      }
+    }
+
+    return {
+      totalEmployees: allEmployees.length,
+      eligibleCount: eligible.length,
+      skippedCount: skipped.length,
+      eligible,
+      skipped,
+    };
+  }
+
+  /**
    * Bulk-create employee logins for employees without user accounts
    */
   async bulkCreateEmployeeLogins({ companyId, createdBy }) {
-    // 1. Find all active employees in this company without a linked user or with uninitialized invite
-    const employeesWithoutUsers = await this.prisma.$base().employees.findMany({
-      where: {
-        company_id: companyId,
-        status: 'Active',
-        OR: [
-          { user: null },
-          { user: { password_hash: 'UNINITIALIZED_INVITE' } },
-        ],
-      },
-      select: {
-        id: true,
-        employee_code: true,
-        name: true,
-        work_email: true,
-      },
-    });
+    const preview = await this.getBulkCreatePreview({ companyId });
+    const eligibleEmployees = preview.eligible;
 
     const employeeRole = await this.prisma.$base().roles.findUnique({
       where: { code: 'EMPLOYEE' },
@@ -310,11 +374,10 @@ export class UserService {
     const createdUsers = [];
     const errors = [];
 
-    for (const emp of employeesWithoutUsers) {
-      const email = emp.work_email || `emp_${emp.employee_code.toLowerCase()}@company.ae`;
+    for (const emp of eligibleEmployees) {
+      const email = emp.email.toLowerCase();
 
       try {
-        // Check if user already exists with this email
         const existing = await this.prisma.$base().users.findUnique({
           where: { email },
         });
@@ -333,7 +396,6 @@ export class UserService {
               },
             });
 
-            // Ensure EMPLOYEE role is assigned
             const existingRole = await this.prisma.$base().user_roles.findFirst({
               where: { user_id: existing.id, role_id: employeeRole.id },
             });
@@ -353,7 +415,7 @@ export class UserService {
             createdUsers.push({
               userId: existing.id,
               employeeId: emp.id,
-              employeeCode: emp.employee_code,
+              employeeCode: emp.employeeCode,
               email: existing.email,
               tempPassword,
               inviteToken: token,
@@ -362,7 +424,6 @@ export class UserService {
             continue;
           }
 
-          // Link employee if unlinked
           if (!existing.employee_id) {
             await this.prisma.$base().users.update({
               where: { id: existing.id },
@@ -401,7 +462,7 @@ export class UserService {
         createdUsers.push({
           userId: newUser.id,
           employeeId: emp.id,
-          employeeCode: emp.employee_code,
+          employeeCode: emp.employeeCode,
           email,
           tempPassword,
           inviteToken: token,
@@ -423,9 +484,10 @@ export class UserService {
 
     return {
       status: 'success',
-      total_eligible: employeesWithoutUsers.length,
+      total_eligible: eligibleEmployees.length,
       created_count: createdUsers.length,
       users: createdUsers,
+      skipped: preview.skipped,
       errors,
     };
   }

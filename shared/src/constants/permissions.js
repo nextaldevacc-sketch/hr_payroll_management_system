@@ -159,6 +159,7 @@ export function checkPermission(userRoles = [], area, action = 'view') {
     if (permissions && permissions[area]) {
       const allowedActions = permissions[area];
       if (
+        allowedActions.includes('all') ||
         allowedActions.includes(action) ||
         (action === 'view' && allowedActions.includes('view_team')) ||
         (allowedActions.includes('view') && action === 'read')

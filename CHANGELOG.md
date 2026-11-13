@@ -13,7 +13,7 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
   - `scripts/audit-role-matrix.mjs`: Static cross-check of 38 backend routes against frontend action permissions confirming 0 permission mismatches.
   - `scripts/audit-ui-crawl.mjs`: Headless browser crawl testing 404 interactive controls across all 9 roles with 0 unhandled errors.
   - Replaced fake Dashboard quick action drawer with real `BiometricImportFeature` file ingestion.
-  - Wired live `BiometricImportModal` to Attendance page quick action with file upload, summary reconciliation, and role guards.
+  - Rendered live `BiometricImportFeature` in Dashboard quick action drawer and Attendance page with real file upload (`/api/v1/attendance/import`), summary reconciliation, and role guards.
   - Enforced `canAccess('attendance', 'edit')` guard on biometric import controls across Dashboard and Attendance pages; verified restricted roles (`PAYROLL_OFFICER`, `GM`, `FINANCE`) see zero import controls.
 - **Part 6B: Clean Install (No Demo Accounts, No Demo Data)**:
   - **B1 Seeding Split**: Default `npx prisma db seed` seeds exclusively system-level data (8 canonical roles with Section 5.3 permissions matrix). 0 companies, 0 users, 0 employees, 0 demo records. Demo data locked behind `SEED_MODE=demo` with guard refusing execution on production database `nextal_hr_payroll`.

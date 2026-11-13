@@ -24,6 +24,7 @@ export default {
           strong: 'var(--primary-strong)',
           wash: 'var(--primary-wash)'
         },
+        'on-primary': 'var(--on-primary)',
         secondary: {
           DEFAULT: 'var(--secondary)',
           text: 'var(--secondary-text)',

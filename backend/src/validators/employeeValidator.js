@@ -4,7 +4,7 @@ export const createEmployeeSchema = z.object({
   employee_code: z.string().optional(),
   name: z.string().min(2, 'Name is required'),
   arabic_name: z.string().optional(),
-  work_email: z.string().email('Valid work email is required').optional().nullable(),
+  work_email: z.string().email('Valid work email is required').optional().nullable().or(z.literal('')),
   company_visa_id: z.string().min(1, 'Company visa is required'),
   branch_id: z.string().min(1, 'Branch is required'),
   joining_date: z.string().min(1, 'Joining date is required'),

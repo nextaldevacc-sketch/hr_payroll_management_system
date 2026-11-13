@@ -154,7 +154,7 @@ for (const f of files) {
       const surrounding = lines.slice(windowStart, windowEnd).join(' ');
 
       const isDismissOrCancel =
-        /(?:close|cancel|dismiss|abort|discard|إلغاء|إغلاق|times|\bx\b|<X\b|backdrop|overlay|modalerror|alert|message|dropdown|hover|error|success)/i.test(
+        /(?:close|cancel|dismiss|abort|discard|إلغاء|إغلاق|times|\bx\b|<X\b|backdrop|overlay|modalerror|alert|message|dropdown|hover|error|success|done|تم)/i.test(
           surrounding
         ) ||
         /set(?:Error|Message|ActionSuccess|ActionError|AlertMessage|Hovered|EditingVariance|IsCompanyDropdownOpen|IsNotifOpen|IsUserMenuOpen)/.test(
@@ -177,13 +177,27 @@ for (const f of files) {
           fix: 'Connect real action logic.',
         });
       } else {
+        let specificReason = 'Modal or drawer dismiss / cancel button';
+        if (/<button[^>]*>.*?✕.*?<\/button>/i.test(surrounding) || /<X\b/i.test(surrounding)) {
+          specificReason = 'Modal or drawer header close button (✕)';
+        } else if (/Cancel|إلغاء/i.test(surrounding)) {
+          specificReason = 'Cancel / abort button in form dialog';
+        } else if (/Close|إغلاق/i.test(surrounding)) {
+          specificReason = 'Close button in notification or modal dialog';
+        } else if (/Dismiss|تجاهل/i.test(surrounding)) {
+          specificReason = 'Dismiss button in banner or alert message';
+        } else if (/dropdown|menu/i.test(surrounding)) {
+          specificReason = 'Close dropdown / menu overlay on click';
+        } else if (/Done|تم/i.test(surrounding)) {
+          specificReason = 'Dismiss completed credentials summary dialog';
+        }
         addFinding({
           file: f,
           line: lineNum,
           rule: 'modal_close_only_action',
           snippet: line,
           classification: 'INTENTIONAL',
-          reason: 'Legitimate cancel, close, or banner dismiss interaction.',
+          reason: specificReason,
           fix: 'None (expected user interface control).',
         });
       }

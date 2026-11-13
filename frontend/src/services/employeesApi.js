@@ -146,6 +146,16 @@ export async function activateEmployee(id) {
   return json.data;
 }
 
+export async function createEmployeeLogin(id) {
+  const res = await fetch(`${API_BASE}/${id}/create-login`, {
+    method: 'POST',
+    headers: getHeaders(),
+    credentials: 'include',
+  });
+  const json = await handleResponse(res);
+  return json.data;
+}
+
 export async function fetchEmployeeContracts(id) {
   const res = await fetch(`${API_BASE}/${id}/contracts`, {
     method: 'GET',

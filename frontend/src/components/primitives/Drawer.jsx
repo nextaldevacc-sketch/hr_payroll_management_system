@@ -38,7 +38,7 @@ export function Drawer({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40 dark:bg-black/70 backdrop-blur-sm transition-opacity pointer-events-none"
+        className="absolute inset-0 bg-black/50 dark:bg-black/75 backdrop-blur-sm transition-opacity pointer-events-none"
         aria-hidden="true"
       />
 

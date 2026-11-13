@@ -1,19 +1,49 @@
 import React from 'react';
 import { cookies } from 'next/headers';
-import { Manrope, IBM_Plex_Sans_Arabic } from 'next/font/google';
+import localFont from 'next/font/local';
 import '../styles/globals.css';
 import { Providers } from '../context/Providers';
 
-const manrope = Manrope({
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
+const manrope = localFont({
+  src: [
+    {
+      path: '../fonts/manrope-latin-400.woff2',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../fonts/manrope-latin-500.woff2',
+      weight: '500',
+      style: 'normal',
+    },
+    {
+      path: '../fonts/manrope-latin-700.woff2',
+      weight: '700',
+      style: 'normal',
+    },
+  ],
   variable: '--font-manrope',
   display: 'swap',
 });
 
-const ibmPlexArabic = IBM_Plex_Sans_Arabic({
-  subsets: ['arabic'],
-  weight: ['400', '500', '700'],
+const ibmPlexArabic = localFont({
+  src: [
+    {
+      path: '../fonts/ibm-plex-sans-arabic-400.woff2',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../fonts/ibm-plex-sans-arabic-500.woff2',
+      weight: '500',
+      style: 'normal',
+    },
+    {
+      path: '../fonts/ibm-plex-sans-arabic-700.woff2',
+      weight: '700',
+      style: 'normal',
+    },
+  ],
   variable: '--font-ibm-plex-arabic',
   display: 'swap',
 });

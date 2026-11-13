@@ -82,6 +82,16 @@ export async function updateUserRoles(req, res, next) {
   }
 }
 
+export async function getBulkCreatePreview(req, res, next) {
+  try {
+    const companyId = req.companyId;
+    const result = await userService.getBulkCreatePreview({ companyId });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function bulkCreateEmployeeLogins(req, res, next) {
   try {
     const companyId = req.companyId;
@@ -101,11 +111,19 @@ export async function updateUserStatus(req, res, next) {
     const companyId = req.companyId;
     const { status } = req.body;
 
+    if (req.user?.userId === req.params.id && status === 'Disabled') {
+      return res.status(400).json({
+        status: 'error',
+        code: 'CANNOT_DEACTIVATE_SELF',
+        message: 'You cannot deactivate your own account',
+      });
+    }
+
     const updated = await userService.updateUserStatus({
       companyId,
       userId: req.params.id,
       status,
-      updatedBy: req.user.userId,
+      updatedBy: req.user?.userId,
     });
 
     res.json({
@@ -143,6 +161,7 @@ export default {
   listUsers,
   inviteUser,
   updateUserRoles,
+  getBulkCreatePreview,
   bulkCreateEmployeeLogins,
   updateUserStatus,
   unlockUser,

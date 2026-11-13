@@ -173,6 +173,23 @@ export async function activateEmployee(req, res, next) {
   }
 }
 
+export async function createEmployeeLogin(req, res, next) {
+  try {
+    const data = await employeeService.createEmployeeLogin(
+      req.companyId,
+      req.params.id,
+      req.user
+    );
+
+    res.status(201).json({
+      status: 'success',
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getContracts(req, res, next) {
   try {
     if (!hasSalaryAccess(req.user)) {
@@ -450,6 +467,7 @@ export default {
   verifyEmployee,
   getActivationCheck,
   activateEmployee,
+  createEmployeeLogin,
   getContracts,
   createContractVersion,
   approveContractVersion,

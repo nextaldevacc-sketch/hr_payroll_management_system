@@ -1,7 +1,7 @@
 # Role Permissions vs Frontend Visibility Matrix (Section A3)
 
 > **Platform**: Nextal HR & Payroll Management System
-> **Generated At**: 2026-11-12T12:35:23.125Z
+> **Generated At**: 2026-11-13T02:53:31.775Z
 > **Audit Scope**: 38 Key API Endpoints across 8 RBAC Roles
 > **Status**: ✅ 100% IN FULL COMPLIANCE
 
@@ -55,5 +55,5 @@ Legend: **✓** = Authorized & Visible | **✗** = Denied & Hidden
 | Settlements | `POST /api/v1/settlements/:id/approve` | Approve Settlement Button | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ |
 | Settlements | `POST /api/v1/settlements/:id/pay` | Pay Settlement Button | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ |
 | Settings | `GET /api/v1/settings/company` | Company Profile Tab | ✓ | ✓ | ✗ | ✓ | ✗ | ✓ | ✗ | ✗ |
-| Settings | `POST /api/v1/users/invite` | Invite User Modal | ⚠️ HID/ALLOW | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Settings | `POST /api/v1/users/invite` | Invite User Modal | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
 | Audit | `GET /api/v1/audit` | Audit Trail Page | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ |

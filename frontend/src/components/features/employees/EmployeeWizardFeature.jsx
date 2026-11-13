@@ -20,7 +20,7 @@ import {
   Lock,
   ClipboardList,
 } from 'lucide-react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import {
@@ -32,6 +32,7 @@ import {
   uploadEmployeeDocument,
   fetchActivationCheck,
   activateEmployee,
+  createEmployeeLogin,
 } from '../../../services/employeesApi';
 import { GlassCard } from '../../primitives/GlassCard';
 import { Stepper } from '../../primitives/Stepper';
@@ -42,6 +43,7 @@ export function EmployeeWizardFeature() {
   const router = useRouter();
   const { user } = useAuth();
   const { isRTL, language, t } = useLanguage();
+  const queryClient = useQueryClient();
 
   // Wizard Steps: 1..5
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -70,6 +72,7 @@ export function EmployeeWizardFeature() {
     mohre_person_id: '12345678901234',
     branch_id: '',
     company_visa_id: '',
+    create_login_now: false,
   });
 
   const [verifyComment, setVerifyComment] = useState('Approved initial profile and identity records.');
@@ -171,11 +174,19 @@ export function EmployeeWizardFeature() {
   // Step 1: Create Pre-Joined mutation
   const createMutation = useMutation({
     mutationFn: (data) => createEmployee(data),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      queryClient.invalidateQueries({ queryKey: ['employee-meta-options'] });
       setCreatedEmpId(data.id);
       setCreatedEmpCode(data.employee_code);
       setCreatorUserId(user?.id);
       setIsSubmitted(true);
+      if (personalForm.create_login_now && personalForm.work_email) {
+        try {
+          await createEmployeeLogin(data.id);
+        } catch (e) {
+          console.warn('Failed to auto-create login for employee:', e);
+        }
+      }
       setActionSuccess(
         language === 'ar'
           ? 'تم الإرسال لمدير الموارد البشرية للتحقق والاعتماد'
@@ -339,6 +350,7 @@ export function EmployeeWizardFeature() {
               const visaId = personalForm.company_visa_id || (metaOptions?.visas?.length > 0 ? metaOptions.visas[0].id : '');
               createMutation.mutate({
                 ...personalForm,
+                work_email: personalForm.work_email?.trim() || null,
                 branch_id: branchId,
                 company_visa_id: visaId,
               });
@@ -412,11 +424,22 @@ export function EmployeeWizardFeature() {
                   value={personalForm.work_email}
                   onChange={(e) => setPersonalForm({ ...personalForm, work_email: e.target.value })}
                   className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text font-mono"
-                  required
                 />
                 {fieldErrors.work_email && (
                   <span className="text-xs text-danger-text font-medium mt-1 block">{fieldErrors.work_email}</span>
                 )}
+                <div className="mt-2">
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-text font-medium">
+                    <input
+                      type="checkbox"
+                      id="wizard-checkbox-create-login-now"
+                      checked={Boolean(personalForm.create_login_now)}
+                      onChange={(e) => setPersonalForm({ ...personalForm, create_login_now: e.target.checked })}
+                      className="rounded text-primary focus:ring-primary w-4 h-4"
+                    />
+                    <span>{language === 'ar' ? 'إنشاء حساب دخول للموظف الآن (الخدمة الذاتية)' : 'Create login now (Self-Service employee portal account)'}</span>
+                  </label>
+                </div>
               </div>
 
               <div>
@@ -619,6 +642,8 @@ export function EmployeeWizardFeature() {
                 setCreatedEmpId(null);
                 setCreatedEmpCode('');
                 setCurrentStepIndex(0);
+                setActionError(null);
+                setFieldErrors({});
                 setPersonalForm((prev) => ({
                   ...prev,
                   name: '',

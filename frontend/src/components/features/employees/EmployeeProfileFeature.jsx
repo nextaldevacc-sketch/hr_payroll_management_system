@@ -23,6 +23,7 @@ import {
   Lock,
   Plus,
   Send,
+  UserPlus,
   Eye,
   EyeOff,
   AlertCircle,
@@ -47,6 +48,7 @@ import {
   fetchEmployeeAuditHistory,
   updateEmployeeStatus,
   activateEmployee,
+  createEmployeeLogin,
   verifyEmployee,
   approveContractVersion,
   requestBranchChange,
@@ -264,6 +266,22 @@ export function EmployeeProfileFeature({ id } = {}) {
     },
     onError: (err) => {
       setActionError(err.message || 'Activation requirements not met');
+    },
+  });
+
+  const [createdLoginDetails, setCreatedLoginDetails] = useState(null);
+  const [copiedLoginField, setCopiedLoginField] = useState(false);
+
+  const createLoginMutation = useMutation({
+    mutationFn: () => createEmployeeLogin(employeeId),
+    onSuccess: (data) => {
+      setCreatedLoginDetails(data);
+      setActionSuccess(isRTL ? 'تم إنشاء بيانات دخول الموظف بنجاح!' : 'Employee login created successfully!');
+      setActionError(null);
+      refetchProfile();
+    },
+    onError: (err) => {
+      setActionError(err.message || 'Failed to create employee login');
     },
   });
 
@@ -625,6 +643,18 @@ export function EmployeeProfileFeature({ id } = {}) {
               >
                 <Building2 className="w-4 h-4" />
                 <span>{isRTL ? 'تغيير الفرع' : 'Change branch'}</span>
+              </button>
+            )}
+            {isHrOrAdmin && (!employee.user || employee.user?.password_hash === 'UNINITIALIZED_INVITE') && (
+              <button
+                id="btn-create-login-profile"
+                type="button"
+                onClick={() => createLoginMutation.mutate()}
+                disabled={createLoginMutation.isPending}
+                className="px-3.5 py-1.5 rounded-xl bg-primary/10 border border-primary/30 hover:bg-primary/20 text-primary text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>{createLoginMutation.isPending ? (isRTL ? 'جارٍ الإنشاء...' : 'Creating...') : (isRTL ? 'إنشاء حساب دخول' : 'Create Login')}</span>
               </button>
             )}
             {isHrOrAdmin && employee.status !== 'Active' && employee.status !== 'Archived' && (
@@ -1436,6 +1466,69 @@ export function EmployeeProfileFeature({ id } = {}) {
           </div>
         </form>
       </Drawer>
+
+      {/* Created Login Modal */}
+      {createdLoginDetails && (
+        <div className="fixed inset-0 z-50 bg-black/50 dark:bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div
+            className="w-full max-w-md rounded-2xl p-6 border shadow-2xl space-y-4"
+            style={{
+              background: 'var(--bg-surface)',
+              borderColor: 'var(--glass-border)',
+            }}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <h3 className="font-bold text-base gold-heading flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <span>{isRTL ? 'تم تجهيز بيانات دخول الموظف' : 'Employee Login Provisioned'}</span>
+              </h3>
+              <button onClick={() => setCreatedLoginDetails(null)} className="hover:opacity-75">
+                ✕
+              </button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <p className="text-text-muted">
+                {isRTL
+                  ? `تم إنشاء حساب دخول الموظف (${createdLoginDetails.employeeCode}) بنجاح:`
+                  : `Login account provisioned for employee ${createdLoginDetails.employeeCode}:`}
+              </p>
+              <div className="p-3 rounded-xl border border-border bg-well space-y-2">
+                <div>
+                  <span className="font-semibold text-text-muted block text-[10px]">{isRTL ? 'البريد الإلكتروني:' : 'Email:'}</span>
+                  <span className="font-mono text-text font-semibold">{createdLoginDetails.email}</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-text-muted block text-[10px]">{isRTL ? 'كلمة المرور المؤقتة:' : 'Temporary Password:'}</span>
+                  <span className="font-mono text-emerald-400 font-bold select-all">{createdLoginDetails.tempPassword}</span>
+                </div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-[11px]">
+                {isRTL ? 'ملاحظة: سيُطلب من الموظف تغيير كلمة المرور عند أول دخول.' : 'Notice: The employee will be required to change their password on first login.'}
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(`Email: ${createdLoginDetails.email}\nPassword: ${createdLoginDetails.tempPassword}`);
+                    setCopiedLoginField(true);
+                    setTimeout(() => setCopiedLoginField(false), 2000);
+                  }}
+                  className="px-3 py-1.5 rounded-xl border border-border bg-well text-text font-bold"
+                >
+                  {copiedLoginField ? (isRTL ? 'تم النسخ!' : 'Copied!') : (isRTL ? 'نسخ البيانات' : 'Copy Credentials')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreatedLoginDetails(null)}
+                  className="px-4 py-1.5 rounded-xl font-bold bg-primary text-on-primary"
+                >
+                  {isRTL ? 'تم' : 'Done'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

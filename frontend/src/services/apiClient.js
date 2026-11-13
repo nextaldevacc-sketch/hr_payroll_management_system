@@ -25,6 +25,13 @@ export async function request(endpoint, options = {}, fallback = null) {
       credentials: 'include',
     });
 
+    if (options.responseType === 'blob') {
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
+      return await res.blob();
+    }
+
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
