@@ -249,6 +249,11 @@ export const ENUMS = {
     APPROVE_FINAL_SETTLE: { en: 'Approve Final Settlement', ar: 'اعتماد التسوية النهائية' },
     REVOKE_SUPPORT_ACCES: { en: 'Revoke Support Access', ar: 'إلغاء صلاحية الدعم الفني' },
     UPDATE_CLEARANCE_ITE: { en: 'Update Clearance Item', ar: 'تحديث بند براءة الذمة' },
+    JOB_RUN_EXPIRY: { en: 'Scheduled Job: Expiry Check', ar: 'مهمة مجدولة: فحص انتهاء الصلاحية' },
+    JOB_RUN_DEACTIVATION: { en: 'Scheduled Job: Deactivation', ar: 'مهمة مجدولة: إلغاء التفعيل والأرشفة' },
+    JOB_RUN_ACCRUAL: { en: 'Scheduled Job: Leave Accrual', ar: 'مهمة مجدولة: استحقاق الإجازات' },
+    JOB_RUN_BRANCH_CHANGE: { en: 'Scheduled Job: Branch Change', ar: 'مهمة مجدولة: تطبيق تغيير الفرع' },
+    JOB_RUN_EMAIL_OUTBOX: { en: 'Scheduled Job: Email Outbox', ar: 'مهمة مجدولة: معالجة صندوق البريد' },
   },
 
   settlement_status: {
@@ -346,7 +351,10 @@ export function getEnumLabel(category, value, lang = 'en') {
     }
   }
 
-  // 3. Fallback to raw value
+  // 3. Fallback: replace underscores with spaces for friendly display if screaming snake case
+  if (/^[A-Z0-9_]{3,}$/.test(strVal) && strVal.includes('_')) {
+    return strVal.replace(/_/g, ' ');
+  }
   return strVal;
 }
 

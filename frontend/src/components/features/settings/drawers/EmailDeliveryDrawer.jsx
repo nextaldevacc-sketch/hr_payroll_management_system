@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Drawer } from '../../../primitives/Drawer';
 import { Mail, RefreshCw, CheckCircle2, Clock, AlertTriangle, XCircle, ShieldAlert } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
-import { request } from '../../../../services/api';
+import { request } from '../../../../services/apiClient';
 
 export function EmailDeliveryDrawer({ isOpen, onClose }) {
   const { isRTL, language } = useLanguage();

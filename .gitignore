@@ -50,5 +50,5 @@ apps/api/storage/documents/*
 !apps/api/storage/.gitkeep
 
 # Database backups
-backups/*.sql
+backups/*
 !backups/.gitkeep

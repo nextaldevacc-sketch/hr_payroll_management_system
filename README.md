@@ -126,6 +126,8 @@ npm test
 
 - [Comprehensive Product Specification](docs/spec.md)
 - [System Architecture & Invariants](docs/ARCHITECTURE.md)
+- [VPS Production Deployment Runbook](docs/DEPLOY-VPS.md)
+- [Security Requirements & Audit Status Matrix](docs/reports/SECURITY-STATUS.md)
 - [Testing Guide & Acceptance Verification](docs/TESTING.md)
 - [Manual Testing Checklist (Clean Install & Role Verification)](docs/MANUAL-TEST-CHECKLIST.md)
 - [Role-Based User Guides (8 Roles)](docs/guides/)
@@ -156,8 +158,15 @@ bash scripts/restore-db.sh backups/db_backup_latest.sql nextal_hr_payroll
 
 ## 6. Production Deployment
 
-Production orchestration is configured with Docker Compose, resource caps, and security middleware:
+Production orchestration is configured with Docker Compose, Caddy automated TLS, non-root containers, and security hardening:
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+# 1. Generate high-entropy cryptographic keys
+node scripts/gen-secrets.mjs
+
+# 2. Configure .env.production and run preflight verification
+node scripts/preflight-prod.mjs .env.production
+
+# 3. Deploy full production stack (Caddy, Web, API, PostgreSQL, Backups)
+bash deploy/deploy.sh .env.production
 ```
-Refer to [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full instructions on setting up AWS ECS/RDS in `me-central-1` or Azure App Service/PostgreSQL in `UAE North`.
+Refer to the comprehensive [VPS Production Deployment Runbook](docs/DEPLOY-VPS.md) for step-by-step instructions on VPS hardening (`deploy/harden-vps.sh`), UAE data residency compliance, automated encrypted backups (`deploy/backup.sh`), disaster recovery (`deploy/restore.sh`, `scripts/verify-backup.mjs`), and incident response.

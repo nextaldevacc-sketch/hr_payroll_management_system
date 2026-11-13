@@ -1,0 +1,62 @@
+{
+    # Global options
+    admin off
+    log {
+        output stdout
+        format json
+    }
+}
+
+{$DOMAIN:localhost} {
+    # Request body limit (25MB matches maximum file upload limit)
+    request_body {
+        max_size 25MB
+    }
+
+    # Security headers
+    header {
+        # HTTP Strict Transport Security (HSTS)
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Prevent MIME type sniffing
+        X-Content-Type-Options "nosniff"
+        # Clickjacking defense
+        X-Frame-Options "DENY"
+        # Referrer Policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Permissions Policy
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+        # Content Security Policy frame ancestors
+        Content-Security-Policy "frame-ancestors 'none';"
+        # Remove Server disclosure header
+        -Server
+    }
+
+    # Compress responses (gzip / zstd)
+    encode gzip zstd
+
+    # API reverse proxy route
+    handle /api/v1/* {
+        reverse_proxy api:5000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Web frontend reverse proxy route
+    handle {
+        reverse_proxy web:3100 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Access log formatting
+    log {
+        output stdout
+        format json
+    }
+}

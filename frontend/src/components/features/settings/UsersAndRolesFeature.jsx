@@ -12,6 +12,7 @@ import {
   Shield,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   Lock,
   Unlock,
   Building,
@@ -808,7 +809,7 @@ export function UsersAndRolesFeature() {
               </div>
 
               <div className="space-y-3 text-xs">
-                {createdInviteDetails.emailDeliveryFailed && (
+                {createdInviteDetails?.emailDeliveryFailed && (
                   <div className="p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                     <span>
@@ -1060,7 +1061,7 @@ export function UsersAndRolesFeature() {
               </div>
 
               <div className="space-y-3 text-xs">
-                {createdInviteDetails.emailDeliveryFailed && (
+                {bulkResult?.emailDeliveryFailed && (
                   <div className="p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                     <span>
