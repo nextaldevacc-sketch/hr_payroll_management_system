@@ -1,9 +1,11 @@
 import 'dotenv/config';
 import { validateEnvironment } from './lib/envValidation.js';
+import { enforceStartupValidation } from './config/validateEnv.js';
 import { startScheduler } from './jobs/scheduler.js';
 import app from './app.js';
 
 validateEnvironment();
+enforceStartupValidation();
 
 const PORT = process.env.PORT || 5000;
 

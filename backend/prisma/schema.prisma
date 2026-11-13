@@ -93,6 +93,7 @@ model companies {
   final_settlements      final_settlements[]
   separation_tasks       separation_tasks[]
   settings_versions      settings_versions[]
+  email_outbox           email_outbox[]
 }
 
 model company_visas {
@@ -1359,6 +1360,27 @@ model notifications {
   user        users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, is_read])
+  @@index([company_id])
+}
+
+model email_outbox {
+  id           String      @id @default(uuid()) @db.Uuid
+  company_id   String?     @db.Uuid
+  recipient    String      @db.VarChar(255)
+  subject      String      @db.VarChar(255)
+  body_html    String      @db.Text
+  body_text    String?     @db.Text
+  status       String      @default("queued") @db.VarChar(50) // 'queued', 'sent', 'failed'
+  attempts     Int         @default(0)
+  last_error   String?     @db.Text
+  metadata     Json?
+  created_at   DateTime    @default(now()) @db.Timestamptz
+  updated_at   DateTime    @updatedAt @db.Timestamptz
+  sent_at      DateTime?   @db.Timestamptz
+
+  company      companies?  @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  @@index([status])
   @@index([company_id])
 }
 

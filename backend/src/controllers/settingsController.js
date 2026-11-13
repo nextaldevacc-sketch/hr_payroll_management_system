@@ -560,6 +560,33 @@ export async function revokeSupportGrant(req, res, next) {
   } catch (err) { next(err); }
 }
 
+export async function getEmailDeliveryLogs(req, res, next) {
+  try {
+    const logs = await prisma.email_outbox.findMany({
+      where: {
+        OR: [
+          { company_id: req.companyId },
+          { company_id: null },
+        ],
+      },
+      select: {
+        id: true,
+        recipient: true,
+        subject: true,
+        status: true,
+        attempts: true,
+        last_error: true,
+        metadata: true,
+        created_at: true,
+        sent_at: true,
+      },
+      orderBy: { created_at: 'desc' },
+      take: 50,
+    });
+    res.json({ status: 'success', data: logs });
+  } catch (err) { next(err); }
+}
+
 export default {
   getOverview,
   getCompany,
@@ -613,4 +640,5 @@ export default {
   getSupportGrants,
   createSupportGrant,
   revokeSupportGrant,
+  getEmailDeliveryLogs,
 };

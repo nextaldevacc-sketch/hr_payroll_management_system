@@ -225,6 +225,9 @@ class SettingsService {
         },
       },
     });
+    if (company) {
+      company.data_retention_years = company.document_type_settings?.data_retention_years ?? 7;
+    }
     return company;
   }
 
@@ -238,6 +241,12 @@ class SettingsService {
         trade_license_no: data.trade_license_no !== undefined ? data.trade_license_no : old.trade_license_no,
         logo_url: data.logo_url !== undefined ? data.logo_url : old.logo_url,
         default_language: data.default_language !== undefined ? data.default_language : old.default_language,
+        document_type_settings: data.data_retention_years !== undefined
+          ? {
+              ...(old.document_type_settings || {}),
+              data_retention_years: Number(data.data_retention_years) || 7,
+            }
+          : old.document_type_settings,
         pension_scheme_default: data.pension_scheme_default !== undefined ? data.pension_scheme_default : old.pension_scheme_default,
         gpssa_employee_rate_new: data.gpssa_employee_rate_new !== undefined ? data.gpssa_employee_rate_new : old.gpssa_employee_rate_new,
         gpssa_employee_rate_legacy: data.gpssa_employee_rate_legacy !== undefined ? data.gpssa_employee_rate_legacy : old.gpssa_employee_rate_legacy,
@@ -264,6 +273,9 @@ class SettingsService {
       newValues: updated,
     });
 
+    if (updated) {
+      updated.data_retention_years = updated.document_type_settings?.data_retention_years ?? 7;
+    }
     return updated;
   }
 

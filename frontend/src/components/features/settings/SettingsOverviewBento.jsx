@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Shield,
   Lock,
+  Mail,
   ChevronRight,
   Sparkles,
 } from 'lucide-react';
@@ -204,6 +205,21 @@ export function SettingsOverviewBento({
       editable: userRole === 'COMPANY_ADMIN',
       locked: userRole !== 'COMPANY_ADMIN',
       restrictedMsg: 'Restricted to Company Admin',
+    },
+    {
+      id: 'email_delivery',
+      icon: Mail,
+      titleEn: 'Email Delivery & Outbox',
+      titleAr: 'سجل تسليم البريد الإلكتروني',
+      descEn: 'Persistent outbox, delivery status, SMTP transmission logs, and failure causes.',
+      descAr: 'سجل الرسائل الصادرة، حالة إرسال خادم البريد، المحاولات، وأسباب التعذر إن وجدت.',
+      countBadge: 'Outbox Delivery Logs',
+      countBadgeAr: 'سجل تسليم البريد',
+      lastChanged: 'Live Outbox Audit',
+      lastChangedAr: 'تدقيق فوري للمخرجات',
+      editable: isHrOrAdmin,
+      locked: !isHrOrAdmin,
+      restrictedMsg: isPayrollOfficer ? 'Restricted to HR Manager' : 'View Only',
     },
   ];
 

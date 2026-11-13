@@ -26,12 +26,14 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.5.0",
     "node-cron": "^3.0.3",
+    "nodemailer": "^10.5.0",
+    "prisma": "^5.21.1",
     "puppeteer": "^23.6.0",
     "swagger-ui-express": "^5.0.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "prisma": "^5.21.1",
+    "smtp-server": "^3.21.4",
     "supertest": "^7.0.0"
   },
   "prisma": {

@@ -4,6 +4,7 @@ import auditService from '../services/auditService.js';
 import { runComplianceJob } from './complianceJob.js';
 import { runDeactivationJob } from './deactivationJob.js';
 import { runMonthlyAccrualJob } from './accruals.js';
+import mailer from '../lib/mailer.js';
 
 const TIMEZONE = 'Asia/Dubai';
 
@@ -31,6 +32,12 @@ export const REGISTERED_JOBS = {
     description: 'Apply approved branch changes reaching effective date (Workflow V8)',
     cronExpression: '30 1 * * *', // 01:30 daily
     runner: async () => await applyPendingBranchChanges(),
+  },
+  email_outbox: {
+    name: 'email_outbox',
+    description: 'Process queued & retryable email outbox items with backoff (E1)',
+    cronExpression: '*/5 * * * *', // every 5 minutes
+    runner: async () => await mailer.processOutboxBatch(),
   },
 };
 

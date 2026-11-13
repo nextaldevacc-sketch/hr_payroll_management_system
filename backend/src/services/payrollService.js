@@ -1239,7 +1239,10 @@ export class PayrollService {
           await mailer.sendMail({
             to: recipientEmail,
             subject: `Your payslip for ${periodMonth} is available`,
-            html: `<p>Dear ${ps.employee?.name || 'Employee'},</p><p>Your payslip for <strong>${periodMonth}</strong> is now available in your employee self-service portal.</p><p><a href="http://localhost:3100/me/payslips">View My Payslips</a></p><p>Best regards,<br/>Nextal HR & Payroll</p>`,
+            html: `<p>Dear ${ps.employee?.name || 'Employee'},</p><p>Your payslip for <strong>${periodMonth}</strong> is now available in your employee self-service portal.</p><p><a href="${process.env.APP_URL || 'http://localhost:3100'}/me/payslips">View My Payslips</a></p><p>Best regards,<br/>Nextal HR & Payroll</p>`,
+            text: `Dear ${ps.employee?.name || 'Employee'},\nYour payslip for ${periodMonth} is now available in your self-service portal at /me/payslips.`,
+            companyId,
+            metadata: { payslipId: ps.id, payRunId, period: periodMonth, type: 'payslip_released' },
           }).catch((err) => {
             console.warn('Failed to send payslip email:', err.message);
           });

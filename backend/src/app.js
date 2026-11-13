@@ -33,27 +33,48 @@ import auditRoutes from './routes/audit.js';
 import jobsRoutes from './routes/jobs.js';
 
 const app = express();
+const isProd = process.env.NODE_ENV === 'production';
 
-// 1. Security Headers via Helmet
+// B2: Reverse Proxy Configuration for rate limits & secure cookies
+app.set('trust proxy', Number(process.env.TRUST_PROXY || 1));
+
+// 1. Security Headers via Helmet (strict CSP in production with no unsafe-eval)
 app.use(
   helmet({
-    contentSecurityPolicy: false, // Allows Swagger UI to load its assets
+    contentSecurityPolicy: isProd
+      ? {
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", 'data:', 'blob:'],
+            fontSrc: ["'self'"],
+            connectSrc: ["'self'"],
+            frameAncestors: ["'none'"],
+          },
+        }
+      : false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
 );
 
-// 2. CORS
+// 2. CORS (exact origin enforcement in production)
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps, curl, or server-to-server)
       if (!origin) return callback(null, true);
-      if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      if (!isProd && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
         return callback(null, true);
       }
-      if (process.env.CORS_ORIGIN && origin === process.env.CORS_ORIGIN) {
+      const allowed = process.env.ALLOWED_ORIGIN || process.env.CORS_ORIGIN;
+      if (allowed && origin === allowed) {
         return callback(null, true);
       }
-      return callback(null, true);
+      if (!isProd) {
+        return callback(null, true);
+      }
+      return callback(new Error('Origin not permitted by CORS policy'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -84,14 +105,20 @@ app.use(express.json({ limit: '10mb' }));
 // 6. Company context middleware
 app.use(companyContextMiddleware);
 
-// 7. Swagger API Documentation at /api/docs
-app.use(
-  '/api/docs',
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec, {
-    customSiteTitle: 'Nextal HR & Payroll API Documentation',
-  })
-);
+// 7. Swagger API Documentation at /api/docs (disabled in production unless ENABLE_API_DOCS=true)
+if (!isProd || process.env.ENABLE_API_DOCS === 'true') {
+  app.use(
+    '/api/docs',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+      customSiteTitle: 'Nextal HR & Payroll API Documentation',
+    })
+  );
+} else {
+  app.use('/api/docs', (req, res) => {
+    res.status(404).json({ status: 'error', code: 'NOT_FOUND', message: 'API documentation is disabled in production.' });
+  });
+}
 
 // 8. Health Check at /api/v1/health and /health
 app.get(['/health', '/api/v1/health'], async (req, res, next) => {

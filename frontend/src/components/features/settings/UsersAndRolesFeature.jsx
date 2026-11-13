@@ -229,6 +229,7 @@ export function UsersAndRolesFeature() {
         roles: selectedRoles,
         tempPassword: res?.tempPassword || res?.data?.tempPassword || res?.data?.data?.tempPassword,
         inviteUrl: res?.inviteUrl || res?.data?.inviteUrl || res?.data?.data?.inviteUrl,
+        emailDeliveryFailed: Boolean(res?.emailDeliveryFailed || res?.data?.emailDeliveryFailed || res?.data?.data?.emailDeliveryFailed),
       });
       setInviteEmail('');
       setSelectedRoles(['EMPLOYEE']);
@@ -807,6 +808,17 @@ export function UsersAndRolesFeature() {
               </div>
 
               <div className="space-y-3 text-xs">
+                {createdInviteDetails.emailDeliveryFailed && (
+                  <div className="p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>
+                      {locale === 'ar'
+                        ? 'تعذر تسليم البريد الإلكتروني تلقائياً. يرجى نسخ ومشاركة رابط التفعيل أو كلمة المرور مع المستخدم مباشرة:'
+                        : 'Automated email delivery failed or was simulated. Please copy and share the one-time activation link or temporary password directly with the user:'}
+                    </span>
+                  </div>
+                )}
+
                 <p className="text-text-muted">
                   {locale === 'ar'
                     ? `تم تجهيز بيانات الدخول للمستخدم ${createdInviteDetails.email}. شارك كلمة المرور المؤقتة أو رابط الدعوة مع المستخدم:`
@@ -1048,6 +1060,17 @@ export function UsersAndRolesFeature() {
               </div>
 
               <div className="space-y-3 text-xs">
+                {createdInviteDetails.emailDeliveryFailed && (
+                  <div className="p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>
+                      {locale === 'ar'
+                        ? 'تعذر تسليم البريد الإلكتروني تلقائياً. يرجى نسخ ومشاركة رابط التفعيل أو كلمة المرور مع المستخدم مباشرة:'
+                        : 'Automated email delivery failed or was simulated. Please copy and share the one-time activation link or temporary password directly with the user:'}
+                    </span>
+                  </div>
+                )}
+
                 <p className="text-text-muted">
                   {locale === 'ar'
                     ? `تم إنشاء ${bulkResult.createdCount} حساب دخول جديد من أصل ${bulkResult.totalEligible} موظف مؤهل.`

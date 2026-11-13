@@ -183,6 +183,7 @@ export class UserService {
     }
 
     const inviteToken = await authService.generateInviteToken(user);
+    const emailDeliveryFailed = Boolean(authService.lastInviteDeliveryFailed);
 
     await auditService.log({
       companyId,
@@ -212,6 +213,7 @@ export class UserService {
       inviteToken,
       inviteUrl: `/login?tab=invite&token=${inviteToken}`,
       tempPassword,
+      emailDeliveryFailed,
     };
   }
 

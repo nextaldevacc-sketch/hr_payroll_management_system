@@ -146,6 +146,17 @@ export async function activateEmployee(id) {
   return json.data;
 }
 
+export async function revealSensitiveField(id, field) {
+  const res = await fetch(`${API_BASE}/${id}/reveal-sensitive`, {
+    method: 'POST',
+    headers: getHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ field }),
+  });
+  const json = await handleResponse(res);
+  return json;
+}
+
 export async function createEmployeeLogin(id) {
   const res = await fetch(`${API_BASE}/${id}/create-login`, {
     method: 'POST',

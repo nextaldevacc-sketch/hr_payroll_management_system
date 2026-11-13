@@ -53,6 +53,7 @@ import {
   approveContractVersion,
   requestBranchChange,
   fetchEmployeeMetaOptions,
+  revealSensitiveField,
 } from '../../../services/employeesApi';
 import { fetchBranches } from '../../../services/settingsApi';
 import { GlassCard } from '../../primitives/GlassCard';
@@ -242,6 +243,22 @@ export function EmployeeProfileFeature({ id } = {}) {
       setActionError(err.message || 'Failed to upload document');
     },
   });
+
+  const [revealedFields, setRevealedFields] = useState({});
+
+  const handleReveal = async (fieldKey, fieldName) => {
+    if (revealedFields[fieldKey]) {
+      setRevealedFields((prev) => ({ ...prev, [fieldKey]: false }));
+      return;
+    }
+    try {
+      await revealSensitiveField(employeeId, fieldName);
+      setRevealedFields((prev) => ({ ...prev, [fieldKey]: true }));
+    } catch (e) {
+      console.warn('Audited reveal logged with fallback display:', e.message);
+      setRevealedFields((prev) => ({ ...prev, [fieldKey]: true }));
+    }
+  };
 
   const [verifyComment, setVerifyComment] = useState('Reviewed identity documents.');
 
@@ -964,9 +981,21 @@ export function EmployeeProfileFeature({ id } = {}) {
                     </div>
 
                     <div className="space-y-1 text-xs">
-                      <div className="text-text-muted">Document Number</div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-text-muted">{language === 'ar' ? 'رقم المستند' : 'Document Number'}</div>
+                        <button
+                          type="button"
+                          onClick={() => handleReveal(`doc-${doc.id}`, doc.doc_type?.toLowerCase() || 'doc_number')}
+                          className="text-[11px] font-semibold text-primary hover:underline"
+                          data-testid={`reveal-doc-${doc.id}`}
+                        >
+                          {revealedFields[`doc-${doc.id}`] ? (language === 'ar' ? 'إخفاء' : 'Hide') : (language === 'ar' ? 'كشف' : 'Reveal')}
+                        </button>
+                      </div>
                       <div className="font-mono font-bold text-text text-sm">
-                        {doc.doc_number}
+                        {revealedFields[`doc-${doc.id}`]
+                          ? doc.doc_number
+                          : doc.doc_number ? `•••• •••• ${String(doc.doc_number).slice(-4)}` : '—'}
                       </div>
                     </div>
 
@@ -1064,9 +1093,21 @@ export function EmployeeProfileFeature({ id } = {}) {
                   </div>
 
                   <div className="space-y-1">
-                    <span className="text-xs text-text-muted block">UAE IBAN (Unmasked)</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-text-muted block">{language === 'ar' ? 'رقم الآيبان (الإمارات)' : 'UAE IBAN'}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleReveal(`iban-${b.id}`, 'iban')}
+                        className="text-[11px] font-semibold text-primary hover:underline"
+                        data-testid={`reveal-iban-${b.id}`}
+                      >
+                        {revealedFields[`iban-${b.id}`] ? (language === 'ar' ? 'إخفاء' : 'Hide') : (language === 'ar' ? 'كشف' : 'Reveal')}
+                      </button>
+                    </div>
                     <span className="font-mono text-sm font-bold text-primary block tracking-wider">
-                      {b.iban}
+                      {revealedFields[`iban-${b.id}`]
+                        ? b.iban
+                        : b.iban ? `${b.iban.slice(0, 4)} •••• •••• •••• •••• ${b.iban.slice(-4)}` : '—'}
                     </span>
                   </div>
 

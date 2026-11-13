@@ -1,6 +1,6 @@
 # Known Limitations & Architecture Notes
 
-> **Version**: 1.0.0-rc4  
+> **Version**: 1.0.0-rc5  
 > **Platform**: Nextal HR & Payroll Management System (UAE Enterprise Edition)
 
 ---
@@ -66,3 +66,38 @@
 ## 8. Direct ERP Ledger Synchronization
 - **General Ledger Journal Export**: The platform produces detailed, double-entry balanced General Ledger CSV exports grouped by cost centre (`CC-OPS`, `CC-ENG`, `CC-SALES`, `CC-LOG`, `CC-HR`, `CC-FIN`) ready for one-click import into standard ERP accounting systems.
 - **Native Direct ERP Connectors**: Direct real-time bidirectional REST/SOAP sync to SAP S/4HANA, Oracle NetSuite, or Microsoft Dynamics 365 requires mapping to each enterprise's custom chart of accounts via the Nextal Accounting API.
+
+---
+
+## 9. Multi-Factor Authentication (MFA / TOTP RFC 6238)
+- **Status**: Deferred to post-v1.0.0-rc5 release (NOT DONE in this release per Part 7B B4).
+- **Reason**: To prevent shipping an untested or partially implemented authentication loop that could lock out production administrators or enterprise users.
+- **Current Security Controls**: Strict brute-force protection (5 failed logins triggers 15-minute temporary lock), session token versioning with instant revocation, forced temporary password change, and HttpOnly/Secure/SameSite cookie guards.
+- **Remaining Implementation Roadmap**:
+  1. Enrolment wizard with QR code generation (`speakeasy` / `qrcode`) and emergency recovery codes.
+  2. TOTP verification middleware for privileged roles (`COMPANY_ADMIN`, `HR_MANAGER`, `PAYROLL_OFFICER`, `GM`, `FINANCE`).
+  3. Dual-admin MFA reset authorization workflow with notification dispatch.
+  4. Full bilingual UI (Arabic & English) and end-to-end Playwright tests.
+
+---
+
+## 10. Password Hashing Algorithm (Bcrypt Cost >= 12)
+- **Status**: Implemented with `bcrypt` salt rounds >= 12 and transparent login rehash. Migration to `argon2` is deferred (NOT DONE per Part 7B B3).
+- **Reason**: The `argon2` npm package requires native C++ compilation toolchains (Visual Studio C++ / node-gyp) that are incompatible with the current Windows development environment and monorepo package resolution.
+- **Current Security Controls**: Cryptographic cost factor is strictly set to 12 (`BCRYPT_ROUNDS=12`), providing ~350ms computation time to mitigate offline brute-force attacks. An automatic rehash interceptor transparently upgrades legacy 10-round hashes upon successful user authentication.
+
+---
+
+## 11. Sensitive Field Protection & At-Rest Encryption
+- **Status**: UI masking (last 4 digits) with audited reveal action is active. Application-level column envelope encryption is deferred (NOT DONE per Part 7B B5).
+- **Current Security Controls**:
+  - Emirates ID, passport numbers, and bank account IBANs are masked by default across all UI views (`•••• 1234`).
+  - An audited "Reveal" action logs access events to the immutable `audit_logs` table (`REVEAL_SENSITIVE_FIELD`).
+  - Physical file uploads (passports, Emirates IDs, labor cards) are 100% encrypted at rest on disk using AES-256-GCM with authenticated `NEXTAL_ENC_V1` headers.
+  - Salary and compensation data remain strictly access-controlled at the API layer (limited strictly to the 4 statutory salary roles; HR Officer and view-only roles receive zero salary data).
+
+---
+
+## 12. Data Retention Policy & Automated Purge
+- **Status**: Per-company configurable data retention setting (default 7 years) is active in Settings. Automated background deletion job is deferred (NOT DONE per Part 7B B6).
+- **Compliance Plan**: In accordance with UAE Federal Decree-Law No. 33 of 2021 Article 54 and UAE PDPL (Federal Decree-Law No. 45 of 2021), ex-employee master records, statutory contracts, and immutable audit logs must be preserved for statutory inspection periods. Automated purging will be introduced in a future update following client data-destruction authorization workflows.

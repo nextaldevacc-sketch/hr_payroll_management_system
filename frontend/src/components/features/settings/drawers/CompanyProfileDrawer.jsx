@@ -55,6 +55,7 @@ export function CompanyProfileDrawer({
     trade_license_no: comp?.trade_license_no || '',
     default_language: comp?.default_language || 'en',
     logo_url: comp?.logo_url || '/logo.png',
+    data_retention_years: comp?.data_retention_years ?? 7,
     pension_scheme_default: comp?.pension_scheme_default || 'GPSSA',
     gpssa_employee_rate_new: comp?.gpssa_employee_rate_new || 11.0,
     gpssa_employee_rate_legacy: comp?.gpssa_employee_rate_legacy || 5.0,
@@ -87,6 +88,7 @@ export function CompanyProfileDrawer({
         trade_license_no: comp.trade_license_no || '',
         default_language: comp.default_language || 'en',
         logo_url: comp.logo_url || '/logo.png',
+        data_retention_years: comp.data_retention_years ?? 7,
         pension_scheme_default: comp.pension_scheme_default || 'GPSSA',
         gpssa_employee_rate_new: comp.gpssa_employee_rate_new ?? 11.0,
         gpssa_employee_rate_legacy: comp.gpssa_employee_rate_legacy ?? 5.0,
@@ -259,6 +261,25 @@ export function CompanyProfileDrawer({
                   ]}
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-text mb-1">
+                {language === 'ar' ? 'فترة الاحتفاظ بالبيانات (سنوات)' : 'Data Retention Policy (Years)'}
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="15"
+                disabled={!canEdit}
+                id="input-company-data-retention-years"
+                value={formData.data_retention_years ?? 7}
+                onChange={(e) => setFormData({ ...formData, data_retention_years: parseInt(e.target.value, 10) || 7 })}
+                className="w-full px-3 py-2 rounded-xl text-xs font-mono bg-surface border border-border text-text focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
+              />
+              <span className="text-[10px] text-text-muted mt-1 block">
+                {language === 'ar' ? 'الحد الأدنى القانوني في الإمارات: 5-7 سنوات (الافتراضي: 7)' : 'UAE statutory audit minimum: 5–7 years (Default: 7)'}
+              </span>
             </div>
 
             {/* Logo Upload Box */}

@@ -30,6 +30,7 @@ import { SalaryRulesDrawer } from '@/components/features/settings/drawers/Salary
 import { ApprovalSettingsDrawer } from '@/components/features/settings/drawers/ApprovalSettingsDrawer';
 import { PayrollAlertsDrawer } from '@/components/features/settings/drawers/PayrollAlertsDrawer';
 import { SupportAccessDrawer } from '@/components/features/settings/drawers/SupportAccessDrawer';
+import { EmailDeliveryDrawer } from '@/components/features/settings/drawers/EmailDeliveryDrawer';
 import { VersionHistoryModal } from '@/components/features/settings/modals/VersionHistoryModal';
 import { ResetDefaultsModal } from '@/components/features/settings/modals/ResetDefaultsModal';
 import { DeleteInUseModal } from '@/components/features/settings/modals/DeleteInUseModal';
@@ -677,6 +678,12 @@ export default function SettingsPage() {
       {/* 10. Support Access (FR-PL3) Drawer */}
       <SupportAccessDrawer
         isOpen={activeDrawer === 'support_access'}
+        onClose={() => setActiveDrawer(null)}
+      />
+
+      {/* 11. Email Delivery & Outbox Drawer (E1) */}
+      <EmailDeliveryDrawer
+        isOpen={activeDrawer === 'email_delivery'}
         onClose={() => setActiveDrawer(null)}
       />
 

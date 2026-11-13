@@ -455,6 +455,29 @@ export async function requestBranchChange(req, res, next) {
   }
 }
 
+export async function revealSensitiveField(req, res, next) {
+  try {
+    const { field } = req.body;
+    const employeeId = req.params.id;
+    const userId = req.user?.id || req.user?.userId;
+    const companyId = req.companyId;
+
+    await auditService.log({
+      companyId,
+      userId,
+      action: 'REVEAL_SENSITIVE_FIELD',
+      tableName: 'employees',
+      recordId: employeeId,
+      newValues: { field, revealedAt: new Date().toISOString() },
+      ipAddress: req.ip,
+    });
+
+    res.json({ status: 'success', message: `Field ${field} reveal audited successfully` });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export default {
   listEmployees,
   createEmployee,
@@ -478,4 +501,5 @@ export default {
   uploadDocument,
   downloadDocument,
   getEmployeeHistory,
+  revealSensitiveField,
 };

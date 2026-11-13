@@ -19,11 +19,23 @@ export class AuthService {
   }
 
   async hashPassword(password) {
-    return await bcrypt.hash(password, 10);
+    const rounds = Number(process.env.BCRYPT_ROUNDS || 12);
+    return await bcrypt.hash(password, rounds);
   }
 
   async verifyPassword(password, hash) {
     return await bcrypt.compare(password, hash);
+  }
+
+  needsRehash(hash) {
+    if (!hash || typeof hash !== 'string') return false;
+    // Check bcrypt cost in hash ($2a$10$..., $2b$10$...)
+    const match = hash.match(/^\$2[aby]?\$(\d+)\$/);
+    if (match) {
+      const rounds = parseInt(match[1], 10);
+      return rounds < 12;
+    }
+    return false;
   }
 
   generateToken(user, roles = [], scopes = [], seesSalary = false) {
@@ -179,6 +191,19 @@ export class AuthService {
       err.code = 'INVALID_CREDENTIALS';
       err.remainingAttempts = Math.max(0, LOCKOUT_THRESHOLD - newFailedAttempts);
       throw err;
+    }
+
+    // Transparent rehash if stored password hash uses legacy cost (< 12 rounds)
+    if (this.needsRehash(user.password_hash)) {
+      try {
+        const upgradedHash = await this.hashPassword(password);
+        await this.prisma.$base().users.update({
+          where: { id: user.id },
+          data: { password_hash: upgradedHash },
+        });
+      } catch (rehashErr) {
+        console.warn('Failed to transparently rehash password:', rehashErr.message);
+      }
     }
 
     // 3. Password is valid: check platform admin feature flag (Phase 2)
@@ -346,14 +371,26 @@ export class AuthService {
       },
     });
 
-    const inviteUrl = `http://localhost:3100/accept-invite?token=${rawToken}`;
+    const inviteUrl = `${process.env.APP_URL || 'http://localhost:3100'}/accept-invite?token=${rawToken}`;
+    const tmpl = mailer.renderInviteTemplate({
+      recipientName: user.name,
+      companyName: 'Nextal HR',
+      inviteUrl,
+    });
+    let emailDeliveryFailed = false;
     await mailer.sendMail({
       to: user.email,
-      subject: '[Nextal HR] Welcome! Set your account password',
-      html: `<p>Welcome to Nextal HR. Please click the link below to set your account password:</p><p><a href="${inviteUrl}">${inviteUrl}</a></p>`,
-      text: `Welcome to Nextal HR. Please visit the link below to set your account password:\n${inviteUrl}`,
-    }).catch((err) => console.warn('[AuthService] Failed to send invite email:', err.message));
+      subject: tmpl.subject,
+      html: tmpl.html,
+      text: tmpl.text,
+      companyId: user.company_id,
+      metadata: { userId: user.id, type: 'invite' },
+    }).catch((err) => {
+      console.warn('[AuthService] Failed to send invite email:', err.message);
+      emailDeliveryFailed = true;
+    });
 
+    this.lastInviteDeliveryFailed = emailDeliveryFailed;
     return rawToken;
   }
 
@@ -452,7 +489,9 @@ export class AuthService {
     });
 
     if (!user) {
-      // Do not reveal email existence to prevent user enumeration
+      // E3 & SEC-4: Timing equalizer to ensure identical timing and message for known/unknown emails
+      crypto.createHash('sha256').update(cleanEmail + 'timing_salt_equalizer').digest('hex');
+      await new Promise((resolve) => setTimeout(resolve, 35 + Math.random() * 15));
       return {
         status: 'success',
         message: 'If the email is registered, a password reset link has been dispatched.',
@@ -472,19 +511,24 @@ export class AuthService {
       },
     });
 
-    const resetUrl = `http://localhost:3100/reset-password?token=${rawToken}`;
+    const resetUrl = `${process.env.APP_URL || 'http://localhost:3100'}/reset-password?token=${rawToken}`;
+    const tmpl = mailer.renderResetPasswordTemplate({
+      recipientName: user.name || cleanEmail,
+      resetUrl,
+    });
     await mailer.sendMail({
       to: cleanEmail,
-      subject: '[Nextal HR] Password Reset Request',
-      html: `<p>A password reset was requested for your Nextal HR account. Click the link below to set a new password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link expires in 1 hour.</p>`,
-      text: `A password reset was requested for your Nextal HR account. Visit the link below to set a new password:\n${resetUrl}\n\nThis link expires in 1 hour.`,
+      subject: tmpl.subject,
+      html: tmpl.html,
+      text: tmpl.text,
+      companyId: user.company_id,
+      metadata: { userId: user.id, type: 'password_reset' },
     }).catch((err) => console.warn('[AuthService] Failed to send reset email:', err.message));
 
     return {
       status: 'success',
       message: 'If the email is registered, a password reset link has been dispatched.',
-      resetToken: rawToken, // Returned for UI testing / demo convenience
-      resetUrl,
+      ...(process.env.NODE_ENV !== 'production' ? { resetToken: rawToken, resetUrl } : {}),
     };
   }
 

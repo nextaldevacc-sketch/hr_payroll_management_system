@@ -8,6 +8,18 @@ const router = Router();
 
 router.use(authenticate, requireRole('COMPANY_ADMIN'));
 
+// B2 Guard: Job triggers disabled in production unless explicitly enabled
+router.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_JOB_TRIGGER_API !== 'true') {
+    return res.status(403).json({
+      status: 'error',
+      code: 'JOB_TRIGGER_DISABLED',
+      message: 'Job execution API is disabled in production.',
+    });
+  }
+  next();
+});
+
 /**
  * GET /api/v1/jobs
  * List available system background jobs

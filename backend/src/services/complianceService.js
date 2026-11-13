@@ -217,7 +217,9 @@ export class ComplianceService {
               subject: `[Nextal HR] Reminder: ${doc.doc_type} expires in ${daysRemaining} days`,
               html: `<p>Dear Colleague,</p><p>${bodyEn}</p><p><a href="/compliance">View in Compliance Tracker</a></p>`,
               text: bodyEn,
-            });
+              companyId: doc.company_id,
+              metadata: { docId: doc.id, docType: doc.doc_type, daysRemaining, type: 'document_expiry' },
+            }).catch((err) => console.warn('[Compliance] Failed to send reminder email:', err.message));
           }
 
           // Mark milestone as sent to ensure idempotency

@@ -44,6 +44,13 @@ async function logTableCounts() {
 }
 
 export async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('========================================================================');
+    console.error('[SECURITY BLOCK] Demo seeding and database resets are FORBIDDEN in production (NODE_ENV=production).');
+    console.error('========================================================================');
+    process.exit(1);
+  }
+
   const dbUrl = process.env.DATABASE_URL || '';
   const isDevDb = dbUrl.includes('/nextal_hr_payroll');
   const isDemoMode = process.env.SEED_MODE === 'demo';
