@@ -14,3 +14,15 @@ yarn-debug.log*
 yarn-error.log*
 .DS_Store
 Thumbs.db
+
+# --- Fresh-install guard: never bake dev data or secrets into images ---
+backend/storage/*
+!backend/storage/.gitkeep
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.production.example
+docs
+.env.production.local
+nextal-images.tar
+*.tar
