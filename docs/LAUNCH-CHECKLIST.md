@@ -58,3 +58,4 @@ The following architectural and compliance items are documented with their exact
 
 - **Technical Readiness Status**: **CONDITIONALLY APPROVED FOR PRODUCTION VPS DEPLOYMENT**
 - **Condition**: Only synthetic or approved pilot company data may be loaded until Table 2 owner decisions (Legal DPA and KMS provider) are finalized. Real client personal data must be hosted exclusively within UAE sovereign cloud regions per `docs/DEPLOY-VPS.md`.
+

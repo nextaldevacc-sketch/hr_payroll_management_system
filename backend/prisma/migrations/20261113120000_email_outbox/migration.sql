@@ -25,3 +25,4 @@ CREATE INDEX "email_outbox_company_id_idx" ON "email_outbox"("company_id");
 
 -- AddForeignKey
 ALTER TABLE "email_outbox" ADD CONSTRAINT "email_outbox_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
