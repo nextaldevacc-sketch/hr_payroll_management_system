@@ -27,6 +27,15 @@ export function requirePermission(area, action = 'view') {
     }
 
     const roles = req.user.roles || [];
+    if (roles.length === 0) {
+      console.warn(`[AUTH] Access attempted by user with no assigned roles: ${req.user.email || req.user.userId} on ${req.originalUrl}`);
+      return res.status(403).json({
+        status: 'error',
+        code: 'NO_ROLE_ASSIGNED',
+        message: 'No role assigned - contact your Company Admin',
+        userRoles: [],
+      });
+    }
     const hasAccess = checkPermission(roles, area, action);
 
     if (!hasAccess) {
@@ -62,6 +71,16 @@ export function requireRole(...allowedRoles) {
     }
 
     const userRoles = req.user.roles || [];
+    if (userRoles.length === 0) {
+      console.warn(`[AUTH] Access attempted by user with no assigned roles: ${req.user.email || req.user.userId} on ${req.originalUrl}`);
+      return res.status(403).json({
+        status: 'error',
+        code: 'NO_ROLE_ASSIGNED',
+        message: 'No role assigned - contact your Company Admin',
+        allowedRoles,
+        userRoles: [],
+      });
+    }
     const hasRole = allowedRoles.some((r) => userRoles.includes(r));
 
     if (!hasRole) {

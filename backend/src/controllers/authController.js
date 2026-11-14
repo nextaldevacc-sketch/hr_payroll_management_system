@@ -127,6 +127,10 @@ export async function getCurrentUser(req, res, next) {
       roles.push('PLATFORM_ADMIN');
     }
 
+    if (roles.length === 0 && !user.is_platform_admin) {
+      console.warn(`[AUTH] User without role fetched session: ${user.email} (userId: ${user.id})`);
+    }
+
     const SALARY_ROLES = ['HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'FINANCE'];
     const seesSalary = user.user_roles.some((ur) => SALARY_ROLES.includes(ur.role.code));
 

@@ -429,8 +429,8 @@ export function GlassTopBar({ onToggleMobileNav }) {
               </span>
               <span className="text-[10px] text-amber-500 font-semibold block leading-tight">
                 {language === 'ar'
-                  ? ({ COMPANY_ADMIN: 'مسؤول النظام', HR_MANAGER: 'مدير الموارد البشرية', EMPLOYEE: 'موظف', FINANCE: 'المالية', GM: 'المدير العام' }[user?.roles?.[0]] || user?.roles?.[0] || 'موظف')
-                  : (user?.roles?.[0] || 'EMPLOYEE')}
+                  ? ({ COMPANY_ADMIN: 'مسؤول النظام', HR_MANAGER: 'مدير الموارد البشرية', EMPLOYEE: 'موظف', FINANCE: 'المالية', GM: 'المدير العام' }[user?.roles?.[0]] || user?.roles?.[0] || 'لا يوجد دور معين')
+                  : (user?.roles?.[0] || 'No Role Assigned')}
               </span>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-text-muted hidden sm:block" />

@@ -257,6 +257,10 @@ export class AuthService {
       roles.push('PLATFORM_ADMIN');
     }
 
+    if (roles.length === 0 && !user.is_platform_admin) {
+      console.warn(`[AUTH] User without role logged in: ${user.email} (userId: ${user.id}, companyId: ${user.company_id})`);
+    }
+
     const scopes = user.user_roles.map((ur) => ({
       role: ur.role.code,
       scope_type: ur.scope_type,
