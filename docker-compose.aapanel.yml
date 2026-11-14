@@ -1,0 +1,154 @@
+services:
+  web:
+    image: hr-payroll-management-web:latest
+    pull_policy: never
+    container_name: nextal-web-prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:13100:3100"
+    environment:
+      NODE_ENV: production
+      PORT: 3100
+      NEXT_PUBLIC_API_URL: /api/v1
+      API_ORIGIN: http://api:5000
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3100/login || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    networks:
+      - nextal-network
+
+  api:
+    image: hr-payroll-management-api:latest
+    pull_policy: never
+    container_name: nextal-api-prod
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:15000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      DOCUMENT_ENCRYPTION_KEY: ${DOCUMENT_ENCRYPTION_KEY}
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      ENABLE_JOBS: ${ENABLE_JOBS:-true}
+      ENABLE_API_DOCS: ${ENABLE_API_DOCS:-false}
+      ENABLE_JOB_TRIGGER_API: ${ENABLE_JOB_TRIGGER_API:-false}
+      STORAGE_DRIVER: local
+      STORAGE_LOCAL_DIR: /app/backend/storage
+      MAIL_MODE: ${MAIL_MODE:-disabled}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      ALERT_EMAIL_RECIPIENT: ${ALERT_EMAIL_RECIPIENT:-}
+    volumes:
+      - storage_data:/app/backend/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5000/api/v1/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    networks:
+      - nextal-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: nextal-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4096M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    networks:
+      - nextal-network
+
+  backup:
+    image: postgres:16-alpine
+    container_name: nextal-backup-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: postgres
+      BACKUP_ENCRYPTION_PASSPHRASE: ${BACKUP_ENCRYPTION_PASSPHRASE}
+    volumes:
+      - ./backups:/backups
+      - ./deploy:/deploy:ro
+      - storage_data:/storage:ro
+    entrypoint: ["sh", "-c", "echo 'Nextal aaPanel backup daemon initialized.'; trap exit TERM; while true; do if [ -f /deploy/backup.sh ]; then sh /deploy/backup.sh || true; fi; sleep 86400; done"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    networks:
+      - nextal-network
+
+volumes:
+  postgres_data:
+    driver: local
+  storage_data:
+    driver: local
+
+networks:
+  nextal-network:
+    driver: bridge
