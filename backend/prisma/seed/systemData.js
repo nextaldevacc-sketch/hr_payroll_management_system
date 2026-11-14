@@ -19,20 +19,20 @@ export const SYSTEM_ROLE_DEFS = [
 /**
  * Seeds purely system-level data (roles, permissions).
  * NO companies, NO users, NO employees, NO demo data.
+ * Non-destructive: upserts canonical roles only, never truncates tables.
  */
-export async function seedSystemData(prisma) {
+export async function seedSystemData(prisma, { forceReset = false } = {}) {
   console.log('--- Seeding System-Level Infrastructure & Roles Catalog ---');
 
-  console.log('Cleaning existing database tables...');
-  await prisma.$executeRawUnsafe(`
-    TRUNCATE TABLE 
-      companies, 
-      roles, 
-      public_holidays, 
-      leave_types, 
-      accrual_plans 
-    CASCADE;
-  `);
+  // Verify non-destructive constraint: refuse to run if companies already exist unless --force-reset is passed
+  const companyCount = await prisma.companies.count();
+  if (companyCount > 0 && !forceReset) {
+    const msg = `[REFUSED] Database contains ${companyCount} existing company/companies. 'seed:system' will not run to protect existing data. Pass --force-reset to update system roles.`;
+    console.error(msg);
+    const err = new Error(msg);
+    err.code = 'EXISTING_COMPANIES_REFUSED';
+    throw err;
+  }
 
   console.log('Seeding 8 canonical roles with Section 5.3 permissions matrix...');
   const rolesMap = {};
@@ -54,7 +54,7 @@ export async function seedSystemData(prisma) {
     rolesMap[r.code] = role;
   }
 
-  console.log('System seed completed successfully (0 companies, 0 users, 0 employees, 8 roles).');
+  console.log('System seed completed successfully (8 canonical roles upserted, 0 tables truncated).');
   return rolesMap;
 }
 

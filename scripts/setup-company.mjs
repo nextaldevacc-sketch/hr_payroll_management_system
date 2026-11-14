@@ -51,6 +51,21 @@ Example:
   }
 
   try {
+    // 0. Verify system roles catalog before attempting provisioning
+    const rolesCount = await prisma.$base().roles.count();
+    if (rolesCount === 0) {
+      console.error('\n❌ ERROR: System roles catalog is empty.');
+      console.error('Fresh databases must be initialized with canonical roles before running setup:company.');
+      console.error('Please run: npm run seed:system\n');
+      process.exit(1);
+    }
+    const adminRole = await prisma.$base().roles.findUnique({ where: { code: 'COMPANY_ADMIN' } });
+    if (!adminRole) {
+      console.error('\n❌ ERROR: Required system role "COMPANY_ADMIN" is missing from the database.');
+      console.error('Please run: npm run seed:system\n');
+      process.exit(1);
+    }
+
     console.log(`\nProvisioning company: "${name}" (${nameAr})...`);
     const result = await companyService.createCompanyWithDefaults({
       name,

@@ -44,16 +44,17 @@ async function logTableCounts() {
 }
 
 export async function main() {
-  if (process.env.NODE_ENV === 'production') {
-    console.error('========================================================================');
-    console.error('[SECURITY BLOCK] Demo seeding and database resets are FORBIDDEN in production (NODE_ENV=production).');
-    console.error('========================================================================');
-    process.exit(1);
-  }
-
   const dbUrl = process.env.DATABASE_URL || '';
   const isDevDb = dbUrl.includes('/nextal_hr_payroll');
   const isDemoMode = process.env.SEED_MODE === 'demo';
+  const isProd = process.env.NODE_ENV === 'production';
+
+  if (isProd && isDemoMode) {
+    console.error('========================================================================');
+    console.error('[SECURITY BLOCK] Demo seeding is FORBIDDEN in production (NODE_ENV=production).');
+    console.error('========================================================================');
+    process.exit(1);
+  }
 
   if (isDemoMode && isDevDb && process.env.FORCE_DEMO_SEED !== 'yes') {
     console.error('========================================================================');
@@ -67,7 +68,8 @@ export async function main() {
   if (!isDemoMode) {
     console.log('--- Nextal HR & Payroll Clean System Seed (Default Mode) ---');
     console.log('Database URL:', dbUrl.replace(/:[^:@]+@/, ':***@'));
-    await seedSystemData(prisma);
+    const forceReset = process.argv.includes('--force-reset');
+    await seedSystemData(prisma, { forceReset });
     return await logTableCounts();
   }
 

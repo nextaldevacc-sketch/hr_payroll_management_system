@@ -66,7 +66,7 @@ describe('Company Bootstrap & Forced Password Change Tests (Spec Part 6B)', () =
     assert.equal(rules.length, 17, '17 Section 8.1 salary rules must be created');
 
     const flows = await prisma.$base().approval_flows.findMany({ where: { company_id: companyId } });
-    assert.equal(flows.length, 4, '4 default approval flows must be created');
+    assert.equal(flows.length, 5, '5 default approval flows must be created');
   });
 
   it('2. Idempotent guard: duplicate email or trade license is refused with 400', async () => {

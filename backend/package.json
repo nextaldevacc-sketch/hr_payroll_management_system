@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "seed": "node prisma/seed/index.js",
     "prisma:seed": "node prisma/seed/index.js",
+    "seed:system": "node ../scripts/seed-system.mjs",
     "setup:company": "node ../scripts/setup-company.mjs",
     "test": "node test/runAll.js"
   },

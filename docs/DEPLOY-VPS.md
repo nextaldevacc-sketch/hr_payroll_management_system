@@ -276,12 +276,18 @@ All production services are healthy!
 
 ---
 
-## 6. Company Initialization (First Company & Admin Creation)
+## 6. System Roles & Company Initialization (First Company & Admin Creation)
 
-On a fresh deployment, initialize your company profile and generate your initial Company Admin login:
+On a fresh deployment, first initialize the canonical system roles and Section 5.3 permissions matrix:
 
 ```bash
-docker compose --env-file .env.production -f docker-compose.prod.yml exec -T api npm run setup:company
+docker compose --env-file .env.production -f docker-compose.prod.yml exec -T api npm run seed:system
+```
+
+Then initialize your company profile and generate your initial Company Admin login:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml exec -T api npm run setup:company -- -n "Gulf Tech Logistics LLC" -t "TL-882910" -e "admin@gulftech.ae"
 ```
 
 *Expected Output:*

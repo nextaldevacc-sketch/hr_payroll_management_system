@@ -36,6 +36,10 @@ docker compose --env-file "${ENV_FILE}" -f docker-compose.prod.yml up -d
 echo "[Step 4/6] Applying pending database migrations (prisma migrate deploy)..."
 docker compose --env-file "${ENV_FILE}" -f docker-compose.prod.yml exec -T api npx prisma migrate deploy
 
+# Step 4b: Ensure canonical system roles are seeded on fresh databases
+echo "[Step 4b] Ensuring system roles catalog is initialized (seed:system)..."
+docker compose --env-file "${ENV_FILE}" -f docker-compose.prod.yml exec -T api npm run seed:system || echo "[Step 4b] System roles catalog already initialized with existing data."
+
 # Step 5: Wait for service health
 echo "[Step 5/6] Waiting for services to become healthy..."
 MAX_WAIT=60

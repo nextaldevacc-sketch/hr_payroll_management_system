@@ -52,3 +52,8 @@ apps/api/storage/documents/*
 # Database backups
 backups/*
 !backups/.gitkeep
+
+# Deploy artifacts
+nextal-images.tar
+*.tar
+*.tar.gz

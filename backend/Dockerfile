@@ -18,7 +18,7 @@ RUN npm ci
 # Copy source trees
 COPY shared ./shared
 COPY backend ./backend
-COPY scripts/setup-company.mjs ./scripts/setup-company.mjs
+COPY scripts/setup-company.mjs scripts/seed-system.mjs ./scripts/
 
 # Generate Prisma Client
 WORKDIR /app/backend

@@ -151,249 +151,275 @@ export class CompanyService {
       throw err;
     }
 
-    // 1. Create company
-    const company = await this.prisma.$base().companies.create({
-      data: {
-        name,
-        name_ar: name_ar || name,
-        trade_license_no,
-        default_language: 'en',
-        status: 'Active',
-        default_cutoff_day,
-        variance_threshold_pct: 5.0,
-        alert_days: [90, 60, 30],
-      },
-    });
-
-    // 2. Create primary visa & branch
-    const visa = await this.prisma.$base().company_visas.create({
-      data: {
-        company_id: company.id,
-        name: `Visa 01 (${emirate} MOHRE)`,
-        mol_establishment_id: cleanMolId,
-        bank_routing_code,
-        emirate,
-      },
-    });
-
-    const branch = await this.prisma.$base().branches.create({
-      data: {
-        company_id: company.id,
-        company_visa_id: visa.id,
-        name: 'Main Branch',
-        name_ar: 'الفرع الرئيسي',
-        emirate,
-      },
-    });
-
-    // 3. Create default departments
-    const deptOps = await this.prisma.$base().departments.create({
-      data: {
-        company_id: company.id,
-        name: 'Operations',
-        name_ar: 'العمليات',
-        cost_centre: 'CC-OPS',
-      },
-    });
-
-    const deptHR = await this.prisma.$base().departments.create({
-      data: {
-        company_id: company.id,
-        name: 'HR & Administration',
-        name_ar: 'الموارد البشرية والإدارة',
-        cost_centre: 'CC-HR',
-      },
-    });
-
-    // 4. Create standard shift & attendance policy
-    const shift = await this.prisma.$base().shifts.create({
-      data: {
-        company_id: company.id,
-        name: 'Standard Office 8 to 5',
-        start_time: '08:00:00',
-        end_time: '17:00:00',
-        break_minutes: 60,
-        grace_minutes: 15,
-        weekly_off_days: [0, 6],
-        ramadan_start_time: '09:00:00',
-        ramadan_end_time: '15:00:00',
-      },
-    });
-
-    const policy = await this.prisma.$base().attendance_policies.create({
-      data: {
-        company_id: company.id,
-        name: 'UAE Statutory Attendance Policy',
-        late_grace_minutes: 15,
-        early_out_grace_minutes: 15,
-        ot_eligible: true,
-        ot_min_minutes: 30,
-        night_start: '22:00:00',
-        night_end: '04:00:00',
-      },
-    });
-
-    await this.prisma.$base().penalty_steps.createMany({
-      data: [
-        { company_id: company.id, policy_id: policy.id, applies_to: 'Late', occurrence_from: 1, min_minutes: 15, penalty_type: 'Warning', penalty_value: 0.00 },
-        { company_id: company.id, policy_id: policy.id, applies_to: 'Late', occurrence_from: 2, min_minutes: 15, penalty_type: 'Warning', penalty_value: 0.00 },
-        { company_id: company.id, policy_id: policy.id, applies_to: 'Late', occurrence_from: 3, min_minutes: 15, penalty_type: 'DeductionFraction', penalty_value: 0.25 },
-        { company_id: company.id, policy_id: policy.id, applies_to: 'Late', occurrence_from: 4, min_minutes: 15, penalty_type: 'DeductionFraction', penalty_value: 0.50 },
-      ],
-    });
-
-    // 5. Create UAE standard leave types & accrual plan
-    const leaveTypes = [
-      { code: 'ANNUAL', name: 'Annual Leave', name_ar: 'إجازة سنوية', is_paid: true, max_days_per_year: 30 },
-      { code: 'SICK', name: 'Sick Leave', name_ar: 'إجازة مرضية', is_paid: true, max_days_per_year: 90 },
-      { code: 'MATERNITY', name: 'Maternity Leave', name_ar: 'إجازة أمومة / وضع', is_paid: true, max_days_per_year: 60 },
-      { code: 'PATERNITY', name: 'Paternity Leave', name_ar: 'إجازة أبوة', is_paid: true, max_days_per_year: 5 },
-      { code: 'BEREAVEMENT', name: 'Bereavement Leave', name_ar: 'إجازة عزاء', is_paid: true, max_days_per_year: 5 },
-      { code: 'STUDY', name: 'Study / Exam Leave', name_ar: 'إجازة دراسية وامتحانات', is_paid: true, max_days_per_year: 10 },
-      { code: 'UNPAID', name: 'Unpaid Leave', name_ar: 'إجازة غير مدفوعة الأجر', is_paid: false, max_days_per_year: 365 },
-    ];
-
-    let annualLeaveId = null;
-    for (const lt of leaveTypes) {
-      const createdLt = await this.prisma.$base().leave_types.create({
-        data: {
-          company_id: company.id,
-          code: lt.code,
-          name: lt.name,
-          name_ar: lt.name_ar,
-          is_paid: lt.is_paid,
-          max_days_per_year: lt.max_days_per_year,
-          needs_attachment: lt.code !== 'ANNUAL',
-        },
-      });
-      if (lt.code === 'ANNUAL') annualLeaveId = createdLt.id;
-    }
-
-    if (annualLeaveId) {
-      await this.prisma.$base().accrual_plans.create({
-        data: {
-          company_id: company.id,
-          leave_type_id: annualLeaveId,
-          name: 'Standard UAE Annual Accrual (2.5 days/mo)',
-          days_per_month: 2.5,
-          start_after_months: 6,
-          yearly_cap: 30,
-          carry_over_max: 15,
-        },
-      });
-    }
-
-    // 5b. UAE Public Holidays 2026
-    const uaeHolidays2026 = [
-      { name: 'New Year Day', name_ar: 'رأس السنة الميلادية', date: '2026-01-01' },
-      { name: 'Eid Al Fitr Day 1', name_ar: 'عيد الفطر - اليوم 1', date: '2026-03-20' },
-      { name: 'Eid Al Fitr Day 2', name_ar: 'عيد الفطر - اليوم 2', date: '2026-03-21' },
-      { name: 'Eid Al Fitr Day 3', name_ar: 'عيد الفطر - اليوم 3', date: '2026-03-22' },
-      { name: 'Eid Al Fitr Day 4', name_ar: 'عيد الفطر - اليوم 4', date: '2026-03-23' },
-      { name: 'Arafat Day', name_ar: 'وقفة عرفة', date: '2026-05-26' },
-      { name: 'Eid Al Adha Day 1', name_ar: 'عيد الأضحى - اليوم 1', date: '2026-05-27' },
-      { name: 'Eid Al Adha Day 2', name_ar: 'عيد الأضحى - اليوم 2', date: '2026-05-28' },
-      { name: 'Eid Al Adha Day 3', name_ar: 'عيد الأضحى - اليوم 3', date: '2026-05-29' },
-      { name: 'Islamic New Year', name_ar: 'رأس السنة الهجرية', date: '2026-06-16' },
-      { name: 'Prophet Birthday', name_ar: 'المولد النبوي الشريف', date: '2026-08-25' },
-      { name: 'UAE National Day 1', name_ar: 'اليوم الوطني - اليوم 1', date: '2026-12-02' },
-      { name: 'UAE National Day 2', name_ar: 'اليوم الوطني - اليوم 2', date: '2026-12-03' },
-    ];
-
-    for (const h of uaeHolidays2026) {
-      await this.prisma.$base().public_holidays.create({
-        data: {
-          company_id: company.id,
-          holiday_date: new Date(h.date),
-          name: h.name,
-          name_ar: h.name_ar,
-          year: 2026,
-        },
-      });
-    }
-
-    // 6. Create Salary Structure & 17 Section 8.1 Salary Rules
-    const structure = await this.prisma.$base().salary_structures.create({
-      data: {
-        company_id: company.id,
-        code: 'UAE_STD_60_40',
-        name: 'UAE Standard 60/40 Structure',
-        unpaid_entry_types: ['UNPAID_LEAVE', 'SICK_UNPAID'],
-      },
-    });
-
-    const section81Rules = [
-      { code: 'BASIC', name: 'Basic Salary', category: 'Basic', sequence: 10, amount_type: 'Percentage', formula: 'contract.basic * paid_days / month_days' },
-      { code: 'HRA', name: 'Housing Allowance', category: 'Allowance', sequence: 20, amount_type: 'Percentage', formula: 'contract.housing * paid_days / month_days' },
-      { code: 'TRA', name: 'Transport Allowance', category: 'Allowance', sequence: 30, amount_type: 'Percentage', formula: 'contract.transport * paid_days / month_days' },
-      { code: 'OTH', name: 'Other Allowance', category: 'Allowance', sequence: 40, amount_type: 'Percentage', formula: 'contract.other_allowances * paid_days / month_days' },
-      { code: 'GROSS', name: 'Gross Salary', category: 'Basic', sequence: 50, amount_type: 'Formula', formula: 'BASIC + all allowances' },
-      { code: 'OT_NORMAL', name: 'Normal Overtime (1.25x)', category: 'Addition', sequence: 60, amount_type: 'Formula', formula: '(basic / 30 / 8) * 1.25 * approved OT hours' },
-      { code: 'OT_NIGHT', name: 'Night Overtime 10pm-4am (1.50x)', category: 'Addition', sequence: 70, amount_type: 'Formula', formula: '(basic / 30 / 8) * 1.50 * hours' },
-      { code: 'OT_REST', name: 'Rest Day / Holiday Overtime (1.50x)', category: 'Addition', sequence: 80, amount_type: 'Formula', formula: 'substitute day, or (basic / 30 / 8) * 1.50 * hours' },
-      { code: 'ABS', name: 'Absence / Unpaid Leave', category: 'Deduction', sequence: 90, amount_type: 'Formula', formula: 'gross / 30 * days' },
-      { code: 'LATE', name: 'Late / Early-Out Penalty', category: 'Deduction', sequence: 100, amount_type: 'Formula', formula: 'from attendance policy steps' },
-      { code: 'SICK_HALF', name: 'Sick Leave Days 16-45 (50%)', category: 'Deduction', sequence: 110, amount_type: 'Formula', formula: '50% of daily gross' },
-      { code: 'SICK_NONE', name: 'Sick Leave Days 46-90 (100%)', category: 'Deduction', sequence: 120, amount_type: 'Formula', formula: '100% deduction' },
-      { code: 'LOAN', name: 'Loan Recovery', category: 'Deduction', sequence: 130, amount_type: 'Formula', formula: 'monthly instalment from Salary Adjustments' },
-      { code: 'ADV', name: 'Salary Advance Recovery', category: 'Deduction', sequence: 140, amount_type: 'Formula', formula: 'monthly instalment from Salary Adjustments' },
-      { code: 'GPSSA_EE', name: 'GPSSA UAE National Pension (Employee Share)', category: 'Deduction', sequence: 150, amount_type: 'Formula', formula: 'gpssa_salary * gpssa_ee_rate' },
-      { code: 'GPSSA_ER', name: 'GPSSA UAE National Pension (Employer Share)', category: 'CompanyContribution', sequence: 160, amount_type: 'Formula', formula: 'gpssa_salary * gpssa_er_rate' },
-      { code: 'NET', name: 'Net Pay to WPS', category: 'Basic', sequence: 170, amount_type: 'Formula', formula: 'GROSS + earnings - deductions' },
-    ];
-
-    for (const r of section81Rules) {
-      await this.prisma.$base().salary_rules.create({
-        data: {
-          company_id: company.id,
-          structure_id: structure.id,
-          code: r.code,
-          name: r.name,
-          category: r.category,
-          sequence: r.sequence,
-          amount_type: r.amount_type,
-          formula: r.formula,
-          appears_on_payslip: true,
-        },
-      });
-    }
-
-    // 7. Get or verify roles catalog
+    // 0. Verify system roles catalog before touching database (Part 7E)
     const allRoles = await this.prisma.$base().roles.findMany();
+    if (!allRoles || allRoles.length === 0) {
+      const err = new Error('Roles catalog is empty. Please run "npm run seed:system" before creating a company.');
+      err.status = 500;
+      err.code = 'ROLES_CATALOG_EMPTY';
+      throw err;
+    }
     const rolesMap = {};
     for (const r of allRoles) rolesMap[r.code] = r;
 
-    // 7b. Seed default approval flows (Leave, Overtime, PayRun, Separation)
-    if (rolesMap['DEPT_MANAGER'] && rolesMap['HR_OFFICER'] && rolesMap['GM'] && rolesMap['HR_MANAGER'] && rolesMap['FINANCE']) {
-      const leaveFlow = await this.prisma.$base().approval_flows.create({
+    if (!rolesMap['COMPANY_ADMIN']) {
+      const err = new Error('Required system role "COMPANY_ADMIN" is missing from the database. Please run "npm run seed:system".');
+      err.status = 500;
+      err.code = 'ROLE_COMPANY_ADMIN_MISSING';
+      throw err;
+    }
+
+    const requiredFlowRoles = ['DEPT_MANAGER', 'HR_OFFICER', 'HR_MANAGER', 'GM', 'FINANCE'];
+    const missingFlowRoles = requiredFlowRoles.filter((code) => !rolesMap[code]);
+    if (missingFlowRoles.length > 0) {
+      const err = new Error(`Required roles for approval workflows missing: [${missingFlowRoles.join(', ')}]. Please run "npm run seed:system".`);
+      err.status = 500;
+      err.code = 'ROLES_MISSING';
+      throw err;
+    }
+
+    const tempPassword = 'Tmp!' + crypto.randomBytes(6).toString('hex') + 'A9';
+    const passwordHash = await authService.hashPassword(tempPassword);
+
+    // Provision company with UAE defaults in a single atomic transaction (rolls back on failure)
+    const { company, adminUser } = await this.prisma.$base().$transaction(async (tx) => {
+      // 1. Create company
+      const comp = await tx.companies.create({
         data: {
-          company_id: company.id,
+          name,
+          name_ar: name_ar || name,
+          trade_license_no,
+          default_language: 'en',
+          status: 'Active',
+          default_cutoff_day,
+          variance_threshold_pct: 5.0,
+          alert_days: [90, 60, 30],
+        },
+      });
+
+      // 2. Create primary visa & branch
+      const visa = await tx.company_visas.create({
+        data: {
+          company_id: comp.id,
+          name: `Visa 01 (${emirate} MOHRE)`,
+          mol_establishment_id: cleanMolId,
+          bank_routing_code,
+          emirate,
+        },
+      });
+
+      await tx.branches.create({
+        data: {
+          company_id: comp.id,
+          company_visa_id: visa.id,
+          name: 'Main Branch',
+          name_ar: 'الفرع الرئيسي',
+          emirate,
+        },
+      });
+
+      // 3. Create default departments
+      await tx.departments.create({
+        data: {
+          company_id: comp.id,
+          name: 'Operations',
+          name_ar: 'العمليات',
+          cost_centre: 'CC-OPS',
+        },
+      });
+
+      await tx.departments.create({
+        data: {
+          company_id: comp.id,
+          name: 'HR & Administration',
+          name_ar: 'الموارد البشرية والإدارة',
+          cost_centre: 'CC-HR',
+        },
+      });
+
+      // 4. Create standard shift & attendance policy
+      await tx.shifts.create({
+        data: {
+          company_id: comp.id,
+          name: 'Standard Office 8 to 5',
+          start_time: '08:00:00',
+          end_time: '17:00:00',
+          break_minutes: 60,
+          grace_minutes: 15,
+          weekly_off_days: [0, 6],
+          ramadan_start_time: '09:00:00',
+          ramadan_end_time: '15:00:00',
+        },
+      });
+
+      const policy = await tx.attendance_policies.create({
+        data: {
+          company_id: comp.id,
+          name: 'UAE Statutory Attendance Policy',
+          late_grace_minutes: 15,
+          early_out_grace_minutes: 15,
+          ot_eligible: true,
+          ot_min_minutes: 30,
+          night_start: '22:00:00',
+          night_end: '04:00:00',
+        },
+      });
+
+      await tx.penalty_steps.createMany({
+        data: [
+          { company_id: comp.id, policy_id: policy.id, applies_to: 'Late', occurrence_from: 1, min_minutes: 15, penalty_type: 'Warning', penalty_value: 0.00 },
+          { company_id: comp.id, policy_id: policy.id, applies_to: 'Late', occurrence_from: 2, min_minutes: 15, penalty_type: 'Warning', penalty_value: 0.00 },
+          { company_id: comp.id, policy_id: policy.id, applies_to: 'Late', occurrence_from: 3, min_minutes: 15, penalty_type: 'DeductionFraction', penalty_value: 0.25 },
+          { company_id: comp.id, policy_id: policy.id, applies_to: 'Late', occurrence_from: 4, min_minutes: 15, penalty_type: 'DeductionFraction', penalty_value: 0.50 },
+        ],
+      });
+
+      // 5. Create UAE standard leave types & accrual plan
+      const leaveTypes = [
+        { code: 'ANNUAL', name: 'Annual Leave', name_ar: 'إجازة سنوية', is_paid: true, max_days_per_year: 30 },
+        { code: 'SICK', name: 'Sick Leave', name_ar: 'إجازة مرضية', is_paid: true, max_days_per_year: 90 },
+        { code: 'MATERNITY', name: 'Maternity Leave', name_ar: 'إجازة أمومة / وضع', is_paid: true, max_days_per_year: 60 },
+        { code: 'PATERNITY', name: 'Paternity Leave', name_ar: 'إجازة أبوة', is_paid: true, max_days_per_year: 5 },
+        { code: 'BEREAVEMENT', name: 'Bereavement Leave', name_ar: 'إجازة عزاء', is_paid: true, max_days_per_year: 5 },
+        { code: 'STUDY', name: 'Study / Exam Leave', name_ar: 'إجازة دراسية وامتحانات', is_paid: true, max_days_per_year: 10 },
+        { code: 'UNPAID', name: 'Unpaid Leave', name_ar: 'إجازة غير مدفوعة الأجر', is_paid: false, max_days_per_year: 365 },
+      ];
+
+      let annualLeaveId = null;
+      for (const lt of leaveTypes) {
+        const createdLt = await tx.leave_types.create({
+          data: {
+            company_id: comp.id,
+            code: lt.code,
+            name: lt.name,
+            name_ar: lt.name_ar,
+            is_paid: lt.is_paid,
+            max_days_per_year: lt.max_days_per_year,
+            needs_attachment: lt.code !== 'ANNUAL',
+          },
+        });
+        if (lt.code === 'ANNUAL') annualLeaveId = createdLt.id;
+      }
+
+      if (annualLeaveId) {
+        await tx.accrual_plans.create({
+          data: {
+            company_id: comp.id,
+            leave_type_id: annualLeaveId,
+            name: 'Standard UAE Annual Accrual (2.5 days/mo)',
+            days_per_month: 2.5,
+            start_after_months: 6,
+            yearly_cap: 30,
+            carry_over_max: 15,
+          },
+        });
+      }
+
+      // 5b. UAE Public Holidays 2026
+      const uaeHolidays2026 = [
+        { name: 'New Year Day', name_ar: 'رأس السنة الميلادية', date: '2026-01-01' },
+        { name: 'Eid Al Fitr Day 1', name_ar: 'عيد الفطر - اليوم 1', date: '2026-03-20' },
+        { name: 'Eid Al Fitr Day 2', name_ar: 'عيد الفطر - اليوم 2', date: '2026-03-21' },
+        { name: 'Eid Al Fitr Day 3', name_ar: 'عيد الفطر - اليوم 3', date: '2026-03-22' },
+        { name: 'Eid Al Fitr Day 4', name_ar: 'عيد الفطر - اليوم 4', date: '2026-03-23' },
+        { name: 'Arafat Day', name_ar: 'وقفة عرفة', date: '2026-05-26' },
+        { name: 'Eid Al Adha Day 1', name_ar: 'عيد الأضحى - اليوم 1', date: '2026-05-27' },
+        { name: 'Eid Al Adha Day 2', name_ar: 'عيد الأضحى - اليوم 2', date: '2026-05-28' },
+        { name: 'Eid Al Adha Day 3', name_ar: 'عيد الأضحى - اليوم 3', date: '2026-05-29' },
+        { name: 'Islamic New Year', name_ar: 'رأس السنة الهجرية', date: '2026-06-16' },
+        { name: 'Prophet Birthday', name_ar: 'المولد النبوي الشريف', date: '2026-08-25' },
+        { name: 'UAE National Day 1', name_ar: 'اليوم الوطني - اليوم 1', date: '2026-12-02' },
+        { name: 'UAE National Day 2', name_ar: 'اليوم الوطني - اليوم 2', date: '2026-12-03' },
+      ];
+
+      for (const h of uaeHolidays2026) {
+        await tx.public_holidays.create({
+          data: {
+            company_id: comp.id,
+            holiday_date: new Date(h.date),
+            name: h.name,
+            name_ar: h.name_ar,
+            year: 2026,
+          },
+        });
+      }
+
+      // 6. Create Salary Structure & 17 Section 8.1 Salary Rules
+      const structure = await tx.salary_structures.create({
+        data: {
+          company_id: comp.id,
+          code: 'UAE_STD_60_40',
+          name: 'UAE Standard 60/40 Structure',
+          unpaid_entry_types: ['UNPAID_LEAVE', 'SICK_UNPAID'],
+        },
+      });
+
+      const section81Rules = [
+        { code: 'BASIC', name: 'Basic Salary', category: 'Basic', sequence: 10, amount_type: 'Percentage', formula: 'contract.basic * paid_days / month_days' },
+        { code: 'HRA', name: 'Housing Allowance', category: 'Allowance', sequence: 20, amount_type: 'Percentage', formula: 'contract.housing * paid_days / month_days' },
+        { code: 'TRA', name: 'Transport Allowance', category: 'Allowance', sequence: 30, amount_type: 'Percentage', formula: 'contract.transport * paid_days / month_days' },
+        { code: 'OTH', name: 'Other Allowance', category: 'Allowance', sequence: 40, amount_type: 'Percentage', formula: 'contract.other_allowances * paid_days / month_days' },
+        { code: 'GROSS', name: 'Gross Salary', category: 'Basic', sequence: 50, amount_type: 'Formula', formula: 'BASIC + all allowances' },
+        { code: 'OT_NORMAL', name: 'Normal Overtime (1.25x)', category: 'Addition', sequence: 60, amount_type: 'Formula', formula: '(basic / 30 / 8) * 1.25 * approved OT hours' },
+        { code: 'OT_NIGHT', name: 'Night Overtime 10pm-4am (1.50x)', category: 'Addition', sequence: 70, amount_type: 'Formula', formula: '(basic / 30 / 8) * 1.50 * hours' },
+        { code: 'OT_REST', name: 'Rest Day / Holiday Overtime (1.50x)', category: 'Addition', sequence: 80, amount_type: 'Formula', formula: 'substitute day, or (basic / 30 / 8) * 1.50 * hours' },
+        { code: 'ABS', name: 'Absence / Unpaid Leave', category: 'Deduction', sequence: 90, amount_type: 'Formula', formula: 'gross / 30 * days' },
+        { code: 'LATE', name: 'Late / Early-Out Penalty', category: 'Deduction', sequence: 100, amount_type: 'Formula', formula: 'from attendance policy steps' },
+        { code: 'SICK_HALF', name: 'Sick Leave Days 16-45 (50%)', category: 'Deduction', sequence: 110, amount_type: 'Formula', formula: '50% of daily gross' },
+        { code: 'SICK_NONE', name: 'Sick Leave Days 46-90 (100%)', category: 'Deduction', sequence: 120, amount_type: 'Formula', formula: '100% deduction' },
+        { code: 'LOAN', name: 'Loan Recovery', category: 'Deduction', sequence: 130, amount_type: 'Formula', formula: 'monthly instalment from Salary Adjustments' },
+        { code: 'ADV', name: 'Salary Advance Recovery', category: 'Deduction', sequence: 140, amount_type: 'Formula', formula: 'monthly instalment from Salary Adjustments' },
+        { code: 'GPSSA_EE', name: 'GPSSA UAE National Pension (Employee Share)', category: 'Deduction', sequence: 150, amount_type: 'Formula', formula: 'gpssa_salary * gpssa_ee_rate' },
+        { code: 'GPSSA_ER', name: 'GPSSA UAE National Pension (Employer Share)', category: 'CompanyContribution', sequence: 160, amount_type: 'Formula', formula: 'gpssa_salary * gpssa_er_rate' },
+        { code: 'NET', name: 'Net Pay to WPS', category: 'Basic', sequence: 170, amount_type: 'Formula', formula: 'GROSS + earnings - deductions' },
+      ];
+
+      for (const r of section81Rules) {
+        await tx.salary_rules.create({
+          data: {
+            company_id: comp.id,
+            structure_id: structure.id,
+            code: r.code,
+            name: r.name,
+            category: r.category,
+            sequence: r.sequence,
+            amount_type: r.amount_type,
+            formula: r.formula,
+            appears_on_payslip: true,
+          },
+        });
+      }
+
+      // 7. Seed 5 statutory approval flows (Leave, Overtime, PayRun, Separation, Employee Verification)
+      const leaveFlow = await tx.approval_flows.create({
+        data: {
+          company_id: comp.id,
           request_type: 'LEAVE',
           name: 'Standard Leave Approval Flow',
           priority: 1,
           is_active: true,
         },
       });
-      await this.prisma.$base().approval_flow_steps.createMany({
+      await tx.approval_flow_steps.createMany({
         data: [
-          { company_id: company.id, flow_id: leaveFlow.id, step_no: 1, role_id: rolesMap['DEPT_MANAGER'].id, approver_rule: 'SpecificRole' },
-          { company_id: company.id, flow_id: leaveFlow.id, step_no: 2, role_id: rolesMap['HR_OFFICER'].id, approver_rule: 'SpecificRole' },
-          { company_id: company.id, flow_id: leaveFlow.id, step_no: 3, role_id: rolesMap['GM'].id, approver_rule: 'SpecificRole' },
+          { company_id: comp.id, flow_id: leaveFlow.id, step_no: 1, role_id: rolesMap['DEPT_MANAGER'].id, approver_rule: 'SpecificRole' },
+          { company_id: comp.id, flow_id: leaveFlow.id, step_no: 2, role_id: rolesMap['HR_OFFICER'].id, approver_rule: 'SpecificRole' },
+          { company_id: comp.id, flow_id: leaveFlow.id, step_no: 3, role_id: rolesMap['GM'].id, approver_rule: 'SpecificRole' },
         ],
       });
 
-      const otFlow = await this.prisma.$base().approval_flows.create({
+      const otFlow = await tx.approval_flows.create({
         data: {
-          company_id: company.id,
+          company_id: comp.id,
           request_type: 'Overtime',
           name: 'Overtime Approval Flow',
           priority: 1,
           is_active: true,
         },
       });
-      await this.prisma.$base().approval_flow_steps.create({
+      await tx.approval_flow_steps.create({
         data: {
-          company_id: company.id,
+          company_id: comp.id,
           flow_id: otFlow.id,
           step_no: 1,
           role_id: rolesMap['HR_MANAGER'].id,
@@ -401,67 +427,82 @@ export class CompanyService {
         },
       });
 
-      const payRunFlow = await this.prisma.$base().approval_flows.create({
+      const payRunFlow = await tx.approval_flows.create({
         data: {
-          company_id: company.id,
+          company_id: comp.id,
           request_type: 'PayRun',
           name: 'Pay Run Signoff Flow',
           priority: 1,
           is_active: true,
         },
       });
-      await this.prisma.$base().approval_flow_steps.createMany({
+      await tx.approval_flow_steps.createMany({
         data: [
-          { company_id: company.id, flow_id: payRunFlow.id, step_no: 1, role_id: rolesMap['FINANCE'].id, approver_rule: 'SpecificRole' },
-          { company_id: company.id, flow_id: payRunFlow.id, step_no: 2, role_id: rolesMap['GM'].id, approver_rule: 'SpecificRole' },
+          { company_id: comp.id, flow_id: payRunFlow.id, step_no: 1, role_id: rolesMap['FINANCE'].id, approver_rule: 'SpecificRole' },
+          { company_id: comp.id, flow_id: payRunFlow.id, step_no: 2, role_id: rolesMap['GM'].id, approver_rule: 'SpecificRole' },
         ],
       });
 
-      const sepFlow = await this.prisma.$base().approval_flows.create({
+      const sepFlow = await tx.approval_flows.create({
         data: {
-          company_id: company.id,
+          company_id: comp.id,
           request_type: 'Separation',
           name: 'Separation & Exit Approval Flow',
           priority: 1,
           is_active: true,
         },
       });
-      await this.prisma.$base().approval_flow_steps.create({
+      await tx.approval_flow_steps.create({
         data: {
-          company_id: company.id,
+          company_id: comp.id,
           flow_id: sepFlow.id,
           step_no: 1,
           role_id: rolesMap['HR_MANAGER'].id,
           approver_rule: 'SpecificRole',
         },
       });
-    }
 
-    // 8. Create Company Admin user (status: Active, must_change_password: true)
-    const adminRole = rolesMap['COMPANY_ADMIN'];
-    const tempPassword = 'Tmp!' + crypto.randomBytes(6).toString('hex') + 'A9';
-    const passwordHash = await authService.hashPassword(tempPassword);
-
-    const adminUser = await this.prisma.$base().users.create({
-      data: {
-        company_id: company.id,
-        email: cleanEmail,
-        password_hash: passwordHash,
-        status: 'Active',
-        must_change_password: true,
-      },
-    });
-
-    if (adminRole) {
-      await this.prisma.$base().user_roles.create({
+      const verifFlow = await tx.approval_flows.create({
         data: {
-          company_id: company.id,
-          user_id: adminUser.id,
-          role_id: adminRole.id,
+          company_id: comp.id,
+          request_type: 'EMPLOYEE_VERIFICATION',
+          name: 'Employee Verification Dual-Control Flow',
+          priority: 1,
+          is_active: true,
+        },
+      });
+      await tx.approval_flow_steps.create({
+        data: {
+          company_id: comp.id,
+          flow_id: verifFlow.id,
+          step_no: 1,
+          role_id: rolesMap['HR_MANAGER'].id,
+          approver_rule: 'SpecificRole',
+        },
+      });
+
+      // 8. Create Company Admin user (status: Active, must_change_password: true)
+      const user = await tx.users.create({
+        data: {
+          company_id: comp.id,
+          email: cleanEmail,
+          password_hash: passwordHash,
+          status: 'Active',
+          must_change_password: true,
+        },
+      });
+
+      await tx.user_roles.create({
+        data: {
+          company_id: comp.id,
+          user_id: user.id,
+          role_id: rolesMap['COMPANY_ADMIN'].id,
           scope_type: 'Company',
         },
       });
-    }
+
+      return { company: comp, adminUser: user };
+    });
 
     // 9. Generate Invite Token for initial login
     const inviteToken = await authService.generateInviteToken(adminUser);
