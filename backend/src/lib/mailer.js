@@ -219,22 +219,45 @@ export class MailerService {
 
   /**
    * Process queued and retryable failed outbox items with exponential backoff (E1)
+   * Tolerates missing email_outbox table before migrations have run (logs once, retries next tick)
    */
   async processOutboxBatch(batchSize = 25) {
     if (!prisma?.email_outbox) return { processed: 0, sent: 0, failed: 0 };
 
+    let candidates = [];
+    try {
+      candidates = await prisma.email_outbox.findMany({
+        where: {
+          OR: [
+            { status: 'queued' },
+            { status: 'failed', attempts: { lt: 3 } },
+          ],
+        },
+        take: batchSize,
+        orderBy: { created_at: 'asc' },
+      });
+      if (this._missingOutboxTableWarned) {
+        console.log('[email_outbox] Database table "email_outbox" is now online. Resuming normal outbox processing.');
+        this._missingOutboxTableWarned = false;
+      }
+    } catch (err) {
+      const isMissingTable =
+        err?.code === 'P2021' ||
+        err?.message?.includes('does not exist') ||
+        err?.message?.includes('42P01') ||
+        err?.message?.includes('email_outbox');
+
+      if (isMissingTable) {
+        if (!this._missingOutboxTableWarned) {
+          console.warn('[email_outbox] Table "email_outbox" does not exist yet (migrations pending). Tolerating missing table, will retry next tick.');
+          this._missingOutboxTableWarned = true;
+        }
+        return { processed: 0, sent: 0, failed: 0, pendingMigrations: true };
+      }
+      throw err;
+    }
+
     const now = new Date();
-    // Eligible records: 'queued' or ('failed' with attempts < 3)
-    const candidates = await prisma.email_outbox.findMany({
-      where: {
-        OR: [
-          { status: 'queued' },
-          { status: 'failed', attempts: { lt: 3 } },
-        ],
-      },
-      take: batchSize,
-      orderBy: { created_at: 'asc' },
-    });
 
     let sentCount = 0;
     let failedCount = 0;

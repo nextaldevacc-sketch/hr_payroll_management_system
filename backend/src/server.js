@@ -8,10 +8,14 @@ validateEnvironment();
 enforceStartupValidation();
 
 const PORT = process.env.PORT || 5000;
+const isProd = process.env.NODE_ENV === 'production';
+const docsEnabled = !isProd || process.env.ENABLE_API_DOCS === 'true';
 
 app.listen(PORT, () => {
   console.log(`Nextal HR & Payroll API listening on port ${PORT}`);
-  console.log(`Swagger documentation available at http://localhost:${PORT}/api/docs`);
+  if (docsEnabled) {
+    console.log(`Swagger documentation available at http://localhost:${PORT}/api/docs`);
+  }
   console.log(`Health check available at http://localhost:${PORT}/api/v1/health`);
 
   // Start background jobs scheduler (if ENABLE_JOBS !== 'false')

@@ -128,6 +128,9 @@ export async function executeJob(jobKey, triggeredBy = 'CRON') {
 
   try {
     const result = await jobDef.runner();
+    if (result && result.pendingMigrations) {
+      return { success: true, job: jobDef.name, pendingMigrations: true };
+    }
     const endTime = new Date();
     const durationMs = endTime.getTime() - startTime.getTime();
     console.log(`[Scheduler] [${endTime.toISOString()}] Completed job '${jobDef.name}' in ${durationMs}ms`);
