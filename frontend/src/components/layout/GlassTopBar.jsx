@@ -136,7 +136,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
       <div className="flex items-center gap-3 md:gap-4 flex-shrink-0">
         <button
           onClick={onToggleMobileNav}
-          className="md:hidden p-2 rounded-control text-text-muted hover:text-text hover:bg-black/5 dark:hover:bg-white/5"
+          className="md:hidden p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-control text-text-muted hover:text-text hover:bg-black/5 dark:hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label="Toggle navigation"
         >
           <Menu className="w-5 h-5" />
@@ -279,32 +279,34 @@ export function GlassTopBar({ onToggleMobileNav }) {
           id="btn-language-toggle"
           onClick={toggleLanguage}
           title="Toggle English / Arabic"
-          className="topbar-field flex items-center gap-1.5 px-2.5 py-1.5 rounded-control text-xs font-semibold text-text hover:bg-black/5 dark:hover:bg-inset-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="topbar-field flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-control text-xs font-semibold text-text hover:bg-black/5 dark:hover:bg-inset-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Globe className="w-3.5 h-3.5 text-primary" />
           <span>{language === 'en' ? 'عربي' : 'EN'}</span>
         </button>
 
         {/* Theme Toggle in Neumorphic Well */}
-        <IconWell
-          id="btn-theme-toggle"
-          size="sm"
-          shape="circle"
-          onClick={() => {
-            const current = (mounted ? (resolvedTheme || theme) : 'dark');
-            setTheme(current === 'dark' ? 'light' : 'dark');
-          }}
-          title={mounted && (resolvedTheme || theme) === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        >
-          <Sun className="w-4 h-4 text-primary hidden dark:block" />
-          <Moon className="w-4 h-4 text-text-muted hover:text-text block dark:hidden" />
-        </IconWell>
+        <div className="min-h-[40px] min-w-[40px] flex items-center justify-center">
+          <IconWell
+            id="btn-theme-toggle"
+            size="md"
+            shape="circle"
+            onClick={() => {
+              const current = (mounted ? (resolvedTheme || theme) : 'dark');
+              setTheme(current === 'dark' ? 'light' : 'dark');
+            }}
+            title={mounted && (resolvedTheme || theme) === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            <Sun className="w-4 h-4 text-primary hidden dark:block" />
+            <Moon className="w-4 h-4 text-text-muted hover:text-text block dark:hidden" />
+          </IconWell>
+        </div>
 
         {/* Notifications Bell */}
-        <div className="relative">
+        <div className="relative min-h-[40px] min-w-[40px] flex items-center justify-center">
           <IconWell
             id="btn-notifications-bell"
-            size="sm"
+            size="md"
             shape="circle"
             title="Notifications"
             onClick={() => setIsNotifOpen(!isNotifOpen)}
@@ -412,7 +414,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
           <button
             type="button"
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-            className="flex items-center gap-2.5 ps-2 border-s border-border/60 dark:border-border hover:opacity-85 transition-opacity"
+            className="flex items-center gap-2.5 ps-2 min-h-[40px] border-s border-border/60 dark:border-border hover:opacity-85 transition-opacity"
           >
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-black/10 dark:ring-0 shadow-sm"

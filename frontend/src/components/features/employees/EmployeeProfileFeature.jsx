@@ -875,68 +875,70 @@ export function EmployeeProfileFeature({ id } = {}) {
             </div>
 
             <GlassCard className="p-0 border border-border overflow-hidden">
-              <table className="w-full text-start text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-border bg-surface-raised/40 font-semibold uppercase text-text-muted">
-                    <th className="py-3 px-4 text-start">Version</th>
-                    <th className="py-3 px-4 text-start">Effective Date</th>
-                    <th className="py-3 px-4 text-start">Status</th>
-                    <th className="py-3 px-4 text-end">Basic (AED)</th>
-                    <th className="py-3 px-4 text-end">Housing (AED)</th>
-                    <th className="py-3 px-4 text-end">Transport (AED)</th>
-                    <th className="py-3 px-4 text-end">Other (AED)</th>
-                    <th className="py-3 px-4 text-end">Gross (AED)</th>
-                    <th className="py-3 px-4 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {contracts.map((ver) => (
-                    <tr key={ver.id} className="hover:bg-surface-raised/30 transition-colors">
-                      <td className="py-3 px-4 font-mono font-bold text-primary">
-                        v{ver.version_no}
-                      </td>
-                      <td className="py-3 px-4 font-mono">
-                        {new Date(ver.effective_date).toLocaleDateString('en-GB')}
-                      </td>
-                      <td className="py-3 px-4">
-                        <StatusPill
-                          status={ver.status}
-                          variant={ver.status === 'Approved' ? 'success' : 'neutral'}
-                        />
-                      </td>
-                      <td className="py-3 px-4 text-end font-mono">
-                        {Number(ver.basic).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-3 px-4 text-end font-mono">
-                        {Number(ver.housing || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-3 px-4 text-end font-mono">
-                        {Number(ver.transport || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-3 px-4 text-end font-mono">
-                        {Number(ver.other_allowances || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-3 px-4 text-end font-mono font-black text-text">
-                        {Number(ver.gross).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        {ver.status === 'Pending' && (user?.role === 'HR_MANAGER' || user?.role === 'COMPANY_ADMIN') && (
-                          <button
-                            id={`btn-approve-contract-${ver.version_no}`}
-                            type="button"
-                            onClick={() => approveContractMutation.mutate(ver.id)}
-                            disabled={approveContractMutation.isPending}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-sm flex items-center gap-1 mx-auto"
-                          >
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>Approve</span>
-                          </button>
-                        )}
-                      </td>
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-start text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-border bg-surface-raised/40 font-semibold uppercase text-text-muted">
+                      <th className="py-3 px-4 text-start">Version</th>
+                      <th className="py-3 px-4 text-start">Effective Date</th>
+                      <th className="py-3 px-4 text-start">Status</th>
+                      <th className="py-3 px-4 text-end">Basic (AED)</th>
+                      <th className="py-3 px-4 text-end">Housing (AED)</th>
+                      <th className="py-3 px-4 text-end">Transport (AED)</th>
+                      <th className="py-3 px-4 text-end">Other (AED)</th>
+                      <th className="py-3 px-4 text-end">Gross (AED)</th>
+                      <th className="py-3 px-4 text-center">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border/60">
+                    {contracts.map((ver) => (
+                      <tr key={ver.id} className="hover:bg-surface-raised/30 transition-colors">
+                        <td className="py-3 px-4 font-mono font-bold text-primary">
+                          v{ver.version_no}
+                        </td>
+                        <td className="py-3 px-4 font-mono">
+                          {new Date(ver.effective_date).toLocaleDateString('en-GB')}
+                        </td>
+                        <td className="py-3 px-4">
+                          <StatusPill
+                            status={ver.status}
+                            variant={ver.status === 'Approved' ? 'success' : 'neutral'}
+                          />
+                        </td>
+                        <td className="py-3 px-4 text-end font-mono">
+                          {Number(ver.basic).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3 px-4 text-end font-mono">
+                          {Number(ver.housing || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3 px-4 text-end font-mono">
+                          {Number(ver.transport || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3 px-4 text-end font-mono">
+                          {Number(ver.other_allowances || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3 px-4 text-end font-mono font-black text-text">
+                          {Number(ver.gross).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          {ver.status === 'Pending' && (user?.role === 'HR_MANAGER' || user?.role === 'COMPANY_ADMIN') && (
+                            <button
+                              id={`btn-approve-contract-${ver.version_no}`}
+                              type="button"
+                              onClick={() => approveContractMutation.mutate(ver.id)}
+                              disabled={approveContractMutation.isPending}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-sm flex items-center gap-1 mx-auto"
+                            >
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>Approve</span>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </GlassCard>
           </div>
         )}
@@ -1133,46 +1135,48 @@ export function EmployeeProfileFeature({ id } = {}) {
               </p>
             </div>
 
-            <table className="w-full text-start text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-border bg-surface-raised/40 font-semibold uppercase text-text-muted">
-                  <th className="py-3 px-4 text-start">Timestamp</th>
-                  <th className="py-3 px-4 text-start">Action</th>
-                  <th className="py-3 px-4 text-start">User / Role</th>
-                  <th className="py-3 px-4 text-start">Old Values</th>
-                  <th className="py-3 px-4 text-start">New Values</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {auditHistory.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-text-muted">
-                      No audit history entries recorded for this employee yet.
-                    </td>
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-start text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-border bg-surface-raised/40 font-semibold uppercase text-text-muted">
+                    <th className="py-3 px-4 text-start">Timestamp</th>
+                    <th className="py-3 px-4 text-start">Action</th>
+                    <th className="py-3 px-4 text-start">User / Role</th>
+                    <th className="py-3 px-4 text-start">Old Values</th>
+                    <th className="py-3 px-4 text-start">New Values</th>
                   </tr>
-                ) : (
-                  auditHistory.map((log) => (
-                    <tr key={log.id} className="hover:bg-surface-raised/30 transition-colors">
-                      <td className="py-3 px-4 font-mono text-text-muted whitespace-nowrap">
-                        {new Date(log.created_at).toLocaleString('en-GB')}
-                      </td>
-                      <td className="py-3 px-4 font-semibold text-primary">
-                        {getEnumLabel('audit_action', log.action, language)}
-                      </td>
-                      <td className="py-3 px-4 text-text">
-                        {log.user?.email || log.actor || 'System'}
-                      </td>
-                      <td className="py-3 px-4 font-mono text-[11px] text-text-muted max-w-xs truncate">
-                        {log.old_values ? JSON.stringify(log.old_values) : '—'}
-                      </td>
-                      <td className="py-3 px-4 font-mono text-[11px] text-text max-w-xs truncate">
-                        {log.new_values ? JSON.stringify(log.new_values) : '—'}
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {auditHistory.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-text-muted">
+                        No audit history entries recorded for this employee yet.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    auditHistory.map((log) => (
+                      <tr key={log.id} className="hover:bg-surface-raised/30 transition-colors">
+                        <td className="py-3 px-4 font-mono text-text-muted whitespace-nowrap">
+                          {new Date(log.created_at).toLocaleString('en-GB')}
+                        </td>
+                        <td className="py-3 px-4 font-semibold text-primary">
+                          {getEnumLabel('audit_action', log.action, language)}
+                        </td>
+                        <td className="py-3 px-4 text-text">
+                          {log.user?.email || log.actor || 'System'}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-[11px] text-text-muted max-w-xs truncate">
+                          {log.old_values ? JSON.stringify(log.old_values) : '—'}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-[11px] text-text max-w-xs truncate">
+                          {log.new_values ? JSON.stringify(log.new_values) : '—'}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </GlassCard>
         )}
       </div>
@@ -1180,7 +1184,7 @@ export function EmployeeProfileFeature({ id } = {}) {
       {/* MODAL: ADD CONTRACT VERSION */}
       {showContractModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <GlassCard className="max-w-lg w-full p-6 border border-border shadow-2xl animate-scale-in">
+          <GlassCard className="max-w-lg w-full p-6 border border-border shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-text mb-2">Create New Contract Version</h3>
             <p className="text-xs text-text-muted mb-4">
               Spec Rule B: Contracts are strictly versioned. Effective dates cannot fall within locked pay periods (e.g. 2026-09).
@@ -1265,7 +1269,7 @@ export function EmployeeProfileFeature({ id } = {}) {
       {/* MODAL: ADD / UPDATE BANK */}
       {showBankModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <GlassCard className="max-w-md w-full p-6 border border-border shadow-2xl animate-scale-in">
+          <GlassCard className="max-w-md w-full p-6 border border-border shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-text mb-2">Update Bank & WPS Account</h3>
             <p className="text-xs text-text-muted mb-4">
               Requires a valid UAE IBAN starting with AE followed by 21 digits (ISO-7064 mod-97 verified).
@@ -1333,7 +1337,7 @@ export function EmployeeProfileFeature({ id } = {}) {
       {/* MODAL: UPLOAD DOCUMENT */}
       {showDocUploadModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <GlassCard className="max-w-md w-full p-6 border border-border shadow-2xl animate-scale-in">
+          <GlassCard className="max-w-md w-full p-6 border border-border shadow-2xl animate-scale-in max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-text mb-2">Upload UAE Statutory Document</h3>
             <p className="text-xs text-text-muted mb-4">
               Allowed: PDF, JPG, PNG only (Max 10 MB). Validated via magic bytes.

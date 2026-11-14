@@ -97,7 +97,7 @@ export function EmailDeliveryDrawer({ isOpen, onClose }) {
             {language === 'ar' ? 'لا توجد رسائل مسجلة في صندوق الإرسال حتى الآن' : 'No email dispatches recorded in the outbox yet.'}
           </div>
         ) : (
-          <div className="border border-border rounded-xl overflow-hidden">
+          <div className="border border-border rounded-xl overflow-x-auto">
             <table className="w-full text-xs text-start">
               <thead className="bg-surface border-b border-border text-text-muted font-semibold">
                 <tr>

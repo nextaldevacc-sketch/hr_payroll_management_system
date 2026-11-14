@@ -105,7 +105,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
     return pathname === href || pathname.startsWith(href + '/');
   };
 
-  const renderNavLink = (item) => {
+  const renderNavLink = (item, isDrawer = false) => {
     const Icon = item.icon;
     const isActive = isItemActive(item.href, item.exact);
 
@@ -135,14 +135,17 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
           <Icon className="w-4 h-4 stroke-[1.8]" />
         </IconWell>
 
-        <span className="text-sm tracking-tight hidden xl:inline-block flex-1 truncate">
+        <span className={clsx(
+          'text-sm tracking-tight flex-1 truncate',
+          isDrawer ? 'inline-block' : 'hidden xl:inline-block'
+        )}>
           {item.label}
         </span>
       </Link>
     );
   };
 
-  const sidebarContent = (
+  const renderSidebarContent = (isDrawer = false) => (
     <div className="flex flex-col h-full justify-between">
       {/* Brand Header */}
       <div>
@@ -156,7 +159,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
             >
               <Sparkles className="w-5 h-5 text-primary stroke-[2.2]" />
             </IconWell>
-            <div className="hidden xl:block">
+            <div className={isDrawer ? 'block' : 'hidden xl:block'}>
               <span className="text-base font-extrabold tracking-tight text-text dark:gold-heading block">
                 NEXTAL
               </span>
@@ -169,7 +172,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
           {onCloseMobile && (
             <button
               onClick={onCloseMobile}
-              className="xl:hidden p-1.5 rounded-lg text-text-muted hover:text-text"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-text-muted hover:text-text xl:hidden"
               aria-label="Close navigation"
             >
               <X className="w-5 h-5" />
@@ -182,7 +185,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
           {/* Platform Admin Special Menu */}
           {isPlatformAdmin && (
             <div className="space-y-1 mb-3">
-              <div className="px-3 pb-1 hidden xl:block">
+              <div className={clsx('px-3 pb-1', isDrawer ? 'block' : 'hidden xl:block')}>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500">
                   Platform Admin
                 </span>
@@ -200,7 +203,10 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
                 <IconWell size="sm" shape="square" color="primary">
                   <Building2 className="w-4 h-4 stroke-[1.8]" />
                 </IconWell>
-                <span className="text-sm tracking-tight hidden xl:inline-block flex-1 truncate">
+                <span className={clsx(
+                  'text-sm tracking-tight flex-1 truncate',
+                  isDrawer ? 'inline-block' : 'hidden xl:inline-block'
+                )}>
                   {isAr ? 'الشركات والكيانات' : 'Companies'}
                 </span>
               </Link>
@@ -210,7 +216,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
           {/* Company-wide navigation if not pure employee */}
           {navItems.length > 0 && (
             <div className="space-y-1">
-              {navItems.map(renderNavLink)}
+              {navItems.map((item) => renderNavLink(item, isDrawer))}
             </div>
           )}
 
@@ -230,7 +236,10 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
                 <IconWell size="sm" shape="square" color="default">
                   <Shield className="w-4 h-4 stroke-[1.8]" />
                 </IconWell>
-                <span className="text-sm tracking-tight hidden xl:inline-block flex-1 truncate">
+                <span className={clsx(
+                  'text-sm tracking-tight flex-1 truncate',
+                  isDrawer ? 'inline-block' : 'hidden xl:inline-block'
+                )}>
                   {isAr ? 'المستخدمون والأدوار' : 'Users & Roles'}
                 </span>
               </Link>
@@ -240,13 +249,13 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
           {/* Self-Service Section (Only for users with an employee record or employee role) */}
           {isEmployee && !isPlatformAdmin && (
             <div className="pt-3 mt-3 border-t border-border/50">
-              <div className="px-3 pb-1 hidden xl:block">
+              <div className={clsx('px-3 pb-1', isDrawer ? 'block' : 'hidden xl:block')}>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted/70">
                   {t('menu.selfService')}
                 </span>
               </div>
               <div className="space-y-1">
-                {selfServiceItems.map(renderNavLink)}
+                {selfServiceItems.map((item) => renderNavLink(item, isDrawer))}
               </div>
             </div>
           )}
@@ -271,7 +280,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
             >
               {initials}
             </div>
-            <div className="truncate hidden xl:block">
+            <div className={clsx('truncate', isDrawer ? 'block' : 'hidden xl:block')}>
               <span className="text-xs font-bold block truncate leading-tight text-text" data-i18n-skip="true">
                 {displayName}
               </span>
@@ -287,14 +296,14 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
             onClick={logout}
             title={isAr ? 'تسجيل الخروج' : 'Sign out'}
             aria-label={isAr ? 'تسجيل الخروج' : 'Sign out'}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors shrink-0"
+            className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors shrink-0"
           >
             <LogOut className="w-4 h-4" />
           </button>
         </div>
 
         {/* Legal notice */}
-        <div className="hidden xl:flex items-center gap-2 px-2 py-1 text-[10px] text-text-muted">
+        <div className={clsx('items-center gap-2 px-2 py-1 text-[10px] text-text-muted', isDrawer ? 'flex' : 'hidden xl:flex')}>
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           <span>{isAr ? 'متوافق مع مرسوم بقانون رقم 33 لسنة 2021' : 'UAE Decree 33/2021 Compliant'}</span>
         </div>
@@ -310,7 +319,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
           'start-0 border-e border-border w-20 xl:w-64'
         )}
       >
-        {sidebarContent}
+        {renderSidebarContent(false)}
       </aside>
 
       {isMobileOpen && (
@@ -325,7 +334,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
               'start-0 border-e border-border'
             )}
           >
-            {sidebarContent}
+            {renderSidebarContent(true)}
           </aside>
         </div>
       )}
