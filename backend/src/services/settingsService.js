@@ -241,6 +241,7 @@ class SettingsService {
         trade_license_no: data.trade_license_no !== undefined ? data.trade_license_no : old.trade_license_no,
         logo_url: data.logo_url !== undefined ? data.logo_url : old.logo_url,
         default_language: data.default_language !== undefined ? data.default_language : old.default_language,
+        require_privileged_mfa: data.require_privileged_mfa !== undefined ? Boolean(data.require_privileged_mfa) : old.require_privileged_mfa,
         document_type_settings: data.data_retention_years !== undefined
           ? {
               ...(old.document_type_settings || {}),

@@ -14,6 +14,7 @@ export async function seedOrganisation(prisma) {
       default_cutoff_day: 25,
       variance_threshold_pct: 5.00,
       alert_days: [90, 60, 30],
+      require_privileged_mfa: false, // Demo environment: keep false so automated crawlers/test scripts log in without MFA interception
     },
   });
 

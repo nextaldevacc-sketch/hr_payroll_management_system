@@ -18,6 +18,7 @@ model companies {
   trade_license_no       String    @unique @db.VarChar(50)
   logo_url               String?   @db.Text
   default_language       String    @default("en") @db.VarChar(2)
+  require_privileged_mfa Boolean   @default(true)
   status                 String    @default("Active") @db.VarChar(20)
   default_cutoff_day         Int       @default(25) @db.SmallInt
   variance_threshold_pct     Decimal   @default(5.00) @db.Decimal(5, 2)
@@ -193,6 +194,12 @@ model users {
   password_hash           String                  @db.VarChar(255)
   is_platform_admin       Boolean                 @default(false)
   must_change_password    Boolean                 @default(false)
+  mfa_enabled             Boolean                 @default(false)
+  mfa_secret              String?                 @db.Text
+  mfa_temp_secret         String?                 @db.Text
+  mfa_temp_secret_expires DateTime?               @db.Timestamptz
+  mfa_recovery_codes      Json?                   @db.JsonB
+  mfa_last_used_step      BigInt?
   status                  String                  @default("Active") @db.VarChar(20)
   failed_logins           Int                     @default(0) @db.SmallInt
   locked_until            DateTime?               @db.Timestamptz

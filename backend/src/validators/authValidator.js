@@ -27,9 +27,26 @@ export const setPasswordInviteSchema = z.object({
     .regex(/\d/, 'Password must contain numbers'),
 });
 
+export const mfaVerifySchema = z.object({
+  mfa_token: z.string().min(1, 'MFA token is required'),
+  code: z.string().min(1, 'Verification code is required'),
+});
+
+export const mfaEnrolInitSchema = z.object({
+  mfa_token: z.string().optional(),
+});
+
+export const mfaEnrolConfirmSchema = z.object({
+  code: z.string().min(6, 'Verification code must be at least 6 characters'),
+  mfa_token: z.string().optional(),
+});
+
 export default {
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   setPasswordInviteSchema,
+  mfaVerifySchema,
+  mfaEnrolInitSchema,
+  mfaEnrolConfirmSchema,
 };

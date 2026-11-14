@@ -339,6 +339,33 @@ export function UsersAndRolesFeature() {
     }
   };
 
+  const handleResetMfa = async (userId) => {
+    const target = users.find((u) => u.id === userId);
+    if (!target) return;
+    const confirmed = window.confirm(
+      locale === 'ar'
+        ? `هل أنت متأكد من رغبتك في إعادة تعيين المصادقة الثنائية (MFA) للمستخدم ${target.email}؟ سيُطلب منه إعدادها مجدداً عند تسجيل الدخول.`
+        : `Are you sure you want to reset MFA for ${target.email}? The user will be required to re-enrol upon next login.`
+    );
+    if (!confirmed) return;
+    try {
+      await request(`/users/${userId}/reset-mfa`, { method: 'POST' });
+      await loadUsers();
+      setAlertMessage({
+        type: 'success',
+        text:
+          locale === 'ar'
+            ? `تمت إعادة تعيين المصادقة الثنائية للمستخدم ${target.email} بنجاح.`
+            : `Successfully reset MFA for ${target.email}. Active sessions have been invalidated.`,
+      });
+    } catch (err) {
+      setAlertMessage({
+        type: 'error',
+        text: err.message || (locale === 'ar' ? 'فشل إعادة تعيين المصادقة الثنائية' : 'Failed to reset MFA'),
+      });
+    }
+  };
+
   const filteredUsers = users.filter((u) => {
     const matchesSearch =
       (u.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -602,7 +629,28 @@ export function UsersAndRolesFeature() {
                           </span>
                         </td>
 
-                        <td className="py-3.5 px-4 text-end">
+                        <td className="py-3.5 px-4 text-end space-x-2 rtl:space-x-reverse">
+                          <button
+                            type="button"
+                            disabled={u.id === user?.id || u.email === user?.email}
+                            title={
+                              u.id === user?.id || u.email === user?.email
+                                ? locale === 'ar'
+                                  ? 'لا يمكن إعادة تعيين المصادقة الثنائية لحسابك الخاص بدون رمز'
+                                  : 'Cannot reset MFA for your own account'
+                                : locale === 'ar'
+                                ? 'إعادة تعيين المصادقة الثنائية للمستخدم'
+                                : 'Reset user MFA'
+                            }
+                            onClick={() => handleResetMfa(u.id)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
+                              u.id === user?.id || u.email === user?.email
+                                ? 'opacity-40 cursor-not-allowed border-border text-text-muted'
+                                : 'bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500/20'
+                            }`}
+                          >
+                            <span>{locale === 'ar' ? 'إعادة ضبط MFA' : 'Reset MFA'}</span>
+                          </button>
                           <button
                             type="button"
                             disabled={u.id === user?.id || u.email === user?.email}

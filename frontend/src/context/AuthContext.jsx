@@ -112,6 +112,17 @@ export function AuthProvider({ children }) {
           throw error;
         }
 
+        if (data.mfa_required) {
+          setStatus('unauthenticated');
+          return {
+            status: 'mfa_required',
+            mfa_required: true,
+            mfa_enrol_required: Boolean(data.mfa_enrol_required),
+            mfa_token: data.mfa_token,
+            user: data.user,
+          };
+        }
+
         queryClient.clear();
         setUser(data.user);
         setStatus('authenticated');
@@ -123,6 +134,102 @@ export function AuthProvider({ children }) {
 
         return {
           status: 'success',
+          user: data.user,
+          defaultLanding,
+        };
+      } catch (err) {
+        setStatus('unauthenticated');
+        throw err;
+      }
+    },
+    [queryClient]
+  );
+
+  const verifyMfa = useCallback(
+    async (mfaToken, code) => {
+      setStatus('loading');
+      try {
+        const res = await fetch(`${API_BASE}/auth/mfa/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ mfa_token: mfaToken, code }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setStatus('unauthenticated');
+          const error = new Error(data.message || 'MFA verification failed');
+          error.status = res.status;
+          error.code = data.code;
+          error.remainingAttempts = data.remainingAttempts;
+          throw error;
+        }
+        queryClient.clear();
+        setUser(data.user);
+        setStatus('authenticated');
+        const roles = data.user.roles || [];
+        const isEmployeeOnly = roles.length === 1 && roles[0] === 'EMPLOYEE';
+        const defaultLanding = isEmployeeOnly ? '/me' : '/';
+        return { status: 'success', user: data.user, defaultLanding };
+      } catch (err) {
+        setStatus('unauthenticated');
+        throw err;
+      }
+    },
+    [queryClient]
+  );
+
+  const initMfaEnrol = useCallback(async (mfaToken) => {
+    const headers = { 'Content-Type': 'application/json' };
+    if (mfaToken) headers.Authorization = `Bearer ${mfaToken}`;
+    const res = await fetch(`${API_BASE}/auth/mfa/enrol-init`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify({ mfa_token: mfaToken }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const error = new Error(data.message || 'Failed to initialize MFA enrolment');
+      error.status = res.status;
+      error.code = data.code;
+      throw error;
+    }
+    return data.data;
+  }, []);
+
+  const confirmMfaEnrol = useCallback(
+    async (mfaToken, code) => {
+      setStatus('loading');
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (mfaToken) headers.Authorization = `Bearer ${mfaToken}`;
+        const res = await fetch(`${API_BASE}/auth/mfa/enrol-confirm`, {
+          method: 'POST',
+          headers,
+          credentials: 'include',
+          body: JSON.stringify({ mfa_token: mfaToken, code }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setStatus('unauthenticated');
+          const error = new Error(data.message || 'Invalid verification code');
+          error.status = res.status;
+          error.code = data.code;
+          throw error;
+        }
+        if (data.user) {
+          queryClient.clear();
+          setUser(data.user);
+          setStatus('authenticated');
+        }
+        const roles = data.user?.roles || [];
+        const isEmployeeOnly = roles.length === 1 && roles[0] === 'EMPLOYEE';
+        const defaultLanding = isEmployeeOnly ? '/me' : '/';
+        return {
+          status: 'success',
+          message: data.message,
+          recovery_codes: data.recovery_codes,
           user: data.user,
           defaultLanding,
         };
@@ -204,6 +311,9 @@ export function AuthProvider({ children }) {
         isLoading: status === 'loading',
         isAuthenticated: status === 'authenticated',
         login,
+        verifyMfa,
+        initMfaEnrol,
+        confirmMfaEnrol,
         logout,
         refreshUser,
         seesSalary,

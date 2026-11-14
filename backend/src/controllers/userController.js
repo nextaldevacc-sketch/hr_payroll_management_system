@@ -1,4 +1,5 @@
 import userService from '../services/userService.js';
+import mfaService from '../services/mfaService.js';
 import prisma from '../lib/prisma.js';
 
 export async function listRoles(req, res, next) {
@@ -156,6 +157,23 @@ export async function unlockUser(req, res, next) {
   }
 }
 
+export async function resetMfa(req, res, next) {
+  try {
+    const adminUserId = req.user.userId;
+    const targetUserId = req.params.id;
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || null;
+
+    const result = await mfaService.resetUserMfaByAdmin(adminUserId, targetUserId, { ipAddress });
+
+    res.json({
+      status: 'success',
+      message: result.message,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export default {
   listRoles,
   listUsers,
@@ -165,4 +183,5 @@ export default {
   bulkCreateEmployeeLogins,
   updateUserStatus,
   unlockUser,
+  resetMfa,
 };

@@ -6,6 +6,7 @@ import auditService from './auditService.js';
 import mailer from '../lib/mailer.js';
 import { invalidateUserSession } from '../middleware/authCache.js';
 import { SALARY_ROLES, hasSalaryAccess } from '../serializers/index.js';
+import { PRIVILEGED_ROLES } from './mfaService.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'nextal_super_secret_jwt_key_2026_uae';
 const SESSION_DURATION = '8h';
@@ -262,6 +263,34 @@ export class AuthService {
       scope_id: ur.scope_id,
     }));
 
+    // Check MFA requirement
+    const isPrivileged = roles.some((r) => PRIVILEGED_ROLES.includes(r));
+    const requirePrivilegedMfa = user.company?.require_privileged_mfa !== false;
+    const mfaRequired = user.mfa_enabled || (isPrivileged && requirePrivilegedMfa);
+
+    if (mfaRequired) {
+      const mfaToken = jwt.sign(
+        {
+          userId: user.id,
+          companyId: user.company_id,
+          purpose: user.mfa_enabled ? 'mfa_verify' : 'mfa_enrol',
+        },
+        JWT_SECRET,
+        { expiresIn: '15m' }
+      );
+
+      return {
+        mfa_required: true,
+        mfa_enrol_required: !user.mfa_enabled,
+        mfa_token: mfaToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          roles,
+        },
+      };
+    }
+
     // Section 5: Salary figures visible ONLY to Payroll Officer, HR Manager, GM, Finance.
     // Company Admin does NOT see salary unless they also hold one of those 4 roles!
     const seesSalary = user.user_roles.some((ur) => SALARY_ROLES.includes(ur.role.code));
@@ -318,6 +347,128 @@ export class AuthService {
         scopes,
         sees_salary: seesSalary,
         last_login_at: updatedUser.last_login_at,
+      },
+    };
+  }
+
+  /**
+   * Generates a complete authenticated session response after successful MFA verification
+   */
+  async generateSessionForUser(userId, { ipAddress = null } = {}) {
+    const user = await this.prisma.$base().users.findUnique({
+      where: { id: userId },
+      include: {
+        company: {
+          include: {
+            company_visas: {
+              select: {
+                id: true,
+                name: true,
+                mol_establishment_id: true,
+                emirate: true,
+                bank_routing_code: true,
+              },
+              orderBy: { name: 'asc' },
+            },
+          },
+        },
+        user_roles: {
+          include: { role: true },
+        },
+        employee: {
+          select: {
+            id: true,
+            employee_code: true,
+            name: true,
+            arabic_name: true,
+            work_email: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      const err = new Error('User not found');
+      err.status = 404;
+      throw err;
+    }
+
+    const now = new Date();
+    await this.prisma.$base().users.update({
+      where: { id: user.id },
+      data: {
+        last_login_at: now,
+        failed_logins: 0,
+        locked_until: null,
+      },
+    });
+
+    invalidateUserSession(user.id);
+
+    const roles = user.user_roles.map((ur) => ur.role.code);
+    if (user.is_platform_admin && !roles.includes('PLATFORM_ADMIN')) {
+      roles.push('PLATFORM_ADMIN');
+    }
+
+    const scopes = user.user_roles.map((ur) => ({
+      role: ur.role.code,
+      scope_type: ur.scope_type,
+      scope_id: ur.scope_id,
+    }));
+
+    const seesSalary = user.user_roles.some((ur) => SALARY_ROLES.includes(ur.role.code));
+
+    const tokenPayload = {
+      userId: user.id,
+      email: user.email,
+      companyId: user.company_id,
+      isPlatformAdmin: user.is_platform_admin,
+      employeeId: user.employee_id,
+      roles,
+      scopes,
+      seesSalary,
+      tokenVersion: user.token_version || 1,
+    };
+
+    const token = jwt.sign(tokenPayload, JWT_SECRET, {
+      expiresIn: SESSION_DURATION,
+    });
+
+    if (user.company_id) {
+      await auditService.log({
+        companyId: user.company_id,
+        userId: user.id,
+        action: 'LOGIN',
+        tableName: 'users',
+        recordId: user.id,
+        newValues: { last_login_at: now, ip: ipAddress, mfa_verified: true },
+        ipAddress,
+      });
+    }
+
+    return {
+      token,
+      sessionDurationMs: SESSION_DURATION_MS,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.employee?.name || user.email.split('@')[0],
+        arabic_name: user.employee?.arabic_name || null,
+        company_id: user.company_id,
+        company_name: user.company?.name || 'Nextal Platform',
+        company_name_ar: user.company?.name_ar || null,
+        company_status: user.company?.status || 'Active',
+        visas: user.company?.company_visas || [],
+        is_platform_admin: user.is_platform_admin,
+        status: user.status,
+        must_change_password: user.must_change_password ?? false,
+        employee_id: user.employee_id,
+        employee: user.employee,
+        roles,
+        role: roles[0] || null,
+        scopes,
+        sees_salary: seesSalary,
+        last_login_at: now,
       },
     };
   }

@@ -11,9 +11,9 @@
 
 | Category | Total | IMPLEMENTED | PARTIAL | MISSING / NOT DONE |
 | :--- | :---: | :---: | :---: | :---: |
-| **Core Security (SEC-1 .. SEC-74)** | 74 | 67 | 5 | 2 |
+| **Core Security (SEC-1 .. SEC-74)** | 74 | 68 | 5 | 1 |
 | **Compliance & UAE Controls (SEC-C1 .. SEC-C21)** | 21 | 21 | 0 | 0 |
-| **Total Requirements** | **95** | **88** | **5** | **2** |
+| **Total Requirements** | **95** | **89** | **5** | **1** |
 
 ---
 
@@ -22,7 +22,7 @@
 | ID | Title / Requirement | Status | Evidence (File / Test) | Notes |
 | :--- | :--- | :---: | :--- | :--- |
 | **SEC-1** | Password Hashing (Argon2id or bcrypt >= 12) | **PARTIAL** | `backend/src/services/authService.js:21`, `backend/test/passwordRehash.test.js` | Bcrypt with cost >= 12 implemented with transparent login rehash. Argon2id pending native build tools in deployment environment (listed under NOT DONE). |
-| **SEC-2** | Multi-Factor Authentication (TOTP RFC 6238) | **MISSING** | `KNOWN-LIMITATIONS.md` | Privileged role TOTP enrolment/verification is NOT DONE; detailed roadmap documented. |
+| **SEC-2** | Multi-Factor Authentication (TOTP RFC 6238) | **IMPLEMENTED** | `backend/src/services/mfaService.js`, `backend/test/integration/mfa-totp.test.js` | RFC 6238 TOTP (30s step, 6 digits, ±1 window), QR & manual key enrolment, 10 hashed single-use recovery codes, privileged role enforcement, AES-256-GCM HKDF encryption, admin reset audited with session revocation. |
 | **SEC-3** | Session Invalidation / Token Versioning | **IMPLEMENTED** | `backend/src/middleware/authCache.js`, `backend/src/services/userService.js:270` | `token_version` on users table; `invalidateUserSession` on password/role change. |
 | **SEC-4** | Brute Force Protection & Account Lockout | **IMPLEMENTED** | `backend/src/services/authService.js:105-182`, `frontend/test/auth-session.test.js` | 5 failed attempts locks account for 15 minutes with auto-expiry. |
 | **SEC-5** | Forced Password Change Flow | **IMPLEMENTED** | `backend/src/controllers/authController.js`, `frontend/src/app/(auth)/change-password/` | `must_change_password` flag forces redirect to `/change-password` on first login. |

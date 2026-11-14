@@ -1,4 +1,6 @@
+import jwt from 'jsonwebtoken';
 import authService from '../services/authService.js';
+import mfaService from '../services/mfaService.js';
 
 export async function login(req, res, next) {
   try {
@@ -6,6 +8,17 @@ export async function login(req, res, next) {
     const ipAddress = req.ip || req.headers['x-forwarded-for'] || null;
 
     const result = await authService.login({ email, password, ipAddress });
+
+    // If MFA is required for this user, do not issue session cookie yet
+    if (result.mfa_required) {
+      return res.json({
+        status: 'mfa_required',
+        mfa_required: true,
+        mfa_enrol_required: Boolean(result.mfa_enrol_required),
+        mfa_token: result.mfa_token,
+        user: result.user,
+      });
+    }
 
     // Set httpOnly cookie with 8-hour expiry (secure only over HTTPS or when COOKIE_SECURE=true)
     const isSecure = process.env.COOKIE_SECURE === 'true' || Boolean(req.secure);
@@ -218,6 +231,144 @@ export async function changePassword(req, res, next) {
   }
 }
 
+function resolveMfaUserId(req) {
+  if (req.user?.userId) {
+    return req.user.userId;
+  }
+  const mfaToken =
+    req.body?.mfa_token ||
+    (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7).trim() : null);
+  if (mfaToken) {
+    try {
+      const decoded = jwt.verify(
+        mfaToken,
+        process.env.JWT_SECRET || 'nextal_super_secret_jwt_key_2026_uae'
+      );
+      if (decoded.userId) return decoded.userId;
+    } catch (err) {
+      const e = new Error('Invalid or expired MFA session. Please log in again.');
+      e.status = 401;
+      e.code = 'INVALID_MFA_TOKEN';
+      throw e;
+    }
+  }
+  const err = new Error('Authentication or MFA token required.');
+  err.status = 401;
+  err.code = 'UNAUTHORIZED';
+  throw err;
+}
+
+export async function mfaEnrolInit(req, res, next) {
+  try {
+    const userId = resolveMfaUserId(req);
+    const data = await mfaService.initEnrolment(userId);
+    res.json({
+      status: 'success',
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function mfaEnrolConfirm(req, res, next) {
+  try {
+    const userId = resolveMfaUserId(req);
+    const { code, mfa_token } = req.body;
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || null;
+
+    const result = await mfaService.confirmEnrolment(userId, code, { ipAddress });
+
+    let session = null;
+    if (mfa_token || !req.user) {
+      session = await authService.generateSessionForUser(userId, { ipAddress });
+      const isSecure = process.env.COOKIE_SECURE === 'true' || Boolean(req.secure);
+      res.cookie('nextal_token', session.token, {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: 'lax',
+        maxAge: session.sessionDurationMs,
+      });
+    }
+
+    res.json({
+      status: 'success',
+      message: result.message,
+      recovery_codes: result.recovery_codes,
+      token: session ? session.token : undefined,
+      user: session ? session.user : undefined,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function mfaVerify(req, res, next) {
+  try {
+    const { mfa_token, code } = req.body;
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || null;
+
+    if (!mfa_token || !code) {
+      const err = new Error('MFA token and verification code are required.');
+      err.status = 400;
+      err.code = 'VALIDATION_ERROR';
+      throw err;
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(
+        mfa_token,
+        process.env.JWT_SECRET || 'nextal_super_secret_jwt_key_2026_uae'
+      );
+    } catch (e) {
+      const err = new Error('MFA session expired or invalid. Please log in again.');
+      err.status = 401;
+      err.code = 'INVALID_MFA_TOKEN';
+      throw err;
+    }
+
+    const verifyResult = await mfaService.verifyCodeOrRecovery(decoded.userId, code, { ipAddress });
+    const session = await authService.generateSessionForUser(decoded.userId, { ipAddress });
+
+    const isSecure = process.env.COOKIE_SECURE === 'true' || Boolean(req.secure);
+    res.cookie('nextal_token', session.token, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'lax',
+      maxAge: session.sessionDurationMs,
+    });
+
+    res.json({
+      status: 'success',
+      message: 'MFA verification successful',
+      token: session.token,
+      user: session.user,
+      method: verifyResult.method,
+      remaining_recovery_codes: verifyResult.remaining_recovery_codes,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function mfaStatus(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const policy = await mfaService.checkMfaPolicyForUser(userId);
+    res.json({
+      status: 'success',
+      data: {
+        mfa_enabled: policy.enabled,
+        mfa_required: policy.required,
+        mfa_enrol_required: policy.enrolRequired,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export default {
   login,
   logout,
@@ -226,4 +377,8 @@ export default {
   resetPassword,
   setPasswordFromInvite,
   changePassword,
+  mfaEnrolInit,
+  mfaEnrolConfirm,
+  mfaVerify,
+  mfaStatus,
 };

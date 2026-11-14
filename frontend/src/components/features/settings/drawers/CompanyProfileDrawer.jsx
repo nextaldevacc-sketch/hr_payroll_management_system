@@ -56,6 +56,7 @@ export function CompanyProfileDrawer({
     default_language: comp?.default_language || 'en',
     logo_url: comp?.logo_url || '/logo.png',
     data_retention_years: comp?.data_retention_years ?? 7,
+    require_privileged_mfa: comp?.require_privileged_mfa ?? true,
     pension_scheme_default: comp?.pension_scheme_default || 'GPSSA',
     gpssa_employee_rate_new: comp?.gpssa_employee_rate_new || 11.0,
     gpssa_employee_rate_legacy: comp?.gpssa_employee_rate_legacy || 5.0,
@@ -89,6 +90,7 @@ export function CompanyProfileDrawer({
         default_language: comp.default_language || 'en',
         logo_url: comp.logo_url || '/logo.png',
         data_retention_years: comp.data_retention_years ?? 7,
+        require_privileged_mfa: comp.require_privileged_mfa ?? true,
         pension_scheme_default: comp.pension_scheme_default || 'GPSSA',
         gpssa_employee_rate_new: comp.gpssa_employee_rate_new ?? 11.0,
         gpssa_employee_rate_legacy: comp.gpssa_employee_rate_legacy ?? 5.0,
@@ -280,6 +282,28 @@ export function CompanyProfileDrawer({
               <span className="text-[10px] text-text-muted mt-1 block">
                 {language === 'ar' ? 'الحد الأدنى القانوني في الإمارات: 5-7 سنوات (الافتراضي: 7)' : 'UAE statutory audit minimum: 5–7 years (Default: 7)'}
               </span>
+            </div>
+
+            {/* Privileged Roles MFA Enforcement Toggle (SEC-2) */}
+            <div className="p-3.5 rounded-xl border border-border bg-surface/60 flex items-center justify-between gap-4">
+              <div>
+                <span className="text-xs font-bold text-text block">
+                  {language === 'ar' ? 'إلزام المصادقة الثنائية (MFA) للأدوار الحساسة' : 'Require MFA for Privileged Roles'}
+                </span>
+                <span className="text-[11px] text-text-muted block mt-0.5">
+                  {language === 'ar'
+                    ? 'إلزام مصادقة TOTP للأدوار الإدارية والمالية (مدير الشركة، مدير الموارد، مسؤول الرواتب، المدير العام، المالية)'
+                    : 'Enforces RFC 6238 TOTP authentication for Company Admin, HR Manager, Payroll Officer, GM, and Finance.'}
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                id="toggle-company-require-mfa"
+                disabled={!canEdit}
+                checked={formData.require_privileged_mfa ?? true}
+                onChange={(e) => setFormData({ ...formData, require_privileged_mfa: e.target.checked })}
+                className="w-4 h-4 rounded text-primary focus:ring-primary border-border cursor-pointer disabled:opacity-50"
+              />
             </div>
 
             {/* Logo Upload Box */}
