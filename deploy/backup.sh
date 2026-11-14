@@ -43,12 +43,47 @@ DUMP_FILE="${TEMP_PREFIX}.dump"
 STORAGE_TAR="${TEMP_PREFIX}_storage.tar.gz"
 BUNDLE_TAR="${TEMP_PREFIX}_bundle.tar.gz"
 FINAL_ENCRYPTED="${BACKUP_DIR}/daily/nextal_backup_${TIMESTAMP}.enc"
+LAST_SUCCESS_FILE="${LAST_SUCCESS_FILE:-${BACKUP_DIR}/last_success.txt}"
 
 echo "[Backup] Starting production backup at ${TIMESTAMP}..."
+
+# 0. Check database readiness (skip cleanly if migrations not applied yet)
+if command -v psql >/dev/null 2>&1; then
+  MIGRATIONS_TABLE=$(PGPASSWORD="${POSTGRES_PASSWORD:-}" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -t -A -c \
+    "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '_prisma_migrations';" 2>/dev/null || echo "0")
+  if [ "$MIGRATIONS_TABLE" = "0" ] || [ -z "$MIGRATIONS_TABLE" ]; then
+    echo "[Backup] Schema not initialized (no '_prisma_migrations' table). Skipping backup until initial migrations run."
+    exit 0
+  fi
+
+  APPLIED_COUNT=$(PGPASSWORD="${POSTGRES_PASSWORD:-}" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -t -A -c \
+    "SELECT count(*) FROM _prisma_migrations WHERE rolled_back_at IS NULL;" 2>/dev/null || echo "0")
+  if [ "$APPLIED_COUNT" -eq 0 ] 2>/dev/null; then
+    echo "[Backup] Zero applied migrations found in '_prisma_migrations'. Skipping backup until initial migrations finish."
+    exit 0
+  fi
+fi
 
 # 1. PostgreSQL Database Dump (Custom binary format)
 echo "[Backup] Dumping PostgreSQL database '${DB_NAME}'..."
 PGPASSWORD="${POSTGRES_PASSWORD:-}" pg_dump -h "$DB_HOST" -U "$DB_USER" -Fc "$DB_NAME" > "$DUMP_FILE"
+
+# 1b. Sanity checks on database dump (minimum size and pg_restore table listing)
+DUMP_SIZE=$(wc -c < "$DUMP_FILE" | tr -d ' ')
+MIN_SIZE="${MIN_BACKUP_SIZE_BYTES:-10240}" # 10KB minimum threshold
+if [ "$DUMP_SIZE" -lt "$MIN_SIZE" ]; then
+  echo "FATAL: Database dump size (${DUMP_SIZE} bytes) is below minimum required threshold (${MIN_SIZE} bytes). Aborting backup." >&2
+  rm -f "$DUMP_FILE"
+  exit 1
+fi
+
+TABLE_COUNT=$(pg_restore -l "$DUMP_FILE" | grep -E "TABLE DATA|TABLE [^ ]+" | wc -l | tr -d ' ')
+if [ "$TABLE_COUNT" -lt 5 ]; then
+  echo "FATAL: Sanity check failed via pg_restore -l: only found ${TABLE_COUNT} table entries in dump. Aborting backup." >&2
+  rm -f "$DUMP_FILE"
+  exit 1
+fi
+echo "[Backup] Dump validation passed: ${DUMP_SIZE} bytes, ${TABLE_COUNT} table entries verified."
 
 # 2. Document Storage Volume Archive
 echo "[Backup] Archiving stored documents..."
@@ -104,6 +139,17 @@ if [ -n "${BACKUP_S3_URI:-}" ]; then
     aws s3 cp "$FINAL_ENCRYPTED" "${BACKUP_S3_URI}/"
   fi
 fi
+
+# 9. Record Last Success Timestamp File
+cat <<EOF > "$LAST_SUCCESS_FILE"
+timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+archive=${FINAL_ENCRYPTED}
+size_bytes=$(wc -c < "${FINAL_ENCRYPTED}" | tr -d ' ')
+status=SUCCESS
+tables_count=${TABLE_COUNT}
+dump_size_bytes=${DUMP_SIZE}
+EOF
+echo "[Backup] Recorded success metadata to ${LAST_SUCCESS_FILE}."
 
 echo "[Backup] Backup completed successfully: ${FINAL_ENCRYPTED} ($(ls -lh "$FINAL_ENCRYPTED" | awk '{print $5}'))"
 

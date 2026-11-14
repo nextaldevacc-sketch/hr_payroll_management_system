@@ -330,10 +330,60 @@ To verify that backups are integral and restorable:
 node scripts/verify-backup.mjs
 ```
 
-### Full Disaster Recovery / Database Restore
-To restore an encrypted backup archive into the production database:
+### Full Disaster Recovery / Database Restore Drill (Fresh Host)
+Follow this exact verified runbook to restore Nextal HR & Payroll to a brand new, empty VPS:
+
+1. **Provision Fresh VPS & Hardening**:
+   - Complete Steps 1–4 on the new host (Ubuntu 24.04, Docker, Node 20, deploy user).
+
+2. **Restore Environment Secrets**:
+   - Restore your original `.env.production` (especially `BACKUP_ENCRYPTION_PASSPHRASE`, `DOCUMENT_ENCRYPTION_KEY`, and `JWT_SECRET`). Without the matching encryption keys, encrypted backups and stored UAE statutory documents cannot be decrypted!
+
+3. **Transfer Encrypted Backup Archive**:
+   - Transfer your latest encrypted archive to the new VPS:
+     ```bash
+     mkdir -p /opt/nextal/backups/daily
+     scp deploy@secondary-backup-host:/srv/backups/nextal/nextal_backup_YYYYMMDD_HHMMSS.enc /opt/nextal/backups/daily/
+     ```
+
+4. **Launch Database & Backup Services**:
+   ```bash
+   cd /opt/nextal
+   docker compose --env-file .env.production -f docker-compose.prod.yml up -d postgres backup
+   ```
+
+5. **Wait for PostgreSQL Health**:
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.prod.yml ps postgres
+   ```
+
+6. **Execute Restore Drill Inside Backup Container**:
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.prod.yml exec backup \
+     sh /deploy/restore.sh /backups/daily/nextal_backup_YYYYMMDD_HHMMSS.enc
+   ```
+
+7. **Start Full Stack**:
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.prod.yml up -d
+   ```
+
+8. **Verify System Integrity & Data**:
+   ```bash
+   node scripts/smoke-test-prod.mjs https://payroll.yourcompany.ae
+   ```
+
+### Offsite Backup Replication
+To transfer encrypted backups to a secondary offsite server automatically:
 ```bash
-docker compose --env-file .env.production -f docker-compose.prod.yml exec backup sh /deploy/restore.sh /backups/daily/nextal_backup_20261113_000000.enc
+# Set offsite credentials in environment or cron:
+export OFFSITE_BACKUP_HOST="backup-uae-east.secondary.ae"
+export OFFSITE_BACKUP_USER="nextal-backup"
+export OFFSITE_BACKUP_DIR="/srv/backups/nextal"
+export OFFSITE_BACKUP_SSH_KEY="/home/deploy/.ssh/id_ed25519"
+
+# Run offsite sync (refuses unencrypted dumps):
+sh deploy/offsite-backup.sh
 ```
 
 ---

@@ -126,7 +126,7 @@ services:
       - ./backups:/backups
       - ./deploy:/deploy:ro
       - storage_data:/storage:ro
-    entrypoint: ["sh", "-c", "echo 'Nextal aaPanel backup daemon initialized.'; trap exit TERM; while true; do if [ -f /deploy/backup.sh ]; then sh /deploy/backup.sh || true; fi; sleep 86400; done"]
+    entrypoint: ["sh", "/deploy/backup-cron.sh"]
     depends_on:
       postgres:
         condition: service_healthy

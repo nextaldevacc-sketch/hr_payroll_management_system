@@ -2,6 +2,8 @@
 import net from 'net';
 import http from 'http';
 import https from 'https';
+import fs from 'fs';
+import path from 'path';
 import { execSync } from 'child_process';
 
 /**
@@ -328,6 +330,45 @@ async function runSmokeTests() {
       dockerPortOutput === '',
       `nextal-postgres-prod published ports: '${dockerPortOutput || 'NONE'}' (expected NONE - private Docker network only)`
     );
+
+    // 11. Production Backup Health Probe (last_success.txt)
+    console.log('\n--- 11. Production Backup Health Probe ---');
+    console.log('Method: Check last_success.txt timestamp; fail/alert if older than 26 hours');
+
+    let backupSuccessData = null;
+    let backupFileFound = false;
+
+    const localBackupFile = path.resolve(process.cwd(), 'backups/last_success.txt');
+    if (fs.existsSync(localBackupFile)) {
+      backupFileFound = true;
+      backupSuccessData = fs.readFileSync(localBackupFile, 'utf8');
+    } else {
+      try {
+        backupSuccessData = execSync('docker exec nextal-backup-prod cat /backups/last_success.txt', {
+          encoding: 'utf8',
+          stdio: ['pipe', 'pipe', 'ignore'],
+        }).trim();
+        backupFileFound = true;
+      } catch (_) {
+        // Not found yet
+      }
+    }
+
+    if (backupFileFound && backupSuccessData) {
+      const match = backupSuccessData.match(/timestamp=([^\s\r\n]+)/);
+      if (match) {
+        const lastTs = new Date(match[1]).getTime();
+        const now = Date.now();
+        const ageHours = (now - lastTs) / (1000 * 3600);
+        console.log(`Latest backup timestamp: ${match[1]} (${ageHours.toFixed(1)} hours ago)`);
+        assert(ageHours <= 26, `Backup is fresh: ${ageHours.toFixed(1)}h old (must be <= 26h)`);
+      } else {
+        assert(false, 'Failed to parse timestamp from backup last_success.txt');
+      }
+    } else {
+      console.log('Notice: last_success.txt not yet present (scheduled daily at 02:00 Asia/Dubai)');
+      skip('Backup last_success.txt check skipped (scheduled daily at 02:00 Asia/Dubai; no backup recorded yet)');
+    }
 
     console.log('\n================================================================');
     console.log(` SMOKE TEST SUMMARY: ${passedTests}/${totalTests} TESTS PASSED (${skippedTests} skipped)`);

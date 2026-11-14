@@ -242,14 +242,57 @@ The `nextal-backup-prod` container runs on schedule, producing AES-256-CBC encry
 docker exec nextal-backup-prod sh /deploy/backup.sh
 ```
 
-### Restore Procedure
+### Restore Drill to a Fresh aaPanel Host
+Follow this exact sequence to restore the complete system from an encrypted backup archive to a brand new aaPanel VPS:
+
+1. **Setup aaPanel on the New Host**:
+   - Install aaPanel, Nginx, and Docker as documented in Section 2.
+   - Recreate the Proxy Project in aaPanel and enable Let's Encrypt SSL as in Section 5.
+
+2. **Restore Secrets & Environment Configuration**:
+   - Restore the original `.env.production` file into `/opt/nextal/.env.production`.
+   - **Crucial**: Ensure `BACKUP_ENCRYPTION_PASSPHRASE`, `DOCUMENT_ENCRYPTION_KEY`, and `JWT_SECRET` match the original host.
+
+3. **Transfer Encrypted Backup Archive**:
+   ```bash
+   mkdir -p /opt/nextal/backups/daily
+   scp user@offsite-backup-host:/srv/backups/nextal/nextal_backup_YYYYMMDD_HHMMSS.enc /opt/nextal/backups/daily/
+   ```
+
+4. **Launch Database and Backup Containers**:
+   ```bash
+   cd /opt/nextal
+   docker compose --env-file .env.production -f docker-compose.aapanel.yml up -d postgres backup
+   ```
+
+5. **Wait for PostgreSQL Health Check**:
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.aapanel.yml ps postgres
+   ```
+
+6. **Execute Restore Inside Backup Container**:
+   ```bash
+   docker exec nextal-backup-prod sh /deploy/restore.sh /backups/daily/nextal_backup_YYYYMMDD_HHMMSS.enc
+   ```
+
+7. **Start Application Containers**:
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.aapanel.yml up -d
+   ```
+
+8. **Verify System Health**:
+   ```bash
+   curl -k http://127.0.0.1:15000/api/v1/health
+   curl -k http://127.0.0.1:13100/login
+   ```
+
+### Offsite Backup Transfer
+Automated transfer of encrypted archives to a secondary storage host:
 ```bash
-# 1. Stop web and api to prevent active database writes
-docker compose -f docker-compose.aapanel.yml stop web api
+export OFFSITE_BACKUP_HOST="backup-uae.secondary.ae"
+export OFFSITE_BACKUP_USER="nextal-backup"
+export OFFSITE_BACKUP_DIR="/srv/backups/nextal"
+export OFFSITE_BACKUP_SSH_KEY="/home/deploy/.ssh/id_ed25519"
 
-# 2. Run restore script inside backup container
-docker exec nextal-backup-prod sh /deploy/restore.sh /backups/nextal_backup_YYYYMMDD_HHMMSS.dump.enc
-
-# 3. Restart services
-docker compose -f docker-compose.aapanel.yml start api web
+sh deploy/offsite-backup.sh
 ```
