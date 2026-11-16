@@ -244,7 +244,17 @@ async function run() {
     const allBugs = [];
     const crawlResults = [];
 
-    const rolesToTest = isFreshRun ? [ROLES_TO_AUDIT[0]] : ROLES_TO_AUDIT;
+    const rolesArg = process.argv.find((a) => a.startsWith('--roles='));
+    const allowedRoles = rolesArg
+      ? rolesArg.split('=')[1].split(',')
+      : process.env.ROLES_FILTER
+        ? process.env.ROLES_FILTER.split(',')
+        : null;
+
+    let rolesToTest = isFreshRun ? [ROLES_TO_AUDIT[0]] : ROLES_TO_AUDIT;
+    if (allowedRoles && allowedRoles.length > 0) {
+      rolesToTest = ROLES_TO_AUDIT.filter((r) => allowedRoles.includes(r.role));
+    }
 
     for (const { role, email } of rolesToTest) {
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });

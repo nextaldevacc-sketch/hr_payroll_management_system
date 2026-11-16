@@ -3,22 +3,11 @@ set -euo pipefail
 
 # Nextal HR & Payroll — Non-Destructive Zero-Downtime Server Update Script
 # Designed for VPS with aaPanel (Nginx) or standalone Docker Compose.
-# Usage: ./deploy/update-server.sh [COMPOSE_FILE] [ENV_FILE]
-# Example: ./deploy/update-server.sh docker-compose.aapanel.yml .env.production
+# Setup: -f docker-compose.prod.yml -f docker-compose.aapanel.yml (where aapanel file is an override)
+# Usage: ./deploy/update-server.sh [ENV_FILE]
+# Example: ./deploy/update-server.sh .env.production
 
-COMPOSE_FILE="${1:-docker-compose.aapanel.yml}"
-ENV_FILE="${2:-.env.production}"
-
-if [ ! -f "${COMPOSE_FILE}" ] && [ -f "docker-compose.prod.yml" ]; then
-  COMPOSE_FILE="docker-compose.prod.yml"
-fi
-
-echo "================================================================"
-echo " Nextal HR & Payroll — Server Update (Zero-Downtime Safe Mode)"
-echo " Compose File: ${COMPOSE_FILE}"
-echo " Environment File: ${ENV_FILE}"
-echo " Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-echo "================================================================"
+ENV_FILE=".env.production"
 
 # HARD RULE: Refuse destructive operations
 for arg in "$@"; do
@@ -26,6 +15,11 @@ for arg in "$@"; do
     *reset*|*truncate*|*drop*|*force-reset*)
       echo "FATAL: Destructive argument '${arg}' detected. Updates must be strictly non-destructive." >&2
       exit 1
+      ;;
+    *.env*)
+      if [ -f "$arg" ]; then
+        ENV_FILE="$arg"
+      fi
       ;;
   esac
 done
@@ -35,10 +29,23 @@ if [ ! -f "${ENV_FILE}" ]; then
   exit 1
 fi
 
-if [ ! -f "${COMPOSE_FILE}" ]; then
-  echo "FATAL: Compose file '${COMPOSE_FILE}' not found." >&2
+if [ ! -f "docker-compose.prod.yml" ]; then
+  echo "FATAL: Base compose file 'docker-compose.prod.yml' not found." >&2
   exit 1
 fi
+
+# Compose files setup: -f docker-compose.prod.yml -f docker-compose.aapanel.yml (where aapanel is an override)
+COMPOSE_ARGS=("-f" "docker-compose.prod.yml")
+if [ -f "docker-compose.aapanel.yml" ]; then
+  COMPOSE_ARGS+=("-f" "docker-compose.aapanel.yml")
+fi
+
+echo "================================================================"
+echo " Nextal HR & Payroll — Server Update (Zero-Downtime Safe Mode)"
+echo " Compose Stack: ${COMPOSE_ARGS[*]}"
+echo " Environment File: ${ENV_FILE}"
+echo " Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+echo "================================================================"
 
 # Step 1: Pre-Update Snapshot / Backup
 echo "[Step 1/6] Triggering pre-update safety database backup..."
@@ -68,11 +75,11 @@ fi
 
 # Step 4: Apply database migrations in isolated run container (NEVER RESET)
 echo "[Step 4/6] Applying pending additive database migrations (prisma migrate deploy)..."
-docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" run --rm api npx prisma migrate deploy
+docker compose --env-file "${ENV_FILE}" "${COMPOSE_ARGS[@]}" run --rm api npx prisma migrate deploy
 
 # Step 4b: Ensure idempotent system seed
 echo "[Step 4b] Verifying system roles catalog..."
-docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" run --rm api npm run seed:system || true
+docker compose --env-file "${ENV_FILE}" "${COMPOSE_ARGS[@]}" run --rm api npm run seed:system || true
 
 # Step 5: Rolling restart of API, then Web
 rollback() {
@@ -81,19 +88,19 @@ rollback() {
   echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
   docker tag hr-payroll-management-api:rollback-prev hr-payroll-management-api:latest 2>/dev/null || true
   docker tag hr-payroll-management-web:rollback-prev hr-payroll-management-web:latest 2>/dev/null || true
-  docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --no-deps api
-  docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --no-deps web
-  echo "Rollback containers restarted. Please check logs: docker compose -f ${COMPOSE_FILE} logs --tail=100"
+  docker compose --env-file "${ENV_FILE}" "${COMPOSE_ARGS[@]}" up -d --no-deps api
+  docker compose --env-file "${ENV_FILE}" "${COMPOSE_ARGS[@]}" up -d --no-deps web
+  echo "Rollback containers restarted. Please check logs: docker compose ${COMPOSE_ARGS[*]} logs --tail=100"
   exit 1
 }
 
 echo "[Step 5/6] Performing rolling restart: updating API service..."
-docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --no-deps api
+docker compose --env-file "${ENV_FILE}" "${COMPOSE_ARGS[@]}" up -d --no-deps api
 
 echo "Waiting for API service health..."
 API_HEALTHY=0
 for i in $(seq 1 12); do
-  if docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" ps api --format json | grep -q '"Health":"healthy"'; then
+  if docker compose --env-file "${ENV_FILE}" "${COMPOSE_ARGS[@]}" ps api --format json | grep -q '"Health":"healthy"'; then
     API_HEALTHY=1
     echo "API service is healthy!"
     break
@@ -107,12 +114,12 @@ if [ "$API_HEALTHY" -ne 1 ]; then
 fi
 
 echo "Updating Web service..."
-docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" up -d --no-deps web
+docker compose --env-file "${ENV_FILE}" "${COMPOSE_ARGS[@]}" up -d --no-deps web
 
 echo "Waiting for Web service health..."
 WEB_HEALTHY=0
 for i in $(seq 1 12); do
-  if docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" ps web --format json | grep -q '"Health":"healthy"'; then
+  if docker compose --env-file "${ENV_FILE}" "${COMPOSE_ARGS[@]}" ps web --format json | grep -q '"Health":"healthy"'; then
     WEB_HEALTHY=1
     echo "Web service is healthy!"
     break
@@ -127,10 +134,9 @@ fi
 
 # Step 6: Post-deployment verification
 echo "[Step 6/6] Verifying operational endpoints..."
-docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" ps
+docker compose --env-file "${ENV_FILE}" "${COMPOSE_ARGS[@]}" ps
 
 echo "================================================================"
 echo " SERVER UPDATE SUCCESSFUL!"
 echo " Nextal HR & Payroll production services updated without downtime."
 echo "================================================================"
-
