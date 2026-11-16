@@ -74,3 +74,4 @@ describe('Part 8 Item 5: Startup Tolerance & Swagger Log Suppression', () => {
     assert.equal(getDocsStatus('test', undefined), true, 'Docs enabled in test');
   });
 });
+

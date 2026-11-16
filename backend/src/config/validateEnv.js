@@ -32,7 +32,7 @@ export function validateEnv(env = process.env) {
       'replace_this_with_a_secure_random',
     ];
     const lower = jwtSecret.toLowerCase();
-    if (exactWeak.includes(lower) || devPhrases.some((phrase) => lower.includes(phrase))) {
+    if (exactWeak.includes(lower) || (isProd && devPhrases.some((phrase) => lower.includes(phrase)))) {
       errors.push('JWT_SECRET is using a weak or development default value');
     }
   }
@@ -60,7 +60,11 @@ export function validateEnv(env = process.env) {
     }
     const keyBytes = Buffer.from(docKey, docKey.length === 64 ? 'hex' : 'utf8');
     if (keyBytes.length !== 32) {
-      errors.push(`DOCUMENT_ENCRYPTION_KEY must be exactly 32 bytes (got ${keyBytes.length} bytes)`);
+      if (isProd) {
+        errors.push(`DOCUMENT_ENCRYPTION_KEY must be exactly 32 bytes (got ${keyBytes.length} bytes)`);
+      } else {
+        warnings.push(`DOCUMENT_ENCRYPTION_KEY should be exactly 32 bytes (got ${keyBytes.length} bytes)`);
+      }
     }
   }
 

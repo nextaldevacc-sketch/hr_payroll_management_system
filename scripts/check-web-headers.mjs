@@ -68,3 +68,4 @@ verifyHeaders().catch((err) => {
   console.error('\n❌ Header verification failed:', err.message);
   process.exit(1);
 });
+

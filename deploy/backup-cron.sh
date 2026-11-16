@@ -21,3 +21,4 @@ touch /var/log/backup.log
 
 echo "Starting background cron daemon..."
 exec crond -f -l 2
+

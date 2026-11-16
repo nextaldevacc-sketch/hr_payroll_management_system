@@ -112,3 +112,4 @@ echo " OFFSITE BACKUP TRANSFER SUCCESSFUL!"
 echo " Archive: ${FILE_NAME}"
 echo " Verified SHA-256: ${CHECKSUM}"
 echo "================================================================"
+

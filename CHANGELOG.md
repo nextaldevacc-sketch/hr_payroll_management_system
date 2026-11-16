@@ -5,6 +5,50 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ---
 
+## [1.0.0-rc6] - 2026-11-16
+
+### Release Candidate 6: Security Hardening, TOTP MFA, aaPanel Kit & Bug Fixes
+- **Part 8.1: TOTP MFA (SEC-2) for Privileged Roles**:
+  - Implemented RFC 6238 TOTP (30s time step, 6 digits, ±1 step window) for privileged roles (`COMPANY_ADMIN`, `HR_MANAGER`, `PAYROLL_OFFICER`, `GM`, `FINANCE`).
+  - Added self-contained SVG QR code generator (`backend/src/lib/qrcode.js`) and manual base32 secret key enrollment modal.
+  - Implemented 10 single-use emergency recovery codes per enrolled user, hashed with bcrypt (cost factor 12).
+  - Extended login authentication pipeline with secondary TOTP challenge step; enforced per-route rate limits and account lockout defenses against failed MFA attempts.
+  - Added company setting `require_privileged_mfa` (default ON) controlling mandatory MFA enforcement per organization.
+  - Implemented Company Admin MFA reset action for locked-out staff with mandatory audit logging and immediate session revocation (`token_version` increment). Users cannot reset their own MFA without a valid code.
+  - Enforced AES-256-GCM encryption at rest for all MFA secrets using HKDF keys derived from `DOCUMENT_ENCRYPTION_KEY` with distinct info string. Zero MFA secrets or plaintext recovery codes logged.
+- **Part 8.2: No-Role User Experience & Access Guard**:
+  - Added dedicated `/no-role` page and route guard for users provisioned without an active role.
+  - Replaced empty sidebar/blank fallback with clear bilingual Arabic and English guidance directing the user to contact their Company Administrator.
+  - Added audit logging (`UNASSIGNED_ROLE_ACCESS_BLOCKED`) on access attempts by role-less accounts.
+- **Part 8.3: Next.js Standalone Web Security Headers & Strict CSP**:
+  - Configured comprehensive security headers in `frontend/next.config.js` for standalone deployment behind reverse proxies (aaPanel Nginx / Caddy).
+  - Implemented strict Content Security Policy (`Content-Security-Policy`): self-hosted fonts, zero external origins, zero `unsafe-eval` in production mode, and `frame-ancestors 'none'`.
+  - Added `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Permissions-Policy`.
+  - Added automated test suite (`frontend/test/web-security-headers.test.js`) and header verification script (`scripts/check-web-headers.mjs`).
+- **Part 8.4: Strengthen Production Smoke Test Assertions**:
+  - Enhanced `scripts/smoke-test-prod.mjs` to probe 24 distinct verification checks against live production instances.
+  - Verified real `Set-Cookie` flags (`HttpOnly`, `Secure`, `SameSite=Lax`) directly on live login HTTP responses instead of relying on configuration inspection.
+  - Added live account lockout verification with temporary throwaway user when `SMOKE_ALLOW_WRITE=yes` (guarded against default production execution).
+  - Added live CSP and HSTS header verification on Next.js root responses.
+- **Part 8.5: Tolerant Startup Job Initialization & Swagger Cleanup**:
+  - Made the `email_outbox` scheduler job resilient against cold starts before database migrations run (logs warning once, retries next tick without unhandled crash).
+  - Suppressed Swagger UI initialization notices in production mode when API docs are disabled.
+- **Part 8.6: Mobile & Responsive Viewport Audit**:
+  - Conducted full mobile responsive audit across key screens down to 390px (iPhone 12/13/14 viewport).
+  - Added responsive table wrappers with horizontal scrolling indicators, sticky first column, and compact touch targets.
+  - Optimized drawer sheets, modal dialogs, and navigation drawers for small screen touch interactions.
+  - Added automated viewport test suite (`frontend/test/responsive-390px.test.js`) and mobile crawler (`scripts/audit-mobile.mjs`).
+- **Part 8.7: aaPanel Deployment Kit & Server Update Automation**:
+  - Created complete aaPanel deployment kit in `deploy/aapanel/` (Nginx reverse proxy template, Node.js PM2 process manager configuration, and deployment runbook `deploy/aapanel/README.md`).
+  - Authored `deploy/update-server.sh`: automated one-command server update script supporting git pull, migration deployment, build, service restart, and automatic health verification with rollback.
+- **Part 8.8: Offsite Backup Transfer, Backup Validation & Health Tracking**:
+  - Hardened `deploy/backup.sh` with pre-commit dump size (> 10KB) and table catalog validation (`pg_restore -l` >= 5 tables) before updating `last_success.txt`.
+  - Authored `deploy/offsite-backup.sh` supporting automated offsite backup sync via SFTP / rsync or S3-compatible cloud storage.
+  - Authored `deploy/backup-cron.sh` managing automated daily backup execution, retention rotation, offsite transfer, and emergency alerting on failure.
+  - Created backup freshness monitoring probe in `scripts/smoke-test-prod.mjs` alerting if last successful backup exceeds 26 hours.
+
+---
+
 ## [1.0.0-rc5] - 2026-11-13
 
 ### Release Candidate 5: Manual-Test Fixes, True Crawler & VPS Production Readiness

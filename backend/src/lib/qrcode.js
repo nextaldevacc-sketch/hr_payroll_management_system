@@ -330,3 +330,4 @@ export function createQRCodeSvg(text, ecl = 'M') {
 
   return { moduleCount, svg, dataUri };
 }
+

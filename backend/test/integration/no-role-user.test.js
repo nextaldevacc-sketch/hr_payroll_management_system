@@ -112,3 +112,4 @@ describe('Part 8 Item 2: No-Role User Experience & Guard', () => {
     assert.ok(jsonResponse.message.includes('No role assigned - contact your Company Admin'));
   });
 });
+

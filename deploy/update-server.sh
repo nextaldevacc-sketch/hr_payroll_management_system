@@ -133,3 +133,4 @@ echo "================================================================"
 echo " SERVER UPDATE SUCCESSFUL!"
 echo " Nextal HR & Payroll production services updated without downtime."
 echo "================================================================"
+

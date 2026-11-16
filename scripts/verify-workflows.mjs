@@ -431,6 +431,14 @@ async function runStepRunner() {
         });
         if (!tokenRec) throw new Error('No invite token found for test company admin');
 
+        // Test runner environment: disable MFA for test company so automated browser can authenticate test personas
+        if (adminUser.company_id) {
+          await prisma.$base().companies.update({
+            where: { id: adminUser.company_id },
+            data: { require_privileged_mfa: false },
+          });
+        }
+
         // Note: auth_tokens stores token_hash; for deterministic test runner we can generate a fresh known token or query raw token
         // In authService, rawToken was 32 bytes hex. Let's create a direct valid token for the test
         const testRawToken = `test_invite_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;

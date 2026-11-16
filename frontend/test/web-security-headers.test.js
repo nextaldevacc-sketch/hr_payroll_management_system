@@ -33,3 +33,4 @@ describe('Part 8 Item 3: Next.js Web Security Headers', () => {
     assert.ok(headers['permissions-policy'].includes('microphone=()'));
   });
 });
+

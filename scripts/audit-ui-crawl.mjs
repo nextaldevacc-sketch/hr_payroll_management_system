@@ -638,6 +638,30 @@ async function run() {
     fs.writeFileSync(REPORT_MD, md, 'utf8');
     fs.writeFileSync(REPORT_JSON, JSON.stringify({ roleSummaries, allBugs }, null, 2), 'utf8');
 
+    // Generate individual report per role in docs/reports/crawl/
+    const crawlDir = path.resolve(rootDir, 'docs/reports/crawl');
+    fs.mkdirSync(crawlDir, { recursive: true });
+    for (const s of roleSummaries) {
+      const roleBugs = allBugs.filter((b) => b.role === s.role);
+      let roleMd = `# UI Crawler Audit Report: ${s.name || s.role}\n\n`;
+      roleMd += `- **Role Code**: \`${s.role}\`\n`;
+      roleMd += `- **Controls Discovered**: ${s.controlsFound}\n`;
+      roleMd += `- **Controls Clicked & Verified**: ${s.controlsClicked}\n`;
+      roleMd += `- **Bugs & Anomalies**: ${s.bugs}\n`;
+      roleMd += `- **Timestamp**: ${new Date().toISOString()}\n\n`;
+      if (roleBugs.length === 0) {
+        roleMd += `### Status: PASS (0 Bugs)\n\n`;
+        roleMd += `✅ Every visible interactive element clicked cleanly with 0 console errors, 0 broken links, 0 uncaught exceptions, and 0 layout shifts.\n`;
+      } else {
+        roleMd += `### Status: FAIL (${roleBugs.length} Bugs)\n\n`;
+        roleMd += `| Route | Target Control | Bug Type | Detail |\n|:---|:---|:---:|:---|\n`;
+        for (const b of roleBugs) {
+          roleMd += `| \`${b.route}\` | ${b.target || 'Page'} | **${b.type}** | ${b.detail} |\n`;
+        }
+      }
+      fs.writeFileSync(path.join(crawlDir, `crawl-${s.role}.md`), roleMd, 'utf8');
+    }
+
     if (totalBugs > 0) {
       console.error(`[audit-ui-crawl] FAIL: True crawler detected ${totalBugs} bugs.`);
       process.exit(1);

@@ -1,6 +1,6 @@
 # Known Limitations & Architecture Notes
 
-> **Version**: 1.0.0-rc5  
+> **Version**: 1.0.0-rc6  
 > **Platform**: Nextal HR & Payroll Management System (UAE Enterprise Edition)
 
 ---
@@ -70,14 +70,16 @@
 ---
 
 ## 9. Multi-Factor Authentication (MFA / TOTP RFC 6238)
-- **Status**: Deferred to post-v1.0.0-rc5 release (NOT DONE in this release per Part 7B B4).
-- **Reason**: To prevent shipping an untested or partially implemented authentication loop that could lock out production administrators or enterprise users.
-- **Current Security Controls**: Strict brute-force protection (5 failed logins triggers 15-minute temporary lock), session token versioning with instant revocation, forced temporary password change, and HttpOnly/Secure/SameSite cookie guards.
-- **Remaining Implementation Roadmap**:
-  1. Enrolment wizard with QR code generation (`speakeasy` / `qrcode`) and emergency recovery codes.
-  2. TOTP verification middleware for privileged roles (`COMPANY_ADMIN`, `HR_MANAGER`, `PAYROLL_OFFICER`, `GM`, `FINANCE`).
-  3. Dual-admin MFA reset authorization workflow with notification dispatch.
-  4. Full bilingual UI (Arabic & English) and end-to-end Playwright tests.
+- **Status**: IMPLEMENTED in v1.0.0-rc6 (Part 8 Item 1).
+- **Implementation**: Full RFC 6238 TOTP implementation (30s step, 6 digits, ±1 window) for privileged roles (`COMPANY_ADMIN`, `HR_MANAGER`, `PAYROLL_OFFICER`, `GM`, `FINANCE`).
+  1. Enrolment wizard with QR code generation (SVG format) and manual base32 secret key entry.
+  2. 10 single-use emergency recovery codes (stored hashed using bcrypt with cost factor 12).
+  3. Login challenge flow prompting for 6-digit TOTP code after password authentication.
+  4. Account lockout defense and per-route rate limiting applied to TOTP verification attempts.
+  5. Company setting `require_privileged_mfa` (default ON) controlling enforcement per organization.
+  6. Company Admin MFA reset action for locked-out users, audited to immutable `audit_logs` with immediate session invalidation (`token_version` bump). Users cannot reset their own MFA without a valid TOTP or recovery code.
+  7. TOTP secrets encrypted at rest via AES-256-GCM with distinct HKDF-derived keys from `DOCUMENT_ENCRYPTION_KEY`. Zero secrets or plaintext recovery codes leaked in logs.
+- **Current Security Controls**: Cryptographic token validation, bcrypt-hashed recovery codes, session invalidation, and rate limiting active.
 
 ---
 

@@ -1,9 +1,9 @@
-# Security Status & Requirements Matrix (PART 7B - B1)
+# Security Status & Requirements Matrix (PART 8)
 
 > **Document Status**: Complete Audit & Verification  
-> **Source Reference**: `docs/workflows/SECURITY-REQUIREMENTS.md` (Note: file is absent from repository; audited against OWASP Top 10, UAE Federal Decree-Law No. 33/2021, UAE PDPL Federal Decree-Law No. 45/2021, and Part 7 specifications).  
-> **Audit Date**: 2026-11-13  
-> **Target Release**: `v1.0.0-rc5`  
+> **Source Reference**: `docs/workflows/SECURITY-REQUIREMENTS.md` (Audited against OWASP Top 10, UAE Federal Decree-Law No. 33/2021, UAE PDPL Federal Decree-Law No. 45/2021, and Part 7/8 specifications).  
+> **Audit Date**: 2026-11-16  
+> **Target Release**: `v1.0.0-rc6`  
 
 ---
 
@@ -11,9 +11,9 @@
 
 | Category | Total | IMPLEMENTED | PARTIAL | MISSING / NOT DONE |
 | :--- | :---: | :---: | :---: | :---: |
-| **Core Security (SEC-1 .. SEC-74)** | 74 | 68 | 5 | 1 |
+| **Core Security (SEC-1 .. SEC-74)** | 74 | 70 | 4 | 0 |
 | **Compliance & UAE Controls (SEC-C1 .. SEC-C21)** | 21 | 21 | 0 | 0 |
-| **Total Requirements** | **95** | **89** | **5** | **1** |
+| **Total Requirements** | **95** | **91** | **4** | **0** |
 
 ---
 
@@ -22,10 +22,10 @@
 | ID | Title / Requirement | Status | Evidence (File / Test) | Notes |
 | :--- | :--- | :---: | :--- | :--- |
 | **SEC-1** | Password Hashing (Argon2id or bcrypt >= 12) | **PARTIAL** | `backend/src/services/authService.js:21`, `backend/test/passwordRehash.test.js` | Bcrypt with cost >= 12 implemented with transparent login rehash. Argon2id pending native build tools in deployment environment (listed under NOT DONE). |
-| **SEC-2** | Multi-Factor Authentication (TOTP RFC 6238) | **IMPLEMENTED** | `backend/src/services/mfaService.js`, `backend/test/integration/mfa-totp.test.js` | RFC 6238 TOTP (30s step, 6 digits, ±1 window), QR & manual key enrolment, 10 hashed single-use recovery codes, privileged role enforcement, AES-256-GCM HKDF encryption, admin reset audited with session revocation. |
-| **SEC-3** | Session Invalidation / Token Versioning | **IMPLEMENTED** | `backend/src/middleware/authCache.js`, `backend/src/services/userService.js:270` | `token_version` on users table; `invalidateUserSession` on password/role change. |
-| **SEC-4** | Brute Force Protection & Account Lockout | **IMPLEMENTED** | `backend/src/services/authService.js:105-182`, `frontend/test/auth-session.test.js` | 5 failed attempts locks account for 15 minutes with auto-expiry. |
-| **SEC-5** | Forced Password Change Flow | **IMPLEMENTED** | `backend/src/controllers/authController.js`, `frontend/src/app/(auth)/change-password/` | `must_change_password` flag forces redirect to `/change-password` on first login. |
+| **SEC-2** | Multi-Factor Authentication (TOTP RFC 6238) | **IMPLEMENTED** | `backend/src/services/mfaService.js`, `backend/test/integration/mfa-totp.test.js`, `frontend/src/components/features/auth/MfaEnrollModal.jsx` | RFC 6238 TOTP (30s step, 6 digits, ±1 window), QR & manual key enrolment, 10 hashed single-use recovery codes, privileged role enforcement, AES-256-GCM HKDF encryption, admin reset audited with session revocation, company setting `require_privileged_mfa` (default ON). |
+| **SEC-3** | Session Invalidation / Token Versioning | **IMPLEMENTED** | `backend/src/middleware/authCache.js`, `backend/src/services/userService.js:270` | `token_version` on users table; `invalidateUserSession` on password/role change and MFA reset. |
+| **SEC-4** | Brute Force Protection & Account Lockout | **IMPLEMENTED** | `backend/src/services/authService.js:105-182`, `frontend/test/auth-session.test.js` | 5 failed attempts locks account for 15 minutes with auto-expiry. Applies to password and MFA code attempts. |
+| **SEC-5** | Forced Password Change Flow | **IMPLEMENTED** | `backend/src/controllers/authController.js`, `frontend/src/app/(auth)/change-password/` | `must_change_password` flag forces redirect to `/change-password` on first login before privileged MFA enforcement. |
 | **SEC-6** | Dual-Control Onboarding (Rule G) | **IMPLEMENTED** | `backend/src/services/employeeService.js:820`, `frontend/src/components/features/employees/EmployeeProfileFeature.jsx:547` | Creator cannot approve own employee record (`created_by !== viewer.id`). |
 | **SEC-7** | Four-Eye Payroll Verification Invariant | **IMPLEMENTED** | `backend/src/services/payrollService.js`, `scripts/steps-4b.mjs`, `scripts/steps-fresh.mjs` | 4 distinct roles: Payroll Officer creates, HR Manager validates, GM locks, Finance marks paid. |
 | **SEC-8** | Dual-Control Separation & Gratuity Sign-Off | **IMPLEMENTED** | `backend/src/services/separationService.js`, `scripts/steps-4c.mjs` | HR Officer prepares; HR Manager approves; GM/Finance sign off. |
@@ -35,7 +35,7 @@
 | **SEC-12** | Swagger Exposure Guard | **IMPLEMENTED** | `backend/src/app.js:88-98` | `/api/docs` disabled in production unless `ENABLE_API_DOCS=true`. |
 | **SEC-13** | Reverse Proxy Trust Setting | **IMPLEMENTED** | `backend/src/app.js:38` | `app.set('trust proxy', Number(process.env.TRUST_PROXY || 1))` active. |
 | **SEC-14** | Cookie Security Flags | **IMPLEMENTED** | `backend/src/controllers/authController.js:80-95` | `HttpOnly; Secure; SameSite=Lax` enforced on `nextal_token`. |
-| **SEC-15** | Content Security Policy (Helmet) | **IMPLEMENTED** | `backend/src/app.js:40-58` | Strict Helmet CSP in production: no `unsafe-eval`, `frameAncestors: 'none'`. |
+| **SEC-15** | Content Security Policy (Helmet & Next.js) | **IMPLEMENTED** | `backend/src/app.js:40-58`, `frontend/next.config.js`, `frontend/test/web-security-headers.test.js` | Strict CSP in production on both Next.js frontend and backend API: self-hosted fonts, no external origins, no `unsafe-eval` in production, `frame-ancestors 'none'`, `X-Frame-Options: DENY`. |
 | **SEC-16** | Strict CORS Exact Origin | **IMPLEMENTED** | `backend/src/app.js:60-78` | Exact origin match in production (`ALLOWED_ORIGIN`), no wildcard allowed. |
 | **SEC-17** | Error Message Sanitization | **IMPLEMENTED** | `backend/src/middleware/errorHandler.js:45-65`, `backend/test/errorSanitization.test.js` | 500 errors stripped of Prisma/stack traces in production. |
 | **SEC-18** | Log PII Masking | **IMPLEMENTED** | `backend/src/middleware/errorHandler.js:7-13`, `backend/test/errorSanitization.test.js` | IBAN, Emirates ID, and Passport numbers masked before writing to server logs. |
@@ -51,7 +51,7 @@
 | **SEC-28** | Fail-Closed Visa & Branch Scoping | **IMPLEMENTED** | `backend/src/middleware/visaScopeMiddleware.js`, `backend/test/visa-branch-scope.test.js` | Scoped users cannot see or operate on other visa entity records. |
 | **SEC-29** | Zero Salary Leaks for HR Officer | **IMPLEMENTED** | `backend/src/middleware/salaryMaskMiddleware.js`, `scripts/steps-fresh.mjs` | HR Officer and view-only roles stripped of all AED and salary fields in API serializer. |
 | **SEC-30** | TopBar Visa Switcher Isolation | **IMPLEMENTED** | `frontend/src/components/features/layout/TopBar.jsx`, `scripts/verify-workflows.mjs` | TopBar entity dropdown filters views and blocks cross-visa requests. |
-| **SEC-31** | Application-Level Field Encryption | **PARTIAL** | `KNOWN-LIMITATIONS.md` | At-rest file encryption active; field-level envelope encryption of DB columns is NOT DONE. |
+| **SEC-31** | Application-Level Field Encryption | **PARTIAL** | `KNOWN-LIMITATIONS.md` | At-rest file encryption active (AES-256-GCM); column-level envelope encryption with HMAC-SHA256 blind indexing for Emirates ID and Passport numbers at rest is deferred to post-1.0.0 (SEC-1) in accordance with KNOWN-LIMITATIONS.md. UI masking, audited reveal actions, and log sanitization active. |
 | **SEC-32** | Data Retention Setting | **IMPLEMENTED** | `backend/src/services/settingsService.js:225-255` | Configurable data retention period (default 7 years) stored in company settings. |
 | **SEC-33** | Self-Service Boundary Enforcement | **IMPLEMENTED** | `backend/src/routes/me.js`, `frontend/test/auth-session.test.js` | EMPLOYEE role restricted to `/me` self-service routes; 403 on `/payroll` & `/employees`. |
 | **SEC-34** | Locked Pay Run Trigger Protection | **IMPLEMENTED** | `backend/prisma/migrations/20261028120000_locked_pay_run_triggers/migration.sql` | DB trigger rejects modifying payslips once pay run status is `Locked` or `Paid`. |

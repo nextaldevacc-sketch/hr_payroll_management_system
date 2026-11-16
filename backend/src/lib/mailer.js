@@ -16,6 +16,7 @@ import prisma from './prisma.js';
 
 export class MailerService {
   constructor() {
+    this.prisma = prisma;
     this.sentMessages = [];
     this.devStorageDir = path.resolve(process.cwd(), 'storage', 'email-dev');
     this.initTransport();
@@ -222,11 +223,12 @@ export class MailerService {
    * Tolerates missing email_outbox table before migrations have run (logs once, retries next tick)
    */
   async processOutboxBatch(batchSize = 25) {
-    if (!prisma?.email_outbox) return { processed: 0, sent: 0, failed: 0 };
+    const db = this.prisma || prisma;
+    if (!db?.email_outbox) return { processed: 0, sent: 0, failed: 0, pendingMigrations: true };
 
     let candidates = [];
     try {
-      candidates = await prisma.email_outbox.findMany({
+      candidates = await db.email_outbox.findMany({
         where: {
           OR: [
             { status: 'queued' },
@@ -282,7 +284,7 @@ export class MailerService {
             text: item.body_text || '',
           });
           console.log(`[Mailer:Outbox] Sent email to: ${item.recipient} | Message ID: ${info.messageId}`);
-          await prisma.email_outbox.update({
+          await db.email_outbox.update({
             where: { id: item.id },
             data: {
               status: 'sent',
@@ -293,7 +295,7 @@ export class MailerService {
           });
           sentCount++;
         } else if (this.mailMode === 'disabled' || !this.isProd) {
-          await prisma.email_outbox.update({
+          await db.email_outbox.update({
             where: { id: item.id },
             data: {
               status: 'sent',
@@ -305,7 +307,7 @@ export class MailerService {
         }
       } catch (sendErr) {
         console.error(`[Mailer:Outbox] Failed email to: ${item.recipient} | Error: ${sendErr.message}`);
-        await prisma.email_outbox.update({
+        await db.email_outbox.update({
           where: { id: item.id },
           data: {
             status: 'failed',

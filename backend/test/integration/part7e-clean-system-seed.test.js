@@ -1,5 +1,6 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
@@ -33,8 +34,21 @@ describe('Part 7E: Clean System Seed, Role Guards, and 5 Statutory Approval Flow
   });
 
   after(async () => {
-    // Re-seed system data so subsequent tests have canonical roles
-    await seedSystemData(prisma, { forceReset: true });
+    // Re-seed demo database so subsequent tests have full companies, users and employees
+    try {
+      execSync('node prisma/seed/index.js', {
+        cwd: path.resolve(__dirname, '../..'),
+        env: {
+          ...process.env,
+          DATABASE_URL: process.env.DATABASE_URL,
+          NODE_ENV: 'test',
+          SEED_MODE: 'demo',
+        },
+        stdio: 'pipe',
+      });
+    } catch (e) {
+      console.error('Failed to restore demo seed in after():', e.message);
+    }
   });
 
   it('1. setup-company fails loudly with rollback if roles catalog is empty', async () => {

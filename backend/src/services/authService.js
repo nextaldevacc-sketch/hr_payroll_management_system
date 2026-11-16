@@ -270,7 +270,9 @@ export class AuthService {
     // Check MFA requirement
     const isPrivileged = roles.some((r) => PRIVILEGED_ROLES.includes(r));
     const requirePrivilegedMfa = user.company?.require_privileged_mfa !== false;
-    const mfaRequired = user.mfa_enabled || (isPrivileged && requirePrivilegedMfa);
+    // When a user has a temporary bootstrap password (must_change_password is true),
+    // they must complete forced password change first before MFA is enforced.
+    const mfaRequired = !user.must_change_password && (user.mfa_enabled || (isPrivileged && requirePrivilegedMfa));
 
     if (mfaRequired) {
       const mfaToken = jwt.sign(
@@ -291,6 +293,7 @@ export class AuthService {
           id: user.id,
           email: user.email,
           roles,
+          must_change_password: user.must_change_password ?? false,
         },
       };
     }

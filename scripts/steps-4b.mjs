@@ -120,10 +120,16 @@ export async function runWorkflows4B({
       await fileInput.setInputFiles(dashboardOfficerCsv);
       await page.waitForTimeout(500);
 
-      const submitBtn = await page.waitForSelector('[data-testid="start-import-btn"]', { timeout: 10000 });
+      const submitBtn = await page.waitForSelector('[data-testid="start-import-btn"]:not([disabled])', { timeout: 15000 });
       await submitBtn.click();
 
-      await page.waitForSelector('[data-testid="import-results-summary"]', { timeout: 30000 });
+      await Promise.race([
+        page.waitForSelector('[data-testid="import-results-summary"]', { timeout: 30000 }),
+        page.waitForSelector('.bg-rose-500\\/10', { timeout: 30000 }).then(async (el) => {
+          const txt = await el.textContent();
+          throw new Error(`Biometric import failed with UI error: ${txt}`);
+        }),
+      ]);
 
       // HR Officer verifies Attendance tab
       await safeGoto(page, `http://localhost:${WEB_PORT}/attendance`);

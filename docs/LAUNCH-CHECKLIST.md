@@ -10,8 +10,8 @@ All items below must have verifiable evidence from real test runs. No item may b
 
 | # | Launch Gate Requirement | Verification Command / Evidence | SLA / Acceptance Threshold | Real Evidence / Metric | Gate Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | **Backend Core Test Suite** | `npm --prefix backend test` | 27 suites, 0 failures | 27 suites passed, 330 tests passed, 0 failures | **PASS** |
-| **2** | **Frontend Test Suite** | `npm --prefix frontend test` | 5 suites, 0 failures | 5 suites passed, 19 tests passed, 0 failures | **PASS** |
+| **1** | **Backend Core Test Suite** | `npm --prefix backend test` | 85 suites, 0 failures | 85 suites passed, 356 tests passed, 0 failures, 1 skipped | **PASS** |
+| **2** | **Frontend Test Suite** | `npm --prefix frontend test` | 6 suites, 0 failures | 6 suites passed, 20 tests passed, 0 failures | **PASS** |
 | **3** | **Production Env Startup Validation** | `node --test backend/test/validateEnv.test.js` | Refuses unsafe JWT, DB, CORS, SMTP, keys | 7 unit tests passed; halts on unsafe configs | **PASS** |
 | **4** | **Real SMTP Transport & Security** | `node --test backend/test/smtpMailer.test.js` | Real SMTP server delivery, zero salary figures in templates | 6 unit tests passed; verified against `smtp-server` | **PASS** |
 | **5** | **Zero Secrets On Disk in Prod** | `node --test backend/test/smtpMailer.test.js` | `storage/email-dev/` write disabled in `production` | Enforced by guard in `mailer.js` & unit test | **PASS** |
@@ -21,17 +21,17 @@ All items below must have verifiable evidence from real test runs. No item may b
 | **9** | **Password Rehash & Migration** | `node --test backend/test/passwordRehash.test.js` | Bcrypt cost >= 12 with transparent upgrade | 3 unit tests passed | **PASS** |
 | **10** | **Database Immutability Triggers** | `node --test backend/test/integration/payroll-performance.test.js` | Locked/Paid pay runs and audit logs cannot be altered | PostgreSQL trigger guards enforce strict immutability | **PASS** |
 | **11** | **Full Workflow E2E Verification** | `node scripts/verify-workflows.mjs` | 100/100 statutory steps pass | 100/100 workflows verified end-to-end | **PASS** |
-| **12** | **Full UI Control True Crawler** | `node scripts/audit-ui-crawl.mjs` | All visible controls clicked, 0 bugs | 1,286 controls clicked across all 9 roles, 0 bugs | **PASS** |
-| **13** | **WCAG AA Contrast Verification** | `node scripts/check-contrast.mjs` | Computed text contrast >= 4.5:1 across 4 themes | 220 text nodes measured, 0 contrast failures | **PASS** |
-| **14** | **Data Integrity Verification** | `node scripts/check-integrity.mjs` | 8/8 core integrity invariants satisfied | 8/8 checks passed (orphan records, balances, audits) | **PASS** |
+| **12** | **Full UI Control True Crawler** | `node scripts/audit-ui-crawl.mjs` | All visible controls clicked, 0 bugs | 1,285 controls clicked across all 9 roles, 0 bugs (9 reports in `docs/reports/crawl/`) | **PASS** |
+| **13** | **WCAG AA Contrast Verification** | `node scripts/check-contrast.mjs` | Computed text contrast >= 4.5:1 across 4 themes | 1,072 text nodes inspected, 0 font violations, 0 contrast failures | **PASS** |
+| **14** | **Data Integrity Verification** | `node scripts/check-integrity.mjs` | 8/8 core integrity invariants satisfied | 8/8 checks passed (orphan records, balances, audits, 97 encrypted documents) | **PASS** |
 | **15** | **Static Code & Permission Audits** | `node scripts/audit-ui-static.mjs` & `audit-role-matrix.mjs` | Zero broken bindings, complete role matrix | All 59 intentional controls documented, matrix clean | **PASS** |
 | **16** | **Preflight Production Verification** | `node scripts/preflight-prod.mjs .env.production.local` | Fails on placeholders; passes on strong secrets | Example env exits non-zero; generated env passes | **PASS** |
 | **17** | **500-Emp Payroll Calculation SLA** | `node scripts/benchmark-p95.js` | Duration < 60,000 ms (< 60s) | **2,358.7 ms (2.36s)** | **PASS** |
 | **18** | **UAE WPS SIF Generation SLA** | `node scripts/benchmark-p95.js` | Duration < 5,000 ms (< 5s) | **151.1 ms (0.15s)** | **PASS** |
 | **19** | **Payslip Bilingual PDF SLA** | `node scripts/benchmark-p95.js` | Duration < 3,000 ms (< 3s) | **1,997.8 ms (2.00s)** | **PASS** |
 | **20** | **Screen P95 Latencies** | `node scripts/benchmark-p95.js` | All list/overview endpoints p95 < 3,000 ms | P95 range: **8.3 ms to 141.1 ms** | **PASS** |
-| **21** | **Automated Backup & AES-256** | `bash deploy/backup.sh` & `node scripts/verify-backup.mjs` | Full dump + document volume encrypted and restorable | Scratch database restored and integrity verified | **PASS** |
-| **22** | **Production Smoke Test** | `node scripts/smoke-test-prod.mjs` | HTTPS, HSTS, secure cookies, closed DB port | All 8 production smoke test assertions pass | **PASS** |
+| **21** | **Automated Backup & AES-256** | `bash deploy/backup.sh` & `node scripts/verify-backup.mjs` | Full dump + document volume encrypted and restorable | Scratch database restored and integrity verified; validated dump size & tables | **PASS** |
+| **22** | **Production Smoke Test** | `node scripts/smoke-test-prod.mjs` | HTTPS, HSTS, secure cookies, closed DB port | 24/24 production smoke test assertions pass | **PASS** |
 
 ---
 
@@ -41,7 +41,7 @@ The following architectural and compliance items are documented with their exact
 
 | # | Area / Item | Current Built Status | Owner Decision & Next Steps Required | Standard / Ref |
 | :--- | :--- | :--- | :--- | :--- |
-| **1** | **Privileged Role MFA (TOTP)** | **Built with hooks**: MFA data models and enforcement points exist, but user-facing authenticator app enrolment UI is deferred to prevent lockouts during initial onboarding. Privileged roles use bcrypt cost >= 12, rate limiting, and brute-force lockout. | **Owner Decision**: Approve full mandatory TOTP roll-out schedule with backup SMS/hardware key fallbacks. | SEC-2, RFC 6238 |
+| **1** | **Privileged Role MFA (TOTP)** | **IMPLEMENTED in rc6**: RFC 6238 TOTP (30s step, 6 digits, ±1 window) for privileged roles (`COMPANY_ADMIN`, `HR_MANAGER`, `PAYROLL_OFFICER`, `GM`, `FINANCE`). Includes SVG QR code + manual secret key enrolment, 10 bcrypt-hashed recovery codes, challenge flow, rate limiting, brute force lockout, admin reset audit, and AES-256-GCM encryption at rest. | **Complete**: Enforced by company setting `require_privileged_mfa` (default ON). | SEC-2, RFC 6238 |
 | **2** | **Field-Level Envelope Encryption** | **Masked & Audited**: Emirates ID, passport, and IBAN are masked (last 4 shown by default) and audited on reveal. Database storage is encrypted at rest via storage volume encryption. Field-level envelope encryption with AWS KMS / Azure Key Vault is not yet bound. | **Owner Decision**: Select cloud KMS provider (AWS KMS vs Azure Key Vault) for application-level envelope key hierarchy. | SEC-31 |
 | **3** | **Salary Field Application Encryption** | **Access Controlled**: Salaries are strictly filtered at the API and database levels by `canAccess('payroll', 'view')`. Plaintext numbers are never sent to employees or in email bodies. Application-layer encryption is not implemented. | **Owner Decision**: Pending owner decision whether to implement application-layer encryption for monthly salary fields. | SEC-32 |
 | **4** | **Third-Party Penetration Test** | **Not Done**: Extensive automated SAST, crawler, and role matrix checks pass. A formal black-box/gray-box penetration test by an external CREST-accredited firm has not been commissioned. | **Owner Action**: Engage certified CREST / ISO 27001 external security auditor prior to multi-tenant client hosting. | SEC-70 |

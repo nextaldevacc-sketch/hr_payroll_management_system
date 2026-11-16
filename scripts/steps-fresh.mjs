@@ -94,6 +94,11 @@ export async function runWorkflowsFresh({
       const idMatch = setupOutput.match(/Company ID\s*:\s*([^\r\n]+)/);
       if (idMatch && idMatch[1]) {
         freshState.companyId = idMatch[1].trim();
+        // Test runner environment: disable MFA for test company so automated browser can authenticate test personas
+        await prisma.companies.update({
+          where: { id: freshState.companyId },
+          data: { require_privileged_mfa: false },
+        });
       }
 
       console.log(`   [Fresh.1] Fresh company provisioned. Temporary password: ${freshState.adminTempPassword}`);
