@@ -21,12 +21,15 @@ import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useAuth } from '../../../context/AuthContext';
+import { RejectDialog } from './RejectDialog';
+import { RejectionsTab } from './RejectionsTab';
 
 export function ApprovalsInboxFeature() {
   const { t, isRTL, language } = useLanguage();
   const isAr = language === 'ar';
   const { user } = useAuth();
 
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'rejected'
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -35,8 +38,6 @@ export function ApprovalsInboxFeature() {
   // Reject / Send Back Modal State
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [activeItem, setActiveItem] = useState(null);
-  const [rejectReason, setRejectReason] = useState('');
-  const [rejectError, setRejectError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
   // Single inline comment input support for step runner (#input-verify-comment)
@@ -86,44 +87,49 @@ export function ApprovalsInboxFeature() {
 
   const openRejectModal = (item) => {
     setActiveItem(item);
-    setRejectReason(inlineComment || '');
-    setRejectError('');
     setRejectModalOpen(true);
   };
 
-  const handleRejectSubmit = async (e) => {
-    if (e) e.preventDefault();
-    if (!rejectReason || rejectReason.trim().length < 5) {
-      setRejectError(
-        isAr
-          ? 'يرجى كتابة سبب الإعادة للمراجعة (5 أحرف على الأقل)'
-          : 'Reason must be at least 5 characters'
-      );
+  const handleRejectConfirm = async (reasonText) => {
+    if (!reasonText || reasonText.trim().length < 10) {
       return;
     }
 
     setActionLoading(true);
-    setRejectError('');
     try {
       await actOnApproval(activeItem.id, {
         action: 'REJECT',
-        reason: rejectReason.trim(),
-        comment: rejectReason.trim(),
+        reason: reasonText.trim(),
+        comment: reasonText.trim(),
       });
       setRejectModalOpen(false);
       setMessage({
         type: 'success',
         text: isAr
-          ? 'تمت إعادة الطلب للمراجعة والتصحيح'
-          : 'Request returned for correction',
+          ? 'تم تسجيل الرفض وإعادة الطلب في سجل التدقيق بنجاح'
+          : 'Rejection recorded in audit log and request returned successfully',
       });
       setInlineComment('');
+      setActiveItem(null);
       await loadApprovals();
     } catch (err) {
-      setRejectError(err.message || 'Failed to return request');
+      setError(err.message || 'Failed to reject request');
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleInlineReject = async () => {
+    if (!activeItem) return;
+    if (!inlineComment || inlineComment.trim().length < 10) {
+      setError(
+        isAr
+          ? 'سبب الإعادة يجب ألا يقل عن 10 أحرف'
+          : 'Return reason must be at least 10 characters'
+      );
+      return;
+    }
+    await handleRejectConfirm(inlineComment);
   };
 
   return (
@@ -152,31 +158,74 @@ export function ApprovalsInboxFeature() {
         </div>
       </div>
 
-      {/* Inline quick comment field (mirrored from profile for step runner compatibility) */}
-      <div className="p-3.5 rounded-xl border border-border/80 bg-surface-raised flex flex-col sm:flex-row gap-3 items-center">
-        <input
-          id="input-verify-comment"
-          type="text"
-          value={inlineComment}
-          onChange={(e) => setInlineComment(e.target.value)}
-          placeholder={
-            isAr
-              ? 'أدخل تعليق الاعتماد أو سبب الإعادة...'
-              : 'Enter verification remarks or return reason...'
-          }
-          className="w-full text-xs px-3 py-2 rounded-lg bg-surface border border-border text-text focus:outline-none focus:ring-1 focus:ring-primary"
-        />
-        {activeItem && (
-          <button
-            id="btn-verify-sendback"
-            onClick={handleRejectSubmit}
-            disabled={actionLoading}
-            className="whitespace-nowrap px-3 py-2 text-xs font-semibold rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30"
+      {/* Tab Navigation: Pending Approvals vs Rejection Log */}
+      <div className="flex items-center gap-2 border-b border-border/80 pb-2">
+        <button
+          type="button"
+          id="tab-pending-approvals"
+          data-testid="tab-pending-approvals"
+          onClick={() => setActiveTab('pending')}
+          className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center gap-2 ${
+            activeTab === 'pending'
+              ? 'bg-primary text-black'
+              : 'bg-surface hover:bg-surface-raised text-text-muted hover:text-text'
+          }`}
+        >
+          <span>{isAr ? 'الطلبات المعلقة' : 'Pending Approvals'}</span>
+          <span
+            className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+              activeTab === 'pending'
+                ? 'bg-black/20 text-black'
+                : 'bg-surface-raised text-text-muted'
+            }`}
           >
-            {isAr ? 'إعادة للمراجعة' : 'Return for Correction'}
-          </button>
-        )}
+            {items.length}
+          </span>
+        </button>
+        <button
+          type="button"
+          id="tab-rejected-approvals"
+          data-testid="tab-rejected-approvals"
+          onClick={() => setActiveTab('rejected')}
+          className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center gap-2 ${
+            activeTab === 'rejected'
+              ? 'bg-rose-600 text-white'
+              : 'bg-surface hover:bg-surface-raised text-text-muted hover:text-text'
+          }`}
+        >
+          <span>{isAr ? 'سجل الرفض' : 'Rejection Log'}</span>
+        </button>
       </div>
+
+      {activeTab === 'rejected' ? (
+        <RejectionsTab />
+      ) : (
+        <>
+          {/* Inline quick comment field (mirrored from profile for step runner compatibility) */}
+          <div className="p-3.5 rounded-xl border border-border/80 bg-surface-raised flex flex-col sm:flex-row gap-3 items-center">
+            <input
+              id="input-verify-comment"
+              type="text"
+              value={inlineComment}
+              onChange={(e) => setInlineComment(e.target.value)}
+              placeholder={
+                isAr
+                  ? 'أدخل تعليق الاعتماد أو سبب الإعادة...'
+                  : 'Enter verification remarks or return reason...'
+              }
+              className="w-full text-xs px-3 py-2 rounded-lg bg-surface border border-border text-text focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            {activeItem && (
+              <button
+                id="btn-verify-sendback"
+                onClick={handleInlineReject}
+                disabled={actionLoading}
+                className="whitespace-nowrap px-3 py-2 text-xs font-semibold rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/40 hover:bg-rose-500/30"
+              >
+                {isAr ? 'إعادة للمراجعة' : 'Return for Correction'}
+              </button>
+            )}
+          </div>
 
       {/* Notifications / Alerts */}
       {message && (
@@ -345,56 +394,25 @@ export function ApprovalsInboxFeature() {
         </div>
       </GlassCard>
 
-      {/* Reject / Send Back Modal */}
-      <Modal
+      {/* Reject / Send Back Dialog with 10 character minimum and live counter */}
+      <RejectDialog
         isOpen={rejectModalOpen}
-        onClose={() => setRejectModalOpen(false)}
-        title={isAr ? 'إعادة الموظف للتصحيح والمراجعة' : 'Return Employee Record for Correction'}
-      >
-        <form onSubmit={handleRejectSubmit} className="space-y-4">
-          <p className="text-xs text-text-muted">
-            {isAr
-              ? 'يرجى توضيح الملاحظات أو البيانات المطلوبة من مدخل البيانات (5 أحرف على الأقل):'
-              : 'Please enter the specific corrections required before approval (minimum 5 characters):'}
-          </p>
-
-          <div>
-            <textarea
-              id="input-verify-reject-reason"
-              rows={3}
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder={
-                isAr
-                  ? 'مثال: يرجى التحقق من رقم بطاقة العمل وتاريخ الميلاد'
-                  : 'e.g. Please confirm labour card person ID and birth date'
-              }
-              className="w-full text-xs p-3 rounded-lg bg-surface border border-border text-text focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            {rejectError && <p className="text-xs text-rose-400 mt-1">{rejectError}</p>}
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => setRejectModalOpen(false)}
-              className="px-3 py-1.5 rounded-lg text-xs text-text-muted hover:text-text border border-border"
-            >
-              {isAr ? 'إلغاء' : 'Cancel'}
-            </button>
-            <button
-              type="submit"
-              disabled={actionLoading}
-              className="px-4 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-sm"
-            >
-              {actionLoading
-                ? (isAr ? 'جاري الإرسال...' : 'Submitting...')
-                : (isAr ? 'تأكيد الإعادة' : 'Confirm Return')}
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
+        onClose={() => {
+          setRejectModalOpen(false);
+          setActiveItem(null);
+        }}
+        onConfirm={handleRejectConfirm}
+        actionType={activeItem?.request_type === 'EMPLOYEE_BRANCH_CHANGE' ? 'REJECT' : 'SEND_BACK'}
+        itemTitle={
+          activeItem
+            ? `${activeItem.request_type} - ${activeItem.employee?.name || activeItem.record_id}`
+            : ''
+        }
+        loading={actionLoading}
+      />
+    </>
+  )}
+</div>
   );
 }
 

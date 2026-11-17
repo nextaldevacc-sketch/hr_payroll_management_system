@@ -281,6 +281,54 @@ export class ApprovalService {
   }
 
   /**
+   * Record a rejection in the immutable approval_rejections audit table
+   */
+  async recordRejection(data, tx = null) {
+    const {
+      companyId,
+      approvalRequestId = null,
+      requestType,
+      recordId,
+      recordTitle = null,
+      requesterId = null,
+      rejectedById,
+      stepNo = 1,
+      reason,
+      rejectionType = 'REJECT',
+      rejectionDate = null,
+    } = data;
+
+    if (!reason || typeof reason !== 'string' || reason.trim().length < 10) {
+      const err = new Error('A rejection reason of at least 10 characters is required.');
+      err.status = 400;
+      err.code = 'REASON_REQUIRED';
+      throw err;
+    }
+
+    const client = tx || (this.prisma.$base ? this.prisma.$base() : this.prisma);
+
+    return client.approval_rejections.create({
+      data: {
+        company_id: companyId,
+        approval_request_id: approvalRequestId,
+        request_type: requestType,
+        record_id: recordId,
+        record_title: recordTitle,
+        requester_id: requesterId,
+        rejected_by_id: rejectedById,
+        step_no: stepNo,
+        reason: reason.trim(),
+        rejection_type: rejectionType,
+        rejection_date: rejectionDate ? new Date(rejectionDate) : new Date(),
+      },
+    });
+  }
+
+  async reject(data, tx = null) {
+    return this.recordRejection(data, tx);
+  }
+
+  /**
    * Act on an approval request (Approve or Reject)
    * Enforces: "Nobody approves their own request"
    */
@@ -625,6 +673,26 @@ export class ApprovalService {
           acted_at: now,
         },
       });
+
+      // Step 8: If rejected or sent back, record in immutable approval_rejections audit table
+      if (normalizedAction === 'Reject' || normalizedAction === 'SendBack') {
+        const title = request.payload?.title || request.payload?.record_title || `${request.request_type} Request`;
+        await tx.approval_rejections.create({
+          data: {
+            company_id: companyId,
+            approval_request_id: request.id,
+            request_type: request.request_type,
+            record_id: request.record_id,
+            record_title: title,
+            requester_id: request.requested_by,
+            rejected_by_id: actorId,
+            step_no: request.current_step,
+            reason: decisionComment,
+            rejection_type: normalizedAction === 'SendBack' ? 'SEND_BACK' : 'REJECT',
+            rejection_date: now,
+          },
+        });
+      }
 
       let branchPayload = request.payload;
       if (!branchPayload && request.comment) {

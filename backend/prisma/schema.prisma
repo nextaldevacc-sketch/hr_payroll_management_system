@@ -63,6 +63,7 @@ model companies {
   approval_flow_steps    approval_flow_steps[]
   approval_requests      approval_requests[]
   approval_actions       approval_actions[]
+  approval_rejections    approval_rejections[]
   audit_logs             audit_logs[]
   employees              employees[]
   contracts              contracts[]
@@ -219,6 +220,8 @@ model users {
   granted_by_user         support_access_grants[] @relation("GrantedByUser")
   requested_approvals     approval_requests[]     @relation("ApprovalRequestedBy")
   acted_approvals         approval_actions[]      @relation("ApprovalActedBy")
+  rejected_approvals      approval_rejections[]   @relation("RejectionActor")
+  rejections_requested    approval_rejections[]   @relation("RejectionRequester")
   audit_logs              audit_logs[]
   verified_employees      employees[]             @relation("EmployeeVerifiedBy")
   owner_documents         employee_documents[]    @relation("DocumentOwner")
@@ -381,6 +384,7 @@ model approval_requests {
   flow                approval_flows        @relation(fields: [flow_id], references: [id], onDelete: Restrict)
   requester           users                 @relation("ApprovalRequestedBy", fields: [requested_by], references: [id], onDelete: Restrict)
   actions             approval_actions[]
+  rejections          approval_rejections[]
   contracts           contracts[]
   attendance_requests attendance_requests[]
   overtime_requests   overtime_requests[]
@@ -417,6 +421,33 @@ model approval_actions {
   @@index([company_id])
   @@index([approval_request_id])
   @@index([acted_by])
+}
+
+model approval_rejections {
+  id                  String             @id @default(uuid()) @db.Uuid
+  company_id          String             @db.Uuid
+  approval_request_id String?            @db.Uuid
+  request_type        String             @db.VarChar(50)
+  record_id           String             @db.Uuid
+  record_title        String?            @db.VarChar(255)
+  requester_id        String?            @db.Uuid
+  rejected_by_id      String             @db.Uuid
+  step_no             Int                @default(1) @db.SmallInt
+  reason              String             @db.Text
+  rejection_type      String             @default("REJECT") @db.VarChar(20)
+  rejection_date      DateTime           @default(now()) @db.Date
+  created_at          DateTime           @default(now()) @db.Timestamptz
+  updated_at          DateTime           @default(now()) @updatedAt @db.Timestamptz
+
+  company             companies          @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  approval_request    approval_requests? @relation(fields: [approval_request_id], references: [id], onDelete: SetNull)
+  requester           users?             @relation("RejectionRequester", fields: [requester_id], references: [id], onDelete: SetNull)
+  rejected_by         users              @relation("RejectionActor", fields: [rejected_by_id], references: [id], onDelete: Restrict)
+
+  @@index([company_id])
+  @@index([request_type, record_id])
+  @@index([rejection_date])
+  @@index([rejected_by_id])
 }
 
 model audit_logs {
