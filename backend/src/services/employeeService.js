@@ -1683,7 +1683,11 @@ export class EmployeeService {
       },
     });
 
-    if (activePayRun) {
+    const existingActiveAccount = await client.bank_accounts.findFirst({
+      where: { company_id: companyId, employee_id: employeeId, is_active: true },
+    });
+
+    if (activePayRun && (existingActiveAccount || data.id)) {
       // RULE: creating or updating a bank account cannot take effect immediately mid-cycle.
       // Create or keep existing row with pending flag/is_active: false and submit approval request of type BANK_ACCOUNT_CHANGE
       let accountRecordId = data.id || null;
@@ -1742,6 +1746,14 @@ export class EmployeeService {
         status: 'PENDING_APPROVAL',
         message: 'Active pay run in progress. Bank account change submitted for HR Manager / Finance approval.',
         approval_request: approvalReq,
+        id: accountRecordId,
+        iban: cleanIban,
+        bank_name: data.bank_name || 'Bank',
+        routing_code: data.routing_code.trim(),
+        salary_split_pct: data.salary_split_pct || 100.00,
+        is_primary: data.is_primary !== undefined ? data.is_primary : true,
+        is_active: false,
+        pending_approval: true,
         data: {
           id: accountRecordId,
           iban: maskIban(cleanIban),

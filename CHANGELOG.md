@@ -5,6 +5,66 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ---
 
+## [1.0.0-rc7] - 2026-11-17
+
+### Security Review Audit Fixes & Rejection Log Release
+- **Security Finding C2 (Authentication Hardening)** [`c80b4bc`]:
+  - Removed all hardcoded JWT secret fallbacks (`nextal_super_secret_jwt_key_2026_uae`) from middleware and services.
+  - Enforced strict startup validation in `validateEnv.js`: refuses start in production if `JWT_SECRET` is missing, shorter than 32 characters, or uses known defaults.
+  - Verified via test suite `backend/test/security/jwt-secret.test.js`.
+- **Security Finding C4 (Multi-Tenancy Isolation)** [`c3feb67`]:
+  - Stopped trusting client-supplied headers (`x-company-id`, `x-platform-admin`) on unauthenticated and regular user requests.
+  - Tenant context and platform admin status are resolved exclusively from cryptographically verified JWT tokens.
+  - Allowed `x-company-id` tenant switching strictly for verified Platform Administrators, auditing each context switch in `audit_logs`.
+  - Verified via test suite `backend/test/security/client-headers.test.js`.
+- **Security Finding C3 (Authorization Backdoor Removal)** [`6ff9661`]:
+  - Removed mock actor fallback (`admin-id`) in approval engine and arbitrary `findFirst` fallback users in compliance and separation workflows.
+  - Enforced valid active user UUIDs within caller company context for all workflow operations.
+  - Verified via test suite `backend/test/security/mock-actor-removal.test.js`.
+- **Security Findings C1 + H1 + H2 (Approval Engine Order & Role Enforcement)** [`fec0654`]:
+  - Enforced strict pipeline order: Request validation -> Company scope check -> Status check -> Self-approval blocking -> Exact step role authorization -> Multi-step duplication blocking -> Rejection reason validation -> Atomic transaction (`prisma.$transaction`) -> Audit log -> Notification dispatch.
+  - Disallowed automatic role conflation (`HR_OFFICER` vs `HR_MANAGER`).
+  - Added explicit admin override path requiring `override: true` and justification reason (min 10 characters) with `override=true` audit logging.
+  - Protected all approval routes with granular `requireRole` middleware.
+  - Verified via test suite `backend/test/security/approval-engine.test.js`.
+- **Security Finding H4 (Sensitive-Field Reveal Access Control & Auditing)** [`26ccc76`]:
+  - Implemented strict RBAC and data scope enforcement on `POST /api/v1/employees/:id/reveal-sensitive`.
+  - Enforced field allowlist (`emirates_id`, `passport_number`, `iban`, `basic`, `housing`, `transport`, `other_allowances`, `gross`) and per-user rate limiting (10 requests per 15 minutes).
+  - Recorded detailed immutable audit entries in `audit_logs` capturing field name, purpose, and timestamp.
+  - Verified via test suite `backend/test/security/sensitive-reveal.test.js`.
+- **Security Finding H5 (Bank-Account IDOR Protection & Dual Approval)** [`d4294dc`]:
+  - Scoped all bank account queries and updates by `{ id, company_id, employee_id }` preventing IDOR attacks.
+  - Enforced dual approval (`HR_MANAGER` or `FINANCE`) for IBAN updates or additions during active pay runs.
+  - Verified WPS SIF generator strictly utilizes active approved bank accounts.
+  - Verified via test suite `backend/test/security/bank-account-security.test.js`.
+- **Security Finding M2 (Settlements & Separations Granular Route Guards)** [`b72d7fb`]:
+  - Enforced strict segregation of duties for final settlements (Preparer: `PAYROLL_OFFICER` -> Validator: `HR_MANAGER` -> Approver: `GM` -> Payer: `FINANCE`).
+  - Prevented the same user from validating, approving, or marking paid a settlement they prepared or previously acted on.
+  - Verified via test suite `backend/test/security/settlement-guards.test.js` and role matrix audit.
+- **Security Finding STEP 8 (Rejection Log Feature & Shared Rejection Engine)** [`f6adbc2`]:
+  - Created dedicated PostgreSQL table `approval_rejections` with database-level immutability trigger blocking all `UPDATE` and `DELETE` queries.
+  - Built Repository, Service, Controller, and Routes for rejection listing, detail retrieval, and CSV export under `/api/v1/approvals/rejections`.
+  - Added shared `approvalService.reject(...)` engine enforcing mandatory reasons (minimum 10 characters).
+  - Built frontend Rejections tab, full-detail slide-over drawer, CSV export, and `RejectDialog` component with live character counter.
+  - Verified via test suite `backend/test/security/rejection-log.test.js`.
+- **Security Finding M1 (Dubai Timezone Standardization)** [`708c476`]:
+  - Standardized business date formatting and comparisons across all payroll, leave, attendance, and separation services to Asia/Dubai (UTC+4) via `toDubaiDateString()`.
+  - Verified via test suite `backend/test/security/m1-dubai-date.test.js`.
+- **Security Hardening & Preflight Checks** [`e47010a`]:
+  - Configured 100kb body parser limit (`BODY_LIMIT=100kb`).
+  - Added strict rate limiting on authentication and MFA routes.
+  - Added CSRF Origin/Referer check middleware for state-changing HTTP requests.
+  - Created production preflight verification CLI (`scripts/preflight-prod.mjs`).
+  - Verified via test suite `backend/test/security/hardening.test.js`.
+
+### Breaking Changes
+- `JWT_SECRET` is now mandatory in production and development environments. Server boot fails if missing, shorter than 32 characters, or using known defaults.
+- Client-supplied `x-company-id` and `x-platform-admin` headers are completely ignored for unauthenticated and non-platform-admin users; tenant context is strictly derived from JWT claims.
+- Rejection of approval requests, leave, overtime, separations, and employee verification now strictly requires a justification reason of at least 10 characters.
+- Company Admin approval on custom approval flows without an exact matching role now requires explicit `override: true` and justification reason (>= 10 characters).
+
+---
+
 ## [1.0.0-rc6] - 2026-11-16
 
 ### Release Candidate 6: Security Hardening, TOTP MFA, aaPanel Kit & Bug Fixes

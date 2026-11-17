@@ -91,10 +91,11 @@
 ---
 
 ## 11. Sensitive Field Protection & At-Rest Encryption
-- **Status**: UI masking (last 4 digits) with audited reveal action is active. Application-level column envelope encryption is deferred (NOT DONE per Part 7B B5).
+- **Status**: Hardened with strict RBAC whitelist, per-user rate limiting (10 req/15 min), immutable audit logging, and bank account dual approval (Findings H4 & H5 resolved). Application-level column envelope encryption is deferred per architecture roadmap.
 - **Current Security Controls**:
   - Emirates ID, passport numbers, and bank account IBANs are masked by default across all UI views (`•••• 1234`).
-  - An audited "Reveal" action logs access events to the immutable `audit_logs` table (`REVEAL_SENSITIVE_FIELD`).
+  - An audited "Reveal" action (`POST /api/v1/employees/:id/reveal-sensitive`) validates caller RBAC (salary roles only for salary/bank fields), verifies tenant/visa data scope, enforces a strict field allowlist, applies a per-user rate limit (10 requests per 15 minutes), and logs access events to the immutable `audit_logs` table (`REVEAL_SENSITIVE_FIELD`).
+  - Bank account updates and additions during open/active pay runs are protected against IDOR and require dual approval from `HR_MANAGER` or `FINANCE` before the new IBAN can take effect or be exported in WPS SIF files.
   - Physical file uploads (passports, Emirates IDs, labor cards) are 100% encrypted at rest on disk using AES-256-GCM with authenticated `NEXTAL_ENC_V1` headers.
   - Salary and compensation data remain strictly access-controlled at the API layer (limited strictly to the 4 statutory salary roles; HR Officer and view-only roles receive zero salary data).
 

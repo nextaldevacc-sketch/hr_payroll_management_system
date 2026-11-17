@@ -450,7 +450,75 @@ export class ApprovalService {
     const normalizedAction = actUpper === 'APPROVE' ? 'Approve' : actUpper === 'SENDBACK' ? 'SendBack' : 'Reject';
     const decisionComment = (reason || comment || '').trim();
 
-    // 4. Authorize role: the actor must have the exact role required for current_step
+    // 4. Block self-approval FIRST: requester CANNOT approve their own request, creator cannot approve, employee cannot approve own record.
+    if (request.requested_by && request.requested_by === actorId) {
+      const err = new Error('Self-approval is forbidden: nobody approves their own request.');
+      err.status = 403;
+      err.code = 'SELF_APPROVAL_FORBIDDEN';
+      err.error = 'SELF_APPROVAL_FORBIDDEN';
+      throw err;
+    }
+
+    let recordEmployeeId = null;
+    if (request.request_type?.toUpperCase() === 'LEAVE') {
+      const lr = await this.prisma.$base().leave_requests.findUnique({
+        where: { id: request.record_id },
+        select: { employee_id: true, employee: { select: { user: { select: { id: true } } } } },
+      });
+      if (lr?.employee?.user?.id && lr.employee.user.id === actorId) {
+        const err = new Error('Self-approval is forbidden: nobody approves their own request.');
+        err.status = 403;
+        err.code = 'SELF_APPROVAL_FORBIDDEN';
+        err.error = 'SELF_APPROVAL_FORBIDDEN';
+        throw err;
+      }
+      recordEmployeeId = lr?.employee_id;
+    } else if (request.request_type === 'EMPLOYEE_VERIFICATION' || request.request_type === 'EMPLOYEE_BRANCH_CHANGE') {
+      const emp = await this.prisma.$base().employees.findUnique({
+        where: { id: request.record_id },
+        select: { created_by: true },
+      });
+      if (emp?.created_by && emp.created_by === actorId) {
+        const err = new Error('Creator cannot verify/approve an employee record they created.');
+        err.status = 403;
+        err.code = 'SELF_APPROVAL_FORBIDDEN';
+        err.error = 'SELF_APPROVAL_FORBIDDEN';
+        throw err;
+      }
+      recordEmployeeId = request.record_id;
+    } else if (request.request_type === 'CONTRACT_APPROVAL' || request.request_type === 'CONTRACT') {
+      const contract = await this.prisma.$base().contracts.findUnique({
+        where: { id: request.record_id },
+        select: { employee_id: true },
+      });
+      recordEmployeeId = contract?.employee_id;
+    } else if (request.request_type === 'SEPARATION') {
+      const sep = await this.prisma.$base().separations.findUnique({
+        where: { id: request.record_id },
+        select: { employee_id: true },
+      });
+      recordEmployeeId = sep?.employee_id;
+    } else if (request.request_type === 'BANK_ACCOUNT_CHANGE') {
+      recordEmployeeId = request.payload?.employee_id || null;
+    } else if (request.request_type === 'OVERTIME') {
+      const ot = await this.prisma.$base().overtime_requests.findUnique({
+        where: { id: request.record_id },
+        select: { employee_id: true },
+      });
+      recordEmployeeId = ot?.employee_id;
+    } else if (request.payload?.employee_id) {
+      recordEmployeeId = request.payload.employee_id;
+    }
+
+    if (recordEmployeeId && actorUser?.employee_id && recordEmployeeId === actorUser.employee_id) {
+      const err = new Error('Self-approval is forbidden: employee cannot approve their own record.');
+      err.status = 403;
+      err.code = 'SELF_APPROVAL_FORBIDDEN';
+      err.error = 'SELF_APPROVAL_FORBIDDEN';
+      throw err;
+    }
+
+    // 5. Authorize role: the actor must have the exact role required for current_step
     const actorUserRoles = await this.prisma.$base().user_roles.findMany({
       where: {
         company_id: companyId,
@@ -468,6 +536,10 @@ export class ApprovalService {
       if (actorRoleCodes.includes('HR_MANAGER') || actorRoleCodes.includes('FINANCE')) {
         hasRoleMatch = true;
       }
+    }
+
+    if (request.request_type?.toUpperCase() === 'LEAVE' && actorRoleCodes.includes('COMPANY_ADMIN')) {
+      hasRoleMatch = true;
     }
 
     let isAdminOverride = false;
@@ -538,62 +610,6 @@ export class ApprovalService {
         err.code = 'NOT_FOUND';
         throw err;
       }
-    }
-
-    // 5. Block self-approval: requester CANNOT approve their own request, and employee whose record this is CANNOT approve their own request.
-    if (request.requested_by && request.requested_by === actorId) {
-      const err = new Error('Self-approval is forbidden: nobody approves their own request.');
-      err.status = 403;
-      err.code = 'SELF_APPROVAL_FORBIDDEN';
-      err.error = 'SELF_APPROVAL_FORBIDDEN';
-      throw err;
-    }
-
-    let recordEmployeeId = null;
-    if (request.request_type === 'LEAVE') {
-      const lr = await this.prisma.$base().leave_requests.findUnique({
-        where: { id: request.record_id },
-        select: { employee_id: true, employee: { select: { user: { select: { id: true } } } } },
-      });
-      if (lr?.employee?.user?.id && lr.employee.user.id === actorId) {
-        const err = new Error('Self-approval is forbidden: nobody approves their own request.');
-        err.status = 403;
-        err.code = 'SELF_APPROVAL_FORBIDDEN';
-        err.error = 'SELF_APPROVAL_FORBIDDEN';
-        throw err;
-      }
-      recordEmployeeId = lr?.employee_id;
-    } else if (request.request_type === 'EMPLOYEE_VERIFICATION' || request.request_type === 'EMPLOYEE_BRANCH_CHANGE') {
-      recordEmployeeId = request.record_id;
-    } else if (request.request_type === 'CONTRACT_APPROVAL' || request.request_type === 'CONTRACT') {
-      const contract = await this.prisma.$base().contracts.findUnique({
-        where: { id: request.record_id },
-        select: { employee_id: true },
-      });
-      recordEmployeeId = contract?.employee_id;
-    } else if (request.request_type === 'SEPARATION') {
-      const sep = await this.prisma.$base().separations.findUnique({
-        where: { id: request.record_id },
-        select: { employee_id: true },
-      });
-      recordEmployeeId = sep?.employee_id;
-    } else if (request.request_type === 'BANK_ACCOUNT_CHANGE') {
-      recordEmployeeId = request.payload?.employee_id || null;
-    } else if (request.request_type === 'OVERTIME') {
-      const ot = await this.prisma.$base().overtime_requests.findUnique({
-        where: { id: request.record_id },
-        select: { employee_id: true },
-      });
-      recordEmployeeId = ot?.employee_id;
-    } else if (request.payload?.employee_id) {
-      recordEmployeeId = request.payload.employee_id;
-    }
-
-    if (recordEmployeeId && actorUser?.employee_id && recordEmployeeId === actorUser.employee_id) {
-      const err = new Error('Self-approval is forbidden: employee cannot approve their own record.');
-      err.status = 403;
-      err.code = 'SELF_APPROVAL_FORBIDDEN';
-      throw err;
     }
 
     // 6. Block multi-step self-action: a user who acted on step N cannot act on step N+1 of the same request.
@@ -804,7 +820,7 @@ export class ApprovalService {
             await auditService.log({
               companyId,
               userId: actorId,
-              action: 'APPROVE',
+              action: 'Approve',
               tableName: 'employees',
               recordId: emp.id,
               oldValues: { status: emp.status, verified_by: null },
@@ -829,6 +845,21 @@ export class ApprovalService {
               newValues: { status: 'Pre-Joined', comment: decisionComment },
               tx,
             });
+            if (emp.created_by) {
+              await tx.notifications.create({
+                data: {
+                  company_id: companyId,
+                  user_id: emp.created_by,
+                  title: 'Employee Record Sent Back for Review',
+                  title_ar: 'تمت إعادة ملف الموظف للمراجعة',
+                  body: `Employee ${emp.employee_code} (${emp.name}) was sent back with comment: "${decisionComment || 'Please review'}"`,
+                  body_ar: `تمت إعادة ملف الموظف ${emp.name} مع تعليق: "${decisionComment || 'يرجى المراجعة'}"`,
+                  type: 'EMPLOYEE_VERIFICATION_SENT_BACK',
+                  link: `/employees/${emp.id}`,
+                  is_read: false,
+                },
+              });
+            }
           }
         }
       }

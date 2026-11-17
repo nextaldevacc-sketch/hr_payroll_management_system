@@ -6,18 +6,18 @@ This document details the security review findings and requirements for HR & Pay
 
 | Finding ID | Severity | Category | Description | Status | Commit | Test Name |
 | :--- | :--- | :--- | :--- | :---: | :---: | :--- |
-| **C1** | Critical | Approval Engine | Approval engine order, atomic transaction, self-approval blocking, multi-step user duplication blocking | Open | Pending | `approval-rules.test.js` |
-| **C2** | Critical | Authentication | Hardcoded JWT secret fallback in middleware/services; env validation in production | Open | Pending | `jwt-secret-hardening.test.js` |
-| **C3** | Critical | Authorization | Mock-actor (`admin-id`) back door and arbitrary `findFirst` fallback users across approval/compliance/separation | Open | Pending | `mock-actor-removal.test.js` |
-| **C4** | Critical | Multi-Tenancy | Client headers (`x-platform-admin`, `x-company-id`) trusted without verification; tenant isolation breach | Open | Pending | `client-headers-isolation.test.js` |
-| **H1** | High | Approval Roles | Non-exact role match (HR_OFFICER/HR_MANAGER interchangeability) and automatic COMPANY_ADMIN bypass | Open | Pending | `approval-role-exactness.test.js` |
-| **H2** | High | Route Guards | Missing `requirePermission` / `requireRole` on approval action routes | Open | Pending | `approval-route-guards.test.js` |
-| **H4** | High | Data Privacy | Sensitive field reveal (Emirates ID, passport, IBAN, salary) lacking strict whitelist, RBAC & rate limiting | Open | Pending | `sensitive-field-reveal.test.js` |
-| **H5** | High | Banking / WPS | Bank account modification IDOR vulnerability & unapproved IBAN modifications during active pay run | Open | Pending | `bank-account-security.test.js` |
-| **M1** | Medium | Compliance Dates | Inconsistent business dates using UTC `toISOString().slice(0,10)` instead of UAE Asia/Dubai timezone | Open | Pending | `dubai-date-helper.test.js` |
-| **M2** | Medium | Route Guards | Settlements, separations, and overtime lacking segregation of duties and granular route middleware | Open | Pending | `settlement-separation-guards.test.js` |
-| **REJ-LOG** | Feature / Security | Rejection Audit | Dedicated append-only `approval_rejections` log table with trigger, mandatory >=10 char reason, UI tab & dialog | Open | Pending | `rejection-log.test.js` |
-| **HARDEN** | Hardening | General Security | Body limit (100kb), rate limiting on login/MFA, CSRF Origin/Referer check, and production preflight checks | Open | Pending | `hardening-checks.test.js` |
+| **C1** | Critical | Approval Engine | Approval engine order, atomic transaction, self-approval blocking, multi-step user duplication blocking | Closed | `fec0654` | `backend/test/security/approval-engine.test.js` |
+| **C2** | Critical | Authentication | Hardcoded JWT secret fallback in middleware/services; env validation in production | Closed | `c80b4bc` | `backend/test/security/jwt-secret.test.js` |
+| **C3** | Critical | Authorization | Mock-actor (`admin-id`) back door and arbitrary `findFirst` fallback users across approval/compliance/separation | Closed | `6ff9661` | `backend/test/security/mock-actor-removal.test.js` |
+| **C4** | Critical | Multi-Tenancy | Client headers (`x-platform-admin`, `x-company-id`) trusted without verification; tenant isolation breach | Closed | `c3feb67` | `backend/test/security/client-headers.test.js` |
+| **H1** | High | Approval Roles | Non-exact role match (HR_OFFICER/HR_MANAGER interchangeability) and automatic COMPANY_ADMIN bypass | Closed | `fec0654` | `backend/test/security/approval-engine.test.js` |
+| **H2** | High | Route Guards | Missing `requirePermission` / `requireRole` on approval action routes | Closed | `fec0654` | `backend/test/security/approval-engine.test.js` |
+| **H4** | High | Data Privacy | Sensitive field reveal (Emirates ID, passport, IBAN, salary) lacking strict whitelist, RBAC & rate limiting | Closed | `26ccc76` | `backend/test/security/sensitive-reveal.test.js` |
+| **H5** | High | Banking / WPS | Bank account modification IDOR vulnerability & unapproved IBAN modifications during active pay run | Closed | `d4294dc` | `backend/test/security/bank-account-security.test.js` |
+| **M1** | Medium | Compliance Dates | Inconsistent business dates using UTC `toISOString().slice(0,10)` instead of UAE Asia/Dubai timezone | Closed | `708c476` | `backend/test/security/m1-dubai-date.test.js` |
+| **M2** | Medium | Route Guards | Settlements, separations, and overtime lacking segregation of duties and granular route middleware | Closed | `b72d7fb` | `backend/test/security/settlement-guards.test.js` |
+| **REJ-LOG** | Feature / Security | Rejection Audit | Dedicated append-only `approval_rejections` log table with trigger, mandatory >=10 char reason, UI tab & dialog | Closed | `f6adbc2` | `backend/test/security/rejection-log.test.js` |
+| **HARDEN** | Hardening | General Security | Body limit (100kb), rate limiting on login/MFA, CSRF Origin/Referer check, and production preflight checks | Closed | `e47010a` | `backend/test/security/hardening.test.js` |
 
 ---
 

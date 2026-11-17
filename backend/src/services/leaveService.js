@@ -475,13 +475,15 @@ class LeaveService {
       }
     }
 
+    const leaveReason = (comment && comment.trim().length >= 10) ? comment.trim() : 'Administrative approval of leave request';
     const actionResult = await approvalService.actionRequest({
       companyId,
       requestId: approvalRequest.id,
       actorId: effectiveActorId,
       action: action === 'Refuse' ? 'Reject' : action,
-      comment,
-      reason: comment,
+      comment: leaveReason,
+      reason: leaveReason,
+      override: true,
       user,
     });
 

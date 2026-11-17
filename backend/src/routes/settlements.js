@@ -36,27 +36,27 @@ router.get(
 // Calculations & Lifecycle (Granular RBAC + Segregation of Duties)
 router.post(
   '/calculate/:separationId',
-  requireRole('HR_MANAGER', 'PAYROLL_OFFICER', 'FINANCE', 'COMPANY_ADMIN'),
+  requireRole('PAYROLL_OFFICER'),
   calculateSettlement
 );
 router.post(
   '/prepare/:separationId',
-  requireRole('HR_OFFICER', 'PAYROLL_OFFICER', 'COMPANY_ADMIN'),
+  requireRole('PAYROLL_OFFICER'),
   prepareSettlement
 );
 router.post(
   '/:id/validate',
-  requireRole('HR_MANAGER', 'COMPANY_ADMIN'),
+  requireRole('HR_MANAGER'),
   validateSettlement
 );
 router.post(
   '/:id/approve',
-  requireRole('GM', 'COMPANY_ADMIN'),
+  requireRole('GM'),
   approveSettlement
 );
 router.post(
   '/:id/pay',
-  requireRole('FINANCE', 'COMPANY_ADMIN'),
+  requireRole('FINANCE'),
   markSettlementPaid
 );
 
