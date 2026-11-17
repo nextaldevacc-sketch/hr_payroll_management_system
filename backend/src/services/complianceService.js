@@ -177,12 +177,22 @@ export class ComplianceService {
             recipientsToNotify.add(hr.id);
           }
           if (recipientsToNotify.size === 0) {
-            const fallbackUsers = await this.prisma.$base().users.findMany({
-              where: { company_id: doc.company_id, status: { in: ['Active', 'ACTIVE'] } },
-              take: 2,
-              select: { id: true },
-            });
-            fallbackUsers.forEach((u) => recipientsToNotify.add(u.id));
+            console.warn(`[COMPLIANCE] No HR recipients or owner found to notify for expiring document ${doc.id} in company ${doc.company_id}`);
+            try {
+              await auditService.log({
+                companyId: doc.company_id,
+                action: 'ALERT_UNROUTED',
+                tableName: 'employee_documents',
+                recordId: doc.id,
+                newValues: {
+                  reason: 'No HR recipients or owner found for document expiry notification',
+                  doc_type: doc.doc_type,
+                  days_remaining: daysRemaining,
+                },
+              });
+            } catch (auditErr) {
+              console.error('[COMPLIANCE] Failed to log unrouted document alert:', auditErr.message);
+            }
           }
 
           for (const userId of recipientsToNotify) {

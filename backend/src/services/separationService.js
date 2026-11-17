@@ -238,22 +238,56 @@ export class SeparationService {
     const financeDept = depts.find((d) => d.name.toLowerCase().includes('finance')) || depts[0];
     const opsDept = depts.find((d) => d.name.toLowerCase().includes('ops') || d.name.toLowerCase().includes('operation')) || depts[0];
 
-    // Find fallback owner user for departments
+    // Find authorized users by proper RBAC roles (never by email string matching or arbitrary first user)
     const hrUser = await this.prisma.$base().users.findFirst({
-      where: { company_id: companyId, email: { contains: 'hr' } },
+      where: {
+        company_id: companyId,
+        status: { in: ['Active', 'ACTIVE'] },
+        user_roles: { some: { role: { code: { in: ['HR_MANAGER', 'HR_OFFICER'] } } } },
+      },
+      select: { id: true },
     });
     const financeUser = await this.prisma.$base().users.findFirst({
-      where: { company_id: companyId, email: { contains: 'finance' } },
+      where: {
+        company_id: companyId,
+        status: { in: ['Active', 'ACTIVE'] },
+        user_roles: { some: { role: { code: 'FINANCE' } } },
+      },
+      select: { id: true },
     });
     const adminUser = await this.prisma.$base().users.findFirst({
-      where: { company_id: companyId, email: { contains: 'admin' } },
+      where: {
+        company_id: companyId,
+        status: { in: ['Active', 'ACTIVE'] },
+        user_roles: { some: { role: { code: 'COMPANY_ADMIN' } } },
+      },
+      select: { id: true },
     });
+
     const fallbackUserId = hrUser?.id || adminUser?.id || userId;
+    if (!hrUser && !adminUser) {
+      console.warn(`[SEPARATION] No HR or Admin user found for separation clearance routing in company ${companyId}`);
+      try {
+        await auditService.log({
+          companyId,
+          userId,
+          action: 'CLEARANCE_UNROUTED',
+          tableName: 'separations',
+          recordId: separationId,
+          newValues: {
+            reason: 'No HR or Admin user found in company for clearance routing',
+          },
+        });
+      } catch (e) {
+        // Silently continue
+      }
+    }
 
     const getDeptUserId = async (dept) => {
       if (dept?.manager_id) {
         const mgrUser = await this.prisma.$base().users.findFirst({
-          where: { employee_id: dept.manager_id },
+          where: { employee_id: dept.manager_id, company_id: companyId, status: { in: ['Active', 'ACTIVE'] } },
+          select: { id: true },
         });
         if (mgrUser) return mgrUser.id;
       }

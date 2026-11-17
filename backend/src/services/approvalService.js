@@ -22,14 +22,25 @@ export class ApprovalService {
     const client = tx || (this.prisma.$base ? this.prisma.$base() : this.prisma);
 
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    let validRequestedBy = (typeof requestedBy === 'string' && UUID_REGEX.test(requestedBy)) ? requestedBy : null;
-    if (!validRequestedBy) {
-      const fallbackUser = await client.users.findFirst({
-        where: { company_id: companyId },
-        select: { id: true },
-      });
-      validRequestedBy = fallbackUser?.id || null;
+    if (!requestedBy || typeof requestedBy !== 'string' || !UUID_REGEX.test(requestedBy)) {
+      const err = new Error('Valid user ID (UUID) is required for requester');
+      err.status = 400;
+      err.code = 'INVALID_REQUESTER';
+      throw err;
     }
+
+    const requesterUser = await client.users.findFirst({
+      where: { id: requestedBy, company_id: companyId },
+      select: { id: true, status: true },
+    });
+    if (!requesterUser) {
+      const err = new Error('Requester user not found in company');
+      err.status = 400;
+      err.code = 'USER_NOT_FOUND';
+      throw err;
+    }
+
+    const validRequestedBy = requestedBy;
 
     const isLeave = requestType?.toUpperCase() === 'LEAVE';
     let flow = await client.approval_flows.findFirst({
@@ -304,6 +315,31 @@ export class ApprovalService {
       throw err;
     }
 
+    // Validate actor is a real UUID and an active user in the company
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!actorId || typeof actorId !== 'string' || !UUID_REGEX.test(actorId)) {
+      const err = new Error('Valid actor user ID (UUID) is required to action an approval request');
+      err.status = 400;
+      err.code = 'INVALID_ACTOR_ID';
+      throw err;
+    }
+
+    const actorUser = await this.prisma.$base().users.findFirst({
+      where: {
+        id: actorId,
+        company_id: companyId,
+        status: { in: ['ACTIVE', 'Active'] },
+      },
+      select: { id: true, employee_id: true },
+    });
+
+    if (!actorUser) {
+      const err = new Error('Actor user not found or inactive in company');
+      err.status = 401;
+      err.code = 'UNAUTHORIZED_ACTOR';
+      throw err;
+    }
+
     // Check data scope for actor
     if (user) {
       const { scopeService } = await import('./scopeService.js');
@@ -342,7 +378,7 @@ export class ApprovalService {
     // =========================================================================
     // SPEC RULE: "Nobody approves their own request" (FR-EM4, FR-WF2)
     // =========================================================================
-    if (request.requested_by === actorId) {
+    if (request.requested_by && request.requested_by === actorId) {
       const err = new Error('Self-approval is forbidden: nobody approves their own request.');
       err.status = 403;
       err.code = 'SELF_APPROVAL_FORBIDDEN';
@@ -355,7 +391,7 @@ export class ApprovalService {
         where: { id: request.record_id },
         select: { employee: { select: { user: { select: { id: true } } } } },
       });
-      if (lr?.employee?.user?.id === actorId) {
+      if (lr?.employee?.user?.id && lr.employee.user.id === actorId) {
         const err = new Error('Self-approval is forbidden: nobody approves their own request.');
         err.status = 403;
         err.code = 'SELF_APPROVAL_FORBIDDEN';
@@ -396,31 +432,13 @@ export class ApprovalService {
       throw err;
     }
 
-    // Check actor holds the required role or is COMPANY_ADMIN
-    const isValidActorUuid = typeof actorId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(actorId);
-    let actorUserRoles = [];
-    let validActorId = isValidActorUuid ? actorId : null;
-
-    if (isValidActorUuid) {
-      actorUserRoles = await this.prisma.$base().user_roles.findMany({
-        where: {
-          company_id: companyId,
-          user_id: actorId,
-        },
-        include: { role: true },
-      });
-    } else {
-      // Dummy / mock test actor (e.g. 'admin-id') -> granted COMPANY_ADMIN
-      actorUserRoles = [{ role: { code: 'COMPANY_ADMIN' } }];
-    }
-
-    if (!validActorId) {
-      const fallbackUser = await this.prisma.$base().users.findFirst({
-        where: { company_id: companyId },
-        select: { id: true },
-      });
-      validActorId = fallbackUser?.id || null;
-    }
+    const actorUserRoles = await this.prisma.$base().user_roles.findMany({
+      where: {
+        company_id: companyId,
+        user_id: actorId,
+      },
+      include: { role: true },
+    });
 
     const actorRoleCodes = actorUserRoles.map((ur) => ur.role.code);
     const requiredRoleCode = currentStepConfig.role.code;
@@ -530,7 +548,7 @@ export class ApprovalService {
           company_id: companyId,
           approval_request_id: request.id,
           step_no: request.current_step,
-          acted_by: validActorId,
+          acted_by: actorId,
           action: normalizedAction,
           comment: decisionComment,
           acted_at: now,
@@ -728,12 +746,12 @@ export class ApprovalService {
           // 4. Update leave_requests status
           await tx.leave_requests.update({
             where: { id: leaveRequest.id },
-            data: { status: 'Approved', updated_by: validActorId },
+            data: { status: 'Approved', updated_by: actorId },
           });
 
           await auditService.log({
             companyId,
-            userId: validActorId,
+            userId: actorId,
             action: 'APPROVE',
             tableName: 'leave_requests',
             recordId: leaveRequest.id,
@@ -747,12 +765,12 @@ export class ApprovalService {
       if (newStatus === 'Rejected' && request.request_type?.toUpperCase() === 'LEAVE') {
         await tx.leave_requests.update({
           where: { id: request.record_id },
-          data: { status: 'Refused', updated_by: validActorId },
+          data: { status: 'Refused', updated_by: actorId },
         });
 
         await auditService.log({
           companyId,
-          userId: validActorId,
+          userId: actorId,
           action: 'REFUSE',
           tableName: 'leave_requests',
           recordId: request.record_id,
