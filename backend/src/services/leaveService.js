@@ -475,7 +475,17 @@ class LeaveService {
       }
     }
 
-    const leaveReason = (comment && comment.trim().length >= 10) ? comment.trim() : 'Administrative approval of leave request';
+    const isRefusal = action === 'Refuse' || action === 'Reject';
+    const trimmedComment = typeof comment === 'string' ? comment.trim() : '';
+
+    if (isRefusal && trimmedComment.length < 10) {
+      const err = new Error('A rejection or refusal reason of at least 10 characters is required.');
+      err.status = 400;
+      err.code = 'REASON_REQUIRED';
+      throw err;
+    }
+
+    const leaveReason = trimmedComment || null;
     const actionResult = await approvalService.actionRequest({
       companyId,
       requestId: approvalRequest.id,

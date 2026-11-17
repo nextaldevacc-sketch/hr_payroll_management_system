@@ -4,6 +4,7 @@ import request from 'supertest';
 import Decimal from 'decimal.js';
 import app from '../src/app.js';
 import prisma from '../src/lib/prisma.js';
+import leaveService from '../src/services/leaveService.js';
 
 describe('Spec 7.4 & T15 Leave Approval Chain & Single Balance Deduction', () => {
   let company;
@@ -324,5 +325,127 @@ describe('Spec 7.4 & T15 Leave Approval Chain & Single Balance Deduction', () =>
       where: { id: annualAlloc.id },
     });
     assert.equal(Number(allocAfter.days_taken), Number(allocBefore.days_taken), 'Balance untouched on refuse');
+  });
+
+  it('4. Refuse with missing or short comment (<10 chars) returns 400 REASON_REQUIRED', async () => {
+    const res = await request(app)
+      .post('/api/v1/leave/requests')
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .send({
+        employee_id: testEmployee.id,
+        leave_type_id: annualType.id,
+        date_from: '2026-11-26',
+        date_to: '2026-11-27',
+        reason: 'Reason validation test',
+      });
+
+    assert.equal(res.status, 201);
+    const leaveId = res.body.data.leave_request.id;
+
+    // A. Missing comment
+    const resNoComment = await request(app)
+      .post(`/api/v1/leave/requests/${leaveId}/action`)
+      .set('Authorization', `Bearer ${deptMgrToken}`)
+      .send({ action: 'Refuse' });
+
+    assert.equal(resNoComment.status, 400);
+    assert.equal(resNoComment.body.code, 'REASON_REQUIRED');
+
+    // B. Short comment (<10 chars)
+    const resShortComment = await request(app)
+      .post(`/api/v1/leave/requests/${leaveId}/action`)
+      .set('Authorization', `Bearer ${deptMgrToken}`)
+      .send({ action: 'Refuse', comment: 'Too short' });
+
+    assert.equal(resShortComment.status, 400);
+    assert.equal(resShortComment.body.code, 'REASON_REQUIRED');
+
+    // C. Action 'Reject' with short comment
+    const resRejectShort = await request(app)
+      .post(`/api/v1/leave/requests/${leaveId}/action`)
+      .set('Authorization', `Bearer ${deptMgrToken}`)
+      .send({ action: 'Reject', comment: 'No' });
+
+    assert.equal(resRejectShort.status, 400);
+    assert.equal(resRejectShort.body.code, 'REASON_REQUIRED');
+
+    // Clean up
+    await prisma.$base().leave_requests.delete({ where: { id: leaveId } });
+  });
+
+  it('5. Direct leaveService.actOnLeave with Refuse/Reject and comment <10 chars throws 400 REASON_REQUIRED', async () => {
+    const res = await request(app)
+      .post('/api/v1/leave/requests')
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .send({
+        employee_id: testEmployee.id,
+        leave_type_id: annualType.id,
+        date_from: '2026-12-01',
+        date_to: '2026-12-02',
+        reason: 'Direct service rejection test',
+      });
+
+    assert.equal(res.status, 201);
+    const leaveId = res.body.data.leave_request.id;
+
+    try {
+      await leaveService.actOnLeave({
+        companyId: company.id,
+        id: leaveId,
+        action: 'Refuse',
+        comment: 'short',
+        userId: deptMgrUser.id,
+      });
+      assert.fail('Should have thrown 400 REASON_REQUIRED');
+    } catch (err) {
+      assert.equal(err.status, 400, `Expected status 400 but got: ${err.status} (${err.message})`);
+      assert.equal(err.code, 'REASON_REQUIRED');
+    }
+
+    // Clean up
+    await prisma.$base().leave_requests.delete({ where: { id: leaveId } });
+  });
+
+  it('6. Approve without comment does not fabricate "Administrative approval of leave request"', async () => {
+    const res = await request(app)
+      .post('/api/v1/leave/requests')
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .send({
+        employee_id: testEmployee.id,
+        leave_type_id: annualType.id,
+        date_from: '2026-12-08',
+        date_to: '2026-12-09',
+        reason: 'No fabricated approval string test',
+      });
+
+    assert.equal(res.status, 201);
+    const leaveId = res.body.data.leave_request.id;
+
+    const approveRes = await request(app)
+      .post(`/api/v1/leave/requests/${leaveId}/action`)
+      .set('Authorization', `Bearer ${deptMgrToken}`)
+      .send({ action: 'Approve' });
+
+    assert.equal(approveRes.status, 200);
+
+    const appReq = await prisma.$base().approval_requests.findFirst({
+      where: { record_id: leaveId, request_type: 'LEAVE' },
+    });
+    assert.ok(appReq, 'Approval request must exist');
+
+    const actionRecord = await prisma.$base().approval_actions.findFirst({
+      where: {
+        approval_request_id: appReq.id,
+        acted_by: deptMgrUser.id,
+      },
+      orderBy: { acted_at: 'desc' },
+    });
+
+    assert.ok(actionRecord, 'Action record must exist');
+    assert.notEqual(
+      actionRecord.comment,
+      'Administrative approval of leave request',
+      'Must NOT fabricate Administrative approval comment'
+    );
   });
 });

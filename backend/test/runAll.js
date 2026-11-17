@@ -33,10 +33,11 @@ try {
 
 // 2. Run backend test suite with DATABASE_URL pointing exclusively to test database
 console.log(`[test:runner] Running test suite against isolated test database...`);
+const testTargets = process.argv.slice(2).length > 0 ? process.argv.slice(2) : ['test/**/*.test.js'];
 const result = spawnSync(process.execPath, [
   '--test',
   '--test-concurrency=1',
-  'test/**/*.test.js'
+  ...testTargets,
 ], {
   cwd: backendDir,
   env: {

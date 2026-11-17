@@ -62,7 +62,7 @@ export async function actOnLeave(req, res, next) {
       id: req.params.id,
       action: req.body.action || 'Approve',
       userId: req.user.id,
-      comment: req.body.comment,
+      comment: req.body.comment ?? req.body.reason ?? req.body.refusal_reason,
       user: req.user,
     });
     res.json({ status: 'success', data: result });
