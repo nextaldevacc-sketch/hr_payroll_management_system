@@ -1612,6 +1612,37 @@ export class EmployeeService {
       throw err;
     }
 
+    const client = this.prisma.$base ? this.prisma.$base() : this.prisma;
+
+    // IDOR protection: Verify employee belongs to company
+    const employee = await client.employees.findUnique({
+      where: { id: employeeId },
+    });
+    if (!employee || employee.company_id !== companyId) {
+      const err = new Error('Employee not found');
+      err.status = 404;
+      err.code = 'NOT_FOUND';
+      throw err;
+    }
+
+    // IDOR protection: If updating existing account, scope update by { id, company_id, employee_id }
+    let existingAccount = null;
+    if (data.id) {
+      existingAccount = await client.bank_accounts.findFirst({
+        where: {
+          id: data.id,
+          company_id: companyId,
+          employee_id: employeeId,
+        },
+      });
+      if (!existingAccount) {
+        const err = new Error('Bank account not found');
+        err.status = 404;
+        err.code = 'NOT_FOUND';
+        throw err;
+      }
+    }
+
     const ibanCheck = validateUAEIban(data.iban);
     if (!ibanCheck.valid) {
       const err = new Error(ibanCheck.error || 'Invalid UAE IBAN');
@@ -1628,7 +1659,7 @@ export class EmployeeService {
     }
 
     const cleanIban = data.iban.replace(/[\s-]/g, '').toUpperCase();
-    const existingIban = await this.prisma.bank_accounts.findFirst({
+    const existingIban = await client.bank_accounts.findFirst({
       where: {
         company_id: companyId,
         iban: cleanIban,
@@ -1642,13 +1673,91 @@ export class EmployeeService {
       throw err;
     }
 
+    // Check if an active, draft or pending pay run exists for the employee's visa/company
+    const activePayRun = await client.pay_runs.findFirst({
+      where: {
+        company_id: companyId,
+        company_visa_id: employee.company_visa_id,
+        status: { in: ['Draft', 'Calculated', 'Validated', 'Pending', 'Open'] },
+      },
+    });
+
+    if (activePayRun) {
+      // RULE: creating or updating a bank account cannot take effect immediately mid-cycle.
+      // Create or keep existing row with pending flag/is_active: false and submit approval request of type BANK_ACCOUNT_CHANGE
+      let accountRecordId = data.id || null;
+      let oldIban = existingAccount ? existingAccount.iban : null;
+
+      if (!data.id) {
+        const createdPending = await client.bank_accounts.create({
+          data: {
+            company_id: companyId,
+            employee_id: employeeId,
+            bank_name: data.bank_name || 'Bank',
+            iban: cleanIban,
+            routing_code: data.routing_code.trim(),
+            salary_split_pct: data.salary_split_pct || 100.00,
+            is_primary: data.is_primary !== undefined ? data.is_primary : true,
+            is_active: false,
+            created_by: getViewerUserId(viewer),
+          },
+        });
+        accountRecordId = createdPending.id;
+      }
+
+      const payload = {
+        employee_id: employeeId,
+        bank_account_id: accountRecordId,
+        target_iban: cleanIban,
+        bank_name: data.bank_name || 'Bank',
+        routing_code: data.routing_code.trim(),
+        salary_split_pct: data.salary_split_pct || 100.00,
+        is_primary: data.is_primary !== undefined ? data.is_primary : true,
+        is_new_record: !data.id,
+        old_iban: oldIban,
+      };
+
+      const approvalReq = await approvalService.createRequest({
+        companyId,
+        requestType: 'BANK_ACCOUNT_CHANGE',
+        recordId: accountRecordId,
+        requestedBy: getViewerUserId(viewer),
+        comment: `Bank account change request during active pay run for employee ${employeeId}`,
+        payload,
+      });
+
+      // Audit row MUST record masked old IBAN -> masked new IBAN (show last 4 digits only)
+      await auditService.log({
+        companyId,
+        userId: getViewerUserId(viewer),
+        action: 'REQUEST_BANK_CHANGE',
+        tableName: 'bank_accounts',
+        recordId: accountRecordId,
+        oldValues: oldIban ? { iban: maskIban(oldIban) } : null,
+        newValues: { iban: maskIban(cleanIban), status: 'PENDING_APPROVAL', approval_request_id: approvalReq.id },
+      });
+
+      return {
+        status: 'PENDING_APPROVAL',
+        message: 'Active pay run in progress. Bank account change submitted for HR Manager / Finance approval.',
+        approval_request: approvalReq,
+        data: {
+          id: accountRecordId,
+          iban: maskIban(cleanIban),
+          is_active: false,
+          pending_approval: true,
+        },
+      };
+    }
+
     let saved;
+    let oldIban = existingAccount ? existingAccount.iban : null;
     if (data.id) {
-      saved = await this.prisma.bank_accounts.update({
+      saved = await client.bank_accounts.update({
         where: { id: data.id },
         data: {
           bank_name: data.bank_name || 'Bank',
-          iban: data.iban.replace(/[\s-]/g, '').toUpperCase(),
+          iban: cleanIban,
           routing_code: data.routing_code.trim(),
           salary_split_pct: data.salary_split_pct || 100.00,
           is_primary: data.is_primary !== undefined ? data.is_primary : true,
@@ -1656,12 +1765,12 @@ export class EmployeeService {
         },
       });
     } else {
-      saved = await this.prisma.bank_accounts.create({
+      saved = await client.bank_accounts.create({
         data: {
           company_id: companyId,
           employee_id: employeeId,
           bank_name: data.bank_name || 'Bank',
-          iban: data.iban.replace(/[\s-]/g, '').toUpperCase(),
+          iban: cleanIban,
           routing_code: data.routing_code.trim(),
           salary_split_pct: data.salary_split_pct || 100.00,
           is_primary: data.is_primary !== undefined ? data.is_primary : true,
@@ -1671,15 +1780,17 @@ export class EmployeeService {
       });
     }
 
+    // Audit row MUST record masked old IBAN -> masked new IBAN (show last 4 digits only)
     await auditService.log({
       companyId,
       userId: getViewerUserId(viewer),
-      action: data.id ? 'UpdateBankAccount' : 'CreateBankAccount',
+      action: data.id ? 'UPDATE_BANK_ACCOUNT' : 'CREATE_BANK_ACCOUNT',
       tableName: 'bank_accounts',
       recordId: saved.id,
+      oldValues: oldIban ? { iban: maskIban(oldIban) } : null,
       newValues: {
         bank_name: saved.bank_name,
-        iban_masked: maskIban(saved.iban),
+        iban: maskIban(saved.iban),
         routing_code: saved.routing_code,
       },
     });

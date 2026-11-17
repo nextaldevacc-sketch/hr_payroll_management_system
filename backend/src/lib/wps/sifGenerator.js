@@ -76,7 +76,9 @@ export function generateWpsSif({ payRun, company, companyVisa, payslips = [] }) 
 
   for (const ps of payslips) {
     const emp = ps.employee;
-    const bank = emp?.bank_accounts?.find((b) => b.is_primary && b.is_active) || emp?.bank_accounts?.[0];
+    const bank =
+      emp?.bank_accounts?.find((b) => b.is_primary && b.is_active && !b.pending_approval && !b.is_pending_approval && !b.has_pending_change) ||
+      emp?.bank_accounts?.find((b) => b.is_active && !b.pending_approval && !b.is_pending_approval && !b.has_pending_change);
 
     // 14-digit MOHRE Person ID / Labour Card Number (Field 2)
     const rawPersonId = emp?.mohre_person_id || emp?.labour_card_no || emp?.emirates_id || emp?.employee_code || '';

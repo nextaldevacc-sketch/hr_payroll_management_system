@@ -1,7 +1,7 @@
 import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
 import notificationService from './notificationService.js';
-import { toDubaiDateString } from '@nextal/shared';
+import { toDubaiDateString, maskIban } from '@nextal/shared';
 
 export class ApprovalService {
   constructor(client = prisma) {
@@ -58,11 +58,17 @@ export class ApprovalService {
       orderBy: { priority: 'asc' },
     });
 
-    if ((!flow || flow.steps.length === 0) && (requestType === 'EMPLOYEE_VERIFICATION' || requestType === 'EMPLOYEE_BRANCH_CHANGE')) {
-      const hrMgrRole = await client.roles.findFirst({
-        where: { code: 'HR_MANAGER' },
-      });
-      if (hrMgrRole) {
+    if (
+      (!flow || flow.steps.length === 0) &&
+      (requestType === 'EMPLOYEE_VERIFICATION' ||
+        requestType === 'EMPLOYEE_BRANCH_CHANGE' ||
+        requestType === 'BANK_ACCOUNT_CHANGE')
+    ) {
+      const targetRoleCode = requestType === 'BANK_ACCOUNT_CHANGE' ? 'FINANCE' : 'HR_MANAGER';
+      const role =
+        (await client.roles.findFirst({ where: { code: targetRoleCode } })) ||
+        (await client.roles.findFirst({ where: { code: 'HR_MANAGER' } }));
+      if (role) {
         flow = await client.approval_flows.create({
           data: {
             company_id: companyId,
@@ -70,6 +76,8 @@ export class ApprovalService {
             name:
               requestType === 'EMPLOYEE_BRANCH_CHANGE'
                 ? 'Employee Branch Change Approval Flow'
+                : requestType === 'BANK_ACCOUNT_CHANGE'
+                ? 'Bank Account Change Dual-Control Flow'
                 : 'Employee Verification Dual-Control Flow',
             priority: 1,
             is_active: true,
@@ -85,7 +93,7 @@ export class ApprovalService {
             company_id: companyId,
             flow_id: flow.id,
             step_no: 1,
-            role_id: hrMgrRole.id,
+            role_id: role.id,
             approver_rule: 'SpecificRole',
           },
           include: { role: true },
@@ -405,7 +413,14 @@ export class ApprovalService {
 
     const actorRoleCodes = actorUserRoles.map((ur) => ur.role.code);
     const requiredRoleCode = currentStepConfig.role?.code;
-    const hasRoleMatch = actorRoleCodes.includes(requiredRoleCode);
+    let hasRoleMatch = actorRoleCodes.includes(requiredRoleCode);
+
+    if (request.request_type === 'BANK_ACCOUNT_CHANGE') {
+      // Require dual approval: HR_MANAGER or FINANCE must approve before the new IBAN becomes active
+      if (actorRoleCodes.includes('HR_MANAGER') || actorRoleCodes.includes('FINANCE')) {
+        hasRoleMatch = true;
+      }
+    }
 
     let isAdminOverride = false;
 
@@ -514,6 +529,8 @@ export class ApprovalService {
         select: { employee_id: true },
       });
       recordEmployeeId = sep?.employee_id;
+    } else if (request.request_type === 'BANK_ACCOUNT_CHANGE') {
+      recordEmployeeId = request.payload?.employee_id || null;
     } else if (request.request_type === 'OVERTIME') {
       const ot = await this.prisma.$base().overtime_requests.findUnique({
         where: { id: request.record_id },
@@ -745,6 +762,78 @@ export class ApprovalService {
               tx,
             });
           }
+        }
+      }
+
+      // Apply BANK_ACCOUNT_CHANGE completion if Approved or Rejected
+      if (request.request_type === 'BANK_ACCOUNT_CHANGE') {
+        const payload = request.payload || (request.comment ? JSON.parse(request.comment) : {});
+        const { employee_id, target_iban, bank_name, routing_code, salary_split_pct, is_primary, bank_account_id } = payload;
+
+        if (newStatus === 'Approved') {
+          let targetAccount = null;
+          if (bank_account_id || request.record_id) {
+            targetAccount = await tx.bank_accounts.findFirst({
+              where: {
+                id: bank_account_id || request.record_id,
+                company_id: companyId,
+              },
+            });
+          }
+
+          let oldIban = targetAccount ? targetAccount.iban : null;
+          let savedAccount;
+
+          if (targetAccount) {
+            savedAccount = await tx.bank_accounts.update({
+              where: { id: targetAccount.id },
+              data: {
+                bank_name: bank_name || targetAccount.bank_name,
+                iban: target_iban || targetAccount.iban,
+                routing_code: routing_code || targetAccount.routing_code,
+                salary_split_pct: salary_split_pct !== undefined ? salary_split_pct : targetAccount.salary_split_pct,
+                is_primary: is_primary !== undefined ? is_primary : targetAccount.is_primary,
+                is_active: true,
+                updated_by: actorId,
+              },
+            });
+          } else {
+            savedAccount = await tx.bank_accounts.create({
+              data: {
+                company_id: companyId,
+                employee_id: employee_id,
+                bank_name: bank_name || 'Bank',
+                iban: target_iban,
+                routing_code: routing_code || '033',
+                salary_split_pct: salary_split_pct || 100.00,
+                is_primary: is_primary !== undefined ? is_primary : true,
+                is_active: true,
+                created_by: actorId,
+              },
+            });
+          }
+
+          // Audit row MUST record masked old IBAN -> masked new IBAN (show last 4 digits only)
+          await auditService.log({
+            companyId,
+            userId: actorId,
+            action: 'APPROVE_BANK_ACCOUNT_CHANGE',
+            tableName: 'bank_accounts',
+            recordId: savedAccount.id,
+            oldValues: { iban: oldIban ? maskIban(oldIban) : null },
+            newValues: { iban: maskIban(savedAccount.iban) },
+            tx,
+          });
+        } else if (newStatus === 'Rejected') {
+          await auditService.log({
+            companyId,
+            userId: actorId,
+            action: 'REJECT_BANK_ACCOUNT_CHANGE',
+            tableName: 'bank_accounts',
+            recordId: request.record_id,
+            newValues: { reason: decisionComment },
+            tx,
+          });
         }
       }
 
