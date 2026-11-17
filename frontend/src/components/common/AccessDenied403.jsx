@@ -38,7 +38,7 @@ export function AccessDenied403({ requiredArea = '' }) {
         <div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
           <Link
             href={homeHref}
-            className="py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-95"
+            className="min-h-[44px] py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-95"
           >
             <Home className="w-3.5 h-3.5" />
             <span>{isAr ? 'العودة إلى الرئيسية' : 'Back to your home'}</span>
@@ -47,7 +47,7 @@ export function AccessDenied403({ requiredArea = '' }) {
           <button
             type="button"
             onClick={logout}
-            className="py-2.5 px-4 rounded-xl font-semibold text-xs border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center gap-2 transition-all active:scale-95"
+            className="min-h-[44px] py-2.5 px-4 rounded-xl font-semibold text-xs border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center gap-2 transition-all active:scale-95"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>{isAr ? 'تسجيل الخروج' : 'Sign out'}</span>

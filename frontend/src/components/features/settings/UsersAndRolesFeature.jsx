@@ -469,7 +469,7 @@ export function UsersAndRolesFeature() {
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={() => setRoleFilter('ALL')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border ${
+              className={`min-h-[38px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                 roleFilter === 'ALL'
                   ? 'bg-amber-500/20 text-amber-500 dark:text-amber-400 border-amber-500/40'
                   : 'border-transparent text-text-muted hover:text-text'
@@ -481,7 +481,7 @@ export function UsersAndRolesFeature() {
               <button
                 key={r.code}
                 onClick={() => setRoleFilter(r.code)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all border flex items-center gap-1 ${
+                className={`min-h-[38px] px-3 py-1.5 rounded-lg text-xs font-medium transition-all border flex items-center gap-1 ${
                   roleFilter === r.code
                     ? 'bg-amber-500/20 text-amber-500 dark:text-amber-400 border-amber-500/40'
                     : 'border-transparent text-text-muted hover:text-text'
@@ -511,7 +511,7 @@ export function UsersAndRolesFeature() {
                   ? 'بحث بالاسم أو البريد الإلكتروني للمستخدم...'
                   : 'Search by user name or work email...'
               }
-              className={`w-full rounded-xl py-2 text-xs transition-all outline-none border ${
+              className={`w-full rounded-xl min-h-[42px] py-2.5 text-xs transition-all outline-none border ${
                 isRTL ? 'pr-9 pl-3' : 'pl-9 pr-3'
               }`}
               style={{
@@ -643,7 +643,7 @@ export function UsersAndRolesFeature() {
                                 : 'Reset user MFA'
                             }
                             onClick={() => handleResetMfa(u.id)}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
+                            className={`min-h-[38px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                               u.id === user?.id || u.email === user?.email
                                 ? 'opacity-40 cursor-not-allowed border-border text-text-muted'
                                 : 'bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500/20'
@@ -656,7 +656,7 @@ export function UsersAndRolesFeature() {
                             disabled={u.id === user?.id || u.email === user?.email}
                             title={u.id === user?.id || u.email === user?.email ? (locale === 'ar' ? 'لا يمكن تعطيل حسابك الخاص' : 'Cannot disable your own account') : ''}
                             onClick={() => handleToggleUserStatus(u.id)}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all border ${
+                            className={`min-h-[38px] px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                               u.id === user?.id || u.email === user?.email
                                 ? 'opacity-40 cursor-not-allowed border-border text-text-muted'
                                 : isDisabled

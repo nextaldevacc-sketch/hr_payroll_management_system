@@ -131,9 +131,9 @@ export function GlassTopBar({ onToggleMobileNav }) {
     : (language === 'ar' ? 'جميع تأشيرات الكيان' : 'All Company Visas');
 
   return (
-    <header className="glass-top-bar sticky top-0 z-20 h-16 px-4 lg:px-8 flex items-center justify-between transition-colors">
+    <header className="glass-top-bar sticky top-0 z-20 h-16 px-2 sm:px-4 lg:px-8 flex items-center justify-between transition-colors">
       {/* Left / Start: Mobile Menu Toggle & Company Visa Selector */}
-      <div className="flex items-center gap-3 md:gap-4 flex-shrink-0">
+      <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-shrink-0">
         <button
           onClick={onToggleMobileNav}
           className="md:hidden p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-control text-text-muted hover:text-text hover:bg-black/5 dark:hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -176,7 +176,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
             <button
               onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
               id="btn-company-visa-switcher"
-              className="topbar-field flex items-center gap-2.5 px-3 py-1.5 rounded-control hover:bg-black/5 dark:hover:bg-inset-hover transition-colors text-start group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="topbar-field flex items-center gap-1.5 sm:gap-2.5 px-2 sm:px-3 py-1.5 rounded-control hover:bg-black/5 dark:hover:bg-inset-hover transition-colors text-start group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <IconWell size="sm" shape="square" color="primary">
                 <Building2 className="w-3.5 h-3.5" />
@@ -273,13 +273,13 @@ export function GlassTopBar({ onToggleMobileNav }) {
       </div>
 
       {/* Right / End: Language, Theme, Notifications & Profile */}
-      <div className="flex items-center gap-2.5 sm:gap-3">
+      <div className="flex items-center gap-1 sm:gap-2.5">
         {/* Language Toggle */}
         <button
           id="btn-language-toggle"
           onClick={toggleLanguage}
           title="Toggle English / Arabic"
-          className="topbar-field flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-control text-xs font-semibold text-text hover:bg-black/5 dark:hover:bg-inset-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="topbar-field flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 min-h-[40px] rounded-control text-xs font-semibold text-text hover:bg-black/5 dark:hover:bg-inset-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Globe className="w-3.5 h-3.5 text-primary" />
           <span>{language === 'en' ? 'عربي' : 'EN'}</span>

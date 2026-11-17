@@ -98,6 +98,17 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
 
   const isDev = process.env.NODE_ENV !== 'production';
 
+  React.useEffect(() => {
+    if (!isMobileOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && onCloseMobile) {
+        onCloseMobile();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMobileOpen, onCloseMobile]);
+
   const isItemActive = (href, exact = false) => {
     if (exact || href === '/') {
       return pathname === href;
@@ -169,10 +180,10 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
             </div>
           </Link>
 
-          {onCloseMobile && (
+          {isDrawer && onCloseMobile && (
             <button
               onClick={onCloseMobile}
-              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-text-muted hover:text-text xl:hidden"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-text-muted hover:text-text"
               aria-label="Close navigation"
             >
               <X className="w-5 h-5" />
@@ -330,8 +341,9 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
           />
           <aside
             className={clsx(
-              'glass-panel fixed top-0 bottom-0 z-10 w-72 transition-transform duration-300 shadow-2xl',
-              'start-0 border-e border-border'
+              'fixed top-0 bottom-0 z-10 w-72 max-w-[85vw] transition-transform duration-300 shadow-2xl',
+              'start-0 border-e border-border',
+              'bg-surface/98 dark:bg-[#121217]/98 backdrop-blur-2xl text-text'
             )}
           >
             {renderSidebarContent(true)}
