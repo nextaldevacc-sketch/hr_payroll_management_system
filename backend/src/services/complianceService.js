@@ -4,6 +4,7 @@ import auditService from './auditService.js';
 import storageService from '../lib/storage.js';
 import { validateAndResolveVisa } from './visaValidator.js';
 import scopeService from './scopeService.js';
+import { toDubaiDateString } from '@nextal/shared';
 
 // Dubai timezone is UTC+4 (no DST)
 const DUBAI_OFFSET_MS = 4 * 60 * 60 * 1000;
@@ -164,7 +165,7 @@ export class ComplianceService {
           const hrUsers = await getHrUsers(doc.company_id);
           const ownerUserId = doc.owner_id || doc.employee.user?.id;
 
-          const expiryDateStr = new Date(doc.expiry_date).toISOString().slice(0, 10);
+          const expiryDateStr = toDubaiDateString(doc.expiry_date);
           const titleEn = `Document Expiring Soon (${doc.doc_type})`;
           const titleAr = `وثيقة توشك على الانتهاء (${doc.doc_type})`;
           const bodyEn = `${doc.doc_type} (${doc.doc_number}) for ${doc.employee.name} expires in ${daysRemaining} day(s) on ${expiryDateStr}.`;

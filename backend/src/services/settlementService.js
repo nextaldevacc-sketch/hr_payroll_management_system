@@ -3,7 +3,7 @@ import puppeteer from 'puppeteer';
 import ExcelJS from 'exceljs';
 import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
-import { roundToCurrency, formatCurrency } from '@nextal/shared';
+import { roundToCurrency, formatCurrency, toDubaiDateString } from '@nextal/shared';
 import notificationService from './notificationService.js';
 import scopeService from './scopeService.js';
 
@@ -202,8 +202,8 @@ export class SettlementService {
       basic_salary: basicSalary.toNumber(),
       gross_salary: grossSalary.toNumber(),
       basic_daily_wage: basicDailyWage.toNumber(),
-      joining_date: joiningDate.toISOString().slice(0, 10),
-      last_working_day: lastWorkingDay.toISOString().slice(0, 10),
+      joining_date: toDubaiDateString(joiningDate),
+      last_working_day: toDubaiDateString(lastWorkingDay),
       raw_calendar_days: rawCalendarDays,
       unpaid_absence_days: unpaidAbsenceCount,
       net_service_days: netServiceDays,
@@ -1014,7 +1014,7 @@ export class SettlementService {
         code: emp.employee_code,
         name: emp.name,
         dept: emp.contracts[0]?.department?.name || '—',
-        joining: jDate.toISOString().slice(0, 10),
+        joining: toDubaiDateString(jDate),
         basic: basic.toNumber(),
         years: Number(serviceYears.toFixed(2)),
         days: Number(days.toFixed(2)),

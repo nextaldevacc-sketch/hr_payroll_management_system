@@ -294,7 +294,7 @@ class AttendanceService {
     const curDate = new Date(fromDubai + 'T00:00:00Z');
     const endDateUtc = new Date(toDubai + 'T00:00:00Z');
     while (curDate <= endDateUtc) {
-      dateList.push(curDate.toISOString().slice(0, 10));
+      dateList.push(toDubaiDateString(curDate));
       curDate.setUTCDate(curDate.getUTCDate() + 1);
     }
 
@@ -524,7 +524,7 @@ class AttendanceService {
 
           if (excessHours >= minOtHours) {
             // Split night hours
-            const split = splitOvertimeHours(checkOut, new Date(dayDate.toISOString().slice(0, 10) + 'T' + shift.end_time + 'Z'), policy?.night_start, policy?.night_end);
+            const split = splitOvertimeHours(checkOut, new Date(toDubaiDateString(dayDate) + 'T' + shift.end_time + 'Z'), policy?.night_start, policy?.night_end);
             const hourlyRate = activeContract.basic.toNumber() / 30 / 8;
 
             if (split.nightHours > 0) {
@@ -605,7 +605,7 @@ class AttendanceService {
     const days = [];
     const cur = new Date(startDate);
     while (cur <= endDate) {
-      days.push(cur.toISOString().slice(0, 10));
+      days.push(toDubaiDateString(cur));
       cur.setUTCDate(cur.getUTCDate() + 1);
     }
 

@@ -11,6 +11,7 @@ import {
   ALLOWED_STATUS_TRANSITIONS,
   calculateOpeningLeaveAllocation,
   DEFAULT_EMPLOYEE_CODE_PREFIX,
+  toDubaiDateString,
 } from '@nextal/shared';
 import storageService from '../lib/storage.js';
 import auditService from './auditService.js';
@@ -2060,7 +2061,7 @@ export class EmployeeService {
     }
 
     // Effective date >= today check
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = toDubaiDateString(new Date());
     const effDateStr = String(effectiveDate).slice(0, 10);
     if (effDateStr < todayStr) {
       const err = new Error('Effective date cannot be in the past');

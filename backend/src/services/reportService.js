@@ -3,6 +3,7 @@ import Decimal from 'decimal.js';
 import prisma from '../lib/prisma.js';
 import { validateAndResolveVisa } from './visaValidator.js';
 import scopeService from './scopeService.js';
+import { toDubaiDateString } from '@nextal/shared';
 
 Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_UP });
 
@@ -157,7 +158,7 @@ export class ReportService {
       if (isMissingPunch) totalMissingPunches++;
       totalOtHours += otHours;
 
-      const dateStr = new Date(day.work_date).toISOString().slice(0, 10);
+      const dateStr = toDubaiDateString(day.work_date);
       const row = sheet.addRow([
         day.employee?.employee_code || '',
         day.employee?.name || '',
@@ -898,7 +899,7 @@ export class ReportService {
         emp.name,
         emp.contracts?.[0]?.department?.name || 'General',
         emp.company_visa?.name || 'Visa 1',
-        new Date(emp.joining_date).toISOString().slice(0, 10),
+        toDubaiDateString(emp.joining_date),
         tenureYears.toFixed(2),
         basic.toFixed(2),
         dailyBasic.toFixed(2),
