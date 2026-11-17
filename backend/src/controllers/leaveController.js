@@ -63,6 +63,7 @@ export async function actOnLeave(req, res, next) {
       action: req.body.action || 'Approve',
       userId: req.user.id,
       comment: req.body.comment ?? req.body.reason ?? req.body.refusal_reason,
+      override: req.body.override,
       user: req.user,
     });
     res.json({ status: 'success', data: result });

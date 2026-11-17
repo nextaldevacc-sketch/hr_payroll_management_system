@@ -538,10 +538,6 @@ export class ApprovalService {
       }
     }
 
-    if (request.request_type?.toUpperCase() === 'LEAVE' && actorRoleCodes.includes('COMPANY_ADMIN')) {
-      hasRoleMatch = true;
-    }
-
     let isAdminOverride = false;
 
     if (!hasRoleMatch) {

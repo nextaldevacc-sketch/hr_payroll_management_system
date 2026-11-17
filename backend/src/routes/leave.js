@@ -45,7 +45,7 @@ router.post(
 
 router.post(
   '/requests/:id/action',
-  authorizeLeave(['DEPT_MANAGER', 'HR_OFFICER', 'HR_MANAGER', 'GM', 'EMPLOYEE']),
+  authorizeLeave(['DEPT_MANAGER', 'HR_OFFICER', 'HR_MANAGER', 'GM', 'EMPLOYEE', 'COMPANY_ADMIN']),
   leaveController.actOnLeave
 );
 

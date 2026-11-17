@@ -306,7 +306,7 @@ class LeaveService {
   /**
    * 3. Act on a Leave Request (Approve / Refuse / Cancel)
    */
-  async actOnLeave({ companyId, id, action, userId, comment, user = null }) {
+  async actOnLeave({ companyId, id, action, userId, comment, override = false, user = null }) {
     const request = await prisma.$base().leave_requests.findFirst({
       where: { id, company_id: companyId },
       include: {
@@ -493,7 +493,7 @@ class LeaveService {
       action: action === 'Refuse' ? 'Reject' : action,
       comment: leaveReason,
       reason: leaveReason,
-      override: true,
+      override: Boolean(override),
       user,
     });
 

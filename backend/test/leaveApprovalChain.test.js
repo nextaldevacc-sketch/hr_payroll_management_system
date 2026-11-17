@@ -18,6 +18,8 @@ describe('Spec 7.4 & T15 Leave Approval Chain & Single Balance Deduction', () =>
   let hrOfficerToken;
   let gmToken;
   let employeeToken;
+  let adminToken;
+  let adminUser;
   let testEmployee;
   let annualAlloc;
 
@@ -34,6 +36,7 @@ describe('Spec 7.4 & T15 Leave Approval Chain & Single Balance Deduction', () =>
       { email: 'dept.mgr@gulftech.ae', set: (t, u) => { deptMgrToken = t; deptMgrUser = u; } },
       { email: 'hr.officer@gulftech.ae', set: (t, u) => { hrOfficerToken = t; hrOfficerUser = u; } },
       { email: 'gm@gulftech.ae', set: (t, u) => { gmToken = t; gmUser = u; } },
+      { email: 'admin@gulftech.ae', set: (t, u) => { adminToken = t; adminUser = u; } },
       { email: 'employee@gulftech.ae', set: (t, u) => { employeeToken = t; employeeUser = u; } },
     ];
 
@@ -447,5 +450,112 @@ describe('Spec 7.4 & T15 Leave Approval Chain & Single Balance Deduction', () =>
       'Administrative approval of leave request',
       'Must NOT fabricate Administrative approval comment'
     );
+  });
+
+  it('7. Company Admin without explicit override fails with 403 ADMIN_OVERRIDE_REQUIRED on LEAVE', async () => {
+    const res = await request(app)
+      .post('/api/v1/leave/requests')
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .send({
+        employee_id: testEmployee.id,
+        leave_type_id: annualType.id,
+        date_from: '2026-07-01',
+        date_to: '2026-07-02',
+        reason: 'Admin override required test',
+      });
+
+    assert.equal(res.status, 201);
+    const leaveId = res.body.data.leave_request.id;
+
+    // Admin attempts to approve without override: true -> 403 ADMIN_OVERRIDE_REQUIRED
+    const resNoOverride = await request(app)
+      .post(`/api/v1/leave/requests/${leaveId}/action`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ action: 'Approve' });
+
+    assert.equal(resNoOverride.status, 403);
+    assert.equal(resNoOverride.body.code, 'ADMIN_OVERRIDE_REQUIRED');
+
+    // Clean up
+    await prisma.$base().leave_requests.delete({ where: { id: leaveId } });
+  });
+
+  it('8. Company Admin with override: true but short reason (<10 chars) fails with 400 REASON_REQUIRED on LEAVE', async () => {
+    const res = await request(app)
+      .post('/api/v1/leave/requests')
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .send({
+        employee_id: testEmployee.id,
+        leave_type_id: annualType.id,
+        date_from: '2026-07-06',
+        date_to: '2026-07-07',
+        reason: 'Admin short reason test',
+      });
+
+    assert.equal(res.status, 201);
+    const leaveId = res.body.data.leave_request.id;
+
+    const resShortReason = await request(app)
+      .post(`/api/v1/leave/requests/${leaveId}/action`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ action: 'Approve', override: true, comment: 'Short' });
+
+    assert.equal(resShortReason.status, 400);
+    assert.equal(resShortReason.body.code, 'REASON_REQUIRED');
+
+    // Clean up
+    await prisma.$base().leave_requests.delete({ where: { id: leaveId } });
+  });
+
+  it('9. Company Admin with explicit override=true and reason >=10 chars succeeds, logs OVERRIDE and audit log', async () => {
+    const res = await request(app)
+      .post('/api/v1/leave/requests')
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .send({
+        employee_id: testEmployee.id,
+        leave_type_id: annualType.id,
+        date_from: '2026-07-13',
+        date_to: '2026-07-14',
+        reason: 'Admin valid override test',
+      });
+
+    assert.equal(res.status, 201);
+    const leaveId = res.body.data.leave_request.id;
+
+    const overrideReason = 'Executive administrative override due to line manager emergency leave';
+    const resOverride = await request(app)
+      .post(`/api/v1/leave/requests/${leaveId}/action`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ action: 'Approve', override: true, comment: overrideReason });
+
+    assert.equal(resOverride.status, 200);
+
+    const appReq = await prisma.$base().approval_requests.findFirst({
+      where: { record_id: leaveId, request_type: 'LEAVE' },
+    });
+    assert.equal(appReq.status, 'Approved');
+
+    // Verify approval_actions record
+    const actionRecord = await prisma.$base().approval_actions.findFirst({
+      where: {
+        approval_request_id: appReq.id,
+        acted_by: adminUser.id,
+      },
+      orderBy: { acted_at: 'desc' },
+    });
+    assert.ok(actionRecord);
+    assert.equal(actionRecord.action, 'OVERRIDE');
+    assert.ok(actionRecord.comment.includes('[override=true]'));
+
+    // Verify audit_logs record
+    const auditRecord = await prisma.$base().audit_logs.findFirst({
+      where: {
+        record_id: appReq.id,
+        user_id: adminUser.id,
+        action: 'APPROVAL_OVERRIDE',
+      },
+      orderBy: { created_at: 'desc' },
+    });
+    assert.ok(auditRecord, 'Must record APPROVAL_OVERRIDE in audit_logs');
   });
 });

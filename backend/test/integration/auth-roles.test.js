@@ -541,7 +541,7 @@ describe('Phase 2: Authentication, Roles, Permissions Matrix & Approval Engine T
       assert.equal(actionRes.body.code, 'SELF_APPROVAL_FORBIDDEN');
     });
 
-    it('allows a DIFFERENT qualified approver (Company Admin) to approve the request', async () => {
+    it('allows a DIFFERENT qualified approver (Company Admin) to approve the request via explicit override', async () => {
       const adminLogin = await request(app)
         .post('/api/v1/auth/login')
         .send({ email: 'admin@gulftech.ae', password: testUserPassword });
@@ -549,7 +549,11 @@ describe('Phase 2: Authentication, Roles, Permissions Matrix & Approval Engine T
       const actionRes = await request(app)
         .post(`/api/v1/approvals/requests/${createdRequest.id}/action`)
         .set('Authorization', `Bearer ${adminLogin.body.token}`)
-        .send({ action: 'Approve' });
+        .send({
+          action: 'Approve',
+          override: true,
+          reason: 'Company Admin emergency override for HR leave request',
+        });
 
       assert.equal(actionRes.status, 200);
       assert.equal(actionRes.body.status, 'success');
