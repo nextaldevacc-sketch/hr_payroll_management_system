@@ -39,6 +39,8 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
   let payrollUser;
   let gmUser;
   let hrMgrUser;
+  let adminUser;
+  let employeeUser;
   let testEmpSep;
   let testSep;
 
@@ -106,6 +108,9 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
       where: { company_id: companyB.id, status: 'Active' },
     });
     assert(testEmpB, 'Test employee in company B must exist');
+
+    adminUser = await prisma.$base().users.findUnique({ where: { email: 'admin@gulftech.ae' } });
+    employeeUser = await prisma.$base().users.findUnique({ where: { email: 'employee@gulftech.ae' } });
 
     // Leave Types
     annualLeaveType = await prisma.$base().leave_types.findFirst({
@@ -1332,7 +1337,7 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
         date_to: '2026-12-18',
         reason: 'Full week leave',
       },
-      userId: 'test-user',
+      userId: employeeUser.id,
     });
 
     // Approve
@@ -1340,7 +1345,9 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
       companyId: companyA.id,
       id: req.leave_request.id,
       action: 'Approve',
-      userId: 'admin-id',
+      userId: adminUser.id,
+      override: true,
+      comment: 'Administrative approval override for acceptance leave test',
     });
 
     // Cancel
@@ -1348,7 +1355,7 @@ describe('Spec Section 15: Acceptance Tests (T1–T37)', () => {
       companyId: companyA.id,
       id: req.leave_request.id,
       action: 'Cancel',
-      userId: 'admin-id',
+      userId: adminUser.id,
     });
 
     // Measure balance after

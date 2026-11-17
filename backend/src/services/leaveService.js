@@ -307,6 +307,25 @@ class LeaveService {
    * 3. Act on a Leave Request (Approve / Refuse / Cancel)
    */
   async actOnLeave({ companyId, id, action, userId, comment, override = false, user = null }) {
+    const effectiveActorId = sanitizeUuid(userId);
+    if (!effectiveActorId) {
+      const err = new Error('Valid user ID (UUID) is required to act on a leave request');
+      err.status = 401;
+      err.code = 'UNAUTHORIZED';
+      throw err;
+    }
+
+    const actorUser = await prisma.$base().users.findFirst({
+      where: { id: effectiveActorId, company_id: companyId },
+      select: { id: true },
+    });
+    if (!actorUser) {
+      const err = new Error('Actor user not found or does not belong to company');
+      err.status = 401;
+      err.code = 'UNAUTHORIZED';
+      throw err;
+    }
+
     const request = await prisma.$base().leave_requests.findFirst({
       where: { id, company_id: companyId },
       include: {
@@ -423,14 +442,7 @@ class LeaveService {
     }
 
     if (!approvalRequest) {
-      let validRequestedBy = sanitizeUuid(request.created_by) || sanitizeUuid(userId);
-      if (!validRequestedBy) {
-        const anyUser = await prisma.$base().users.findFirst({
-          where: { company_id: companyId },
-          select: { id: true },
-        });
-        validRequestedBy = anyUser?.id || null;
-      }
+      const validRequestedBy = sanitizeUuid(request.created_by) || effectiveActorId;
 
       approvalRequest = await approvalService.createRequest({
         companyId,
@@ -447,32 +459,6 @@ class LeaveService {
         where: { id: request.id },
         data: { approval_request_id: approvalRequest.id },
       });
-    }
-
-    let effectiveActorId = sanitizeUuid(userId);
-    if (!effectiveActorId) {
-      const adminRole = await prisma.$base().roles.findFirst({ where: { code: 'COMPANY_ADMIN' } });
-      const approverUser = adminRole
-        ? await prisma.$base().user_roles.findFirst({
-            where: {
-              company_id: companyId,
-              role_id: adminRole.id,
-              ...(approvalRequest?.requested_by ? { user_id: { not: approvalRequest.requested_by } } : {}),
-            },
-            select: { user_id: true },
-          })
-        : null;
-      effectiveActorId = approverUser?.user_id;
-      if (!effectiveActorId) {
-        const anyOtherUser = await prisma.$base().users.findFirst({
-          where: {
-            company_id: companyId,
-            ...(approvalRequest?.requested_by ? { id: { not: approvalRequest.requested_by } } : {}),
-          },
-          select: { id: true },
-        });
-        effectiveActorId = anyOtherUser?.id || null;
-      }
     }
 
     const isRefusal = action === 'Refuse' || action === 'Reject';

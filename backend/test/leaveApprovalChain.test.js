@@ -558,4 +558,109 @@ describe('Spec 7.4 & T15 Leave Approval Chain & Single Balance Deduction', () =>
     });
     assert.ok(auditRecord, 'Must record APPROVAL_OVERRIDE in audit_logs');
   });
+
+  it('10. Non-UUID actor returns 401 UNAUTHORIZED in actOnLeave', async () => {
+    const res = await request(app)
+      .post('/api/v1/leave/requests')
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .send({
+        employee_id: testEmployee.id,
+        leave_type_id: annualType.id,
+        date_from: '2026-07-20',
+        date_to: '2026-07-21',
+        reason: 'Actor validation test 1',
+      });
+
+    assert.equal(res.status, 201);
+    const leaveId = res.body.data.leave_request.id;
+
+    await assert.rejects(
+      async () => {
+        await leaveService.actOnLeave({
+          companyId: company.id,
+          id: leaveId,
+          action: 'Approve',
+          userId: 'admin-id', // Non-UUID mock actor
+        });
+      },
+      (err) => {
+        assert.equal(err.status, 401);
+        assert.equal(err.code, 'UNAUTHORIZED');
+        return true;
+      }
+    );
+
+    // Clean up
+    await prisma.$base().leave_requests.delete({ where: { id: leaveId } });
+  });
+
+  it('11. Unknown user UUID (not in company) returns 401 UNAUTHORIZED in actOnLeave', async () => {
+    const res = await request(app)
+      .post('/api/v1/leave/requests')
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .send({
+        employee_id: testEmployee.id,
+        leave_type_id: annualType.id,
+        date_from: '2026-07-27',
+        date_to: '2026-07-28',
+        reason: 'Actor validation test 2',
+      });
+
+    assert.equal(res.status, 201);
+    const leaveId = res.body.data.leave_request.id;
+
+    await assert.rejects(
+      async () => {
+        await leaveService.actOnLeave({
+          companyId: company.id,
+          id: leaveId,
+          action: 'Approve',
+          userId: 'ffffffff-ffff-4fff-afff-ffffffffffff', // Valid UUID but unknown actor
+        });
+      },
+      (err) => {
+        assert.equal(err.status, 401);
+        assert.equal(err.code, 'UNAUTHORIZED');
+        return true;
+      }
+    );
+
+    // Clean up
+    await prisma.$base().leave_requests.delete({ where: { id: leaveId } });
+  });
+
+  it('12. Missing or null userId returns 401 UNAUTHORIZED in actOnLeave', async () => {
+    const res = await request(app)
+      .post('/api/v1/leave/requests')
+      .set('Authorization', `Bearer ${employeeToken}`)
+      .send({
+        employee_id: testEmployee.id,
+        leave_type_id: annualType.id,
+        date_from: '2026-08-03',
+        date_to: '2026-08-04',
+        reason: 'Actor validation test 3',
+      });
+
+    assert.equal(res.status, 201);
+    const leaveId = res.body.data.leave_request.id;
+
+    await assert.rejects(
+      async () => {
+        await leaveService.actOnLeave({
+          companyId: company.id,
+          id: leaveId,
+          action: 'Approve',
+          userId: null,
+        });
+      },
+      (err) => {
+        assert.equal(err.status, 401);
+        assert.equal(err.code, 'UNAUTHORIZED');
+        return true;
+      }
+    );
+
+    // Clean up
+    await prisma.$base().leave_requests.delete({ where: { id: leaveId } });
+  });
 });

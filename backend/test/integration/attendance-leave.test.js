@@ -25,6 +25,8 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
   let deptMgrAToken;
   let employeeAToken;
   let employeeBToken;
+  let adminUserA;
+  let employeeUserA;
   let testEmpA;
   let testEmpB;
   let standardShift;
@@ -67,6 +69,9 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
       .send({ email: 'hr@horizon.ae', password: testUserPassword });
     assert.equal(resB.status, 200, 'Login failed for hr@horizon.ae');
     employeeBToken = resB.body.token;
+
+    adminUserA = await prisma.$base().users.findUnique({ where: { email: 'admin@gulftech.ae' } });
+    employeeUserA = await prisma.$base().users.findUnique({ where: { email: 'employee@gulftech.ae' } });
 
     // 3. Fetch Test Employees & Shifts
     testEmpA = await prisma.$base().employees.findFirst({
@@ -934,7 +939,7 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
           date_to: '2026-11-10',
           reason: 'Personal time off',
         },
-        userId: 'test-user',
+        userId: employeeUserA.id,
       });
 
       // Approve leave
@@ -942,7 +947,9 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
         companyId: companyA.id,
         id: req.leave_request.id,
         action: 'Approve',
-        userId: 'admin-id',
+        userId: adminUserA.id,
+        override: true,
+        comment: 'Administrative approval override for leave balance test',
       });
 
       // Check balance deducted
@@ -959,7 +966,7 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
         companyId: companyA.id,
         id: req.leave_request.id,
         action: 'Cancel',
-        userId: 'admin-id',
+        userId: adminUserA.id,
       });
 
       // Check balance restored
@@ -1016,7 +1023,7 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
           attachment_url: 'https://storage.nextal.ae/medical_cert.pdf',
           reason: 'Medical recovery',
         },
-        userId: null,
+        userId: employeeUserA.id,
       });
 
       // Approve sick leave
@@ -1024,7 +1031,9 @@ describe('Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptan
         companyId: companyA.id,
         id: sickReq.leave_request.id,
         action: 'Approve',
-        userId: null,
+        userId: adminUserA.id,
+        override: true,
+        comment: 'Administrative approval override for sick leave test',
       });
 
       // Verify attendance days pay bands
