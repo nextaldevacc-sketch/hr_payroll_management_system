@@ -1,5 +1,8 @@
 import employeeService from '../services/employeeService.js';
 import { hasSalaryAccess } from '../serializers/index.js';
+import auditService from '../services/auditService.js';
+import prisma from '../lib/prisma.js';
+import scopeService from '../services/scopeService.js';
 
 export async function listEmployees(req, res, next) {
   try {
@@ -462,17 +465,131 @@ export async function revealSensitiveField(req, res, next) {
     const userId = req.user?.id || req.user?.userId;
     const companyId = req.companyId;
 
+    // 1. Whitelist allowed fields to reveal: emirates_id, passport_number, iban, basic_salary
+    const ALLOWED_FIELDS = ['emirates_id', 'passport_number', 'iban', 'basic_salary'];
+    if (!field || typeof field !== 'string' || !ALLOWED_FIELDS.includes(field)) {
+      const err = new Error(`Invalid field '${field}'. Allowed fields: ${ALLOWED_FIELDS.join(', ')}`);
+      err.status = 400;
+      err.code = 'INVALID_FIELD';
+      throw err;
+    }
+
+    // 2. Scope check: target employee must be in the caller's company AND within their data scope (visa/branch/department)
+    // Never reveal record existence to out-of-scope callers (returns 404 NOT_FOUND)
+    const employee = await prisma.$base().employees.findUnique({
+      where: { id: employeeId },
+      include: {
+        contracts: {
+          where: { status: { in: ['Approved', 'Active'] } },
+          orderBy: { effective_date: 'desc' },
+        },
+      },
+    });
+
+    if (!employee || employee.company_id !== companyId) {
+      const err = new Error('Employee not found');
+      err.status = 404;
+      err.code = 'NOT_FOUND';
+      throw err;
+    }
+
+    const scope = scopeService.resolveDataScope(req.user);
+    scopeService.assertEmployeeInScope(employee, scope);
+
+    // 3. RBAC check before revealing:
+    // basic_salary: only revealed to SALARY_ROLES (HR_MANAGER, PAYROLL_OFFICER, GM, FINANCE). HR_OFFICER and DEPT_MANAGER CANNOT reveal salary.
+    // Identification fields (emirates_id, passport_number, iban): caller must have HR_OFFICER, HR_MANAGER, PAYROLL_OFFICER, GM, or FINANCE.
+    const SALARY_ROLES = ['HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'FINANCE'];
+    const IDENTIFICATION_ROLES = ['HR_OFFICER', 'HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'COMPANY_ADMIN'];
+
+    const userRoles = req.user?.roles || [];
+
+    if (field === 'basic_salary') {
+      const hasSalaryRole = userRoles.some((r) => SALARY_ROLES.includes(r));
+      if (!hasSalaryRole) {
+        const err = new Error('Permission denied: You do not have permission to reveal salary fields');
+        err.status = 403;
+        err.code = 'FORBIDDEN_SALARY_ACCESS';
+        throw err;
+      }
+    } else {
+      const hasIdRole = userRoles.some((r) => IDENTIFICATION_ROLES.includes(r));
+      if (!hasIdRole) {
+        const err = new Error('Permission denied: You do not have permission to reveal sensitive identity fields');
+        err.status = 403;
+        err.code = 'FORBIDDEN_ID_ACCESS';
+        throw err;
+      }
+    }
+
+    // 4. Retrieve field value and determine target table
+    let value = null;
+    let tableName = 'employees';
+
+    if (field === 'basic_salary') {
+      tableName = 'contracts';
+      const contract =
+        employee.contracts?.[0] ||
+        (await prisma.$base().contracts.findFirst({
+          where: { employee_id: employeeId, company_id: companyId, status: { in: ['Approved', 'Active'] } },
+          orderBy: { effective_date: 'desc' },
+        }));
+      value = contract ? Number(contract.basic ?? contract.basic_salary) : null;
+    } else if (field === 'iban') {
+      tableName = 'bank_accounts';
+      const bankAccount =
+        (await prisma.$base().bank_accounts.findFirst({
+          where: { employee_id: employeeId, company_id: companyId, is_primary: true },
+        })) ||
+        (await prisma.$base().bank_accounts.findFirst({
+          where: { employee_id: employeeId, company_id: companyId },
+        }));
+      value = bankAccount ? bankAccount.iban : null;
+    } else if (field === 'emirates_id') {
+      tableName = 'employee_documents';
+      const doc = await prisma.$base().employee_documents.findFirst({
+        where: {
+          employee_id: employeeId,
+          company_id: companyId,
+          doc_type: { in: ['EMIRATES_ID', 'Emirates ID', 'EID'] },
+        },
+      });
+      value = doc ? doc.doc_number : null;
+    } else if (field === 'passport_number') {
+      tableName = 'employee_documents';
+      const doc = await prisma.$base().employee_documents.findFirst({
+        where: {
+          employee_id: employeeId,
+          company_id: companyId,
+          doc_type: { in: ['PASSPORT', 'Passport'] },
+        },
+      });
+      value = doc ? doc.doc_number : null;
+    }
+
+    // 5. Audit log: EVERY reveal MUST write an audit row: action: 'REVEAL_FIELD', tableName, recordId, metadata: { field, ip, user_id }
     await auditService.log({
       companyId,
       userId,
-      action: 'REVEAL_SENSITIVE_FIELD',
-      tableName: 'employees',
+      action: 'REVEAL_FIELD',
+      tableName,
       recordId: employeeId,
-      newValues: { field, revealedAt: new Date().toISOString() },
+      newValues: {
+        field,
+        ip: req.ip,
+        user_id: userId,
+        metadata: { field, ip: req.ip, user_id: userId },
+        revealedAt: new Date().toISOString(),
+      },
       ipAddress: req.ip,
     });
 
-    res.json({ status: 'success', message: `Field ${field} reveal audited successfully` });
+    res.json({
+      status: 'success',
+      field,
+      value,
+      message: `Field ${field} revealed successfully`,
+    });
   } catch (err) {
     next(err);
   }
