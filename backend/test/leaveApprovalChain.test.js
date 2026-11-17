@@ -383,8 +383,8 @@ describe('Spec 7.4 & T15 Leave Approval Chain & Single Balance Deduction', () =>
       .send({
         employee_id: testEmployee.id,
         leave_type_id: annualType.id,
-        date_from: '2026-12-01',
-        date_to: '2026-12-02',
+        date_from: '2026-07-08',
+        date_to: '2026-07-09',
         reason: 'Direct service rejection test',
       });
 
