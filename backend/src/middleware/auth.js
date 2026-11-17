@@ -2,7 +2,13 @@ import jwt from 'jsonwebtoken';
 import prisma, { companyStorage } from '../lib/prisma.js';
 import { getCachedUserSession, setCachedUserSession } from './authCache.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'nextal_super_secret_jwt_key_2026_uae';
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET is required but not configured');
+  }
+  return secret;
+};
 
 /**
  * Extract token from cookie (nextal_token) or Authorization header (Bearer <token>)
@@ -138,7 +144,7 @@ export async function authenticate(req, res, next) {
 
   let decoded;
   try {
-    decoded = jwt.verify(token, JWT_SECRET);
+    decoded = jwt.verify(token, getJwtSecret());
   } catch (err) {
     clearAuthCookie(req, res);
     return res.status(401).json({
@@ -198,7 +204,7 @@ export async function optionalAuthenticate(req, res, next) {
 
   let decoded;
   try {
-    decoded = jwt.verify(token, JWT_SECRET);
+    decoded = jwt.verify(token, getJwtSecret());
   } catch (err) {
     clearAuthCookie(req, res);
     return res.status(401).json({
@@ -252,7 +258,7 @@ export async function optionalAuth(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
     const validation = await validateUserSessionState(decoded.userId, decoded.tokenVersion);
     if (!validation.valid) {
       return next();

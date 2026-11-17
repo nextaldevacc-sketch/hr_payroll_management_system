@@ -246,7 +246,7 @@ function resolveMfaUserId(req) {
     try {
       const decoded = jwt.verify(
         mfaToken,
-        process.env.JWT_SECRET || 'nextal_super_secret_jwt_key_2026_uae'
+        process.env.JWT_SECRET
       );
       if (decoded.userId) return decoded.userId;
     } catch (err) {
@@ -323,7 +323,7 @@ export async function mfaVerify(req, res, next) {
     try {
       decoded = jwt.verify(
         mfa_token,
-        process.env.JWT_SECRET || 'nextal_super_secret_jwt_key_2026_uae'
+        process.env.JWT_SECRET
       );
     } catch (e) {
       const err = new Error('MFA session expired or invalid. Please log in again.');

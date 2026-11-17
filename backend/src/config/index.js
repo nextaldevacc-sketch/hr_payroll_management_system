@@ -13,7 +13,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(5000),
   DATABASE_URL: z.string().optional().default('postgresql://nextal:nextal_secret_2026@localhost:5432/nextal_db?schema=public'),
-  JWT_SECRET: z.string().default('nextal_jwt_secret_dev_key_2026'),
+  JWT_SECRET: z.string().optional(),
   JWT_EXPIRY: z.string().default('24h'),
   CORS_ORIGIN: z.string().optional(),
   STORAGE_DIR: z.string().default(path.join(backendRoot, 'storage')),

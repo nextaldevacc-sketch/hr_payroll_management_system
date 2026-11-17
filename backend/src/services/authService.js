@@ -8,7 +8,13 @@ import { invalidateUserSession } from '../middleware/authCache.js';
 import { SALARY_ROLES, hasSalaryAccess } from '../serializers/index.js';
 import { PRIVILEGED_ROLES } from './mfaService.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'nextal_super_secret_jwt_key_2026_uae';
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET is required but not configured');
+  }
+  return secret;
+};
 const SESSION_DURATION = '8h';
 const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
 const LOCKOUT_THRESHOLD = 5;
@@ -52,7 +58,7 @@ export class AuthService {
       tokenVersion: user.token_version || 1,
     };
 
-    return jwt.sign(tokenPayload, JWT_SECRET, {
+    return jwt.sign(tokenPayload, getJwtSecret(), {
       expiresIn: SESSION_DURATION,
     });
   }
@@ -281,7 +287,7 @@ export class AuthService {
           companyId: user.company_id,
           purpose: user.mfa_enabled ? 'mfa_verify' : 'mfa_enrol',
         },
-        JWT_SECRET,
+        getJwtSecret(),
         { expiresIn: '15m' }
       );
 
@@ -315,7 +321,7 @@ export class AuthService {
       tokenVersion: user.token_version || 1,
     };
 
-    const token = jwt.sign(tokenPayload, JWT_SECRET, {
+    const token = jwt.sign(tokenPayload, getJwtSecret(), {
       expiresIn: SESSION_DURATION,
     });
 
@@ -437,7 +443,7 @@ export class AuthService {
       tokenVersion: user.token_version || 1,
     };
 
-    const token = jwt.sign(tokenPayload, JWT_SECRET, {
+    const token = jwt.sign(tokenPayload, getJwtSecret(), {
       expiresIn: SESSION_DURATION,
     });
 
@@ -503,7 +509,7 @@ export class AuthService {
    */
   verifyToken(token) {
     try {
-      return jwt.verify(token, JWT_SECRET);
+      return jwt.verify(token, getJwtSecret());
     } catch (err) {
       const error = new Error('Invalid or expired authentication session');
       error.status = 401;

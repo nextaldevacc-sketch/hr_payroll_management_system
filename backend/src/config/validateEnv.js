@@ -18,7 +18,7 @@ export function validateEnv(env = process.env) {
 
   // 1. JWT_SECRET
   const jwtSecret = env.JWT_SECRET;
-  if (!jwtSecret) {
+  if (!jwtSecret || String(jwtSecret).trim() === '') {
     errors.push('JWT_SECRET is required');
   } else {
     if (jwtSecret.length < 32) {
@@ -30,6 +30,9 @@ export function validateEnv(env = process.env) {
       'development_secret_key_not_for_prod',
       'your-jwt-secret-here',
       'replace_this_with_a_secure_random',
+      'nextal_super_secret_jwt_key',
+      'nextal-secure-jwt-signing-secret-key',
+      'nextal_jwt_secret_dev_key',
     ];
     const lower = jwtSecret.toLowerCase();
     if (exactWeak.includes(lower) || (isProd && devPhrases.some((phrase) => lower.includes(phrase)))) {
@@ -136,7 +139,7 @@ export function enforceStartupValidation(env = process.env) {
   if (!result.valid) {
     console.error('FATAL: Startup Environment Validation Failed:');
     result.errors.forEach((err) => console.error(`  - ${err}`));
-    if (env.NODE_ENV === 'production') {
+    if (env.NODE_ENV === 'production' || !env.JWT_SECRET || String(env.JWT_SECRET).trim() === '') {
       process.exit(1);
     }
   }

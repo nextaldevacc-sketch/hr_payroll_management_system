@@ -13,7 +13,7 @@ export function validateEnvironment() {
   }
 
   const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) {
+  if (!jwtSecret || String(jwtSecret).trim() === '') {
     errors.push('JWT_SECRET environment variable is missing');
   } else {
     if (jwtSecret.length < 32) {
@@ -23,8 +23,18 @@ export function validateEnvironment() {
     if (weakSecrets.includes(jwtSecret.toLowerCase())) {
       errors.push('JWT_SECRET is using a known weak dictionary word');
     }
-    if (process.env.NODE_ENV === 'production' && jwtSecret.includes('super_secret_jwt_key_2026')) {
-      warnings.push('JWT_SECRET is using the development template secret in production. Please generate a fresh cryptographic secret.');
+    const devPhrases = [
+      'super_secret_jwt_key_2026',
+      'development_secret_key_not_for_prod',
+      'your-jwt-secret-here',
+      'replace_this_with_a_secure_random',
+      'nextal_super_secret_jwt_key',
+      'nextal-secure-jwt-signing-secret-key',
+      'nextal_jwt_secret_dev_key',
+    ];
+    const lower = jwtSecret.toLowerCase();
+    if (process.env.NODE_ENV === 'production' && devPhrases.some((phrase) => lower.includes(phrase))) {
+      errors.push('JWT_SECRET is using a weak or development default value in production');
     }
   }
 
@@ -47,7 +57,7 @@ export function validateEnvironment() {
   if (errors.length > 0) {
     console.error('FATAL: Startup Environment Validation Failed:');
     errors.forEach((err) => console.error(`  - ${err}`));
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === 'production' || !process.env.JWT_SECRET || String(process.env.JWT_SECRET).trim() === '') {
       process.exit(1);
     }
   }

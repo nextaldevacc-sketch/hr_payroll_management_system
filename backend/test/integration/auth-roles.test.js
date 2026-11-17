@@ -11,7 +11,7 @@ import jwt from 'jsonwebtoken';
 import { deepScanForSalaryBankData, FORBIDDEN_SALARY_BANK_KEYS } from '../../src/serializers/index.js';
 import { clearSessionCache, invalidateCompanySessions } from '../../src/middleware/authCache.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'nextal_super_secret_jwt_key_2026_uae';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 describe('Phase 2: Authentication, Roles, Permissions Matrix & Approval Engine Tests', () => {
   let company1;
