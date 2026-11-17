@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './docs/swagger.js';
 import { companyContextMiddleware } from './middleware/companyContext.js';
+import { csrfProtection } from './middleware/csrfProtection.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import prisma from './lib/prisma.js';
 import auditService from './services/auditService.js';
@@ -99,8 +100,26 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// 5. JSON body parser
-app.use(express.json({ limit: '10mb' }));
+// 4b. Strict Authentication Rate Limiting
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.AUTH_RATE_LIMIT_MAX
+    ? Number(process.env.AUTH_RATE_LIMIT_MAX)
+    : (process.env.NODE_ENV === 'test' ? 1000 : 15),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    status: 'error',
+    code: 'TOO_MANY_REQUESTS',
+    message: 'Too many authentication attempts. Please try again after 15 minutes.',
+  },
+});
+
+// 5. JSON body parser (100kb default limit)
+app.use(express.json({ limit: process.env.BODY_LIMIT || '100kb' }));
+
+// 5b. CSRF & Origin Protection
+app.use(csrfProtection);
 
 // 6. Company context middleware
 app.use(companyContextMiddleware);
@@ -154,7 +173,7 @@ app.get(['/health', '/api/v1/health'], async (req, res, next) => {
 });
 
 // 9. API Modules
-app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/auth', authLimiter, authRoutes);
 if (process.env.FEATURE_PLATFORM_ADMIN === 'true') {
   app.use('/api/v1/platform', platformRoutes);
 } else {

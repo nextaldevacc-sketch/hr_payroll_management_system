@@ -119,6 +119,22 @@ if (env.MAIL_MODE === 'disabled') {
   }
 }
 
+// 6. Check Security Hardening (Body limit & Rate Limit defaults)
+if (env.BODY_LIMIT) {
+  const match = String(env.BODY_LIMIT).match(/^(\d+)(kb|mb)?$/i);
+  if (match) {
+    const num = parseInt(match[1], 10);
+    const unit = (match[2] || 'kb').toLowerCase();
+    if (unit === 'mb' && num > 1) {
+      failures.push(`[HARDENING] BODY_LIMIT of ${env.BODY_LIMIT} exceeds safe maximum (1mb)`);
+    } else {
+      successes.push(`[HARDENING] BODY_LIMIT configured safely as '${env.BODY_LIMIT}'`);
+    }
+  }
+} else {
+  successes.push('[HARDENING] Default BODY_LIMIT enforced at 100kb');
+}
+
 // Output Results
 console.log('');
 console.log('--- Checks Executed ---');
