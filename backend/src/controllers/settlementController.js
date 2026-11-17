@@ -3,12 +3,13 @@ import settlementService from '../services/settlementService.js';
 export async function calculateSettlement(req, res, next) {
   try {
     const roles = req.user?.roles || [];
-    if (!roles.includes('PAYROLL_OFFICER')) {
+    const allowed = ['HR_MANAGER', 'PAYROLL_OFFICER', 'FINANCE', 'COMPANY_ADMIN'];
+    if (!roles.some((r) => allowed.includes(r))) {
       return res.status(403).json({
         status: 'error',
-        code: 'SEGREGATION_OF_DUTIES',
-        error: 'SEGREGATION_OF_DUTIES',
-        message: 'Access denied: Only Payroll Officer can calculate final settlements.',
+        code: 'FORBIDDEN',
+        error: 'FORBIDDEN',
+        message: 'Access denied: Calculate action requires HR_MANAGER, PAYROLL_OFFICER, or FINANCE.',
       });
     }
 
@@ -28,12 +29,13 @@ export async function calculateSettlement(req, res, next) {
 export async function prepareSettlement(req, res, next) {
   try {
     const roles = req.user?.roles || [];
-    if (!roles.includes('PAYROLL_OFFICER')) {
+    const allowed = ['HR_OFFICER', 'PAYROLL_OFFICER', 'COMPANY_ADMIN'];
+    if (!roles.some((r) => allowed.includes(r))) {
       return res.status(403).json({
         status: 'error',
-        code: 'SEGREGATION_OF_DUTIES',
-        error: 'SEGREGATION_OF_DUTIES',
-        message: 'Access denied: Only Payroll Officer can prepare final settlements.',
+        code: 'FORBIDDEN',
+        error: 'FORBIDDEN',
+        message: 'Access denied: Only Payroll Officer, HR Officer, or Company Admin can prepare final settlements.',
       });
     }
 
@@ -54,12 +56,13 @@ export async function prepareSettlement(req, res, next) {
 export async function validateSettlement(req, res, next) {
   try {
     const roles = req.user?.roles || [];
-    if (!roles.includes('HR_MANAGER')) {
+    const allowed = ['HR_MANAGER', 'COMPANY_ADMIN'];
+    if (!roles.some((r) => allowed.includes(r))) {
       return res.status(403).json({
         status: 'error',
-        code: 'SEGREGATION_OF_DUTIES',
-        error: 'SEGREGATION_OF_DUTIES',
-        message: 'Access denied: Only HR Manager can validate final settlements.',
+        code: 'FORBIDDEN',
+        error: 'FORBIDDEN',
+        message: 'Access denied: Only HR Manager or Company Admin can validate final settlements.',
       });
     }
 
@@ -75,12 +78,13 @@ export async function validateSettlement(req, res, next) {
 export async function approveSettlement(req, res, next) {
   try {
     const roles = req.user?.roles || [];
-    if (!roles.includes('GM')) {
+    const allowed = ['GM', 'COMPANY_ADMIN'];
+    if (!roles.some((r) => allowed.includes(r))) {
       return res.status(403).json({
         status: 'error',
-        code: 'SEGREGATION_OF_DUTIES',
-        error: 'SEGREGATION_OF_DUTIES',
-        message: 'Access denied: Only GM can approve final settlements.',
+        code: 'FORBIDDEN',
+        error: 'FORBIDDEN',
+        message: 'Access denied: Approve action requires GM or COMPANY_ADMIN.',
       });
     }
 
@@ -96,12 +100,13 @@ export async function approveSettlement(req, res, next) {
 export async function markSettlementPaid(req, res, next) {
   try {
     const roles = req.user?.roles || [];
-    if (!roles.includes('FINANCE')) {
+    const allowed = ['FINANCE', 'COMPANY_ADMIN'];
+    if (!roles.some((r) => allowed.includes(r))) {
       return res.status(403).json({
         status: 'error',
-        code: 'SEGREGATION_OF_DUTIES',
-        error: 'SEGREGATION_OF_DUTIES',
-        message: 'Access denied: Only Finance can mark final settlements as Paid.',
+        code: 'FORBIDDEN',
+        error: 'FORBIDDEN',
+        message: 'Access denied: Payer action requires FINANCE or COMPANY_ADMIN.',
       });
     }
 

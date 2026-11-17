@@ -277,6 +277,11 @@ export class SettlementService {
     }
 
     let settlement;
+    const preparedSnapshot = {
+      ...(calc.snapshot || {}),
+      prepared_by: userId,
+    };
+
     if (existing) {
       settlement = await this.prisma.$base().final_settlements.update({
         where: { separation_id: separationId },
@@ -291,7 +296,7 @@ export class SettlementService {
           clearance_recovery: new Decimal(calc.clearance_recovery),
           other_recovery: new Decimal(calc.other_recovery),
           net_payable: new Decimal(calc.net_payable),
-          snapshot: calc.snapshot,
+          snapshot: preparedSnapshot,
           status: 'Prepared',
           updated_by: userId,
         },
@@ -311,7 +316,7 @@ export class SettlementService {
           clearance_recovery: new Decimal(calc.clearance_recovery),
           other_recovery: new Decimal(calc.other_recovery),
           net_payable: new Decimal(calc.net_payable),
-          snapshot: calc.snapshot,
+          snapshot: preparedSnapshot,
           status: 'Prepared',
           created_by: userId,
         },
@@ -362,7 +367,8 @@ export class SettlementService {
     }
 
     // Segregation of duties: Preparer cannot validate their own preparation
-    if (settlement.created_by === userId) {
+    const preparerId = settlement.snapshot?.prepared_by || settlement.created_by;
+    if (preparerId === userId || settlement.created_by === userId) {
       const err = new Error('Segregation of duties violation: You cannot validate a final settlement you prepared.');
       err.status = 403;
       err.code = 'SEGREGATION_OF_DUTIES';
@@ -384,10 +390,17 @@ export class SettlementService {
       throw err;
     }
 
+    const validatedSnapshot = {
+      ...(settlement.snapshot && typeof settlement.snapshot === 'object' ? settlement.snapshot : {}),
+      prepared_by: preparerId,
+      validated_by: userId,
+    };
+
     const updated = await this.prisma.$base().final_settlements.update({
       where: { id: settlementId },
       data: {
         status: 'Validated',
+        snapshot: validatedSnapshot,
         updated_by: userId,
       },
     });
@@ -443,7 +456,14 @@ export class SettlementService {
     }
 
     // Segregation of duties: Validator cannot approve their own validation, and preparer cannot approve
-    if (settlement.updated_by === userId || settlement.created_by === userId) {
+    const preparerId = settlement.snapshot?.prepared_by || settlement.created_by;
+    const validatorId = settlement.snapshot?.validated_by || (settlement.status === 'Validated' ? settlement.updated_by : null);
+    if (
+      userId === preparerId ||
+      userId === validatorId ||
+      settlement.created_by === userId ||
+      settlement.updated_by === userId
+    ) {
       const err = new Error('Segregation of duties violation: You cannot approve a settlement you validated or prepared.');
       err.status = 403;
       err.code = 'SEGREGATION_OF_DUTIES';
@@ -453,12 +473,18 @@ export class SettlementService {
 
     // Re-verify calculations and freeze snapshot
     const currentCalc = await this.calculateSettlement(companyId, settlement.separation_id);
+    const approvedSnapshot = {
+      ...(currentCalc.snapshot || {}),
+      prepared_by: preparerId,
+      validated_by: validatorId,
+      approved_by: userId,
+    };
 
     const approved = await this.prisma.$base().final_settlements.update({
       where: { id: settlementId },
       data: {
         status: 'Approved',
-        snapshot: currentCalc.snapshot,
+        snapshot: approvedSnapshot,
         updated_by: userId,
       },
     });
@@ -500,7 +526,17 @@ export class SettlementService {
     }
 
     // Segregation of duties: Approver, validator, or preparer cannot mark Paid
-    if (settlement.updated_by === userId || settlement.created_by === userId) {
+    const preparerId = settlement.snapshot?.prepared_by || settlement.created_by;
+    const validatorId = settlement.snapshot?.validated_by;
+    const approverId = settlement.snapshot?.approved_by || settlement.updated_by;
+
+    if (
+      userId === preparerId ||
+      userId === validatorId ||
+      userId === approverId ||
+      settlement.created_by === userId ||
+      settlement.updated_by === userId
+    ) {
       const err = new Error('Segregation of duties violation: You cannot mark paid a final settlement you approved, validated, or prepared.');
       err.status = 403;
       err.code = 'SEGREGATION_OF_DUTIES';
@@ -508,10 +544,19 @@ export class SettlementService {
       throw err;
     }
 
+    const paidSnapshot = {
+      ...(settlement.snapshot && typeof settlement.snapshot === 'object' ? settlement.snapshot : {}),
+      prepared_by: preparerId,
+      validated_by: validatorId,
+      approved_by: approverId,
+      paid_by: userId,
+    };
+
     const paid = await this.prisma.$base().final_settlements.update({
       where: { id: settlementId },
       data: {
         status: 'Paid',
+        snapshot: paidSnapshot,
         updated_by: userId,
       },
     });
