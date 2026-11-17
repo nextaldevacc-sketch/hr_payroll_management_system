@@ -2,10 +2,12 @@ import approvalService from '../services/approvalService.js';
 
 export async function getPendingApprovals(req, res, next) {
   try {
+    const showAll = req.query.all === 'true' || req.query.showAll === 'true';
     const pending = await approvalService.getPendingApprovals({
       companyId: req.companyId,
       userId: req.user.userId,
       userRoleCodes: req.user.roles || [],
+      showAll,
     });
 
     res.json({
@@ -41,7 +43,7 @@ export async function createApprovalRequest(req, res, next) {
 
 export async function actionApprovalRequest(req, res, next) {
   try {
-    const { action, comment, reason } = req.body;
+    const { action, comment, reason, override, adminOverride } = req.body;
     const result = await approvalService.actionRequest({
       companyId: req.companyId,
       requestId: req.params.id,
@@ -49,6 +51,7 @@ export async function actionApprovalRequest(req, res, next) {
       action,
       comment: comment || reason,
       reason,
+      override: Boolean(override ?? adminOverride),
       user: req.user,
     });
 

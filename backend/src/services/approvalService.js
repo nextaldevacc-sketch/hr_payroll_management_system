@@ -276,7 +276,7 @@ export class ApprovalService {
    * Act on an approval request (Approve or Reject)
    * Enforces: "Nobody approves their own request"
    */
-  async actionRequest({ companyId, requestId, actorId, action, comment = null, reason = null, user = null }) {
+  async actionRequest({ companyId, requestId, actorId, action, comment = null, reason = null, override = false, user = null }) {
     if (!companyId || !requestId || !action) {
       const err = new Error('companyId, requestId, and action are required');
       err.status = 400;
@@ -284,14 +284,39 @@ export class ApprovalService {
       throw err;
     }
 
-    const actUpper = String(action).toUpperCase();
-    if (!['APPROVE', 'REJECT'].includes(actUpper)) {
-      const err = new Error("Action must be 'Approve' or 'Reject'");
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    // 1. Validate actor UUID + exists in company + active.
+    if (!actorId || typeof actorId !== 'string' || !UUID_REGEX.test(actorId)) {
+      const err = new Error('Valid actor user ID (UUID) is required to action an approval request');
       err.status = 400;
-      err.code = 'VALIDATION_ERROR';
+      err.code = 'INVALID_ACTOR_ID';
       throw err;
     }
-    const normalizedAction = actUpper === 'APPROVE' ? 'Approve' : 'Reject';
+
+    const actorUser = await this.prisma.$base().users.findFirst({
+      where: {
+        id: actorId,
+        company_id: companyId,
+        status: { in: ['ACTIVE', 'Active'] },
+      },
+      select: { id: true, employee_id: true },
+    });
+
+    if (!actorUser) {
+      const err = new Error('Actor user not found or inactive in company');
+      err.status = 401;
+      err.code = 'UNAUTHORIZED_ACTOR';
+      throw err;
+    }
+
+    // 2. Validate request exists, belongs to company, status is 'Pending'.
+    if (!UUID_REGEX.test(requestId)) {
+      const err = new Error('Valid approval request ID (UUID) is required');
+      err.status = 400;
+      err.code = 'INVALID_REQUEST_ID';
+      throw err;
+    }
 
     const request = await this.prisma.$base().approval_requests.findUnique({
       where: { id: requestId },
@@ -315,28 +340,10 @@ export class ApprovalService {
       throw err;
     }
 
-    // Validate actor is a real UUID and an active user in the company
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!actorId || typeof actorId !== 'string' || !UUID_REGEX.test(actorId)) {
-      const err = new Error('Valid actor user ID (UUID) is required to action an approval request');
-      err.status = 400;
-      err.code = 'INVALID_ACTOR_ID';
-      throw err;
-    }
-
-    const actorUser = await this.prisma.$base().users.findFirst({
-      where: {
-        id: actorId,
-        company_id: companyId,
-        status: { in: ['ACTIVE', 'Active'] },
-      },
-      select: { id: true, employee_id: true },
-    });
-
-    if (!actorUser) {
-      const err = new Error('Actor user not found or inactive in company');
-      err.status = 401;
-      err.code = 'UNAUTHORIZED_ACTOR';
+    if (request.status !== 'Pending') {
+      const err = new Error(`Request has already been processed with status '${request.status}'`);
+      err.status = 409;
+      err.code = 'ALREADY_COMPLETED';
       throw err;
     }
 
@@ -368,63 +375,8 @@ export class ApprovalService {
       }
     }
 
-    if (request.status !== 'Pending') {
-      const err = new Error(`Request has already been processed with status '${request.status}'`);
-      err.status = 409;
-      err.code = 'ALREADY_COMPLETED';
-      throw err;
-    }
-
-    // =========================================================================
-    // SPEC RULE: "Nobody approves their own request" (FR-EM4, FR-WF2)
-    // =========================================================================
-    if (request.requested_by && request.requested_by === actorId) {
-      const err = new Error('Self-approval is forbidden: nobody approves their own request.');
-      err.status = 403;
-      err.code = 'SELF_APPROVAL_FORBIDDEN';
-      err.error = 'SELF_APPROVAL_FORBIDDEN';
-      throw err;
-    }
-
-    if (request.request_type === 'LEAVE') {
-      const lr = await this.prisma.$base().leave_requests.findUnique({
-        where: { id: request.record_id },
-        select: { employee: { select: { user: { select: { id: true } } } } },
-      });
-      if (lr?.employee?.user?.id && lr.employee.user.id === actorId) {
-        const err = new Error('Self-approval is forbidden: nobody approves their own request.');
-        err.status = 403;
-        err.code = 'SELF_APPROVAL_FORBIDDEN';
-        err.error = 'SELF_APPROVAL_FORBIDDEN';
-        throw err;
-      }
-    }
-
-    const decisionComment = (reason || comment || '').trim();
-    if (request.request_type === 'EMPLOYEE_VERIFICATION' && normalizedAction === 'Reject') {
-      if (!decisionComment || decisionComment.length < 5) {
-        const err = new Error('A reason of at least 5 characters is required to return an employee for correction.');
-        err.status = 400;
-        err.code = 'VALIDATION_ERROR';
-        err.error = 'REASON_REQUIRED';
-        throw err;
-      }
-    }
-
-    // If EMPLOYEE_VERIFICATION, delegate state transition and audit to employeeService
-    if (request.request_type === 'EMPLOYEE_VERIFICATION') {
-      const { employeeService } = await import('./employeeService.js');
-      await employeeService.verifyEmployee({
-        companyId,
-        employeeId: request.record_id,
-        action: normalizedAction === 'Approve' ? 'APPROVE' : 'SEND_BACK',
-        comment: decisionComment,
-        viewer: { id: actorId, userId: actorId },
-      });
-    }
-
-    // Find the current step definition
-    const currentStepConfig = request.flow.steps.find((s) => s.step_no === request.current_step);
+    // 3. Validate current_step matches the next expected step in the flow.
+    const currentStepConfig = request.flow?.steps?.find((s) => s.step_no === request.current_step);
     if (!currentStepConfig) {
       const err = new Error(`Step configuration for step ${request.current_step} not found`);
       err.status = 500;
@@ -432,6 +384,17 @@ export class ApprovalService {
       throw err;
     }
 
+    const actUpper = String(action).toUpperCase();
+    if (!['APPROVE', 'REJECT', 'SENDBACK'].includes(actUpper)) {
+      const err = new Error("Action must be 'Approve', 'Reject', or 'SendBack'");
+      err.status = 400;
+      err.code = 'VALIDATION_ERROR';
+      throw err;
+    }
+    const normalizedAction = actUpper === 'APPROVE' ? 'Approve' : actUpper === 'SENDBACK' ? 'SendBack' : 'Reject';
+    const decisionComment = (reason || comment || '').trim();
+
+    // 4. Authorize role: the actor must have the exact role required for current_step
     const actorUserRoles = await this.prisma.$base().user_roles.findMany({
       where: {
         company_id: companyId,
@@ -441,29 +404,41 @@ export class ApprovalService {
     });
 
     const actorRoleCodes = actorUserRoles.map((ur) => ur.role.code);
-    const requiredRoleCode = currentStepConfig.role.code;
+    const requiredRoleCode = currentStepConfig.role?.code;
+    const hasRoleMatch = actorRoleCodes.includes(requiredRoleCode);
 
-    const hasPermission =
-      actorRoleCodes.includes(requiredRoleCode) ||
-      actorRoleCodes.includes('COMPANY_ADMIN') ||
-      (requiredRoleCode === 'HR_OFFICER' && actorRoleCodes.includes('HR_MANAGER')) ||
-      (requiredRoleCode === 'HR_MANAGER' && actorRoleCodes.includes('HR_OFFICER'));
+    let isAdminOverride = false;
 
-    if (!hasPermission) {
-      const err = new Error(
-        `Permission denied: Step ${request.current_step} requires role '${requiredRoleCode}'. You have [${actorRoleCodes.join(', ')}].`
-      );
-      err.status = 403;
-      err.code = 'NOT_CURRENT_APPROVER';
-      throw err;
+    if (!hasRoleMatch) {
+      const isCompanyAdmin = actorRoleCodes.includes('COMPANY_ADMIN');
+      if (isCompanyAdmin) {
+        if (!override) {
+          const err = new Error(
+            `Permission denied: Step ${request.current_step} requires role '${requiredRoleCode}'. Admin override requires explicit 'override: true' and reason of at least 10 characters.`
+          );
+          err.status = 403;
+          err.code = 'ADMIN_OVERRIDE_REQUIRED';
+          throw err;
+        }
+        if (decisionComment.length < 10) {
+          const err = new Error('Admin override requires a justification reason of at least 10 characters.');
+          err.status = 400;
+          err.code = 'REASON_REQUIRED';
+          throw err;
+        }
+        isAdminOverride = true;
+      } else {
+        const err = new Error(
+          `Permission denied: Step ${request.current_step} requires role '${requiredRoleCode}'. You have [${actorRoleCodes.join(', ')}].`
+        );
+        err.status = 403;
+        err.code = 'NOT_CURRENT_APPROVER';
+        throw err;
+      }
     }
 
-    // If required role is DEPT_MANAGER, verify requester belongs to manager's team
-    if (requiredRoleCode === 'DEPT_MANAGER' && !actorRoleCodes.includes('COMPANY_ADMIN')) {
-      const actorUser = await this.prisma.$base().users.findUnique({
-        where: { id: actorId },
-        select: { id: true, employee_id: true },
-      });
+    // If required role is DEPT_MANAGER and not admin override, verify requester belongs to manager's team
+    if (requiredRoleCode === 'DEPT_MANAGER' && !isAdminOverride) {
       let empDeptManagerId = null;
       if (request.request_type?.toUpperCase() === 'LEAVE') {
         const lr = await this.prisma.$base().leave_requests.findUnique({
@@ -502,22 +477,101 @@ export class ApprovalService {
       }
     }
 
+    // 5. Block self-approval: requester CANNOT approve their own request, and employee whose record this is CANNOT approve their own request.
+    if (request.requested_by && request.requested_by === actorId) {
+      const err = new Error('Self-approval is forbidden: nobody approves their own request.');
+      err.status = 403;
+      err.code = 'SELF_APPROVAL_FORBIDDEN';
+      err.error = 'SELF_APPROVAL_FORBIDDEN';
+      throw err;
+    }
+
+    let recordEmployeeId = null;
+    if (request.request_type === 'LEAVE') {
+      const lr = await this.prisma.$base().leave_requests.findUnique({
+        where: { id: request.record_id },
+        select: { employee_id: true, employee: { select: { user: { select: { id: true } } } } },
+      });
+      if (lr?.employee?.user?.id && lr.employee.user.id === actorId) {
+        const err = new Error('Self-approval is forbidden: nobody approves their own request.');
+        err.status = 403;
+        err.code = 'SELF_APPROVAL_FORBIDDEN';
+        err.error = 'SELF_APPROVAL_FORBIDDEN';
+        throw err;
+      }
+      recordEmployeeId = lr?.employee_id;
+    } else if (request.request_type === 'EMPLOYEE_VERIFICATION' || request.request_type === 'EMPLOYEE_BRANCH_CHANGE') {
+      recordEmployeeId = request.record_id;
+    } else if (request.request_type === 'CONTRACT_APPROVAL' || request.request_type === 'CONTRACT') {
+      const contract = await this.prisma.$base().contracts.findUnique({
+        where: { id: request.record_id },
+        select: { employee_id: true },
+      });
+      recordEmployeeId = contract?.employee_id;
+    } else if (request.request_type === 'SEPARATION') {
+      const sep = await this.prisma.$base().separations.findUnique({
+        where: { id: request.record_id },
+        select: { employee_id: true },
+      });
+      recordEmployeeId = sep?.employee_id;
+    } else if (request.request_type === 'OVERTIME') {
+      const ot = await this.prisma.$base().overtime_requests.findUnique({
+        where: { id: request.record_id },
+        select: { employee_id: true },
+      });
+      recordEmployeeId = ot?.employee_id;
+    } else if (request.payload?.employee_id) {
+      recordEmployeeId = request.payload.employee_id;
+    }
+
+    if (recordEmployeeId && actorUser?.employee_id && recordEmployeeId === actorUser.employee_id) {
+      const err = new Error('Self-approval is forbidden: employee cannot approve their own record.');
+      err.status = 403;
+      err.code = 'SELF_APPROVAL_FORBIDDEN';
+      throw err;
+    }
+
+    // 6. Block multi-step self-action: a user who acted on step N cannot act on step N+1 of the same request.
+    const previousActions = await this.prisma.$base().approval_actions.findMany({
+      where: {
+        approval_request_id: request.id,
+        acted_by: actorId,
+        step_no: { gt: 0 },
+      },
+    });
+    if (previousActions.length > 0) {
+      const err = new Error('Segregation of duties: a user who acted on a previous step cannot act on subsequent steps of the same request.');
+      err.status = 403;
+      err.code = 'MULTI_STEP_SELF_ACTION_FORBIDDEN';
+      throw err;
+    }
+
+    // 7. Validate reason: if action is Reject or SendBack, reason is required (>=10 chars).
+    if (normalizedAction === 'Reject' || normalizedAction === 'SendBack') {
+      if (!decisionComment || decisionComment.length < 10) {
+        const err = new Error('A rejection or send-back reason of at least 10 characters is required.');
+        err.status = 400;
+        err.code = 'REASON_REQUIRED';
+        throw err;
+      }
+    }
+
     const now = new Date();
 
     let newStatus = request.status;
     let nextStep = request.current_step;
     let completedAt = null;
 
-    if (normalizedAction === 'Reject') {
+    if (normalizedAction === 'Reject' || normalizedAction === 'SendBack') {
       newStatus = 'Rejected';
       completedAt = now;
     } else if (normalizedAction === 'Approve') {
-      if (request.request_type?.toUpperCase() === 'LEAVE') {
+      if (isAdminOverride) {
+        newStatus = 'Approved';
+        completedAt = now;
+      } else if (request.request_type?.toUpperCase() === 'LEAVE') {
         const needsGM = Boolean(request.payload?.needs_gm);
-        if (actorRoleCodes.includes('COMPANY_ADMIN')) {
-          newStatus = 'Approved';
-          completedAt = now;
-        } else if (request.current_step === 1) {
+        if (request.current_step === 1) {
           nextStep = 2;
         } else if (request.current_step === 2) {
           if (needsGM) {
@@ -549,8 +603,8 @@ export class ApprovalService {
           approval_request_id: request.id,
           step_no: request.current_step,
           acted_by: actorId,
-          action: normalizedAction,
-          comment: decisionComment,
+          action: isAdminOverride ? 'OVERRIDE' : normalizedAction,
+          comment: isAdminOverride ? `[override=true] ${decisionComment}` : decisionComment,
           acted_at: now,
         },
       });
@@ -601,7 +655,7 @@ export class ApprovalService {
           throw err;
         }
 
-        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayStr = toDubaiDateString(new Date());
         const effDateStr = String(branchPayload.effective_date).slice(0, 10);
 
         if (effDateStr <= todayStr) {
@@ -637,6 +691,60 @@ export class ApprovalService {
             ...branchPayload,
             applied: false,
           };
+        }
+      }
+
+      // Apply EMPLOYEE_VERIFICATION
+      if (request.request_type === 'EMPLOYEE_VERIFICATION') {
+        const emp = await tx.employees.findUnique({
+          where: { id: request.record_id },
+        });
+        if (emp) {
+          if (emp.created_by && emp.created_by === actorId) {
+            const err = new Error('Creator cannot verify/approve an employee record they created.');
+            err.status = 403;
+            err.code = 'CREATOR_CANNOT_VERIFY';
+            throw err;
+          }
+          if (newStatus === 'Approved') {
+            await tx.employees.update({
+              where: { id: emp.id },
+              data: {
+                status: 'New Joined',
+                verified_by: actorId,
+                verified_at: now,
+                updated_by: actorId,
+              },
+            });
+            await auditService.log({
+              companyId,
+              userId: actorId,
+              action: 'APPROVE',
+              tableName: 'employees',
+              recordId: emp.id,
+              oldValues: { status: emp.status, verified_by: null },
+              newValues: { status: 'New Joined', verified_by: actorId, comment: decisionComment },
+              tx,
+            });
+          } else if (newStatus === 'Rejected') {
+            await tx.employees.update({
+              where: { id: emp.id },
+              data: {
+                status: 'Pre-Joined',
+                updated_by: actorId,
+              },
+            });
+            await auditService.log({
+              companyId,
+              userId: actorId,
+              action: 'SEND_BACK',
+              tableName: 'employees',
+              recordId: emp.id,
+              oldValues: { status: emp.status },
+              newValues: { status: 'Pre-Joined', comment: decisionComment },
+              tx,
+            });
+          }
         }
       }
 
@@ -800,11 +908,11 @@ export class ApprovalService {
       await auditService.log({
         companyId,
         userId: actorId,
-        action: `APPROVAL_${action.toUpperCase()}`,
+        action: isAdminOverride ? 'APPROVAL_OVERRIDE' : `APPROVAL_${normalizedAction.toUpperCase()}`,
         tableName: 'approval_requests',
         recordId: request.id,
         oldValues: { status: request.status, current_step: request.current_step },
-        newValues: { status: newStatus, current_step: nextStep, comment },
+        newValues: { status: newStatus, current_step: nextStep, comment: decisionComment, override: isAdminOverride },
         tx,
       });
 
@@ -835,16 +943,22 @@ export class ApprovalService {
       status: 'success',
       action: approvalAction,
       request: updatedRequest,
+      override: isAdminOverride,
     };
   }
 
   /**
    * Get pending approvals for an actor given their roles
    */
-  async getPendingApprovals({ companyId, userId, userRoleCodes = [] }) {
+  async getPendingApprovals({ companyId, userId, userRoleCodes = [], showAll = false }) {
     if (!companyId || !userId) {
       return [];
     }
+
+    const currentUser = await this.prisma.$base().users.findUnique({
+      where: { id: userId },
+      select: { id: true, employee_id: true },
+    });
 
     // Requests in this company with status 'Pending' where requester !== userId
     const requests = await this.prisma.$base().approval_requests.findMany({
@@ -871,14 +985,8 @@ export class ApprovalService {
       orderBy: { requested_at: 'desc' },
     });
 
-    // Filter requests where the current step's role matches one of user's roles
     let managerDeptId = null;
-    let currentUser = null;
     if (userRoleCodes.includes('DEPT_MANAGER')) {
-      currentUser = await this.prisma.$base().users.findUnique({
-        where: { id: userId },
-        select: { id: true, employee_id: true },
-      });
       const userDept = await this.prisma.$base().departments.findFirst({
         where: {
           company_id: companyId,
@@ -892,14 +1000,32 @@ export class ApprovalService {
     }
 
     const filtered = requests.filter((req) => {
+      // 1. Exclude if user already acted on any step > 0 of this request
+      const hasActed = req.actions?.some((a) => a.acted_by === userId && a.step_no > 0);
+      if (hasActed) return false;
+
+      // 2. Exclude if user is the employee associated with this request
+      if (currentUser?.employee_id) {
+        if (req.payload?.employee_id === currentUser.employee_id) return false;
+        if (req.record_id === currentUser.employee_id) return false;
+      }
+
+      // 3. Step role matching
       const step = req.flow?.steps?.find((s) => s.step_no === req.current_step);
       if (!step) return false;
-      if (!userRoleCodes.includes(step.role?.code) && !userRoleCodes.includes('COMPANY_ADMIN')) {
-        if (!(step.role?.code === 'HR_OFFICER' && userRoleCodes.includes('HR_MANAGER'))) {
-          return false;
-        }
+
+      // Exact role match only (no HR_OFFICER <=> HR_MANAGER fallback)
+      const isExactRoleMatch = userRoleCodes.includes(step.role?.code);
+      if (isExactRoleMatch) {
+        return true;
       }
-      return true;
+
+      // COMPANY_ADMIN only sees steps for other roles if showAll is explicitly requested
+      if (showAll && userRoleCodes.includes('COMPANY_ADMIN')) {
+        return true;
+      }
+
+      return false;
     });
 
     const enriched = await Promise.all(
@@ -928,6 +1054,9 @@ export class ApprovalService {
             },
           });
           if (lr) {
+            if (currentUser?.employee_id && lr.employee_id === currentUser.employee_id) {
+              return null;
+            }
             if (userRoleCodes.includes('DEPT_MANAGER') && !userRoleCodes.includes('COMPANY_ADMIN')) {
               const mgrId = lr.employee?.contracts?.[0]?.department?.manager_id;
               if (mgrId && mgrId !== userId && mgrId !== currentUser?.employee_id) {
@@ -962,6 +1091,12 @@ export class ApprovalService {
             },
           });
           if (emp) {
+            if (emp.created_by && emp.created_by === userId) {
+              return null; // Rule G: creator cannot verify
+            }
+            if (currentUser?.employee_id && emp.id === currentUser.employee_id) {
+              return null;
+            }
             let creatorEmail = req.requester?.email;
             if (!creatorEmail && emp.created_by) {
               const u = await this.prisma.$base().users.findUnique({
@@ -994,6 +1129,11 @@ export class ApprovalService {
               branch: { select: { id: true, name: true, name_ar: true } },
             },
           });
+          if (emp) {
+            if (currentUser?.employee_id && emp.id === currentUser.employee_id) {
+              return null;
+            }
+          }
           let details = req.payload;
           if (!details && req.comment) {
             try {

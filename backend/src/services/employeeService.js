@@ -815,8 +815,10 @@ export class EmployeeService {
    * Wizard Step 2: HR Manager verification.
    * Rule G: Creator cannot verify/approve an employee record they created.
    */
-  async verifyEmployee({ companyId, employeeId, action, comment, viewer }) {
-    const employee = await this.prisma.employees.findUnique({
+  async verifyEmployee({ companyId, employeeId, action, comment, viewer, tx = null }) {
+    const client = tx || this.prisma;
+    const employeeModel = client.employees || (client.$base ? client.$base().employees : this.prisma.employees);
+    const employee = await employeeModel.findUnique({
       where: { id: employeeId },
     });
     if (!employee || employee.company_id !== companyId) {
@@ -837,7 +839,7 @@ export class EmployeeService {
     }
 
     if (action === 'APPROVE') {
-      const updated = await this.prisma.employees.update({
+      const updated = await employeeModel.update({
         where: { id: employeeId },
         data: {
           status: 'New Joined',
@@ -855,24 +857,36 @@ export class EmployeeService {
         recordId: employeeId,
         oldValues: { status: employee.status, verified_by: null },
         newValues: { status: 'New Joined', verified_by: viewerUserId, comment },
+        tx,
       });
 
-      // Complete pending approval request if present
-      await this.prisma.$base().approval_requests.updateMany({
-        where: {
-          company_id: companyId,
-          record_id: employeeId,
-          request_type: 'EMPLOYEE_VERIFICATION',
-          status: 'Pending',
-        },
-        data: {
-          status: 'Approved',
-          completed_at: new Date(),
-        },
-      });
+      // Complete pending approval request if present and not already in a parent approval tx
+      if (!tx) {
+        const reqModel = client.approval_requests || (client.$base ? client.$base().approval_requests : this.prisma.$base().approval_requests);
+        await reqModel.updateMany({
+          where: {
+            company_id: companyId,
+            record_id: employeeId,
+            request_type: 'EMPLOYEE_VERIFICATION',
+            status: 'Pending',
+          },
+          data: {
+            status: 'Approved',
+            completed_at: new Date(),
+          },
+        });
+      }
 
       return serializeEmployee(updated, viewer);
     } else if (action === 'SEND_BACK') {
+      const updated = await employeeModel.update({
+        where: { id: employeeId },
+        data: {
+          status: 'Pre-Joined',
+          updated_by: viewerUserId,
+        },
+      });
+
       await auditService.log({
         companyId,
         userId: viewerUserId,
@@ -881,21 +895,25 @@ export class EmployeeService {
         recordId: employeeId,
         oldValues: { status: employee.status },
         newValues: { status: 'Pre-Joined', comment },
+        tx,
       });
 
-      // Reject/Complete pending approval request if present
-      await this.prisma.$base().approval_requests.updateMany({
-        where: {
-          company_id: companyId,
-          record_id: employeeId,
-          request_type: 'EMPLOYEE_VERIFICATION',
-          status: 'Pending',
-        },
-        data: {
-          status: 'Rejected',
-          completed_at: new Date(),
-        },
-      });
+      // Reject/Complete pending approval request if present and not already in a parent approval tx
+      if (!tx) {
+        const reqModel = client.approval_requests || (client.$base ? client.$base().approval_requests : this.prisma.$base().approval_requests);
+        await reqModel.updateMany({
+          where: {
+            company_id: companyId,
+            record_id: employeeId,
+            request_type: 'EMPLOYEE_VERIFICATION',
+            status: 'Pending',
+          },
+          data: {
+            status: 'Rejected',
+            completed_at: new Date(),
+          },
+        });
+      }
 
       if (employee.created_by) {
         await this.prisma.$base().notifications.create({
