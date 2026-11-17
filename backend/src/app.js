@@ -78,7 +78,7 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Company-Id', 'X-Platform-Admin', 'Cookie'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Company-Id', 'Cookie'],
   })
 );
 

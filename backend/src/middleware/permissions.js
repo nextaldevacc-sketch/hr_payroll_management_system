@@ -138,7 +138,7 @@ export async function requireSupportGrant(req, res, next) {
     return next();
   }
 
-  const companyId = req.params.companyId || req.params.id || req.companyId || req.headers['x-company-id'];
+  const companyId = req.params.companyId || req.params.id || req.companyId;
 
   if (!companyId) {
     return res.status(400).json({

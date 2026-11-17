@@ -2,17 +2,26 @@ import { companyStorage } from '../lib/prisma.js';
 
 /**
  * Company Context Middleware
- * Extracts companyId and user info from headers or auth token and runs
- * the request inside AsyncLocalStorage companyStorage.
+ * Initializes companyStorage with authenticated user context.
+ * NOTE: Raw client headers (e.g. X-Company-Id, X-Platform-Admin) are NEVER trusted.
+ * req.companyId and req.isPlatformAdmin MUST originate strictly from verified auth tokens.
  */
 export function companyContextMiddleware(req, res, next) {
-  // Support both explicit header (e.g. X-Company-Id) and user authentication context
-  const companyId = req.headers['x-company-id'] || req.user?.company_id || null;
-  const isPlatformAdmin = Boolean(req.user?.is_platform_admin || req.headers['x-platform-admin'] === 'true');
+  const companyId = req.user?.company_id || req.user?.companyId || null;
+  const isPlatformAdmin = Boolean(req.user?.is_platform_admin || req.user?.isPlatformAdmin);
 
-  companyStorage.run({ companyId, isPlatformAdmin, userId: req.user?.id }, () => {
-    req.companyId = companyId;
-    req.isPlatformAdmin = isPlatformAdmin;
-    next();
-  });
+  req.companyId = companyId;
+  req.isPlatformAdmin = isPlatformAdmin;
+
+  companyStorage.run(
+    {
+      companyId,
+      isPlatformAdmin,
+      userId: req.user?.id || req.user?.userId || null,
+      seesSalary: req.user?.seesSalary ?? false,
+    },
+    () => {
+      next();
+    }
+  );
 }

@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import prisma, { companyStorage } from '../lib/prisma.js';
 import { getCachedUserSession, setCachedUserSession } from './authCache.js';
+import auditService from '../services/auditService.js';
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
@@ -167,20 +168,53 @@ export async function authenticate(req, res, next) {
 
   req.user = decoded;
   req.user.id = decoded.userId;
+  req.user.company_id = decoded.companyId;
+  req.user.is_platform_admin = Boolean(decoded.isPlatformAdmin);
 
   // Determine companyId: platform admin might specify X-Company-Id for context
-  const companyId = decoded.isPlatformAdmin
-    ? req.headers['x-company-id'] || decoded.companyId || null
-    : decoded.companyId;
+  let companyId = decoded.companyId;
+  const isPlatformAdmin = Boolean(decoded.isPlatformAdmin);
+
+  const requestedCompanyId = req.headers['x-company-id'];
+  if (requestedCompanyId) {
+    if (isPlatformAdmin) {
+      if (requestedCompanyId !== decoded.companyId) {
+        // Legitimate platform admin tenant switch: audit the action
+        companyId = requestedCompanyId;
+        req.user.company_id = requestedCompanyId;
+
+        try {
+          await auditService.log({
+            companyId: requestedCompanyId,
+            userId: decoded.userId,
+            action: 'TENANT_SWITCH',
+            tableName: 'companies',
+            recordId: requestedCompanyId,
+            newValues: {
+              switched_from: decoded.companyId,
+              switched_to: requestedCompanyId,
+              reason: 'Platform Admin tenant switch via X-Company-Id',
+            },
+            ipAddress: req.ip || req.connection?.remoteAddress,
+          });
+        } catch (auditErr) {
+          console.error('Failed to log tenant context switch:', auditErr);
+        }
+      }
+    } else {
+      // Regular user sent X-Company-Id: client headers are never trusted.
+      // req.companyId remains strictly decoded.companyId.
+    }
+  }
 
   req.companyId = companyId;
-  req.isPlatformAdmin = Boolean(decoded.isPlatformAdmin);
+  req.isPlatformAdmin = isPlatformAdmin;
 
   // Run inside AsyncLocalStorage context
   companyStorage.run(
     {
       companyId,
-      isPlatformAdmin: decoded.isPlatformAdmin,
+      isPlatformAdmin,
       userId: decoded.userId,
       seesSalary: decoded.seesSalary,
     },
@@ -227,18 +261,25 @@ export async function optionalAuthenticate(req, res, next) {
 
   req.user = decoded;
   req.user.id = decoded.userId;
+  req.user.company_id = decoded.companyId;
+  req.user.is_platform_admin = Boolean(decoded.isPlatformAdmin);
 
-  const companyId = decoded.isPlatformAdmin
-    ? req.headers['x-company-id'] || decoded.companyId || null
-    : decoded.companyId;
+  let companyId = decoded.companyId;
+  const isPlatformAdmin = Boolean(decoded.isPlatformAdmin);
+
+  const requestedCompanyId = req.headers['x-company-id'];
+  if (requestedCompanyId && isPlatformAdmin && requestedCompanyId !== decoded.companyId) {
+    companyId = requestedCompanyId;
+    req.user.company_id = requestedCompanyId;
+  }
 
   req.companyId = companyId;
-  req.isPlatformAdmin = Boolean(decoded.isPlatformAdmin);
+  req.isPlatformAdmin = isPlatformAdmin;
 
   companyStorage.run(
     {
       companyId,
-      isPlatformAdmin: decoded.isPlatformAdmin,
+      isPlatformAdmin,
       userId: decoded.userId,
       seesSalary: decoded.seesSalary,
     },
@@ -265,14 +306,26 @@ export async function optionalAuth(req, res, next) {
     }
 
     req.user = decoded;
-    const companyId = decoded.companyId || req.headers['x-company-id'] || null;
+    req.user.id = decoded.userId;
+    req.user.company_id = decoded.companyId;
+    req.user.is_platform_admin = Boolean(decoded.isPlatformAdmin);
+
+    let companyId = decoded.companyId;
+    const isPlatformAdmin = Boolean(decoded.isPlatformAdmin);
+
+    const requestedCompanyId = req.headers['x-company-id'];
+    if (requestedCompanyId && isPlatformAdmin && requestedCompanyId !== decoded.companyId) {
+      companyId = requestedCompanyId;
+      req.user.company_id = requestedCompanyId;
+    }
+
     req.companyId = companyId;
-    req.isPlatformAdmin = Boolean(decoded.isPlatformAdmin);
+    req.isPlatformAdmin = isPlatformAdmin;
 
     companyStorage.run(
       {
         companyId,
-        isPlatformAdmin: decoded.isPlatformAdmin,
+        isPlatformAdmin,
         userId: decoded.userId,
         seesSalary: decoded.seesSalary,
       },
