@@ -1,0 +1,3264 @@
+==================================================
+STEP 0 BASELINE RUN - BEFORE SECURITY FIXES
+Timestamp: 2026-11-17T05:14:08.774Z
+==================================================
+
+--- GIT STATUS ---
+On branch main
+Your branch is ahead of 'origin/main' by 2 commits.
+  (use "git push" to publish your local commits)
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	docs/workflows/SECURITY-AUDIT-AND-REJECTION-LOG.md
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+--- GIT LOG -3 ---
+88cbf2f Part 10: Mobile UI responsive fixes, nav drawer label visibility, and 360x800/390x844 audit pass
+ac81817 Part 9: Next 14.2.35 patch upgrade, multi-compose update script, smoke test and backup schedule verification
+829df70 Part 8: Security gaps, bug fixes, full verification and v1.0.0-rc6 release
+
+--- ROLE MATRIX AUDIT ---
+[audit-role-matrix] Starting Section 5.3 Permissions & Visibility Audit...
+[audit-role-matrix] Wrote report to C:\Users\mohamed imran\Desktop\hr-payroll-management\docs\reports\BUG-SWEEP-ROLE-MATRIX.md
+[audit-role-matrix] Total endpoints analyzed: 38
+[audit-role-matrix] Discrepancies found: 0
+[audit-role-matrix] PASS: Zero permission/visibility mismatches.
+
+--- BACKEND TESTS (npm test --workspace=backend) ---
+
+> @nextal/api@1.0.0 test
+> node test/runAll.js
+
+[test:runner] Initializing isolated test database: postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "nextal_hr_test", schema "public" at "127.0.0.1:5432"
+
+Applying migration `20261027052634_init_schema_and_audit_trigger`
+Applying migration `20261028120000_locked_pay_run_triggers`
+Applying migration `20261029050000_complete_schema_sync`
+Applying migration `20261029060000_pay_run_status_guard_and_updated_lock_triggers`
+Applying migration `20261029140000_notifications_system`
+Applying migration `20261029170000_final_settlement_lock_trigger`
+Applying migration `20261030110000_bank_accounts_company_iban_unique`
+Applying migration `20261031120000_add_separation_task_details`
+Applying migration `20261105120000_pay_run_visa_snapshot`
+Applying migration `20261106140000_scope_fail_closed_and_approval_payload`
+Applying migration `20261109180000_allow_null_expiry_date_missing_data`
+Applying migration `20261111200000_add_must_change_password`
+Applying migration `20261113120000_email_outbox`
+Applying migration `20261114120000_totp_mfa_privileged_roles`
+
+Database reset successful
+
+The following migration(s) have been applied:
+
+migrations/
+  └─ 20261027052634_init_schema_and_audit_trigger/
+    └─ migration.sql
+  └─ 20261028120000_locked_pay_run_triggers/
+    └─ migration.sql
+  └─ 20261029050000_complete_schema_sync/
+    └─ migration.sql
+  └─ 20261029060000_pay_run_status_guard_and_updated_lock_triggers/
+    └─ migration.sql
+  └─ 20261029140000_notifications_system/
+    └─ migration.sql
+  └─ 20261029170000_final_settlement_lock_trigger/
+    └─ migration.sql
+  └─ 20261030110000_bank_accounts_company_iban_unique/
+    └─ migration.sql
+  └─ 20261031120000_add_separation_task_details/
+    └─ migration.sql
+  └─ 20261105120000_pay_run_visa_snapshot/
+    └─ migration.sql
+  └─ 20261106140000_scope_fail_closed_and_approval_payload/
+    └─ migration.sql
+  └─ 20261109180000_allow_null_expiry_date_missing_data/
+    └─ migration.sql
+  └─ 20261111200000_add_must_change_password/
+    └─ migration.sql
+  └─ 20261113120000_email_outbox/
+    └─ migration.sql
+  └─ 20261114120000_totp_mfa_privileged_roles/
+    └─ migration.sql
+
+--- Starting Nextal HR & Payroll Modular Database Seed (Demo Mode) ---
+Cleaning existing demo data...
+Seeding Company 1: Gulf Tech Logistics LLC...
+Seeding Company 2: Emirates Horizon Trading LLC...
+Seeding roles catalog...
+Seeding Platform Admin user...
+Seeding demo users for Company 1...
+Seeding approval flows for Company 1...
+Seeding shifts and attendance policies for Company 1...
+Seeding UAE Public Holidays 2026...
+Seeding UAE Statutory Leave Types & Accruals...
+Seeding Salary Structure and Section 8.1 Salary Rules...
+Seeding 45 employees for Company 1...
+Seeding 10 employees for Company 2...
+Validated 54 active UAE IBANs: 100% mod-97 valid, 0 duplicates.
+Seeding September & October 2026 biometric punches and attendance records...
+Seeding overtime requests...
+Seeding sample leave requests...
+Seeding separations and final settlements...
+Seeding separation in progress for Sara Al-Nuaimi (EMP-DXB-044)...
+Sara settlement prepared: Gratuity AED 12082.19
+Seeding approved final settlement for Omar Al-Hashimi (EMP-DXB-042)...
+Omar settlement approved: Gratuity AED 32547.95, Total Net AED 44915.07
+Seeding 11-month tenure separation for Zaid Al-Harbi (EMP-DXB-040)...
+Zaid settlement prepared: Gratuity AED 0 (T23: Under 1 year -> 0.00)
+Seeding real September 2026 Pay Runs via PayrollService...
+September 2026 Pay Runs successfully calculated, validated, locked and paid.
+Seeding scheduled salary adjustments (loans & advances)...
+Seeding October 2026 Pay Runs via PayrollService for both visas...
+October Visa 1 calculated: 33 employees, Net: AED 283643.55
+October Visa 2 calculated: 9 employees, Net: AED 51812.00
+Seeding initial audit logs...
+Running compliance check on seeded documents...
+
+--- Modular Database Seed Completed Successfully ---
+
+Counting rows per table across database...
+  companies                : 2 rows
+  company_visas            : 3 rows
+  branches                 : 4 rows
+  departments              : 7 rows
+  jobs                     : 7 rows
+  users                    : 60 rows
+  roles                    : 8 rows
+  user_roles               : 59 rows
+  support_access_grants    : 0 rows
+  approval_flows           : 5 rows
+  approval_flow_steps      : 8 rows
+  approval_requests        : 0 rows
+  approval_actions         : 0 rows
+  audit_logs               : 46 rows
+  employees                : 55 rows
+  contracts                : 60 rows
+  employee_documents       : 135 rows
+  bank_accounts            : 54 rows
+  shifts                   : 2 rows
+  attendance_policies      : 2 rows
+  penalty_steps            : 4 rows
+  device_mappings          : 45 rows
+  biometric_imports        : 2 rows
+  punches                  : 3378 rows
+  attendance_days          : 1705 rows
+  attendance_requests      : 0 rows
+  overtime_requests        : 8 rows
+  public_holidays          : 15 rows
+  leave_types              : 10 rows
+  accrual_plans            : 2 rows
+  leave_allocations        : 55 rows
+  leave_requests           : 4 rows
+  salary_structures        : 2 rows
+  salary_rules             : 34 rows
+  pay_runs                 : 4 rows
+  pay_run_issues           : 11 rows
+  payslips                 : 84 rows
+  payslip_lines            : 566 rows
+  salary_adjustments       : 7 rows
+  separations              : 3 rows
+  clearance_items          : 15 rows
+  final_settlements        : 3 rows
+  separation_tasks         : 0 rows
+[test:runner] Isolated test database ready.
+[test:runner] Running test suite against isolated test database...
+TAP version 13
+# Subtest: Spec Section 15: Acceptance Tests (T1–T37)
+    # Subtest: T1: Given Platform admin creates Company B -> Expected Company B starts with UAE defaults; its admin is invited
+    ok 1 - T1: Given Platform admin creates Company B -> Expected Company B starts with UAE defaults; its admin is invited # SKIP DEFERRED (Phase 2 – platform admin)
+      ---
+      duration_ms: 1.2358
+      type: 'test'
+      ...
+# [API Error]: Error: Employee not found
+#     at EmployeeService.getEmployeeById (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:430:19)
+#     at async getEmployeeById (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:63:18)
+    # Subtest: T2: Given A Company A user asks for a Company B employee -> Expected Refused and logged
+    ok 2 - T2: Given A Company A user asks for a Company B employee -> Expected Refused and logged
+      ---
+      duration_ms: 22.4707
+      type: 'test'
+      ...
+    # Subtest: T3: Given Department Manager opens a team member's profile -> Expected Salary and bank tabs are hidden
+    ok 3 - T3: Given Department Manager opens a team member's profile -> Expected Salary and bank tabs are hidden
+      ---
+      duration_ms: 39.3911
+      type: 'test'
+      ...
+# [API Error]: Error: Duplicate import rejected: This biometric file has already been imported
+#     at AttendanceService.importBiometricFile (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/attendanceService.js:43:19)
+#     at async importBiometric (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/attendanceController.js:8:20)
+    # Subtest: T4: Given Biometric file imported twice -> Expected No duplicate punches
+    ok 4 - T4: Given Biometric file imported twice -> Expected No duplicate punches
+      ---
+      duration_ms: 21230.4184
+      type: 'test'
+      ...
+    # Subtest: T5: Given Day with check-in only -> Expected Appears in the Missing Punch Queue
+    ok 5 - T5: Given Day with check-in only -> Expected Appears in the Missing Punch Queue
+      ---
+      duration_ms: 60.1569
+      type: 'test'
+      ...
+    # Subtest: T6: Given 3 approved OT hours, normal day -> Expected AED 78.13
+    ok 6 - T6: Given 3 approved OT hours, normal day -> Expected AED 78.13
+      ---
+      duration_ms: 26.8161
+      type: 'test'
+      ...
+    # Subtest: T7: Given 2 OT hours between 10 pm and midnight -> Expected AED 62.50 at 1.5×
+    ok 7 - T7: Given 2 OT hours between 10 pm and midnight -> Expected AED 62.50 at 1.5×
+      ---
+      duration_ms: 18.3492
+      type: 'test'
+      ...
+    # Subtest: T8: Given 8 hours on a public holiday, paid -> Expected AED 250.00
+    ok 8 - T8: Given 8 hours on a public holiday, paid -> Expected AED 250.00
+      ---
+      duration_ms: 18.1394
+      type: 'test'
+      ...
+    # Subtest: T9: Given Same holiday, substitute day chosen -> Expected No pay; one substitute day added
+    ok 9 - T9: Given Same holiday, substitute day chosen -> Expected No pay; one substitute day added
+      ---
+      duration_ms: 17.5106
+      type: 'test'
+      ...
+    # Subtest: T10: Given OT not approved by cut-off -> Expected Not paid; carried to next month's inputs
+    ok 10 - T10: Given OT not approved by cut-off -> Expected Not paid; carried to next month's inputs
+      ---
+      duration_ms: 9.4746
+      type: 'test'
+      ...
+    # Subtest: T11: Given 2 days unpaid absence, ÷ 30 policy -> Expected AED 533.33 deducted
+    ok 11 - T11: Given 2 days unpaid absence, ÷ 30 policy -> Expected AED 533.33 deducted
+      ---
+      duration_ms: 0.6891
+      type: 'test'
+      ...
+    # Subtest: T12: Given Same, × 12 ÷ 365 policy -> Expected AED 526.03 deducted
+    ok 12 - T12: Given Same, × 12 ÷ 365 policy -> Expected AED 526.03 deducted
+      ---
+      duration_ms: 0.2208
+      type: 'test'
+      ...
+    # Subtest: T13: Given Sick days 16–20 of the year -> Expected AED 666.67 deducted (half pay)
+    ok 13 - T13: Given Sick days 16–20 of the year -> Expected AED 666.67 deducted (half pay)
+      ---
+      duration_ms: 0.1431
+      type: 'test'
+      ...
+    # Subtest: T14: Given Sick day 46 of the year -> Expected Full day deducted
+    ok 14 - T14: Given Sick day 46 of the year -> Expected Full day deducted
+      ---
+      duration_ms: 0.1114
+      type: 'test'
+      ...
+# Failed to create approval request for leave: 
+# Invalid `prisma.approval_requests.create()` invocation:
+# Foreign key constraint violated: `approval_requests_requested_by_fkey (index)`
+    # Subtest: T15: Given Leave request on a flagged type -> Expected Needs manager, HR and GM approval before it reaches payroll
+    ok 15 - T15: Given Leave request on a flagged type -> Expected Needs manager, HR and GM approval before it reaches payroll
+      ---
+      duration_ms: 52.3873
+      type: 'test'
+      ...
+    # Subtest: T16: Given Employee with 4 months' service applies for annual leave -> Expected No accrued balance yet; request blocked or unpaid per policy
+    ok 16 - T16: Given Employee with 4 months' service applies for annual leave -> Expected No accrued balance yet; request blocked or unpaid per policy
+      ---
+      duration_ms: 16.7865
+      type: 'test'
+      ...
+    # Subtest: T17: Given Employee with 8 months' service -> Expected 16 annual leave days (2 for each month of service, once past 6 months)
+    ok 17 - T17: Given Employee with 8 months' service -> Expected 16 annual leave days (2 for each month of service, once past 6 months)
+      ---
+      duration_ms: 0.3056
+      type: 'test'
+      ...
+    # Subtest: T18: Given Loan 6,000 at 500 a month, third month -> Expected AED 500 deducted; balance AED 4,500
+    ok 18 - T18: Given Loan 6,000 at 500 a month, third month -> Expected AED 500 deducted; balance AED 4,500
+      ---
+      duration_ms: 14.2814
+      type: 'test'
+      ...
+    # Subtest: T19: Given Ahmed's month (T6, T11, T18) -> Expected Net AED 7,044.80
+    ok 19 - T19: Given Ahmed's month (T6, T11, T18) -> Expected Net AED 7,044.80
+      ---
+      duration_ms: 185.6808
+      type: 'test'
+      ...
+# [API Error]: Error: Cannot update variance reason for a locked or paid pay run
+#     at PayrollService.updateVarianceReason (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/payrollService.js:1282:19)
+#     at async updateVarianceReason (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/payrollController.js:129:21)
+    # Subtest: T20: Given Locked run, then a mistake found -> Expected Payslip cannot be edited; an approved correction payslip in a later run, linked to the original and shown in the audit history
+    ok 20 - T20: Given Locked run, then a mistake found -> Expected Payslip cannot be edited; an approved correction payslip in a later run, linked to the original and shown in the audit history
+      ---
+      duration_ms: 43.5617
+      type: 'test'
+      ...
+    # Subtest: T21: Given Gratuity, basic 5,000, 3 years 6 months -> Expected AED 12,082.19
+    ok 21 - T21: Given Gratuity, basic 5,000, 3 years 6 months -> Expected AED 12,082.19
+      ---
+      duration_ms: 17.9127
+      type: 'test'
+      ...
+    # Subtest: T22: Given Gratuity, basic 6,000, 7 years -> Expected AED 32,547.95
+    ok 22 - T22: Given Gratuity, basic 6,000, 7 years -> Expected AED 32,547.95
+      ---
+      duration_ms: 9.594
+      type: 'test'
+      ...
+    # Subtest: T23: Given Gratuity, 11 months' service -> Expected Not eligible; AED 0
+    ok 23 - T23: Given Gratuity, 11 months' service -> Expected Not eligible; AED 0
+      ---
+      duration_ms: 11.5796
+      type: 'test'
+      ...
+    # Subtest: T24: Given Leave encashment, 12 days, basic 6,000 -> Expected AED 2,367.12
+    ok 24 - T24: Given Leave encashment, 12 days, basic 6,000 -> Expected AED 2,367.12
+      ---
+      duration_ms: 10.9338
+      type: 'test'
+      ...
+    # Subtest: T25: Given Visa expiring in 85 days -> Expected Status Expiring Soon; reminder sent to the document owner and HR
+    ok 25 - T25: Given Visa expiring in 85 days -> Expected Status Expiring Soon; reminder sent to the document owner and HR
+      ---
+      duration_ms: 63.5331
+      type: 'test'
+      ...
+    # Subtest: T26: Given SIF for one company visa -> Expected SCR total equals the sum of EDR lines; each EDR matches its payslip
+    ok 26 - T26: Given SIF for one company visa -> Expected SCR total equals the sum of EDR lines; each EDR matches its payslip
+      ---
+      duration_ms: 26.183
+      type: 'test'
+      ...
+# [API Error]: Error: Activation check failed. Missing requirements: contract, shift, bank_account, labour_card_or_person_id
+#     at EmployeeService.activateEmployee (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:992:19)
+#     at async activateEmployee (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:161:18)
+    # Subtest: T27: Given New employee with no bank account -> Expected Cannot be set to Active
+    ok 27 - T27: Given New employee with no bank account -> Expected Cannot be set to Active
+      ---
+      duration_ms: 17.3252
+      type: 'test'
+      ...
+    # Subtest: T28: Given Pay run with one employee missing an IBAN -> Expected Validation lists the error; the run cannot be calculated until it is fixed
+    ok 28 - T28: Given Pay run with one employee missing an IBAN -> Expected Validation lists the error; the run cannot be calculated until it is fixed
+      ---
+      duration_ms: 313.475
+      type: 'test'
+      ...
+    # Subtest: T29: Given Employee's net is 25% higher than last month, threshold 10% -> Expected Shown in the variance report; the run cannot be validated until a reason is entered
+    ok 29 - T29: Given Employee's net is 25% higher than last month, threshold 10% -> Expected Shown in the variance report; the run cannot be validated until a reason is entered
+      ---
+      duration_ms: 335.0585
+      type: 'test'
+      ...
+# [API Error]: Error: Cannot generate WPS SIF for pay run in 'Validated' status. SIF file can only be generated from a Locked or Paid pay run.
+#     at generateWpsSif (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/lib/wps/sifGenerator.js:49:17)
+#     at PayrollService.getPayRunSif (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/payrollService.js:1419:12)
+#     at async exportSif (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/payrollController.js:143:21)
+    # Subtest: T30: Given Ask for the SIF of a run that is Validated but not Locked -> Expected Refused; the SIF is made only from a locked run
+    ok 30 - T30: Given Ask for the SIF of a run that is Validated but not Locked -> Expected Refused; the SIF is made only from a locked run
+      ---
+      duration_ms: 568.982
+      type: 'test'
+      ...
+    # Subtest: T31: Given Annual leave Monday to Friday with a public holiday on Wednesday -> Expected 4 days taken from the balance
+    ok 31 - T31: Given Annual leave Monday to Friday with a public holiday on Wednesday -> Expected 4 days taken from the balance
+      ---
+      duration_ms: 104.6973
+      type: 'test'
+      ...
+    # Subtest: T32: Given Approved 5-day leave is cancelled -> Expected Balance goes back up by 5 days
+    ok 32 - T32: Given Approved 5-day leave is cancelled -> Expected Balance goes back up by 5 days
+      ---
+      duration_ms: 245.7427
+      type: 'test'
+      ...
+    # Subtest: T33: Given Employee requests 2 OT hours in self-service; manager approves as normal OT -> Expected AED 52.08 in the next pay run inputs
+    ok 33 - T33: Given Employee requests 2 OT hours in self-service; manager approves as normal OT -> Expected AED 52.08 in the next pay run inputs
+      ---
+      duration_ms: 39.5495
+      type: 'test'
+      ...
+    # Subtest: T34: Given Department manager has not confirmed the team's attendance at cut-off -> Expected Those days are held for next month; validation shows them
+    ok 34 - T34: Given Department manager has not confirmed the team's attendance at cut-off -> Expected Those days are held for next month; validation shows them
+      ---
+      duration_ms: 77.1452
+      type: 'test'
+      ...
+    # Subtest: T35: Given Settlement with the laptop item not cleared -> Expected Settlement cannot be approved
+    ok 35 - T35: Given Settlement with the laptop item not cleared -> Expected Settlement cannot be approved
+      ---
+      duration_ms: 166.4728
+      type: 'test'
+      ...
+# [API Error]: Error: Your user account has been disabled. Please contact your company administrator.
+#     at AuthService.login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/authService.js:235:19)
+#     at async login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/authController.js:10:20)
+    # Subtest: T36: Given Settlement approved and the final working date has passed -> Expected Login refused; status Archived
+    ok 36 - T36: Given Settlement approved and the final working date has passed -> Expected Login refused; status Archived
+      ---
+      duration_ms: 544.8645
+      type: 'test'
+      ...
+    # Subtest: T37: Given Salary adjustment entered but not approved -> Expected Not used by the pay run
+    ok 37 - T37: Given Salary adjustment entered but not approved -> Expected Not used by the pay run
+      ---
+      duration_ms: 339.5549
+      type: 'test'
+      ...
+    1..37
+ok 1 - Spec Section 15: Acceptance Tests (T1–T37)
+  ---
+  duration_ms: 26231.7094
+  type: 'suite'
+  ...
+# Subtest: Email Jobs Idempotency & Outbox Persistence (E4)
+    # Subtest: 1. first run sends document expiry reminder and creates outbox records
+    ok 1 - 1. first run sends document expiry reminder and creates outbox records
+      ---
+      duration_ms: 165.3531
+      type: 'test'
+      ...
+    # Subtest: 2. second run on same date is strictly IDEMPOTENT (zero duplicate emails or outbox entries)
+    ok 2 - 2. second run on same date is strictly IDEMPOTENT (zero duplicate emails or outbox entries)
+      ---
+      duration_ms: 14.3331
+      type: 'test'
+      ...
+    1..2
+ok 2 - Email Jobs Idempotency & Outbox Persistence (E4)
+  ---
+  duration_ms: 266.595
+  type: 'test'
+  ...
+# [API Error]: Error: Invalid `prisma.users.findUnique()` invocation:
+# Raw DB Connection error
+#     at TestContext.<anonymous> (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/test/errorSanitization.test.js:31:17)
+#     at Test.runInAsyncScope (node:async_hooks:214:14)
+#     at Test.run (node:internal/test_runner/test:1047:25)
+#     at Test.start (node:internal/test_runner/test:944:17)
+#     at TestContext.test (node:internal/test_runner/test:373:20)
+#     at TestContext.<anonymous> (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/test/errorSanitization.test.js:27:11)
+#     at async Test.run (node:internal/test_runner/test:1054:7)
+#     at async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+# Subtest: Error Sanitization and Log PII Masking (B2)
+    # Subtest: maskPii masks UAE IBAN numbers
+    ok 1 - maskPii masks UAE IBAN numbers
+      ---
+      duration_ms: 1.0336
+      type: 'test'
+      ...
+    # Subtest: maskPii masks Emirates ID numbers
+    ok 2 - maskPii masks Emirates ID numbers
+      ---
+      duration_ms: 0.2275
+      type: 'test'
+      ...
+    # Subtest: maskPii masks Passport numbers
+    ok 3 - maskPii masks Passport numbers
+      ---
+      duration_ms: 0.8425
+      type: 'test'
+      ...
+    # Subtest: errorHandler sanitizes Prisma internal messages and hides stack in production
+    ok 4 - errorHandler sanitizes Prisma internal messages and hides stack in production
+      ---
+      duration_ms: 1.0416
+      type: 'test'
+      ...
+    1..4
+ok 3 - Error Sanitization and Log PII Masking (B2)
+  ---
+  duration_ms: 4.6006
+  type: 'test'
+  ...
+# Subtest: API Skeleton & Middlewares Tests
+    # Subtest: 1. GET /api/v1/health returns status ok, database connected, and 43 tables
+    ok 1 - 1. GET /api/v1/health returns status ok, database connected, and 43 tables
+      ---
+      duration_ms: 67.4146
+      type: 'test'
+      ...
+    # Subtest: 2. GET /api/docs serves Swagger UI documentation
+    ok 2 - 2. GET /api/docs serves Swagger UI documentation
+      ---
+      duration_ms: 10.3625
+      type: 'test'
+      ...
+    # Subtest: 3. Security headers (Helmet) and CORS are active
+    ok 3 - 3. Security headers (Helmet) and CORS are active
+      ---
+      duration_ms: 8.8522
+      type: 'test'
+      ...
+    # Subtest: 4. Zod validation middleware rejects invalid payloads with 400 and structured errors
+    ok 4 - 4. Zod validation middleware rejects invalid payloads with 400 and structured errors
+      ---
+      duration_ms: 23.9896
+      type: 'test'
+      ...
+    1..4
+ok 4 - API Skeleton & Middlewares Tests
+  ---
+  duration_ms: 111.8376
+  type: 'suite'
+  ...
+# Subtest: Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptance Tests
+    # Subtest: 1. Timezone & Overnight Shifts (Asia/Dubai UTC+4)
+        # Subtest: Shifts crossing midnight belong to the day they start
+        ok 1 - Shifts crossing midnight belong to the day they start
+          ---
+          duration_ms: 1.3053
+          type: 'test'
+          ...
+        # Subtest: Dubai day bounds: starts at 20:00 UTC previous day and ends at 19:59:59.999 UTC
+        ok 2 - Dubai day bounds: starts at 20:00 UTC previous day and ends at 19:59:59.999 UTC
+          ---
+          duration_ms: 0.2259
+          type: 'test'
+          ...
+        # Subtest: Calculates worked duration with 1 hour break deducted only when > 4 hours
+        ok 3 - Calculates worked duration with 1 hour break deducted only when > 4 hours
+          ---
+          duration_ms: 0.3087
+          type: 'test'
+          ...
+        1..3
+    ok 1 - 1. Timezone & Overnight Shifts (Asia/Dubai UTC+4)
+      ---
+      duration_ms: 2.5554
+      type: 'suite'
+      ...
+    # Subtest: 2. Biometric Import, Deduplication & Timed Test (NFR-8)
+        # Subtest: Imports CSV punches, drops duplicates within file and maps device codes
+        ok 1 - Imports CSV punches, drops duplicates within file and maps device codes
+          ---
+          duration_ms: 533.6093
+          type: 'test'
+          ...
+# [API Error]: Error: Duplicate import rejected: This biometric file has already been imported
+#     at AttendanceService.importBiometricFile (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/attendanceService.js:43:19)
+#     at async importBiometric (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/attendanceController.js:8:20)
+        # Subtest: Re-import of the exact same biometric file is REJECTED (HTTP 400 DUPLICATE_IMPORT_FILE)
+        ok 2 - Re-import of the exact same biometric file is REJECTED (HTTP 400 DUPLICATE_IMPORT_FILE)
+          ---
+          duration_ms: 411.8026
+          type: 'test'
+          ...
+# Background attendance rebuild error: PrismaClientKnownRequestError: 
+# Invalid `prisma.overtime_requests.upsert()` invocation:
+# Inconsistent column data: Error creating UUID, invalid character: expected an optional prefix of `urn:uuid:` followed by [0-9a-fA-F-], found `_` at 37
+#     at $n.handleRequestError (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\@prisma\\client\\runtime\\library.js:121:7315)
+#     at $n.handleAndLogRequestError (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\@prisma\\client\\runtime\\library.js:121:6623)
+#     at $n.request (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\@prisma\\client\\runtime\\library.js:121:6307)
+#     at async l (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\@prisma\\client\\runtime\\library.js:130:9633)
+#     at async AttendanceService.buildAttendanceDays (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/attendanceService.js:531:15)
+#     at async AttendanceService.importBiometricFile (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/attendanceService.js:229:5)
+#     at async TestContext.<anonymous> (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/test/integration/attendance-leave.test.js:250:22)
+#     at async Test.run (node:internal/test_runner/test:1054:7)
+#     at async Suite.processPendingSubtests (node:internal/test_runner/test:744:7) {
+#   code: 'P2023',
+#   clientVersion: '5.22.0',
+#   meta: {
+#     modelName: 'overtime_requests',
+#     message: 'Error creating UUID, invalid character: expected an optional prefix of `urn:uuid:` followed by [0-9a-fA-F-], found `_` at 37'
+#   }
+# }
+        # Subtest: NFR-8 Timed Test: imports 10,000 biometric punch rows in under 30 seconds
+        ok 3 - NFR-8 Timed Test: imports 10,000 biometric punch rows in under 30 seconds
+          ---
+          duration_ms: 1934.4946
+          type: 'test'
+          ...
+        1..3
+    ok 2 - 2. Biometric Import, Deduplication & Timed Test (NFR-8)
+      ---
+      duration_ms: 2880.8984
+      type: 'suite'
+      ...
+    # Subtest: 3. Daily Attendance Builder: Grace Limits, Penalties & Holidays
+        # Subtest: Punch exactly at the grace limit is NOT late
+        ok 1 - Punch exactly at the grace limit is NOT late
+          ---
+          duration_ms: 26.3964
+          type: 'test'
+          ...
+        # Subtest: Punch after grace limit calculates late minutes and applies penalty step
+        ok 2 - Punch after grace limit calculates late minutes and applies penalty step
+          ---
+          duration_ms: 43.7557
+          type: 'test'
+          ...
+        # Subtest: Public Holiday is NEVER counted as absence even with 0 punches
+        ok 3 - Public Holiday is NEVER counted as absence even with 0 punches
+          ---
+          duration_ms: 35.4044
+          type: 'test'
+          ...
+        1..3
+    ok 3 - 3. Daily Attendance Builder: Grace Limits, Penalties & Holidays
+      ---
+      duration_ms: 106.6095
+      type: 'suite'
+      ...
+    # Subtest: 4. Missing Punch Queue & Resolution
+        # Subtest: Day with check-in only appears in the Missing Punch Queue
+        ok 1 - Day with check-in only appears in the Missing Punch Queue
+          ---
+          duration_ms: 48.7533
+          type: 'test'
+          ...
+# [API Error]: Error: A mandatory reason is required to resolve a missing punch
+#     at AttendanceService.resolveMissingPunch (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/attendanceService.js:806:19)
+#     at resolveMissingPunch (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/attendanceController.js:70:45)
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:149:13)
+#     at file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/routes/attendance.js:20:5
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:149:13)
+#     at Route.dispatch (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:119:3)
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:284:15
+#     at param (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:365:14)
+#     at param (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:376:14)
+#     at Function.process_params (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:421:3)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:280:10)
+#     at file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/middleware/auth.js:182:7
+#     at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+        # Subtest: Resolving missing punch requires mandatory reason and clears exception
+        ok 2 - Resolving missing punch requires mandatory reason and clears exception
+          ---
+          duration_ms: 40.7604
+          type: 'test'
+          ...
+        1..2
+    ok 4 - 4. Missing Punch Queue & Resolution
+      ---
+      duration_ms: 89.7915
+      type: 'suite'
+      ...
+    # Subtest: 5. Overtime: Calculation, Night Split & Approvals
+        # Subtest: 3 approved OT hours on normal day produces AED 78.13 (basic 5,000)
+        ok 1 - 3 approved OT hours on normal day produces AED 78.13 (basic 5,000)
+          ---
+          duration_ms: 33.7209
+          type: 'test'
+          ...
+        # Subtest: 2 OT hours in night window (10 pm to midnight) produces AED 62.50 at 1.5x
+        ok 2 - 2 OT hours in night window (10 pm to midnight) produces AED 62.50 at 1.5x
+          ---
+          duration_ms: 26.9502
+          type: 'test'
+          ...
+        # Subtest: Public holiday work: Paid 1.5x (AED 250) vs Substitute Day (AED 0)
+        ok 3 - Public holiday work: Paid 1.5x (AED 250) vs Substitute Day (AED 0)
+          ---
+          duration_ms: 50.352
+          type: 'test'
+          ...
+        # Subtest: Self-service overtime submission and approval
+        ok 4 - Self-service overtime submission and approval
+          ---
+          duration_ms: 49.0925
+          type: 'test'
+          ...
+        # Subtest: Self-approval prevention: user cannot approve their own OT request (HTTP 403)
+        ok 5 - Self-approval prevention: user cannot approve their own OT request (HTTP 403)
+          ---
+          duration_ms: 12.9423
+          type: 'test'
+          ...
+        # Subtest: Manager bulk approves multiple overtime requests in one operation
+        ok 6 - Manager bulk approves multiple overtime requests in one operation
+          ---
+          duration_ms: 54.4966
+          type: 'test'
+          ...
+        1..6
+    ok 5 - 5. Overtime: Calculation, Night Split & Approvals
+      ---
+      duration_ms: 228.3059
+      type: 'suite'
+      ...
+    # Subtest: 6. Attendance Review: Manager & HR Confirmations & Reopen
+        # Subtest: Manager confirms department, then HR confirms company (payroll-ready)
+        ok 1 - Manager confirms department, then HR confirms company (payroll-ready)
+          ---
+          duration_ms: 61.4038
+          type: 'test'
+          ...
+# [API Error]: Error: Cannot edit HR-confirmed attendance day
+#     at AttendanceService.editAttendanceDay (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/attendanceService.js:738:19)
+#     at async editAttendanceDay (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/attendanceController.js:46:21)
+        # Subtest: HR-confirmed attendance days are protected against manual editing (HTTP 400)
+        ok 2 - HR-confirmed attendance days are protected against manual editing (HTTP 400)
+          ---
+          duration_ms: 13.6841
+          type: 'test'
+          ...
+# [API Error]: Error: Mandatory audit reason required to re-open attendance day
+#     at AttendanceService.reopenAttendanceDay (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/attendanceService.js:926:19)
+#     at reopenAttendanceDay (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/attendanceController.js:107:45)
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:149:13)
+#     at file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/routes/attendance.js:20:5
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:149:13)
+#     at Route.dispatch (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:119:3)
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:284:15
+#     at param (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:365:14)
+#     at param (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:376:14)
+#     at Function.process_params (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:421:3)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:280:10)
+#     at file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/middleware/auth.js:182:7
+#     at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+# [API Error]: Error: Cannot re-open attendance day after the pay run cut-off date
+#     at AttendanceService.reopenAttendanceDay (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/attendanceService.js:981:23)
+#     at async reopenAttendanceDay (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/attendanceController.js:107:21)
+        # Subtest: HR Manager can re-open an HR-confirmed day before cut-off with mandatory reason
+        ok 3 - HR Manager can re-open an HR-confirmed day before cut-off with mandatory reason
+          ---
+          duration_ms: 93.6381
+          type: 'test'
+          ...
+        1..3
+    ok 6 - 6. Attendance Review: Manager & HR Confirmations & Reopen
+      ---
+      duration_ms: 169.0756
+      type: 'suite'
+      ...
+    # Subtest: 7. Leave: Full/Half Days, Public Holidays Excluded, Multi-Bands
+        # Subtest: Mon to Fri annual leave with Wednesday public holiday deducts exactly 4 days
+        ok 1 - Mon to Fri annual leave with Wednesday public holiday deducts exactly 4 days
+          ---
+          duration_ms: 94.8966
+          type: 'test'
+          ...
+        # Subtest: Approved leave deducts balance, and cancellation restores it
+        ok 2 - Approved leave deducts balance, and cancellation restores it
+          ---
+          duration_ms: 209.016
+          type: 'test'
+          ...
+        # Subtest: Half-day leave deducts exactly 0.5 days
+        ok 3 - Half-day leave deducts exactly 0.5 days
+          ---
+          duration_ms: 51.3458
+          type: 'test'
+          ...
+        # Subtest: Statutory Sick Leave: crossing full (1-15) and half (16-45) pay bands within one request
+        ok 4 - Statutory Sick Leave: crossing full (1-15) and half (16-45) pay bands within one request
+          ---
+          duration_ms: 146.379
+          type: 'test'
+          ...
+        # Subtest: Employee with < 6 months service blocked from annual leave without balance
+        ok 5 - Employee with < 6 months service blocked from annual leave without balance
+          ---
+          duration_ms: 18.1514
+          type: 'test'
+          ...
+        1..5
+    ok 7 - 7. Leave: Full/Half Days, Public Holidays Excluded, Multi-Bands
+      ---
+      duration_ms: 542.603
+      type: 'suite'
+      ...
+    # Subtest: 8. Monthly Leave Accrual Job: Waiting Period & Idempotency
+        # Subtest: Accrual job is completely idempotent when run multiple times in same month
+        ok 1 - Accrual job is completely idempotent when run multiple times in same month
+          ---
+          duration_ms: 350.8457
+          type: 'test'
+          ...
+        1..1
+    ok 8 - 8. Monthly Leave Accrual Job: Waiting Period & Idempotency
+      ---
+      duration_ms: 351.2109
+      type: 'suite'
+      ...
+    # Subtest: 9. Section 5.3 Role Permissions & Tenant Isolation
+        # Subtest: Employee role is BLOCKED (HTTP 403) from importing biometric files
+        ok 1 - Employee role is BLOCKED (HTTP 403) from importing biometric files
+          ---
+          duration_ms: 7.0594
+          type: 'test'
+          ...
+        # Subtest: Employee role is BLOCKED (HTTP 403) from signing off attendance review
+        ok 2 - Employee role is BLOCKED (HTTP 403) from signing off attendance review
+          ---
+          duration_ms: 7.3902
+          type: 'test'
+          ...
+        # Subtest: Company isolation: Company B admin CANNOT access Company A attendance grid
+        ok 3 - Company isolation: Company B admin CANNOT access Company A attendance grid
+          ---
+          duration_ms: 26.5606
+          type: 'test'
+          ...
+# [API Error]: Error: Attendance day not found
+#     at AttendanceService.resolveMissingPunch (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/attendanceService.js:817:19)
+#     at async resolveMissingPunch (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/attendanceController.js:70:21)
+        # Subtest: Company isolation: Company B admin CANNOT resolve Company A missing punch
+        ok 4 - Company isolation: Company B admin CANNOT resolve Company A missing punch
+          ---
+          duration_ms: 12.3235
+          type: 'test'
+          ...
+        1..4
+    ok 9 - 9. Section 5.3 Role Permissions & Tenant Isolation
+      ---
+      duration_ms: 53.785
+      type: 'suite'
+      ...
+    1..9
+ok 5 - Phase 5: Attendance, Overtime, Leave & Holidays Integration & Acceptance Tests
+  ---
+  duration_ms: 6635.5033
+  type: 'suite'
+  ...
+# Subtest: Audit Log Service & Append-Only Database Protection Tests
+    # Subtest: 1. AuditService successfully logs create, update, delete and approval actions
+    ok 1 - 1. AuditService successfully logs create, update, delete and approval actions
+      ---
+      duration_ms: 21.3411
+      type: 'test'
+      ...
+    # Subtest: 2. AuditService retrieves history with filtering
+    ok 2 - 2. AuditService retrieves history with filtering
+      ---
+      duration_ms: 8.2612
+      type: 'test'
+      ...
+    # Subtest: 3. Database blocks UPDATE on audit_logs at the Postgres trigger level
+    ok 3 - 3. Database blocks UPDATE on audit_logs at the Postgres trigger level
+      ---
+      duration_ms: 8.4997
+      type: 'test'
+      ...
+    # Subtest: 4. Database blocks DELETE on audit_logs at the Postgres trigger level
+    ok 4 - 4. Database blocks DELETE on audit_logs at the Postgres trigger level
+      ---
+      duration_ms: 3.971
+      type: 'test'
+      ...
+    1..4
+ok 6 - Audit Log Service & Append-Only Database Protection Tests
+  ---
+  duration_ms: 121.0785
+  type: 'suite'
+  ...
+# Subtest: Phase 2: Authentication, Roles, Permissions Matrix & Approval Engine Tests
+    # Subtest: 1. Login & Session Management
+        # Subtest: successfully logs in with valid credentials and sets 8-hour httpOnly cookie
+        ok 1 - successfully logs in with valid credentials and sets 8-hour httpOnly cookie
+          ---
+          duration_ms: 352.3603
+          type: 'test'
+          ...
+        # Subtest: GET /api/v1/auth/me returns current user profile; Company Admin does NOT see salary by default
+        ok 2 - GET /api/v1/auth/me returns current user profile; Company Admin does NOT see salary by default
+          ---
+          duration_ms: 401.3063
+          type: 'test'
+          ...
+        # Subtest: HR Manager and Payroll Officer DO see salary by default
+        ok 3 - HR Manager and Payroll Officer DO see salary by default
+          ---
+          duration_ms: 856.3346
+          type: 'test'
+          ...
+# [API Error]: Error: Invalid email or password
+#     at AuthService.login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/authService.js:190:19)
+#     at async login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/authController.js:10:20)
+        # Subtest: rejects invalid password with 401 and tracks failed login attempts
+        ok 4 - rejects invalid password with 401 and tracks failed login attempts
+          ---
+          duration_ms: 382.5875
+          type: 'test'
+          ...
+        # Subtest: POST /api/v1/auth/logout clears nextal_token cookie
+        ok 5 - POST /api/v1/auth/logout clears nextal_token cookie
+          ---
+          duration_ms: 7.6595
+          type: 'test'
+          ...
+        1..5
+    ok 1 - 1. Login & Session Management
+      ---
+      duration_ms: 2001.4929
+      type: 'suite'
+      ...
+# [API Error]: Error: Invalid email or password
+#     at AuthService.login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/authService.js:190:19)
+#     at async login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/authController.js:10:20)
+# [API Error]: Error: Invalid email or password
+#     at AuthService.login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/authService.js:190:19)
+#     at async login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/authController.js:10:20)
+# [API Error]: Error: Invalid email or password
+#     at AuthService.login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/authService.js:190:19)
+#     at async login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/authController.js:10:20)
+# [API Error]: Error: Invalid email or password
+#     at AuthService.login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/authService.js:190:19)
+#     at async login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/authController.js:10:20)
+# [API Error]: Error: Account is locked due to 5 consecutive failed login attempts. Please try again in 15 minutes.
+#     at AuthService.login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/authService.js:181:21)
+#     at async login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/authController.js:10:20)
+    # Subtest: 2. Account Lockout Protection & Auto-Expiry
+        # Subtest: locks account after 5 consecutive failed attempts with HTTP 423 and 15-minute lock
+        ok 1 - locks account after 5 consecutive failed attempts with HTTP 423 and 15-minute lock
+          ---
+          duration_ms: 1853.8552
+          type: 'test'
+          ...
+# [API Error]: Error: Account is locked due to 5 consecutive failed login attempts. Please try again in 15 minute(s).
+#     at AuthService.login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/authService.js:137:21)
+#     at async login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/authController.js:10:20)
+        # Subtest: blocks subsequent attempts with correct password while locked
+        ok 2 - blocks subsequent attempts with correct password while locked
+          ---
+          duration_ms: 11.8867
+          type: 'test'
+          ...
+# [AUTH] User without role logged in: lockout.test.1794892507992@gulftech.ae (userId: 55c23a81-de7d-44d2-9965-2932720251e6, companyId: a355f03b-104f-45f5-b40e-af0394b78195)
+        # Subtest: lockout auto-expires after 15 minutes (mocked time) and status does not persist forever
+        ok 3 - lockout auto-expires after 15 minutes (mocked time) and status does not persist forever
+          ---
+          duration_ms: 379.6276
+          type: 'test'
+          ...
+        # Subtest: company admin unlock explicitly clears failure counter and locked status
+        ok 4 - company admin unlock explicitly clears failure counter and locked status
+          ---
+          duration_ms: 391.6516
+          type: 'test'
+          ...
+        1..4
+    ok 2 - 2. Account Lockout Protection & Auto-Expiry
+      ---
+      duration_ms: 3000.959
+      type: 'suite'
+      ...
+    # Subtest: 3. Single-Use Expiring Invite & Reset Tokens
+        # Subtest: invite token is single-use and cannot be redeemed a second time
+        ok 1 - invite token is single-use and cannot be redeemed a second time
+          ---
+          duration_ms: 741.0964
+          type: 'test'
+          ...
+        # Subtest: rejects expired invite tokens (72h expiry)
+        ok 2 - rejects expired invite tokens (72h expiry)
+          ---
+          duration_ms: 363.0344
+          type: 'test'
+          ...
+        # Subtest: password reset token is single-use and expiring (1h expiry)
+        ok 3 - password reset token is single-use and expiring (1h expiry)
+          ---
+          duration_ms: 866.3326
+          type: 'test'
+          ...
+        1..3
+    ok 3 - 3. Single-Use Expiring Invite & Reset Tokens
+      ---
+      duration_ms: 1970.8446
+      type: 'suite'
+      ...
+    # Subtest: 4. Section 5.3 Permissions Matrix & HTTP 403 Enforcement
+        # Subtest: Employee role: blocked from viewing company employee list (HTTP 403)
+        ok 1 - Employee role: blocked from viewing company employee list (HTTP 403)
+          ---
+          duration_ms: 11.2327
+          type: 'test'
+          ...
+        # Subtest: Dept Manager: allowed to view team employees, blocked from salary endpoints (HTTP 403)
+        ok 2 - Dept Manager: allowed to view team employees, blocked from salary endpoints (HTTP 403)
+          ---
+          duration_ms: 84.381
+          type: 'test'
+          ...
+        # Subtest: HR Officer: allowed to view employee records, blocked from salary endpoints (HTTP 403)
+        ok 3 - HR Officer: allowed to view employee records, blocked from salary endpoints (HTTP 403)
+          ---
+          duration_ms: 55.3213
+          type: 'test'
+          ...
+        # Subtest: Payroll Officer: allowed to view salary endpoints
+        ok 4 - Payroll Officer: allowed to view salary endpoints
+          ---
+          duration_ms: 28.1094
+          type: 'test'
+          ...
+        # Subtest: Finance: allowed to view salary overview, blocked from employee records (HTTP 403)
+        ok 5 - Finance: allowed to view salary overview, blocked from employee records (HTTP 403)
+          ---
+          duration_ms: 23.3921
+          type: 'test'
+          ...
+        1..5
+    ok 4 - 4. Section 5.3 Permissions Matrix & HTTP 403 Enforcement
+      ---
+      duration_ms: 3337.2953
+      type: 'suite'
+      ...
+    # Subtest: 5. Salary Privacy Allowlist & Deep-Scan
+        # Subtest: deep-scan verifies NO salary or bank fields appear for employee@gulftech.ae
+        ok 1 - deep-scan verifies NO salary or bank fields appear for employee@gulftech.ae
+          ---
+          duration_ms: 408.926
+          type: 'test'
+          ...
+# [API Error]: Error: Employee not found
+#     at ScopeService.assertEmployeeInScope (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/scopeService.js:216:19)
+#     at EmployeeService.getEmployeeById (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:438:18)
+#     at async getEmployeeById (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:63:18)
+        # Subtest: deep-scan verifies NO salary or bank fields appear for dept.mgr@gulftech.ae
+        ok 2 - deep-scan verifies NO salary or bank fields appear for dept.mgr@gulftech.ae
+          ---
+          duration_ms: 469.6012
+          type: 'test'
+          ...
+        # Subtest: deep-scan verifies NO salary or bank fields appear for hr.officer@gulftech.ae
+        ok 3 - deep-scan verifies NO salary or bank fields appear for hr.officer@gulftech.ae
+          ---
+          duration_ms: 470.135
+          type: 'test'
+          ...
+        # Subtest: deep-scan verifies NO salary or bank fields appear for admin@gulftech.ae
+        ok 4 - deep-scan verifies NO salary or bank fields appear for admin@gulftech.ae
+          ---
+          duration_ms: 438.6054
+          type: 'test'
+          ...
+        # Subtest: Payroll Officer receives employee list WITH intact salary figures
+        ok 5 - Payroll Officer receives employee list WITH intact salary figures
+          ---
+          duration_ms: 425.7311
+          type: 'test'
+          ...
+        1..5
+    ok 5 - 5. Salary Privacy Allowlist & Deep-Scan
+      ---
+      duration_ms: 2213.562
+      type: 'suite'
+      ...
+# [API Error]: Error: Self-approval is forbidden: nobody approves their own request.
+#     at ApprovalService.actionRequest (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/approvalService.js:346:19)
+#     at async actionApprovalRequest (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/approvalController.js:45:20)
+    # Subtest: 6. Approval Engine: Self-Approval Prevention Rule
+        # Subtest: strictly forbids HR Manager from approving their OWN request (HTTP 403)
+        ok 1 - strictly forbids HR Manager from approving their OWN request (HTTP 403)
+          ---
+          duration_ms: 394.0952
+          type: 'test'
+          ...
+        # Subtest: allows a DIFFERENT qualified approver (Company Admin) to approve the request
+        ok 2 - allows a DIFFERENT qualified approver (Company Admin) to approve the request
+          ---
+          duration_ms: 410.1494
+          type: 'test'
+          ...
+        1..2
+    ok 6 - 6. Approval Engine: Self-Approval Prevention Rule
+      ---
+      duration_ms: 854.1939
+      type: 'suite'
+      ...
+# [API Error]: Error: Not available in this release
+#     at AuthService.login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/authService.js:212:19)
+#     at async login (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/authController.js:10:20)
+    # Subtest: 7. Platform Admin Data Isolation & Support Access (FR-PL3)
+        # Subtest: Platform Admin is disabled in this release (HTTP 403 on login, 404 on platform routes)
+        ok 1 - Platform Admin is disabled in this release (HTTP 403 on login, 404 on platform routes)
+          ---
+          duration_ms: 461.7526
+          type: 'test'
+          ...
+        1..1
+    ok 7 - 7. Platform Admin Data Isolation & Support Access (FR-PL3)
+      ---
+      duration_ms: 461.9104
+      type: 'suite'
+      ...
+    # Subtest: 8. Session Invalidation & Re-check on Every Request
+        # Subtest: suspending a company causes existing user tokens to receive HTTP 403 on the next request
+        ok 1 - suspending a company causes existing user tokens to receive HTTP 403 on the next request
+          ---
+          duration_ms: 418.3993
+          type: 'test'
+          ...
+# [AUTH] User without role logged in: disablable.1794892520249@gulftech.ae (userId: 9bb05c87-32c9-4208-8166-fb4887970890, companyId: a355f03b-104f-45f5-b40e-af0394b78195)
+        # Subtest: disabling a user causes their existing token to receive HTTP 401 on the next request
+        ok 2 - disabling a user causes their existing token to receive HTTP 401 on the next request
+          ---
+          duration_ms: 768.5856
+          type: 'test'
+          ...
+        # Subtest: strictly forbids authentication bypass via path tricks (Section 1 security verification)
+        ok 3 - strictly forbids authentication bypass via path tricks (Section 1 security verification)
+          ---
+          duration_ms: 20.296
+          type: 'test'
+          ...
+        1..3
+    ok 8 - 8. Session Invalidation & Re-check on Every Request
+      ---
+      duration_ms: 1207.775
+      type: 'suite'
+      ...
+    1..8
+ok 7 - Phase 2: Authentication, Roles, Permissions Matrix & Approval Engine Tests
+  ---
+  duration_ms: 15088.3724
+  type: 'suite'
+  ...
+# Local DB note during test 6: C:/Users/mohamed imran/Desktop/hr-payroll-management/deploy/backup.sh: line 69: pg_dump: command not found
+# Subtest: Part 8 Item 8: Backup Hardening & Verification Suite
+    # Subtest: 1. Sanity check: pg_restore -l rejects empty dump or dump below 10KB
+    ok 1 - 1. Sanity check: pg_restore -l rejects empty dump or dump below 10KB
+      ---
+      duration_ms: 162.7851
+      type: 'test'
+      ...
+    # Subtest: 2. Sanity check: pg_restore -l fails when table count < 5
+    ok 2 - 2. Sanity check: pg_restore -l fails when table count < 5
+      ---
+      duration_ms: 46.2297
+      type: 'test'
+      ...
+    # Subtest: 3. Migration check: skips cleanly (exit 0) when _prisma_migrations is missing or has 0 rows
+    ok 3 - 3. Migration check: skips cleanly (exit 0) when _prisma_migrations is missing or has 0 rows
+      ---
+      duration_ms: 45.3017
+      type: 'test'
+      ...
+    # Subtest: 4. Offsite transfer: deploy/offsite-backup.sh strictly refuses unencrypted dumps
+    ok 4 - 4. Offsite transfer: deploy/offsite-backup.sh strictly refuses unencrypted dumps
+      ---
+      duration_ms: 156.3203
+      type: 'test'
+      ...
+    # Subtest: 5. Offsite transfer: deploy/offsite-backup.sh rejects unencrypted .enc with SQL content header
+    ok 5 - 5. Offsite transfer: deploy/offsite-backup.sh rejects unencrypted .enc with SQL content header
+      ---
+      duration_ms: 242.309
+      type: 'test'
+      ...
+    # Subtest: 6. Backup execution against migrated DB: creates valid encrypted archive and writes last_success.txt
+    ok 6 - 6. Backup execution against migrated DB: creates valid encrypted archive and writes last_success.txt
+      ---
+      duration_ms: 259.6156
+      type: 'test'
+      ...
+    1..6
+ok 8 - Part 8 Item 8: Backup Hardening & Verification Suite
+  ---
+  duration_ms: 921.5282
+  type: 'suite'
+  ...
+# Subtest: Company Bootstrap & Forced Password Change Tests (Spec Part 6B)
+    # Subtest: 1. createCompanyWithDefaults provisions company with all UAE statutory defaults and must_change_password: true
+    ok 1 - 1. createCompanyWithDefaults provisions company with all UAE statutory defaults and must_change_password: true
+      ---
+      duration_ms: 501.2989
+      type: 'test'
+      ...
+    # Subtest: 2. Idempotent guard: duplicate email or trade license is refused with 400
+    ok 2 - 2. Idempotent guard: duplicate email or trade license is refused with 400
+      ---
+      duration_ms: 9.2422
+      type: 'test'
+      ...
+    # Subtest: 3. First login with temporary password authenticates and flags must_change_password: true
+    ok 3 - 3. First login with temporary password authenticates and flags must_change_password: true
+      ---
+      duration_ms: 274.7435
+      type: 'test'
+      ...
+    # Subtest: 4. authService.changePassword rejects weak passwords (< 10 chars, no letter/number)
+    ok 4 - 4. authService.changePassword rejects weak passwords (< 10 chars, no letter/number)
+      ---
+      duration_ms: 0.5901
+      type: 'test'
+      ...
+    # Subtest: 5. authService.changePassword updates password, clears must_change_password, and bumps token_version
+    ok 5 - 5. authService.changePassword updates password, clears must_change_password, and bumps token_version
+      ---
+      duration_ms: 1031.6372
+      type: 'test'
+      ...
+    1..5
+ok 9 - Company Bootstrap & Forced Password Change Tests (Spec Part 6B)
+  ---
+  duration_ms: 1818.8943
+  type: 'suite'
+  ...
+# Subtest: Company Tenant Isolation Tests
+    # Subtest: 1. Unscoped query without company context throws explicit Error
+    ok 1 - 1. Unscoped query without company context throws explicit Error
+      ---
+      duration_ms: 2.8312
+      type: 'test'
+      ...
+    # Subtest: 2. Company A cannot read records belonging to Company B (findMany)
+    ok 2 - 2. Company A cannot read records belonging to Company B (findMany)
+      ---
+      duration_ms: 17.6586
+      type: 'test'
+      ...
+    # Subtest: 3. Company A cannot read Company B record by ID (findUnique & findFirst)
+    ok 3 - 3. Company A cannot read Company B record by ID (findUnique & findFirst)
+      ---
+      duration_ms: 5.5227
+      type: 'test'
+      ...
+    # Subtest: 4. Company A cannot update Company B records (update)
+    ok 4 - 4. Company A cannot update Company B records (update)
+      ---
+      duration_ms: 4.8102
+      type: 'test'
+      ...
+    # Subtest: 5. Company A cannot update Company B records (updateMany)
+    ok 5 - 5. Company A cannot update Company B records (updateMany)
+      ---
+      duration_ms: 8.1821
+      type: 'test'
+      ...
+    # Subtest: 6. Company A cannot delete Company B records (delete)
+    ok 6 - 6. Company A cannot delete Company B records (delete)
+      ---
+      duration_ms: 4.3678
+      type: 'test'
+      ...
+    # Subtest: 7. Company A creating a record automatically injects company_id
+    ok 7 - 7. Company A creating a record automatically injects company_id
+      ---
+      duration_ms: 12.5621
+      type: 'test'
+      ...
+    # Subtest: 8. AsyncLocalStorage context injection works seamlessly
+    ok 8 - 8. AsyncLocalStorage context injection works seamlessly
+      ---
+      duration_ms: 3.4287
+      type: 'test'
+      ...
+    1..8
+ok 10 - Company Tenant Isolation Tests
+  ---
+  duration_ms: 198.6371
+  type: 'suite'
+  ...
+# Subtest: Phase 9: Compliance, Reports & Audit Integration Tests
+    # Subtest: 1. Timezone Boundary (Asia/Dubai midnight)
+        # Subtest: document expiring on 2026-10-15 remains valid at 23:59:00 Dubai time (19:59:00 UTC)
+        ok 1 - document expiring on 2026-10-15 remains valid at 23:59:00 Dubai time (19:59:00 UTC)
+          ---
+          duration_ms: 1.666
+          type: 'test'
+          ...
+        # Subtest: document expiring on 2026-10-15 is expired at 00:01:00 Dubai time on 2026-10-16 (20:01:00 UTC on 2026-10-15)
+        ok 2 - document expiring on 2026-10-15 is expired at 00:01:00 Dubai time on 2026-10-16 (20:01:00 UTC on 2026-10-15)
+          ---
+          duration_ms: 0.2797
+          type: 'test'
+          ...
+        # Subtest: a document that expired 2 days ago shows Expired on read without running the cron job
+        ok 3 - a document that expired 2 days ago shows Expired on read without running the cron job
+          ---
+          duration_ms: 95.783
+          type: 'test'
+          ...
+        1..3
+    ok 1 - 1. Timezone Boundary (Asia/Dubai midnight)
+      ---
+      duration_ms: 99.0339
+      type: 'suite'
+      ...
+    # Subtest: 2. Compliance Job Idempotency & Milestones
+        # Subtest: first run sends milestone 90 reminder; second run on same date sends NO duplicate reminders
+        ok 1 - first run sends milestone 90 reminder; second run on same date sends NO duplicate reminders
+          ---
+          duration_ms: 108.4749
+          type: 'test'
+          ...
+        # Subtest: advancing into 60 milestone band sends milestone 60 reminder once
+        ok 2 - advancing into 60 milestone band sends milestone 60 reminder once
+          ---
+          duration_ms: 41.3853
+          type: 'test'
+          ...
+        1..2
+    ok 2 - 2. Compliance Job Idempotency & Milestones
+      ---
+      duration_ms: 153.9898
+      type: 'suite'
+      ...
+    # Subtest: 3. Document Renewal and Verification Workflow
+        # Subtest: owner or HR uploads renewed document -> status becomes Pending Verification, history preserved
+        ok 1 - owner or HR uploads renewed document -> status becomes Pending Verification, history preserved
+          ---
+          duration_ms: 52.1277
+          type: 'test'
+          ...
+        # Subtest: HR verifies renewed document -> verification status Verified, status Valid, audit logged
+        ok 2 - HR verifies renewed document -> verification status Verified, status Valid, audit logged
+          ---
+          duration_ms: 46.5527
+          type: 'test'
+          ...
+        1..2
+    ok 3 - 3. Document Renewal and Verification Workflow
+      ---
+      duration_ms: 102.9237
+      type: 'suite'
+      ...
+# [API Error]: Error: Accounting export is only permitted for Locked or Paid pay runs (current status: 'Calculated')
+#     at ReportService.generateAccountingExportCsv (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/reportService.js:625:19)
+#     at async downloadAccountingExport (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/reportController.js:113:28)
+    # Subtest: 4. Accounting Export (CSV)
+        # Subtest: refuses accounting export for an unlocked pay run (Draft / Validated)
+        ok 1 - refuses accounting export for an unlocked pay run (Draft / Validated)
+          ---
+          duration_ms: 68.633
+          type: 'test'
+          ...
+        # Subtest: generates balanced CSV accounting export for locked pay run: Sum(Debit) === Sum(Credit)
+        ok 2 - generates balanced CSV accounting export for locked pay run: Sum(Debit) === Sum(Credit)
+          ---
+          duration_ms: 83.3804
+          type: 'test'
+          ...
+        1..2
+    ok 4 - 4. Accounting Export (CSV)
+      ---
+      duration_ms: 152.4284
+      type: 'suite'
+      ...
+    # Subtest: 5. Report Permissions & Salary Data Protection
+        # Subtest: salary reports are accessible to Finance, Payroll Officer, HR Manager, and Company Admin
+        ok 1 - salary reports are accessible to Finance, Payroll Officer, HR Manager, and Company Admin
+          ---
+          duration_ms: 463.017
+          type: 'test'
+          ...
+        # Subtest: salary reports are strictly FORBIDDEN (403) for non-salary roles (Employee, Dept Manager, HR Officer)
+        ok 2 - salary reports are strictly FORBIDDEN (403) for non-salary roles (Employee, Dept Manager, HR Officer)
+          ---
+          duration_ms: 61.1249
+          type: 'test'
+          ...
+        # Subtest: non-salary reports (Attendance, Leave, Headcount) are accessible to HR Officer
+        ok 3 - non-salary reports (Attendance, Leave, Headcount) are accessible to HR Officer
+          ---
+          duration_ms: 583.9348
+          type: 'test'
+          ...
+        1..3
+    ok 5 - 5. Report Permissions & Salary Data Protection
+      ---
+      duration_ms: 1108.4995
+      type: 'suite'
+      ...
+    # Subtest: 6. Audit History API
+        # Subtest: lists audit logs with pagination and filters by action and table_name
+        ok 1 - lists audit logs with pagination and filters by action and table_name
+          ---
+          duration_ms: 20.7933
+          type: 'test'
+          ...
+        # Subtest: exports audit logs to CSV
+        ok 2 - exports audit logs to CSV
+          ---
+          duration_ms: 21.4664
+          type: 'test'
+          ...
+        # Subtest: is strictly read-only: POST, PUT, DELETE routes do not exist (404)
+        ok 3 - is strictly read-only: POST, PUT, DELETE routes do not exist (404)
+          ---
+          duration_ms: 23.8303
+          type: 'test'
+          ...
+        # Subtest: database trigger strictly blocks any direct modification or deletion of audit logs
+        ok 4 - database trigger strictly blocks any direct modification or deletion of audit logs
+          ---
+          duration_ms: 12.8054
+          type: 'test'
+          ...
+        1..4
+    ok 6 - 6. Audit History API
+      ---
+      duration_ms: 79.3598
+      type: 'suite'
+      ...
+    # Subtest: 7. Support Access (FR-PL3)
+        # Subtest: company admin grants time-limited support access and it is logged to audit
+        ok 1 - company admin grants time-limited support access and it is logged to audit
+          ---
+          duration_ms: 42.6543
+          type: 'test'
+          ...
+        # Subtest: company admin lists support access grants
+        ok 2 - company admin lists support access grants
+          ---
+          duration_ms: 13.9339
+          type: 'test'
+          ...
+        # Subtest: company admin revokes support access immediately
+        ok 3 - company admin revokes support access immediately
+          ---
+          duration_ms: 23.837
+          type: 'test'
+          ...
+        1..3
+    ok 7 - 7. Support Access (FR-PL3)
+      ---
+      duration_ms: 80.8128
+      type: 'suite'
+      ...
+    # Subtest: 8. Multi-Company Data Isolation
+        # Subtest: documents, reports, and audit logs of Company A are never visible to Company B
+        ok 1 - documents, reports, and audit logs of Company A are never visible to Company B
+          ---
+          duration_ms: 9.876
+          type: 'test'
+          ...
+        1..1
+    ok 8 - 8. Multi-Company Data Isolation
+      ---
+      duration_ms: 10.102
+      type: 'suite'
+      ...
+    1..8
+ok 11 - Phase 9: Compliance, Reports & Audit Integration Tests
+  ---
+  duration_ms: 4308.6149
+  type: 'suite'
+  ...
+# Subtest: FR-X3 Dashboard Salary Leak Prevention (Deep-Scan Test)
+    # Subtest: GET /dashboard/overview for Company Admin (admin@gulftech.ae) contains 0 monetary keys and no AED values
+    ok 1 - GET /dashboard/overview for Company Admin (admin@gulftech.ae) contains 0 monetary keys and no AED values
+      ---
+      duration_ms: 148.4372
+      type: 'test'
+      ...
+    # Subtest: GET /dashboard/salary for Company Admin (admin@gulftech.ae) is strictly blocked with HTTP 403
+    ok 2 - GET /dashboard/salary for Company Admin (admin@gulftech.ae) is strictly blocked with HTTP 403
+      ---
+      duration_ms: 9.5987
+      type: 'test'
+      ...
+    # Subtest: GET /dashboard/overview for HR Officer (hr.officer@gulftech.ae) contains 0 monetary keys and no AED values
+    ok 3 - GET /dashboard/overview for HR Officer (hr.officer@gulftech.ae) contains 0 monetary keys and no AED values
+      ---
+      duration_ms: 92.9626
+      type: 'test'
+      ...
+    # Subtest: GET /dashboard/salary for HR Officer (hr.officer@gulftech.ae) is strictly blocked with HTTP 403
+    ok 4 - GET /dashboard/salary for HR Officer (hr.officer@gulftech.ae) is strictly blocked with HTTP 403
+      ---
+      duration_ms: 9.6547
+      type: 'test'
+      ...
+    # Subtest: GET /dashboard/overview for Department Manager (dept.mgr@gulftech.ae) contains 0 monetary keys and no AED values
+    ok 5 - GET /dashboard/overview for Department Manager (dept.mgr@gulftech.ae) contains 0 monetary keys and no AED values
+      ---
+      duration_ms: 89.714
+      type: 'test'
+      ...
+    # Subtest: GET /dashboard/salary for Department Manager (dept.mgr@gulftech.ae) is strictly blocked with HTTP 403
+    ok 6 - GET /dashboard/salary for Department Manager (dept.mgr@gulftech.ae) is strictly blocked with HTTP 403
+      ---
+      duration_ms: 6.1152
+      type: 'test'
+      ...
+    # Subtest: GET /dashboard/overview for Employee (Ahmed) (employee@gulftech.ae) contains 0 monetary keys and no AED values
+    ok 7 - GET /dashboard/overview for Employee (Ahmed) (employee@gulftech.ae) contains 0 monetary keys and no AED values
+      ---
+      duration_ms: 75.6843
+      type: 'test'
+      ...
+    # Subtest: GET /dashboard/salary for Employee (Ahmed) (employee@gulftech.ae) is strictly blocked with HTTP 403
+    ok 8 - GET /dashboard/salary for Employee (Ahmed) (employee@gulftech.ae) is strictly blocked with HTTP 403
+      ---
+      duration_ms: 8.2957
+      type: 'test'
+      ...
+    # Subtest: GET /dashboard/salary for authorized role HR Manager (hr.mgr@gulftech.ae) succeeds with HTTP 200
+    ok 9 - GET /dashboard/salary for authorized role HR Manager (hr.mgr@gulftech.ae) succeeds with HTTP 200
+      ---
+      duration_ms: 51.3908
+      type: 'test'
+      ...
+    # Subtest: GET /dashboard/salary for authorized role Payroll Officer (payroll@gulftech.ae) succeeds with HTTP 200
+    ok 10 - GET /dashboard/salary for authorized role Payroll Officer (payroll@gulftech.ae) succeeds with HTTP 200
+      ---
+      duration_ms: 34.5457
+      type: 'test'
+      ...
+    # Subtest: GET /dashboard/salary for authorized role General Manager (gm@gulftech.ae) succeeds with HTTP 200
+    ok 11 - GET /dashboard/salary for authorized role General Manager (gm@gulftech.ae) succeeds with HTTP 200
+      ---
+      duration_ms: 32.9153
+      type: 'test'
+      ...
+    # Subtest: GET /dashboard/salary for authorized role Finance (finance@gulftech.ae) succeeds with HTTP 200
+    ok 12 - GET /dashboard/salary for authorized role Finance (finance@gulftech.ae) succeeds with HTTP 200
+      ---
+      duration_ms: 31.7477
+      type: 'test'
+      ...
+    1..12
+ok 12 - FR-X3 Dashboard Salary Leak Prevention (Deep-Scan Test)
+  ---
+  duration_ms: 3490.5912
+  type: 'suite'
+  ...
+# Subtest: Phase 4: Employee Management, Verification & Security Tests
+    # Subtest: 1. Employee List, Search, Filters & Department Manager Scoping
+        # Subtest: returns paginated employee list with total count
+        ok 1 - returns paginated employee list with total count
+          ---
+          duration_ms: 74.614
+          type: 'test'
+          ...
+        # Subtest: filters employees by search term (name / code / email)
+        ok 2 - filters employees by search term (name / code / email)
+          ---
+          duration_ms: 44.5091
+          type: 'test'
+          ...
+        # Subtest: filters employees by status and nationality
+        ok 3 - filters employees by status and nationality
+          ---
+          duration_ms: 53.6058
+          type: 'test'
+          ...
+        # Subtest: scopes Department Manager to their own team only (Spec 6)
+        ok 4 - scopes Department Manager to their own team only (Spec 6)
+          ---
+          duration_ms: 47.9012
+          type: 'test'
+          ...
+        1..4
+    ok 1 - 1. Employee List, Search, Filters & Department Manager Scoping
+      ---
+      duration_ms: 222.1981
+      type: 'suite'
+      ...
+    # Subtest: 2. Role Masking & Privacy (Deep Scan & IBAN / ID Masking)
+        # Subtest: strips ALL salary and bank fields for non-salary roles (HR_OFFICER, DEPT_MANAGER)
+        ok 1 - strips ALL salary and bank fields for non-salary roles (HR_OFFICER, DEPT_MANAGER)
+          ---
+          duration_ms: 82.2432
+          type: 'test'
+          ...
+        # Subtest: denies company-wide employee list to regular EMPLOYEE role with HTTP 403 (Spec 5.3)
+        ok 2 - denies company-wide employee list to regular EMPLOYEE role with HTTP 403 (Spec 5.3)
+          ---
+          duration_ms: 12.1552
+          type: 'test'
+          ...
+        # Subtest: masks IBAN in employee list (AE** **** **** 1234) even for salary roles (Rule D)
+        ok 3 - masks IBAN in employee list (AE** **** **** 1234) even for salary roles (Rule D)
+          ---
+          duration_ms: 43.0366
+          type: 'test'
+          ...
+        # Subtest: masks sensitive identity numbers (Passport, Emirates ID) for non-HR roles (Rule E)
+        ok 4 - masks sensitive identity numbers (Passport, Emirates ID) for non-HR roles (Rule E)
+          ---
+          duration_ms: 80.4741
+          type: 'test'
+          ...
+        1..4
+    ok 2 - 2. Role Masking & Privacy (Deep Scan & IBAN / ID Masking)
+      ---
+      duration_ms: 218.9916
+      type: 'suite'
+      ...
+# [API Error]: Error: Invalid status transition from 'Pre-Joined' to 'Suspended'. Allowed transitions: New Joined, Active, Archived
+#     at EmployeeService.updateEmployeeStatus (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:781:19)
+#     at async updateEmployeeStatus (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:107:18)
+    # Subtest: 3. Employee Status Transitions & Allowed Transitions Map (Rule A)
+        # Subtest: rejects invalid status transitions with HTTP 400 (e.g. Pre-Joined -> Suspended)
+        ok 1 - rejects invalid status transitions with HTTP 400 (e.g. Pre-Joined -> Suspended)
+          ---
+          duration_ms: 16.3026
+          type: 'test'
+          ...
+        # Subtest: allows valid status transition Pre-Joined -> New Joined
+        ok 2 - allows valid status transition Pre-Joined -> New Joined
+          ---
+          duration_ms: 26.7098
+          type: 'test'
+          ...
+        # Subtest: allows valid transition New Joined -> Suspended, and Suspended -> Active
+        ok 3 - allows valid transition New Joined -> Suspended, and Suspended -> Active
+          ---
+          duration_ms: 19.3991
+          type: 'test'
+          ...
+# [API Error]: Error: Invalid status transition from 'Archived' to 'Active'. Allowed transitions: None
+#     at EmployeeService.updateEmployeeStatus (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:781:19)
+#     at async updateEmployeeStatus (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:107:18)
+        # Subtest: rejects transitions from Archived status with HTTP 400
+        ok 4 - rejects transitions from Archived status with HTTP 400
+          ---
+          duration_ms: 31.9493
+          type: 'test'
+          ...
+        1..4
+    ok 3 - 3. Employee Status Transitions & Allowed Transitions Map (Rule A)
+      ---
+      duration_ms: 179.4896
+      type: 'suite'
+      ...
+# [API Error]: Error: Activation check failed. Missing requirements: contract, shift, bank_account, labour_card_or_person_id
+#     at EmployeeService.activateEmployee (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:992:19)
+#     at async activateEmployee (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:161:18)
+    # Subtest: 4. Activation Requirements Check & Activation Execution (Rule A)
+        # Subtest: activation check fails when requirements are missing, identifying missing items
+        ok 1 - activation check fails when requirements are missing, identifying missing items
+          ---
+          duration_ms: 97.5422
+          type: 'test'
+          ...
+        # Subtest: activating a complete employee creates opening leave allocation and self-service invite
+        ok 2 - activating a complete employee creates opening leave allocation and self-service invite
+          ---
+          duration_ms: 295.9868
+          type: 'test'
+          ...
+        1..2
+    ok 4 - 4. Activation Requirements Check & Activation Execution (Rule A)
+      ---
+      duration_ms: 393.8845
+      type: 'suite'
+      ...
+    # Subtest: 5. Versioned Contracts, getContractOn & Locked Pay Period Check (Rule B)
+        # Subtest: returns all version rows ordered in Salary History (403 for non-salary)
+        ok 1 - returns all version rows ordered in Salary History (403 for non-salary)
+          ---
+          duration_ms: 28.2412
+          type: 'test'
+          ...
+        # Subtest: getContractOn resolves correct contract version on dates before and after raise
+        ok 2 - getContractOn resolves correct contract version on dates before and after raise
+          ---
+          duration_ms: 5.9029
+          type: 'test'
+          ...
+# [API Error]: Error: Cannot create contract with effective date 2026-09-15 inside locked pay period 2026-09
+#     at EmployeeService.createContractVersion (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:1300:19)
+#     at async createContractVersion (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:229:18)
+        # Subtest: rejects contract creation with effective date inside a locked pay period (Rule B)
+        ok 3 - rejects contract creation with effective date inside a locked pay period (Rule B)
+          ---
+          duration_ms: 17.9473
+          type: 'test'
+          ...
+        1..3
+    ok 5 - 5. Versioned Contracts, getContractOn & Locked Pay Period Check (Rule B)
+      ---
+      duration_ms: 56.5296
+      type: 'suite'
+      ...
+    # Subtest: 6. UAE IBAN Validation (Rule D)
+        # Subtest: accepts valid UAE IBAN with ISO-7064 mod-97 verification
+        ok 1 - accepts valid UAE IBAN with ISO-7064 mod-97 verification
+          ---
+          duration_ms: 30.0028
+          type: 'test'
+          ...
+# [API Error]: Error: Invalid IBAN checksum (MOD-97 verification failed)
+#     at EmployeeService.saveBankAccount (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:1599:19)
+#     at saveBankAccount (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:335:40)
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:149:13)
+#     at Route.dispatch (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:119:3)
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:284:15
+#     at param (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:365:14)
+#     at param (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:376:14)
+#     at Function.process_params (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:421:3)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:280:10)
+#     at file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/middleware/auth.js:182:7
+#     at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+#     at authenticate (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/middleware/auth.js:174:18)
+        # Subtest: rejects UAE IBAN with invalid checksum (mod-97 failure)
+        ok 2 - rejects UAE IBAN with invalid checksum (mod-97 failure)
+          ---
+          duration_ms: 10.2745
+          type: 'test'
+          ...
+# [API Error]: Error: UAE IBAN must start with country code AE
+#     at EmployeeService.saveBankAccount (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:1599:19)
+#     at saveBankAccount (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:335:40)
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:149:13)
+#     at Route.dispatch (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:119:3)
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:284:15
+#     at param (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:365:14)
+#     at param (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:376:14)
+#     at Function.process_params (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:421:3)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:280:10)
+#     at file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/middleware/auth.js:182:7
+#     at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+#     at authenticate (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/middleware/auth.js:174:18)
+        # Subtest: rejects IBAN with non-UAE country code (e.g. GB or US)
+        ok 3 - rejects IBAN with non-UAE country code (e.g. GB or US)
+          ---
+          duration_ms: 10.282
+          type: 'test'
+          ...
+        1..3
+    ok 6 - 6. UAE IBAN Validation (Rule D)
+      ---
+      duration_ms: 54.1086
+      type: 'suite'
+      ...
+# [SECURITY WARNING] DOCUMENT_ENCRYPTION_KEY is not set; using dev-only fallback key.
+    # Subtest: 7. Document Upload & Magic Bytes Validation (Rule C)
+        # Subtest: accepts valid PDF file upload via magic byte detection
+        ok 1 - accepts valid PDF file upload via magic byte detection
+          ---
+          duration_ms: 43.2099
+          type: 'test'
+          ...
+# [API Error]: Error: Invalid file format. Only PDF, JPG, and PNG are allowed
+#     at StorageService.saveFile (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/lib/storage.js:96:19)
+#     at EmployeeService.uploadDocument (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:1709:40)
+#     at uploadDocument (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:388:40)
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:149:13)
+#     at AsyncResource.runInAsyncScope (node:async_hooks:214:14)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\multer\\lib\\make-middleware.js:78:16)
+#     at done (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\multer\\lib\\make-middleware.js:182:7)
+#     at indicateDone (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\multer\\lib\\make-middleware.js:186:68)
+#     at Multipart.<anonymous> (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\multer\\lib\\make-middleware.js:449:7)
+#     at Multipart.emit (node:events:519:28)
+#     at emitCloseNT (node:internal/streams/destroy:148:10)
+#     at process.processTicksAndRejections (node:internal/process/task_queues:89:21)
+        # Subtest: rejects fake file format with incorrect magic bytes (e.g. text/exe disguised as PDF)
+        ok 2 - rejects fake file format with incorrect magic bytes (e.g. text/exe disguised as PDF)
+          ---
+          duration_ms: 14.3534
+          type: 'test'
+          ...
+        # Subtest: downloads document via authenticated API route; blocks unauthorized roles from sensitive files
+        ok 3 - downloads document via authenticated API route; blocks unauthorized roles from sensitive files
+          ---
+          duration_ms: 26.03
+          type: 'test'
+          ...
+        1..3
+    ok 7 - 7. Document Upload & Magic Bytes Validation (Rule C)
+      ---
+      duration_ms: 86.8302
+      type: 'suite'
+      ...
+# [API Error]: Error: Self-verification is not permitted. A different manager must verify this employee record.
+#     at EmployeeService.verifyEmployee (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:833:19)
+#     at async verifyEmployee (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:126:18)
+    # Subtest: 8. Self-Verification Rule & Audit Logging (Rule F & G)
+        # Subtest: blocks user from verifying an employee record they created (Rule G)
+        ok 1 - blocks user from verifying an employee record they created (Rule G)
+          ---
+          duration_ms: 610.5183
+          type: 'test'
+          ...
+        # Subtest: records audit log entries for changes and retrieves them on History tab (Rule F)
+        ok 2 - records audit log entries for changes and retrieves them on History tab (Rule F)
+          ---
+          duration_ms: 26.49
+          type: 'test'
+          ...
+        1..2
+    ok 8 - 8. Self-Verification Rule & Audit Logging (Rule F & G)
+      ---
+      duration_ms: 637.2749
+      type: 'suite'
+      ...
+    1..8
+ok 13 - Phase 4: Employee Management, Verification & Security Tests
+  ---
+  duration_ms: 4100.3289
+  type: 'suite'
+  ...
+# Subtest: GAP 1, GAP 2, GAP 3 Verification Integration Tests
+    # Subtest: GAP 1: Visa Filtering Across Endpoints
+        # Subtest: GET /api/v1/employees?company_visa_id=<v01> returns only visa 1 employees
+        ok 1 - GET /api/v1/employees?company_visa_id=<v01> returns only visa 1 employees
+          ---
+          duration_ms: 85.8313
+          type: 'test'
+          ...
+        # Subtest: GET /api/v1/payroll/runs?company_visa_id=<v01> filters by visa establishment
+        ok 2 - GET /api/v1/payroll/runs?company_visa_id=<v01> filters by visa establishment
+          ---
+          duration_ms: 34.0832
+          type: 'test'
+          ...
+        # Subtest: GET /api/v1/attendance/grid?company_visa_id=<v01> filters employees by visa
+        ok 3 - GET /api/v1/attendance/grid?company_visa_id=<v01> filters employees by visa
+          ---
+          duration_ms: 162.1209
+          type: 'test'
+          ...
+# [API Error]: Error: Company visa not found or does not belong to caller company
+#     at validateAndResolveVisa (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/visaValidator.js:27:17)
+#     at async EmployeeService.listEmployees (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:127:25)
+#     at async listEmployees (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:6:20)
+        # Subtest: Foreign or nonexistent visa UUID returns HTTP 400 INVALID_VISA
+        ok 4 - Foreign or nonexistent visa UUID returns HTTP 400 INVALID_VISA
+          ---
+          duration_ms: 13.8671
+          type: 'test'
+          ...
+        1..4
+    ok 1 - GAP 1: Visa Filtering Across Endpoints
+      ---
+      duration_ms: 297.704
+      type: 'suite'
+      ...
+# Generated concurrent employee codes: [
+#   'EMP-DXB-046',
+#   'EMP-DXB-047',
+#   'EMP-DXB-048',
+#   'EMP-DXB-049',
+#   'EMP-DXB-050'
+# ]
+    # Subtest: GAP 2: Safe Employee Code Generator & Concurrency
+        # Subtest: creates 5 employees concurrently with consecutive codes and zero P2002 errors
+        ok 1 - creates 5 employees concurrently with consecutive codes and zero P2002 errors
+          ---
+          duration_ms: 443.5845
+          type: 'test'
+          ...
+        1..1
+    ok 2 - GAP 2: Safe Employee Code Generator & Concurrency
+      ---
+      duration_ms: 443.934
+      type: 'suite'
+      ...
+    # Subtest: GAP 3: Pending Verification Approval Inbox & Guards
+        # Subtest: creating Pre-Joined employee generates an EMPLOYEE_VERIFICATION approval request
+        ok 1 - creating Pre-Joined employee generates an EMPLOYEE_VERIFICATION approval request
+          ---
+          duration_ms: 94.8529
+          type: 'test'
+          ...
+# [API Error]: Error: Self-approval is forbidden: nobody approves their own request.
+#     at ApprovalService.actionRequest (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/approvalService.js:346:19)
+#     at async actionApprovalRequest (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/approvalController.js:45:20)
+        # Subtest: creator is forbidden from self-approval (HTTP 403 SELF_APPROVAL_FORBIDDEN)
+        ok 2 - creator is forbidden from self-approval (HTTP 403 SELF_APPROVAL_FORBIDDEN)
+          ---
+          duration_ms: 26.4895
+          type: 'test'
+          ...
+# [API Error]: Error: A reason of at least 5 characters is required to return an employee for correction.
+#     at ApprovalService.actionRequest (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/approvalService.js:370:21)
+#     at async actionApprovalRequest (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/approvalController.js:45:20)
+        # Subtest: rejecting without reason or reason < 5 chars is rejected with HTTP 400
+        ok 3 - rejecting without reason or reason < 5 chars is rejected with HTTP 400
+          ---
+          duration_ms: 19.334
+          type: 'test'
+          ...
+        # Subtest: HR Manager approves employee verification -> employee status advances to New Joined
+        ok 4 - HR Manager approves employee verification -> employee status advances to New Joined
+          ---
+          duration_ms: 73.8027
+          type: 'test'
+          ...
+        # Subtest: HR Manager returns employee for correction -> creator receives notification containing reason
+        ok 5 - HR Manager returns employee for correction -> creator receives notification containing reason
+          ---
+          duration_ms: 107.3107
+          type: 'test'
+          ...
+        1..5
+    ok 3 - GAP 3: Pending Verification Approval Inbox & Guards
+      ---
+      duration_ms: 322.8159
+      type: 'suite'
+      ...
+    1..3
+ok 14 - GAP 1, GAP 2, GAP 3 Verification Integration Tests
+  ---
+  duration_ms: 1733.5031
+  type: 'suite'
+  ...
+# [SECURITY WARNING] DOCUMENT_ENCRYPTION_KEY is not set; using dev-only fallback key.
+# Subtest: Part 8 Item 1: TOTP MFA (SEC-2) for Privileged Roles
+    # Subtest: 1. Cryptographic key derivation and AES-256-GCM secret encryption
+    ok 1 - 1. Cryptographic key derivation and AES-256-GCM secret encryption
+      ---
+      duration_ms: 4.6085
+      type: 'test'
+      ...
+    # Subtest: 2. Login policy: Privileged user requires MFA enrolment; Non-privileged logs in directly
+    ok 2 - 2. Login policy: Privileged user requires MFA enrolment; Non-privileged logs in directly
+      ---
+      duration_ms: 544.461
+      type: 'test'
+      ...
+    # Subtest: 3. Enrolment initialization: creates QR code and stores encrypted temp secret
+    ok 3 - 3. Enrolment initialization: creates QR code and stores encrypted temp secret
+      ---
+      duration_ms: 15.6555
+      type: 'test'
+      ...
+    # Subtest: 4. Enrolment confirmation: wrong code fails; correct code activates MFA and issues 10 recovery codes
+    ok 4 - 4. Enrolment confirmation: wrong code fails; correct code activates MFA and issues 10 recovery codes
+      ---
+      duration_ms: 18.0917
+      type: 'test'
+      ...
+    # Subtest: 5. Login flow with TOTP code: wrong code increments failed count; correct code logs in
+    ok 5 - 5. Login flow with TOTP code: wrong code increments failed count; correct code logs in
+      ---
+      duration_ms: 294.5151
+      type: 'test'
+      ...
+    # Subtest: 6. Replay prevention: reusing the exact same TOTP code is rejected
+    ok 6 - 6. Replay prevention: reusing the exact same TOTP code is rejected
+      ---
+      duration_ms: 8.0587
+      type: 'test'
+      ...
+    # Subtest: 7. Single-use recovery codes: code burns after first use and cannot be used again
+    ok 7 - 7. Single-use recovery codes: code burns after first use and cannot be used again
+      ---
+      duration_ms: 29.8169
+      type: 'test'
+      ...
+    # Subtest: 8. Admin MFA reset: Admin cannot reset own MFA; Admin resets other user with audit log and session invalidation
+    ok 8 - 8. Admin MFA reset: Admin cannot reset own MFA; Admin resets other user with audit log and session invalidation
+      ---
+      duration_ms: 18.2647
+      type: 'test'
+      ...
+    1..8
+ok 15 - Part 8 Item 1: TOTP MFA (SEC-2) for Privileged Roles
+  ---
+  duration_ms: 1273.2195
+  type: 'suite'
+  ...
+# [AUTH] User without role logged in: norole-1794892549879@example.ae (userId: ae4c72f0-9086-46a6-88d7-bcd9e95f7ae6, companyId: cf79f763-4b4c-4f7e-9da7-bf8546154eaf)
+# [AUTH] Access attempted by user with no assigned roles: norole-1794892549879@example.ae on /api/v1/employees
+# [AUTH] Access attempted by user with no assigned roles: norole-1794892549879@example.ae on /api/v1/payroll
+# Subtest: Part 8 Item 2: No-Role User Experience & Guard
+    # Subtest: 1. User with no role has empty roles array and role is null, never default "EMPLOYEE"
+    ok 1 - 1. User with no role has empty roles array and role is null, never default "EMPLOYEE"
+      ---
+      duration_ms: 283.6088
+      type: 'test'
+      ...
+    # Subtest: 2. requirePermission middleware rejects user with no roles with HTTP 403 NO_ROLE_ASSIGNED
+    ok 2 - 2. requirePermission middleware rejects user with no roles with HTTP 403 NO_ROLE_ASSIGNED
+      ---
+      duration_ms: 0.6991
+      type: 'test'
+      ...
+    # Subtest: 3. requireRole middleware rejects user with no roles with HTTP 403 NO_ROLE_ASSIGNED
+    ok 3 - 3. requireRole middleware rejects user with no roles with HTTP 403 NO_ROLE_ASSIGNED
+      ---
+      duration_ms: 0.6783
+      type: 'test'
+      ...
+    1..3
+ok 16 - Part 8 Item 2: No-Role User Experience & Guard
+  ---
+  duration_ms: 596.7597
+  type: 'suite'
+  ...
+# Subtest: Part 7E: Clean System Seed, Role Guards, and 5 Statutory Approval Flows
+    # Subtest: 1. setup-company fails loudly with rollback if roles catalog is empty
+    ok 1 - 1. setup-company fails loudly with rollback if roles catalog is empty
+      ---
+      duration_ms: 28.2058
+      type: 'test'
+      ...
+# --- Seeding System-Level Infrastructure & Roles Catalog ---
+    # Subtest: 2. setup-company fails loudly if COMPANY_ADMIN role is missing
+    ok 2 - 2. setup-company fails loudly if COMPANY_ADMIN role is missing
+      ---
+      duration_ms: 16.4607
+      type: 'test'
+      ...
+# Seeding 8 canonical roles with Section 5.3 permissions matrix...
+# System seed completed successfully (8 canonical roles upserted, 0 tables truncated).
+    # Subtest: 3. Fresh DB + seed:system + setup:company yields admin with COMPANY_ADMIN role and 5 approval flows
+    ok 3 - 3. Fresh DB + seed:system + setup:company yields admin with COMPANY_ADMIN role and 5 approval flows
+      ---
+      duration_ms: 454.1792
+      type: 'test'
+      ...
+# --- Seeding System-Level Infrastructure & Roles Catalog ---
+# [REFUSED] Database contains 1 existing company/companies. 'seed:system' will not run to protect existing data. Pass --force-reset to update system roles.
+    # Subtest: 4. seed:system refuses to run without --force-reset when companies already exist
+    ok 4 - 4. seed:system refuses to run without --force-reset when companies already exist
+      ---
+      duration_ms: 4.1735
+      type: 'test'
+      ...
+# --- Seeding System-Level Infrastructure & Roles Catalog ---
+# Seeding 8 canonical roles with Section 5.3 permissions matrix...
+# System seed completed successfully (8 canonical roles upserted, 0 tables truncated).
+    # Subtest: 5. seed:system with --force-reset is non-destructive: does NOT delete existing companies, users or employees
+    ok 5 - 5. seed:system with --force-reset is non-destructive: does NOT delete existing companies, users or employees
+      ---
+      duration_ms: 47.2836
+      type: 'test'
+      ...
+    # Subtest: 6. seed:system refuses demo mode in production and exits non-zero
+    ok 6 - 6. seed:system refuses demo mode in production and exits non-zero
+      ---
+      duration_ms: 142.3327
+      type: 'test'
+      ...
+    1..6
+ok 17 - Part 7E: Clean System Seed, Role Guards, and 5 Statutory Approval Flows
+  ---
+  duration_ms: 9808.9456
+  type: 'suite'
+  ...
+# Setting up 500 employees for performance benchmark...
+# ========================================
+# NFR-7 BENCHMARK RESULT:
+# Calculated 500 employees in 3464.13 ms (3.46s)
+# Target: < 30,000 ms (< 30s)
+# Total Gross: AED 6500000.00
+# Total Net:   AED 6417500.00
+# ========================================
+# Subtest: NFR-7: 500-Employee Payroll Calculation Performance Benchmark (< 30s)
+    # Subtest: Calculates 500 employee payslips in under 30 seconds (NFR-7)
+    ok 1 - Calculates 500 employee payslips in under 30 seconds (NFR-7)
+      ---
+      duration_ms: 3476.4576
+      type: 'test'
+      ...
+    1..1
+ok 18 - NFR-7: 500-Employee Payroll Calculation Performance Benchmark (< 30s)
+  ---
+  duration_ms: 4583.1406
+  type: 'suite'
+  ...
+# Subtest: Payslip Lines Calculation & Sum Integrity Tests
+    # Subtest: 1. Confirms 42 active payslips exist for October 2026 pay runs (31 Visa 1 + 11 Visa 2)
+    ok 1 - 1. Confirms 42 active payslips exist for October 2026 pay runs (31 Visa 1 + 11 Visa 2)
+      ---
+      duration_ms: 1.2663
+      type: 'test'
+      ...
+    # Subtest: 2. Every payslip gross equals all earnings lines (BASIC + HRA + TRA + OTH + OT + allowances)
+    ok 2 - 2. Every payslip gross equals all earnings lines (BASIC + HRA + TRA + OTH + OT + allowances)
+      ---
+      duration_ms: 1.2361
+      type: 'test'
+      ...
+    # Subtest: 3. Every payslip total_deductions equals the exact mathematical sum of its deduction lines
+    ok 3 - 3. Every payslip total_deductions equals the exact mathematical sum of its deduction lines
+      ---
+      duration_ms: 0.5331
+      type: 'test'
+      ...
+    # Subtest: 4. Every payslip net equals gross minus total_deductions (Net = Earnings - Deductions)
+    ok 4 - 4. Every payslip net equals gross minus total_deductions (Net = Earnings - Deductions)
+      ---
+      duration_ms: 0.5026
+      type: 'test'
+      ...
+    # Subtest: 4b. Reconciliation: for every payslip in seeded October run, net = (independently computed) contract gross + OT - deductions
+    ok 5 - 4b. Reconciliation: for every payslip in seeded October run, net = (independently computed) contract gross + OT - deductions
+      ---
+      duration_ms: 2.222
+      type: 'test'
+      ...
+    # Subtest: 5. Payslips sum to pay run totals for each visa (Sum of payslips = pay_run.total_gross & total_net via service)
+    ok 6 - 5. Payslips sum to pay run totals for each visa (Sum of payslips = pay_run.total_gross & total_net via service)
+      ---
+      duration_ms: 34.9253
+      type: 'test'
+      ...
+    # Subtest: 6. SCR total in SIF exactly equals the pay run net for locked/paid pay runs
+    ok 7 - 6. SCR total in SIF exactly equals the pay run net for locked/paid pay runs
+      ---
+      duration_ms: 52.3632
+      type: 'test'
+      ...
+    # Subtest: 7. Hand-calculated expected net verified for 3 named benchmark employees
+    ok 8 - 7. Hand-calculated expected net verified for 3 named benchmark employees
+      ---
+      duration_ms: 0.5062
+      type: 'test'
+      ...
+    1..8
+ok 19 - Payslip Lines Calculation & Sum Integrity Tests
+  ---
+  duration_ms: 203.6409
+  type: 'suite'
+  ...
+# Subtest: Phase 7: Self-service, Live Dashboard & Notifications Integration Tests
+    # Subtest: 1. Self-Service Bento & Profile
+        # Subtest: Employee can fetch My Home bento overview with real metrics
+        ok 1 - Employee can fetch My Home bento overview with real metrics
+          ---
+          duration_ms: 107.84
+          type: 'test'
+          ...
+        # Subtest: Employee can fetch My Profile with view-only fields and masked IDs
+        ok 2 - Employee can fetch My Profile with view-only fields and masked IDs
+          ---
+          duration_ms: 41.3658
+          type: 'test'
+          ...
+        1..2
+    ok 1 - 1. Self-Service Bento & Profile
+      ---
+      duration_ms: 150.2783
+      type: 'suite'
+      ...
+    # Subtest: 2. Self-Service Boundaries: Unreleased Payslips & Other IDs Forbidden/404
+        # Subtest: Employee payslips only include pay runs with status Paid
+        ok 1 - Employee payslips only include pay runs with status Paid
+          ---
+          duration_ms: 20.153
+          type: 'test'
+          ...
+        # Subtest: Employee cannot access another employee payslip or unreleased payslip via ID (returns 404)
+        ok 2 - Employee cannot access another employee payslip or unreleased payslip via ID (returns 404)
+          ---
+          duration_ms: 15.771
+          type: 'test'
+          ...
+        # Subtest: Employee cannot cancel another employee request (returns 404)
+        ok 3 - Employee cannot cancel another employee request (returns 404)
+          ---
+          duration_ms: 35.1806
+          type: 'test'
+          ...
+        1..3
+    ok 2 - 2. Self-Service Boundaries: Unreleased Payslips & Other IDs Forbidden/404
+      ---
+      duration_ms: 71.8594
+      type: 'suite'
+      ...
+    # Subtest: 3. Live Dashboard Role Permissions
+        # Subtest: All internal roles can access /api/v1/dashboard/overview
+        ok 1 - All internal roles can access /api/v1/dashboard/overview
+          ---
+          duration_ms: 194.4726
+          type: 'test'
+          ...
+        # Subtest: Salary tiles API (/api/v1/dashboard/salary) returns 200 for HR Manager
+        ok 2 - Salary tiles API (/api/v1/dashboard/salary) returns 200 for HR Manager
+          ---
+          duration_ms: 37.4775
+          type: 'test'
+          ...
+        # Subtest: Salary tiles API (/api/v1/dashboard/salary) returns 403 Forbidden for Dept Manager & Employee
+        ok 3 - Salary tiles API (/api/v1/dashboard/salary) returns 403 Forbidden for Dept Manager & Employee
+          ---
+          duration_ms: 14.061
+          type: 'test'
+          ...
+        1..3
+    ok 3 - 3. Live Dashboard Role Permissions
+      ---
+      duration_ms: 247.0756
+      type: 'suite'
+      ...
+    # Subtest: 4. In-App Notifications System
+        # Subtest: Creates notifications for all key system events
+        ok 1 - Creates notifications for all key system events
+          ---
+          duration_ms: 26.1591
+          type: 'test'
+          ...
+        # Subtest: Employee can fetch notifications and mark as read
+        ok 2 - Employee can fetch notifications and mark as read
+          ---
+          duration_ms: 45.7103
+          type: 'test'
+          ...
+        1..2
+    ok 4 - 4. In-App Notifications System
+      ---
+      duration_ms: 72.2087
+      type: 'suite'
+      ...
+    1..4
+ok 20 - Phase 7: Self-service, Live Dashboard & Notifications Integration Tests
+  ---
+  duration_ms: 2260.0847
+  type: 'suite'
+  ...
+# Subtest: Phase 8 Integration: Offboarding & Final Settlement
+    # Subtest: 1. Gratuity boundary: exactly 5 years service -> 105 days basic wage
+    ok 1 - 1. Gratuity boundary: exactly 5 years service -> 105 days basic wage
+      ---
+      duration_ms: 30.351
+      type: 'test'
+      ...
+    # Subtest: 2. Gratuity boundary: 5 years + 1 day -> step 1 (105 days) + step 2 (30 days/yr)
+    ok 2 - 2. Gratuity boundary: 5 years + 1 day -> step 1 (105 days) + step 2 (30 days/yr)
+      ---
+      duration_ms: 15.003
+      type: 'test'
+      ...
+    # Subtest: 3. Gratuity cap: 30 years service capped at 2 years wage (basic * 24)
+    ok 3 - 3. Gratuity cap: 30 years service capped at 2 years wage (basic * 24)
+      ---
+      duration_ms: 11.4828
+      type: 'test'
+      ...
+    # Subtest: 4. Unpaid absence days excluded from service period
+    ok 4 - 4. Unpaid absence days excluded from service period
+      ---
+      duration_ms: 27.1338
+      type: 'test'
+      ...
+    # Subtest: 5. Mid-month leaver prorated salary to last working day
+    ok 5 - 5. Mid-month leaver prorated salary to last working day
+      ---
+      duration_ms: 13.046
+      type: 'test'
+      ...
+    # Subtest: 6. Negative net settlement: recoveries exceed dues
+    ok 6 - 6. Negative net settlement: recoveries exceed dues
+      ---
+      duration_ms: 11.3417
+      type: 'test'
+      ...
+    # Subtest: 7. DB Trigger blocks modifying an Approved or Paid final settlement
+    ok 7 - 7. DB Trigger blocks modifying an Approved or Paid final settlement
+      ---
+      duration_ms: 207.4152
+      type: 'test'
+      ...
+# [API Error]: Error: Department managers can only clear their own assigned checklist items
+#     at SeparationService.updateClearanceItem (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/separationService.js:613:23)
+#     at async updateClearanceItem (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/separationController.js:112:18)
+    # Subtest: 8. Clearance item permissions: Department manager cannot clear Finance items
+    ok 8 - 8. Clearance item permissions: Department manager cannot clear Finance items
+      ---
+      duration_ms: 74.246
+      type: 'test'
+      ...
+    # Subtest: 9. Non-salary roles receive 403 on /api/v1/settlements
+    ok 9 - 9. Non-salary roles receive 403 on /api/v1/settlements
+      ---
+      duration_ms: 16.8779
+      type: 'test'
+      ...
+    # Subtest: 10. Cross-company tenant isolation on separations and settlements
+    ok 10 - 10. Cross-company tenant isolation on separations and settlements
+      ---
+      duration_ms: 507.1717
+      type: 'test'
+      ...
+    1..10
+ok 21 - Phase 8 Integration: Offboarding & Final Settlement
+  ---
+  duration_ms: 4075.275
+  type: 'suite'
+  ...
+# [email_outbox] Table "email_outbox" does not exist yet (migrations pending). Tolerating missing table, will retry next tick.
+# [Scheduler] [2026-11-17T05:16:20.670Z] Starting job 'email_outbox' (Trigger: STARTUP_TEST)...
+# Subtest: Part 8 Item 5: Startup Tolerance & Swagger Log Suppression
+    # Subtest: 1. mailer.processOutboxBatch tolerates missing database table and returns pendingMigrations: true
+    ok 1 - 1. mailer.processOutboxBatch tolerates missing database table and returns pendingMigrations: true
+      ---
+      duration_ms: 16.4698
+      type: 'test'
+      ...
+    # Subtest: 2. scheduler.executeJob handles pendingMigrations without throwing or failing
+    ok 2 - 2. scheduler.executeJob handles pendingMigrations without throwing or failing
+      ---
+      duration_ms: 1.3258
+      type: 'test'
+      ...
+    # Subtest: 3. Swagger documentation log line suppression logic when docs are disabled in production
+    ok 3 - 3. Swagger documentation log line suppression logic when docs are disabled in production
+      ---
+      duration_ms: 0.1981
+      type: 'test'
+      ...
+    1..3
+ok 22 - Part 8 Item 5: Startup Tolerance & Swagger Log Suppression
+  ---
+  duration_ms: 19.4946
+  type: 'suite'
+  ...
+# Subtest: Section 5.3 Permissions Matrix & Part 2 Features
+    # Subtest: 1. Payslips Role Security & PDF Audit (P1)
+        # Subtest: allows salary roles (Payroll, HR Mgr, GM, Finance) to access payslip JSON
+        ok 1 - allows salary roles (Payroll, HR Mgr, GM, Finance) to access payslip JSON
+          ---
+          duration_ms: 121.4633
+          type: 'test'
+          ...
+        # Subtest: blocks non-salary roles (HR Officer, Dept Manager, Company Admin alone) from accessing payslip JSON (403)
+        ok 2 - blocks non-salary roles (HR Officer, Dept Manager, Company Admin alone) from accessing payslip JSON (403)
+          ---
+          duration_ms: 68.4367
+          type: 'test'
+          ...
+        # Subtest: blocks employee from accessing unreleased (non-Paid) payslip, allows paid payslip
+        ok 3 - blocks employee from accessing unreleased (non-Paid) payslip, allows paid payslip
+          ---
+          duration_ms: 50.9514
+          type: 'test'
+          ...
+        # Subtest: logs every payslip PDF download in audit_logs with action PAYSLIP_PDF_DOWNLOAD
+        ok 4 - logs every payslip PDF download in audit_logs with action PAYSLIP_PDF_DOWNLOAD
+          ---
+          duration_ms: 2137.3966
+          type: 'test'
+          ...
+        1..4
+    ok 1 - 1. Payslips Role Security & PDF Audit (P1)
+      ---
+      duration_ms: 2379.4633
+      type: 'suite'
+      ...
+    # Subtest: 2. Separation Permissions & Scoping (P2, P3)
+        # Subtest: blocks Employee and Company Admin from listing or viewing separations (HTTP 403)
+        ok 1 - blocks Employee and Company Admin from listing or viewing separations (HTTP 403)
+          ---
+          duration_ms: 34.3876
+          type: 'test'
+          ...
+        # Subtest: blocks Company Admin from viewing and listing separation tasks (HTTP 403)
+        ok 2 - blocks Company Admin from viewing and listing separation tasks (HTTP 403)
+          ---
+          duration_ms: 13.5049
+          type: 'test'
+          ...
+        # Subtest: blocks Company Admin from every separation and settlement endpoint (HTTP 403)
+        ok 3 - blocks Company Admin from every separation and settlement endpoint (HTTP 403)
+          ---
+          duration_ms: 99.3534
+          type: 'test'
+          ...
+        # Subtest: allows HR Officer and HR Manager to create separations; blocks others (403)
+        ok 4 - allows HR Officer and HR Manager to create separations; blocks others (403)
+          ---
+          duration_ms: 14.303
+          type: 'test'
+          ...
+        # Subtest: strictly enforces HR Manager approval only on separations (others 403)
+        ok 5 - strictly enforces HR Manager approval only on separations (others 403)
+          ---
+          duration_ms: 49.1817
+          type: 'test'
+          ...
+# [API Error]: Error: Finance users can only clear Finance department checklist items
+#     at SeparationService.updateClearanceItem (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/separationService.js:594:23)
+#     at async updateClearanceItem (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/separationController.js:112:18)
+# [API Error]: Error: Department managers can only clear their own assigned checklist items
+#     at SeparationService.updateClearanceItem (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/separationService.js:613:23)
+#     at async updateClearanceItem (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/separationController.js:112:18)
+        # Subtest: strictly enforces clearance item owner role check (Finance vs Dept vs HR)
+        ok 6 - strictly enforces clearance item owner role check (Finance vs Dept vs HR)
+          ---
+          duration_ms: 42.1883
+          type: 'test'
+          ...
+        1..6
+    ok 2 - 2. Separation Permissions & Scoping (P2, P3)
+      ---
+      duration_ms: 253.9306
+      type: 'suite'
+      ...
+    # Subtest: 3. Final Settlement Steps & Role Enforcement (P4)
+        # Subtest: calculate/prepare restricted to Payroll Officer (others 403)
+        ok 1 - calculate/prepare restricted to Payroll Officer (others 403)
+          ---
+          duration_ms: 103.2289
+          type: 'test'
+          ...
+        # Subtest: validate restricted to HR Manager (others 403)
+        ok 2 - validate restricted to HR Manager (others 403)
+          ---
+          duration_ms: 10.0051
+          type: 'test'
+          ...
+        # Subtest: approve restricted to GM (others 403)
+        ok 3 - approve restricted to GM (others 403)
+          ---
+          duration_ms: 10.2477
+          type: 'test'
+          ...
+        # Subtest: mark paid restricted to Finance (others 403)
+        ok 4 - mark paid restricted to Finance (others 403)
+          ---
+          duration_ms: 10.0417
+          type: 'test'
+          ...
+        1..4
+    ok 3 - 3. Final Settlement Steps & Role Enforcement (P4)
+      ---
+      duration_ms: 134.0477
+      type: 'suite'
+      ...
+    # Subtest: 4. Employee Verification & Contract Approval (P5, P6)
+        # Subtest: POST /employees/:id/verify restricted to HR Manager (HR Officer gets 403)
+        ok 1 - POST /employees/:id/verify restricted to HR Manager (HR Officer gets 403)
+          ---
+          duration_ms: 53.316
+          type: 'test'
+          ...
+        # Subtest: contract creation restricted to Payroll Officer; GM and Finance are view only
+        ok 2 - contract creation restricted to Payroll Officer; GM and Finance are view only
+          ---
+          duration_ms: 65.1557
+          type: 'test'
+          ...
+        # Subtest: Payroll Officer creates a raise effective this month -> unapproved contract leaves pay run using old salary; HR Manager approves -> recalculation uses new salary; rejected version never used
+        ok 3 - Payroll Officer creates a raise effective this month -> unapproved contract leaves pay run using old salary; HR Manager approves -> recalculation uses new salary; rejected version never used
+          ---
+          duration_ms: 2168.8895
+          type: 'test'
+          ...
+        1..3
+    ok 4 - 4. Employee Verification & Contract Approval (P5, P6)
+      ---
+      duration_ms: 2287.9044
+      type: 'suite'
+      ...
+    # Subtest: 5. Users & Roles (P7) & Company Admin Matrix (P8)
+        # Subtest: Users & Roles management is restricted to Company Admin (HR Manager gets 403)
+        ok 1 - Users & Roles management is restricted to Company Admin (HR Manager gets 403)
+          ---
+          duration_ms: 34.1939
+          type: 'test'
+          ...
+        # Subtest: Company Admin alone without salary roles cannot run pay run or settlement actions (403)
+        ok 2 - Company Admin alone without salary roles cannot run pay run or settlement actions (403)
+          ---
+          duration_ms: 11.7169
+          type: 'test'
+          ...
+        1..2
+    ok 5 - 5. Users & Roles (P7) & Company Admin Matrix (P8)
+      ---
+      duration_ms: 46.2703
+      type: 'suite'
+      ...
+# [API Error]: Error: Segregation of duties violation: You cannot validate a pay run you calculated or prepared.
+#     at PayrollService.validatePayRun (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/payrollService.js:997:19)
+#     at async validatePayRun (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/payrollController.js:78:20)
+    # Subtest: 6. Pay-Run Segregation of Duties (P9)
+        # Subtest: blocks the user who calculated from validating the pay run (SELF_VALIDATION_BLOCKED)
+        ok 1 - blocks the user who calculated from validating the pay run (SELF_VALIDATION_BLOCKED)
+          ---
+          duration_ms: 26.4966
+          type: 'test'
+          ...
+# [API Error]: Error: Segregation of duties violation: You cannot approve or lock a pay run you calculated or validated.
+#     at PayrollService.lockPayRun (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/payrollService.js:1086:19)
+#     at async lockPayRun (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/payrollController.js:87:20)
+        # Subtest: blocks the validator from approving/locking the pay run (SELF_APPROVAL_BLOCKED)
+        ok 2 - blocks the validator from approving/locking the pay run (SELF_APPROVAL_BLOCKED)
+          ---
+          duration_ms: 19.5662
+          type: 'test'
+          ...
+# [API Error]: Error: Segregation of duties violation: You cannot mark paid a pay run you calculated, validated, or approved.
+#     at PayrollService.markPayRunPaid (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/payrollService.js:1186:19)
+#     at async markPayRunPaid (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/payrollController.js:96:20)
+        # Subtest: blocks the approver from marking pay run as Paid (SELF_PAYMENT_BLOCKED)
+        ok 3 - blocks the approver from marking pay run as Paid (SELF_PAYMENT_BLOCKED)
+          ---
+          duration_ms: 18.1414
+          type: 'test'
+          ...
+        1..3
+    ok 6 - 6. Pay-Run Segregation of Duties (P9)
+      ---
+      duration_ms: 64.5604
+      type: 'suite'
+      ...
+# [Scheduler] [2026-11-17T05:16:31.393Z] Starting job 'expiry' (Trigger: d36dd65e-2339-4eb7-91a6-e38e11faf3c1)...
+# [Scheduler] [2026-11-17T05:16:31.558Z] Completed job 'expiry' in 165ms
+    # Subtest: 7. Scheduled Jobs & Admin API (J1)
+        # Subtest: allows Company Admin to trigger scheduled jobs via POST /api/v1/jobs/:name/run
+        ok 1 - allows Company Admin to trigger scheduled jobs via POST /api/v1/jobs/:name/run
+          ---
+          duration_ms: 196.2638
+          type: 'test'
+          ...
+        # Subtest: blocks non-admin users from triggering scheduled jobs (403)
+        ok 2 - blocks non-admin users from triggering scheduled jobs (403)
+          ---
+          duration_ms: 5.1086
+          type: 'test'
+          ...
+        1..2
+    ok 7 - 7. Scheduled Jobs & Admin API (J1)
+      ---
+      duration_ms: 201.64
+      type: 'suite'
+      ...
+# [SECURITY WARNING] DOCUMENT_ENCRYPTION_KEY is not set; using dev-only fallback key.
+    # Subtest: 8. Separation Tasks API (W2, FR-OF7)
+        # Subtest: lists and updates separation cancellation tasks with reference_number and note
+        ok 1 - lists and updates separation cancellation tasks with reference_number and note
+          ---
+          duration_ms: 44.2066
+          type: 'test'
+          ...
+        1..1
+    ok 8 - 8. Separation Tasks API (W2, FR-OF7)
+      ---
+      duration_ms: 44.4285
+      type: 'suite'
+      ...
+    # Subtest: 9. Document Encryption at Rest (W3, FR-EM5)
+        # Subtest: encrypts files at rest with AES-256-GCM and decrypts transparently on download
+        ok 1 - encrypts files at rest with AES-256-GCM and decrypts transparently on download
+          ---
+          duration_ms: 9.1617
+          type: 'test'
+          ...
+        1..1
+    ok 9 - 9. Document Encryption at Rest (W3, FR-EM5)
+      ---
+      duration_ms: 9.4644
+      type: 'suite'
+      ...
+    # Subtest: 10. Payslip Email Notification (W4, FR-PY10)
+        # Subtest: dispatches email to employees without PDF attachment when run is marked Paid
+        ok 1 - dispatches email to employees without PDF attachment when run is marked Paid
+          ---
+          duration_ms: 0.3401
+          type: 'test'
+          ...
+        1..1
+    ok 10 - 10. Payslip Email Notification (W4, FR-PY10)
+      ---
+      duration_ms: 0.5464
+      type: 'suite'
+      ...
+    1..10
+ok 23 - Section 5.3 Permissions Matrix & Part 2 Features
+  ---
+  duration_ms: 8479.9554
+  type: 'suite'
+  ...
+# Subtest: Phase 3: Settings Engine, Formulas, Effective Dating & Permissions Tests
+    # Subtest: 1. Salary Formula Safety & Parser Validation (Rule A)
+        # Subtest: successfully parses and evaluates valid arithmetic expressions with Decimal precision
+        ok 1 - successfully parses and evaluates valid arithmetic expressions with Decimal precision
+          ---
+          duration_ms: 4.2518
+          type: 'test'
+          ...
+        # Subtest: rejects malicious injection attempts (process.exit, constructor, __proto__, require)
+        ok 2 - rejects malicious injection attempts (process.exit, constructor, __proto__, require)
+          ---
+          duration_ms: 1.0873
+          type: 'test'
+          ...
+        # Subtest: validates whitelist and rejects unknown variables
+        ok 3 - validates whitelist and rejects unknown variables
+          ---
+          duration_ms: 0.701
+          type: 'test'
+          ...
+        # Subtest: detects and forbids direct self-reference (circular dependency)
+        ok 4 - detects and forbids direct self-reference (circular dependency)
+          ---
+          duration_ms: 0.3823
+          type: 'test'
+          ...
+        # Subtest: detects and forbids forward references to later rules in sequence
+        ok 5 - detects and forbids forward references to later rules in sequence
+          ---
+          duration_ms: 0.3124
+          type: 'test'
+          ...
+        1..5
+    ok 1 - 1. Salary Formula Safety & Parser Validation (Rule A)
+      ---
+      duration_ms: 7.8082
+      type: 'suite'
+      ...
+    # Subtest: 2. Rule Engine Accuracy & Worked Examples (Rule B)
+        # Subtest: Ahmed example 8: Exactly nets AED 7,044.80 with normal OT, 2 days absence, and loan repayment
+        ok 1 - Ahmed example 8: Exactly nets AED 7,044.80 with normal OT, 2 days absence, and loan repayment
+          ---
+          duration_ms: 2.8444
+          type: 'test'
+          ...
+        # Subtest: Ahmed example 5: Absence deduction with 365 divisor gives AED 526.03
+        ok 2 - Ahmed example 5: Absence deduction with 365 divisor gives AED 526.03
+          ---
+          duration_ms: 1.1734
+          type: 'test'
+          ...
+        # Subtest: Sara gratuity (Section 8.4): Exactly AED 12,082.19 (basic 5,000, 3y 6m)
+        ok 3 - Sara gratuity (Section 8.4): Exactly AED 12,082.19 (basic 5,000, 3y 6m)
+          ---
+          duration_ms: 0.5029
+          type: 'test'
+          ...
+        # Subtest: Omar gratuity and leave encashment (Section 8.4): Gratuity AED 32,547.95, Leave Encashment AED 2,367.12
+        ok 4 - Omar gratuity and leave encashment (Section 8.4): Gratuity AED 32,547.95, Leave Encashment AED 2,367.12
+          ---
+          duration_ms: 0.6186
+          type: 'test'
+          ...
+        # Subtest: Extra preset: UAE National with GPSSA 5% deduction gives AED 9,500.00 net on AED 10,000 gross
+        ok 5 - Extra preset: UAE National with GPSSA 5% deduction gives AED 9,500.00 net on AED 10,000 gross
+          ---
+          duration_ms: 1.5692
+          type: 'test'
+          ...
+        # Subtest: POST /api/v1/settings/salary-rules/test simulator returns step-by-step breakdown
+        ok 6 - POST /api/v1/settings/salary-rules/test simulator returns step-by-step breakdown
+          ---
+          duration_ms: 30.496
+          type: 'test'
+          ...
+        # Subtest: changing GPSSA rate in Settings changes the calculation result (Fix a)
+        ok 7 - changing GPSSA rate in Settings changes the calculation result (Fix a)
+          ---
+          duration_ms: 71.6671
+          type: 'test'
+          ...
+        1..7
+    ok 2 - 2. Rule Engine Accuracy & Worked Examples (Rule B)
+      ---
+      duration_ms: 110.0241
+      type: 'suite'
+      ...
+# [API Error]: Error: Immutability Violation: Cannot modify settings for or before a locked pay run period (2026-09). Locked runs must preserve historical rule versions.
+#     at SettingsService.assertNotLockedPeriod (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/settingsService.js:45:19)
+#     at async SettingsService.updateShift (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/settingsService.js:957:5)
+#     at async updateShift (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/settingsController.js:215:18)
+    # Subtest: 3. Effective Dating & Locked Pay Run Protection (Rule C)
+        # Subtest: strictly blocks modifying settings with an effective date on or before a locked pay run (HTTP 400)
+        ok 1 - strictly blocks modifying settings with an effective date on or before a locked pay run (HTTP 400)
+          ---
+          duration_ms: 13.682
+          type: 'test'
+          ...
+        # Subtest: permits modifying settings with effective date after locked period and creates version snapshot
+        ok 2 - permits modifying settings with effective date after locked period and creates version snapshot
+          ---
+          duration_ms: 43.7461
+          type: 'test'
+          ...
+        1..2
+    ok 3 - 3. Effective Dating & Locked Pay Run Protection (Rule C)
+      ---
+      duration_ms: 66.2344
+      type: 'suite'
+      ...
+    # Subtest: 4. Section 5.3 Settings Role Permissions (Rule D)
+        # Subtest: Payroll Officer is permitted to edit salary rules
+        ok 1 - Payroll Officer is permitted to edit salary rules
+          ---
+          duration_ms: 37.0333
+          type: 'test'
+          ...
+        # Subtest: Payroll Officer is BLOCKED (HTTP 403) from non-salary settings (e.g. shifts, leaves, company profile)
+        ok 2 - Payroll Officer is BLOCKED (HTTP 403) from non-salary settings (e.g. shifts, leaves, company profile)
+          ---
+          duration_ms: 14.0065
+          type: 'test'
+          ...
+        # Subtest: Finance role is permitted to update debit_account and credit_account on salary rules
+        ok 3 - Finance role is permitted to update debit_account and credit_account on salary rules
+          ---
+          duration_ms: 27.0726
+          type: 'test'
+          ...
+# [API Error]: Error: Permission Denied (Section 5.3): Finance role is restricted to modifying debit and credit accounts only. Attempted: [formula]
+#     at SettingsService.updateSalaryRule (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/settingsService.js:1745:21)
+#     at async updateSalaryRule (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/settingsController.js:409:18)
+        # Subtest: Finance role is BLOCKED (HTTP 403) from updating formula or non-account rule attributes
+        ok 4 - Finance role is BLOCKED (HTTP 403) from updating formula or non-account rule attributes
+          ---
+          duration_ms: 14.2813
+          type: 'test'
+          ...
+        # Subtest: Employee role is BLOCKED (HTTP 403) from viewing or modifying settings
+        ok 5 - Employee role is BLOCKED (HTTP 403) from viewing or modifying settings
+          ---
+          duration_ms: 16.8269
+          type: 'test'
+          ...
+        1..5
+    ok 4 - 4. Section 5.3 Settings Role Permissions (Rule D)
+      ---
+      duration_ms: 114.9564
+      type: 'suite'
+      ...
+# [API Error]: Error: Cannot delete Shift 'Standard Office 8 to 5': Assigned to 51 employee contract(s) and referenced in 1698 attendance day(s). Deactivate the shift instead.
+#     at SettingsService.deleteShift (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/settingsService.js:1024:19)
+#     at async deleteShift (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/settingsController.js:228:18)
+    # Subtest: 5. Delete-in-Use Protection (Rule E)
+        # Subtest: blocks deleting a shift assigned to active employee contracts (HTTP 400)
+        ok 1 - blocks deleting a shift assigned to active employee contracts (HTTP 400)
+          ---
+          duration_ms: 17.843
+          type: 'test'
+          ...
+# [API Error]: Error: Cannot delete Leave Type 'Annual Leave': It has 45 allocation record(s) and 2 request(s). Deactivate instead.
+#     at SettingsService.deleteLeaveType (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/settingsService.js:1407:19)
+#     at async deleteLeaveType (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/settingsController.js:314:18)
+        # Subtest: blocks deleting a leave type with allocated balances or requests (HTTP 400)
+        ok 2 - blocks deleting a leave type with allocated balances or requests (HTTP 400)
+          ---
+          duration_ms: 15.1731
+          type: 'test'
+          ...
+# [API Error]: Error: Cannot delete Salary Rule 'BASIC': It is referenced in 84 historical payslip line(s). Deactivate instead.
+#     at SettingsService.deleteSalaryRule (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/settingsService.js:1837:19)
+#     at async deleteSalaryRule (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/settingsController.js:423:18)
+        # Subtest: blocks deleting a salary rule that has historical payslip lines (HTTP 400)
+        ok 3 - blocks deleting a salary rule that has historical payslip lines (HTTP 400)
+          ---
+          duration_ms: 14.6616
+          type: 'test'
+          ...
+        1..3
+    ok 5 - 5. Delete-in-Use Protection (Rule E)
+      ---
+      duration_ms: 48.0172
+      type: 'suite'
+      ...
+    # Subtest: 6. Audit Logging & Reset to UAE Defaults (Rule G)
+        # Subtest: writes audit logs with old_values and new_values on settings update
+        ok 1 - writes audit logs with old_values and new_values on settings update
+          ---
+          duration_ms: 36.0634
+          type: 'test'
+          ...
+        # Subtest: defaults-diff returns a preview comparing current settings against UAE statutory defaults
+        ok 2 - defaults-diff returns a preview comparing current settings against UAE statutory defaults
+          ---
+          duration_ms: 10.2472
+          type: 'test'
+          ...
+        # Subtest: reset-defaults successfully restores UAE 2026 public holidays
+        ok 3 - reset-defaults successfully restores UAE 2026 public holidays
+          ---
+          duration_ms: 43.2687
+          type: 'test'
+          ...
+        1..3
+    ok 6 - 6. Audit Logging & Reset to UAE Defaults (Rule G)
+      ---
+      duration_ms: 89.9577
+      type: 'suite'
+      ...
+    1..6
+ok 24 - Phase 3: Settings Engine, Formulas, Effective Dating & Permissions Tests
+  ---
+  duration_ms: 2220.9364
+  type: 'suite'
+  ...
+# Subtest: Visa & Branch Scope Enforcement & Settings Rules (Sections A & B)
+    # Subtest: Section A: Scope Enforcement (A.6)
+        # Subtest: A.6.1: hr.difc lists only Visa 02 employees
+        ok 1 - A.6.1: hr.difc lists only Visa 02 employees
+          ---
+          duration_ms: 81.6781
+          type: 'test'
+          ...
+# [API Error]: Error: Employee not found
+#     at ScopeService.assertEmployeeInScope (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/scopeService.js:216:19)
+#     at EmployeeService.getEmployeeById (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:438:18)
+#     at async getEmployeeById (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:63:18)
+        # Subtest: A.6.2: hr.difc requesting out-of-scope employee (Ahmed, Visa 01) returns 404 (not 403)
+        ok 2 - A.6.2: hr.difc requesting out-of-scope employee (Ahmed, Visa 01) returns 404 (not 403)
+          ---
+          duration_ms: 43.4694
+          type: 'test'
+          ...
+        # Subtest: A.6.3: hr.difc lists only Visa 02 pay runs
+        ok 3 - A.6.3: hr.difc lists only Visa 02 pay runs
+          ---
+          duration_ms: 23.2235
+          type: 'test'
+          ...
+# [API Error]: Error: Requested company visa is outside your assigned scope
+#     at ScopeService.validateVisaScope (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/scopeService.js:113:21)
+#     at ScopeService.buildEmployeeWhere (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/scopeService.js:125:10)
+#     at EmployeeService.listEmployees (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:54:37)
+#     at listEmployees (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:6:42)
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:149:13)
+#     at salaryMaskMiddleware (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/middleware/salaryMask.js:10:12)
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:149:13)
+#     at file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/middleware/permissions.js:52:5
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at next (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:149:13)
+#     at Route.dispatch (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\route.js:119:3)
+#     at Layer.handle [as handle_request] (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\layer.js:95:5)
+#     at C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:284:15
+#     at Function.process_params (C:\\Users\\mohamed imran\\Desktop\\hr-payroll-management\\node_modules\\express\\lib\\router\\index.js:346:12)
+        # Subtest: A.6.4: hr.difc requesting out-of-scope visa via top-bar filter returns 400 INVALID_VISA
+        ok 4 - A.6.4: hr.difc requesting out-of-scope visa via top-bar filter returns 400 INVALID_VISA
+          ---
+          duration_ms: 11.9156
+          type: 'test'
+          ...
+        # Subtest: A.6.5: Branch-scoped user sees only employees of that branch
+        ok 5 - A.6.5: Branch-scoped user sees only employees of that branch
+          ---
+          duration_ms: 50.6694
+          type: 'test'
+          ...
+        1..5
+    ok 1 - Section A: Scope Enforcement (A.6)
+      ---
+      duration_ms: 212.7715
+      type: 'suite'
+      ...
+# [API Error]: Error: Cannot change branch visa: Branch has 35 assigned employee(s). Move employees before changing visa.
+#     at SettingsService.updateBranch (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/settingsService.js:533:21)
+#     at async updateBranch (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/settingsController.js:91:18)
+    # Subtest: Section B: Visa / Branch Settings Rules (B.1–B.8)
+        # Subtest: B.1 (V5): changing branch company_visa_id when branch has employees returns 400 BRANCH_HAS_EMPLOYEES
+        ok 1 - B.1 (V5): changing branch company_visa_id when branch has employees returns 400 BRANCH_HAS_EMPLOYEES
+          ---
+          duration_ms: 28.3378
+          type: 'test'
+          ...
+# [API Error]: Error: Cannot delete Branch 'Temporary Test Branch': It has 1 branch-specific public holiday(s). Reassign or delete holidays first.
+#     at SettingsService.deleteBranch (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/settingsService.js:592:19)
+#     at async deleteBranch (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/settingsController.js:103:18)
+        # Subtest: B.2 (V6): deleting branch with branch-specific public holidays returns 400 BRANCH_HAS_HOLIDAYS
+        ok 2 - B.2 (V6): deleting branch with branch-specific public holidays returns 400 BRANCH_HAS_HOLIDAYS
+          ---
+          duration_ms: 41.6363
+          type: 'test'
+          ...
+# [API Error]: Error: MOHRE Employer ID 'MOHRE-784-0129' is already in use by another visa profile.
+#     at SettingsService.createCompanyVisa (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/settingsService.js:300:19)
+#     at async createVisa (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/settingsController.js:39:18)
+        # Subtest: B.3 (V1): creating visa with duplicate MOHRE ID returns 400 with field mol_establishment_id
+        ok 3 - B.3 (V1): creating visa with duplicate MOHRE ID returns 400 with field mol_establishment_id
+          ---
+          duration_ms: 10.6747
+          type: 'test'
+          ...
+# [API Error]: Error: Bank routing code must be exactly 9 characters.
+#     at SettingsService.createCompanyVisa (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/settingsService.js:309:19)
+#     at async createVisa (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/settingsController.js:39:18)
+        # Subtest: B.3 (V1): creating visa with routing code !== 9 characters returns 400 with field bank_routing_code
+        ok 4 - B.3 (V1): creating visa with routing code !== 9 characters returns 400 with field bank_routing_code
+          ---
+          duration_ms: 11.3471
+          type: 'test'
+          ...
+        # Subtest: B.4 (V2): lock pay run, edit visa routing code, regenerate SIF -> still the old code
+        ok 5 - B.4 (V2): lock pay run, edit visa routing code, regenerate SIF -> still the old code
+          ---
+          duration_ms: 90.6976
+          type: 'test'
+          ...
+# [API Error]: Error: Visa transfer is not supported for employees with payroll history. Open client decision.
+#     at EmployeeService.updateEmployee (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:716:21)
+#     at async updateEmployee (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:80:18)
+        # Subtest: B.5 (V9): updating company_visa_id of an employee with pay history returns 400 VISA_TRANSFER_NOT_SUPPORTED
+        ok 6 - B.5 (V9): updating company_visa_id of an employee with pay history returns 400 VISA_TRANSFER_NOT_SUPPORTED
+          ---
+          duration_ms: 16.1209
+          type: 'test'
+          ...
+        # Subtest: B.7 (V10): branch-specific public holiday is applied only to employees of that branch in leave calculation
+        ok 7 - B.7 (V10): branch-specific public holiday is applied only to employees of that branch in leave calculation
+          ---
+          duration_ms: 32.7896
+          type: 'test'
+          ...
+# [API Error]: Error: A pay run already exists for visa 'Visa 01 (MOHRE Dubai)' for period 2026-10
+#     at PayrollService.createPayRun (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/payrollService.js:416:19)
+#     at async createPayRun (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/payrollController.js:60:20)
+        # Subtest: B.8 (V11): duplicate Regular pay run for same visa and month is rejected with 409 PAY_RUN_EXISTS
+        ok 8 - B.8 (V11): duplicate Regular pay run for same visa and month is rejected with 409 PAY_RUN_EXISTS
+          ---
+          duration_ms: 18.6415
+          type: 'test'
+          ...
+        1..8
+    ok 2 - Section B: Visa / Branch Settings Rules (B.1–B.8)
+      ---
+      duration_ms: 251.5018
+      type: 'suite'
+      ...
+    # Subtest: Follow-up 5: Fail-Closed Scope & Branch Change Workflow (Sections 1 & 2)
+        # Subtest: 1.1: resolveDataScope(undefined) and resolveDataScope(null) fail closed
+        ok 1 - 1.1: resolveDataScope(undefined) and resolveDataScope(null) fail closed
+          ---
+          duration_ms: 2.4188
+          type: 'test'
+          ...
+        # Subtest: 1.2: user with only EMPLOYEE role -> /employees 403 and resolveDataScope returns empty
+        ok 2 - 1.2: user with only EMPLOYEE role -> /employees 403 and resolveDataScope returns empty
+          ---
+          duration_ms: 417.105
+          type: 'test'
+          ...
+# [API Error]: Error: Employee not found
+#     at ScopeService.assertEmployeeInScope (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/scopeService.js:216:19)
+#     at EmployeeService.getEmployeeById (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:438:18)
+#     at async getEmployeeById (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:63:18)
+        # Subtest: 1.3: hr.difc ALSO given an EMPLOYEE role linked to a Visa 02 employee -> still only Visa 02 data
+        ok 3 - 1.3: hr.difc ALSO given an EMPLOYEE role linked to a Visa 02 employee -> still only Visa 02 data
+          ---
+          duration_ms: 484.1858
+          type: 'test'
+          ...
+# [API Error]: Error: Selected branch does not belong to the selected company visa
+#     at EmployeeService.requestBranchChange (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:1970:19)
+#     at async requestBranchChange (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:444:18)
+        # Subtest: 2.1 (V8): branch change target with forged cross-visa branch returns 400 BRANCH_VISA_MISMATCH
+        ok 4 - 2.1 (V8): branch change target with forged cross-visa branch returns 400 BRANCH_VISA_MISMATCH
+          ---
+          duration_ms: 23.0278
+          type: 'test'
+          ...
+# [API Error]: Error: Effective date cannot be in the past
+#     at EmployeeService.requestBranchChange (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:1937:19)
+#     at async requestBranchChange (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:444:18)
+        # Subtest: 2.2 (V8): branch change with past effective date returns 400 INVALID_EFFECTIVE_DATE
+        ok 5 - 2.2 (V8): branch change with past effective date returns 400 INVALID_EFFECTIVE_DATE
+          ---
+          duration_ms: 17.1933
+          type: 'test'
+          ...
+# [API Error]: Error: A branch change request is already pending for this employee
+#     at EmployeeService.requestBranchChange (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/employeeService.js:1953:19)
+#     at async requestBranchChange (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/employeeController.js:444:18)
+# [API Error]: Error: Self-approval is forbidden: nobody approves their own request.
+#     at ApprovalService.actionRequest (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/approvalService.js:346:19)
+#     at async actionApprovalRequest (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/approvalController.js:45:20)
+        # Subtest: 2.3 (V8): self-approval of branch change returns 403 SELF_APPROVAL_FORBIDDEN
+        ok 6 - 2.3 (V8): self-approval of branch change returns 403 SELF_APPROVAL_FORBIDDEN
+          ---
+          duration_ms: 113.4726
+          type: 'test'
+          ...
+        # Subtest: 2.4 (V8): future-dated branch change stays on old branch until 01:30 job runs on that date
+        ok 7 - 2.4 (V8): future-dated branch change stays on old branch until 01:30 job runs on that date
+          ---
+          duration_ms: 484.1661
+          type: 'test'
+          ...
+        1..7
+    ok 3 - Follow-up 5: Fail-Closed Scope & Branch Change Workflow (Sections 1 & 2)
+      ---
+      duration_ms: 1542.384
+      type: 'suite'
+      ...
+    1..3
+ok 25 - Visa & Branch Scope Enforcement & Settings Rules (Sections A & B)
+  ---
+  duration_ms: 3897.5074
+  type: 'suite'
+  ...
+# [API Error]: Error: Permission denied: Step 1 requires role 'DEPT_MANAGER'. You have [GM].
+#     at ApprovalService.actionRequest (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/approvalService.js:435:19)
+#     at async LeaveService.actOnLeave (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/leaveService.js:478:26)
+#     at async actOnLeave (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/leaveController.js:60:20)
+# [API Error]: Error: Employees can only cancel leave requests
+#     at LeaveService.actOnLeave (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/leaveService.js:339:21)
+#     at async actOnLeave (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/leaveController.js:60:20)
+# [API Error]: Error: Leave request has already been processed with status 'Approved'
+#     at LeaveService.actOnLeave (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/services/leaveService.js:406:19)
+#     at async actOnLeave (file:///C:/Users/mohamed%20imran/Desktop/hr-payroll-management/backend/src/controllers/leaveController.js:60:20)
+# Subtest: Spec 7.4 & T15 Leave Approval Chain & Single Balance Deduction
+    # Subtest: 1. Employee applies 4-day annual leave (Mon–Fri with Wed holiday) -> status Pending at Step 1 (Dept Manager)
+    ok 1 - 1. Employee applies 4-day annual leave (Mon–Fri with Wed holiday) -> status Pending at Step 1 (Dept Manager)
+      ---
+      duration_ms: 381.1702
+      type: 'test'
+      ...
+    # Subtest: 2. Flagged leave type requires GM (Step 3) after HR approval
+    ok 2 - 2. Flagged leave type requires GM (Step 3) after HR approval
+      ---
+      duration_ms: 232.4737
+      type: 'test'
+      ...
+    # Subtest: 3. Refuse at Step 1 -> status Refused, balance untouched
+    ok 3 - 3. Refuse at Step 1 -> status Refused, balance untouched
+      ---
+      duration_ms: 112.8984
+      type: 'test'
+      ...
+    1..3
+ok 26 - Spec 7.4 & T15 Leave Approval Chain & Single Balance Deduction
+  ---
+  duration_ms: 2058.0977
+  type: 'suite'
+  ...
+# Subtest: Password Hashing & Transparent Rehash (B3)
+    # Subtest: hashPassword produces bcrypt hash with cost >= 12
+    ok 1 - hashPassword produces bcrypt hash with cost >= 12
+      ---
+      duration_ms: 256.528
+      type: 'test'
+      ...
+    # Subtest: needsRehash correctly flags legacy cost hashes (< 12)
+    ok 2 - needsRehash correctly flags legacy cost hashes (< 12)
+      ---
+      duration_ms: 0.3334
+      type: 'test'
+      ...
+# [AUTH] User without role logged in: rehash.test.1794892607526@example.com (userId: fb2fbd3e-5e54-4439-993a-332d48b025b1, companyId: f4f9b890-e98e-4f31-b9ba-112636991768)
+# [AUTH] User without role logged in: rehash.test.1794892607526@example.com (userId: fb2fbd3e-5e54-4439-993a-332d48b025b1, companyId: f4f9b890-e98e-4f31-b9ba-112636991768)
+    # Subtest: login verifies legacy hash and transparently upgrades DB record to cost >= 12
+    ok 3 - login verifies legacy hash and transparently upgrades DB record to cost >= 12
+      ---
+      duration_ms: 716.9239
+      type: 'test'
+      ...
+    1..3
+ok 27 - Password Hashing & Transparent Rehash (B3)
+  ---
+  duration_ms: 975.5367
+  type: 'test'
+  ...
+# Subtest: Password Reset & Invite Flows End-to-End (E3 & SEC-4)
+    # Subtest: 1. forgot-password generates single-use expiring token and dispatches email
+    ok 1 - 1. forgot-password generates single-use expiring token and dispatches email
+      ---
+      duration_ms: 26.7947
+      type: 'test'
+      ...
+    # Subtest: 2. timing and message are indistinguishable between known and unknown emails (anti-enumeration)
+    ok 2 - 2. timing and message are indistinguishable between known and unknown emails (anti-enumeration)
+      ---
+      duration_ms: 77.1611
+      type: 'test'
+      ...
+# [AUTH] User without role logged in: test_flow_1794892608718@flowtest.ae (userId: 8bc4d2ed-fed6-468d-9565-e4518a7ad5a2, companyId: f4f9b890-e98e-4f31-b9ba-112636991768)
+    # Subtest: 3. resetting password invalidates all sessions by incrementing token_version
+    ok 3 - 3. resetting password invalidates all sessions by incrementing token_version
+      ---
+      duration_ms: 575.6937
+      type: 'test'
+      ...
+    # Subtest: 4. reset token is single-use: second attempt fails with TOKEN_ALREADY_USED
+    ok 4 - 4. reset token is single-use: second attempt fails with TOKEN_ALREADY_USED
+      ---
+      duration_ms: 282.8867
+      type: 'test'
+      ...
+    # Subtest: 5. invite link token is single-use and cannot be used twice
+    ok 5 - 5. invite link token is single-use and cannot be used twice
+      ---
+      duration_ms: 340.1675
+      type: 'test'
+      ...
+    # Subtest: 6. HR facts alone cannot reset a password or MFA (SEC-4)
+    ok 6 - 6. HR facts alone cannot reset a password or MFA (SEC-4)
+      ---
+      duration_ms: 2.9798
+      type: 'test'
+      ...
+    1..6
+ok 28 - Password Reset & Invite Flows End-to-End (E3 & SEC-4)
+  ---
+  duration_ms: 1611.114
+  type: 'test'
+  ...
+# [Mailer] Sent email to: fatima@gulftech.ae | Message ID: <4d14e1a6-d529-961a-ebd6-88e6877a9734@nextal.ae>
+# Subtest: Real SMTP Transport, Delivery Logging & Production Security (E1 & E2)
+    # Subtest: delivers branded invite email to SMTP server with single-use link and zero salary data
+    ok 1 - delivers branded invite email to SMTP server with single-use link and zero salary data
+      ---
+      duration_ms: 298.9773
+      type: 'test'
+      ...
+# [Mailer] Sent email to: zaid@gulftech.ae | Message ID: <8c12b53d-6669-e7b5-bb7b-6fd3dc894f79@nextal.ae>
+    # Subtest: delivers branded payslip notification with ZERO salary amounts in HTML or text
+    ok 2 - delivers branded payslip notification with ZERO salary amounts in HTML or text
+      ---
+      duration_ms: 264.7229
+      type: 'test'
+      ...
+# [Mailer] Sent email to: omar@gulftech.ae | Message ID: <edb91170-06f4-e529-1632-b6518b10a4f7@nextal.ae>
+    # Subtest: delivers branded Arabic password reset with 60-minute expiry warning
+    ok 3 - delivers branded Arabic password reset with 60-minute expiry warning
+      ---
+      duration_ms: 266.9464
+      type: 'test'
+      ...
+    # Subtest: logs "failed" with error message and NEVER logs body when SMTP delivery fails
+    ok 4 - logs "failed" with error message and NEVER logs body when SMTP delivery fails
+      ---
+      duration_ms: 15.0264
+      type: 'test'
+      ...
+    # Subtest: E2: In production mode, NO files are written to storage/email-dev
+    ok 5 - E2: In production mode, NO files are written to storage/email-dev
+      ---
+      duration_ms: 13.2888
+      type: 'test'
+      ...
+    1..5
+ok 29 - Real SMTP Transport, Delivery Logging & Production Security (E1 & E2)
+  ---
+  duration_ms: 933.9684
+  type: 'test'
+  ...
+# Subtest: Unit Tests: Scheduled Jobs
+    # Subtest: runNightlyExpiryJob: scans employee documents and reports status
+    ok 1 - runNightlyExpiryJob: scans employee documents and reports status
+      ---
+      duration_ms: 78.8427
+      type: 'test'
+      ...
+    # Subtest: runMonthlyAccrualJob: is idempotent when run multiple times in same month
+    ok 2 - runMonthlyAccrualJob: is idempotent when run multiple times in same month
+      ---
+      duration_ms: 394.7382
+      type: 'test'
+      ...
+    1..2
+ok 30 - Unit Tests: Scheduled Jobs
+  ---
+  duration_ms: 474.6574
+  type: 'suite'
+  ...
+# Subtest: Unit Tests: Serializers & Salary Access Control
+    # Subtest: hasSalaryAccess: strictly allows only the 4 statutory salary roles
+    ok 1 - hasSalaryAccess: strictly allows only the 4 statutory salary roles
+      ---
+      duration_ms: 1.0524
+      type: 'test'
+      ...
+    # Subtest: hasSensitiveIdAccess: allows HR roles and Company Admin, blocks others
+    ok 2 - hasSensitiveIdAccess: allows HR roles and Company Admin, blocks others
+      ---
+      duration_ms: 0.3355
+      type: 'test'
+      ...
+    # Subtest: deepSanitize: removes all forbidden salary and bank keys recursively
+    ok 3 - deepSanitize: removes all forbidden salary and bank keys recursively
+      ---
+      duration_ms: 0.42
+      type: 'test'
+      ...
+    1..3
+ok 31 - Unit Tests: Serializers & Salary Access Control
+  ---
+  duration_ms: 3.0815
+  type: 'suite'
+  ...
+# Subtest: Production Environment Validation (B2 Requirements)
+    # Subtest: passes with fully compliant production environment
+    ok 1 - passes with fully compliant production environment
+      ---
+      duration_ms: 0.8717
+      type: 'test'
+      ...
+    # Subtest: refuses start if JWT_SECRET is missing
+    ok 2 - refuses start if JWT_SECRET is missing
+      ---
+      duration_ms: 0.2311
+      type: 'test'
+      ...
+    # Subtest: refuses start if JWT_SECRET is too short (< 32 chars)
+    ok 3 - refuses start if JWT_SECRET is too short (< 32 chars)
+      ---
+      duration_ms: 0.9956
+      type: 'test'
+      ...
+    # Subtest: refuses start if JWT_SECRET uses weak default/dictionary value
+    ok 4 - refuses start if JWT_SECRET uses weak default/dictionary value
+      ---
+      duration_ms: 0.253
+      type: 'test'
+      ...
+    # Subtest: refuses start if DOCUMENT_ENCRYPTION_KEY is missing in production
+    ok 5 - refuses start if DOCUMENT_ENCRYPTION_KEY is missing in production
+      ---
+      duration_ms: 0.1709
+      type: 'test'
+      ...
+    # Subtest: refuses start if DOCUMENT_ENCRYPTION_KEY uses dev fallback key
+    ok 6 - refuses start if DOCUMENT_ENCRYPTION_KEY uses dev fallback key
+      ---
+      duration_ms: 0.2193
+      type: 'test'
+      ...
+    # Subtest: refuses start if DATABASE_URL points at localhost default creds in production
+    ok 7 - refuses start if DATABASE_URL points at localhost default creds in production
+      ---
+      duration_ms: 0.161
+      type: 'test'
+      ...
+    # Subtest: refuses start if COOKIE_SECURE is not true in production
+    ok 8 - refuses start if COOKIE_SECURE is not true in production
+      ---
+      duration_ms: 0.2989
+      type: 'test'
+      ...
+    # Subtest: refuses start if ALLOWED_ORIGIN is wildcard * in production
+    ok 9 - refuses start if ALLOWED_ORIGIN is wildcard * in production
+      ---
+      duration_ms: 0.5801
+      type: 'test'
+      ...
+    # Subtest: refuses start if ALLOWED_ORIGIN is missing in production
+    ok 10 - refuses start if ALLOWED_ORIGIN is missing in production
+      ---
+      duration_ms: 0.3682
+      type: 'test'
+      ...
+    # Subtest: refuses start if ENABLE_JOBS is not explicitly set in production
+    ok 11 - refuses start if ENABLE_JOBS is not explicitly set in production
+      ---
+      duration_ms: 0.211
+      type: 'test'
+      ...
+    # Subtest: refuses start in production if SMTP settings missing without MAIL_MODE=disabled
+    ok 12 - refuses start in production if SMTP settings missing without MAIL_MODE=disabled
+      ---
+      duration_ms: 0.1563
+      type: 'test'
+      ...
+    # Subtest: passes in production without SMTP settings if MAIL_MODE=disabled is explicitly set
+    ok 13 - passes in production without SMTP settings if MAIL_MODE=disabled is explicitly set
+      ---
+      duration_ms: 0.1704
+      type: 'test'
+      ...
+    1..13
+ok 32 - Production Environment Validation (B2 Requirements)
+  ---
+  duration_ms: 7.1803
+  type: 'test'
+  ...
+1..32
+# tests 357
+# suites 85
+# pass 356
+# fail 0
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 150558.1745
+
