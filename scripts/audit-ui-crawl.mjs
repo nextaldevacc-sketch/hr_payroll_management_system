@@ -209,6 +209,7 @@ async function run() {
           NODE_ENV: isProdRun ? 'production' : 'development',
           FEATURE_PLATFORM_ADMIN: 'false',
           RATE_LIMIT_MAX: '10000',
+          AUTH_RATE_LIMIT_MAX: '10000',
         },
         stdio: 'inherit',
       });

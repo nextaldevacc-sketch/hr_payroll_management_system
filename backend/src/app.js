@@ -173,7 +173,12 @@ app.get(['/health', '/api/v1/health'], async (req, res, next) => {
 });
 
 // 9. API Modules
-app.use('/api/v1/auth', authLimiter, authRoutes);
+app.use('/api/v1/auth', (req, res, next) => {
+  if (req.path === '/me' || req.path === '/logout' || req.path === '/mfa/status') {
+    return next();
+  }
+  return authLimiter(req, res, next);
+}, authRoutes);
 if (process.env.FEATURE_PLATFORM_ADMIN === 'true') {
   app.use('/api/v1/platform', platformRoutes);
 } else {
