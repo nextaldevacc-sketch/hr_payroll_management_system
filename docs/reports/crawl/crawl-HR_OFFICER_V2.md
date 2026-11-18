@@ -1,10 +1,10 @@
 # UI Crawler Audit Report: HR_OFFICER_V2
 
 - **Role Code**: `HR_OFFICER_V2`
-- **Controls Discovered**: 170
-- **Controls Clicked & Verified**: 170
+- **Controls Discovered**: 173
+- **Controls Clicked & Verified**: 173
 - **Bugs & Anomalies**: 0
-- **Timestamp**: 2026-11-18T05:28:33.622Z
+- **Timestamp**: 2026-11-18T12:41:17.375Z
 
 ### Status: PASS (0 Bugs)
 

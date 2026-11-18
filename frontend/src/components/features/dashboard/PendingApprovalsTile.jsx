@@ -10,9 +10,14 @@ import { useLanguage } from '../../../context/LanguageContext';
 
 const APPROVAL_TYPE_LABELS = {
   'Leave Requests': { en: 'Leave Requests', ar: 'طلبات الإجازة' },
+  'LEAVE': { en: 'Leave Request', ar: 'طلب إجازة' },
   'Overtime Hours': { en: 'Overtime Hours', ar: 'ساعات الإضافي' },
+  'OVERTIME': { en: 'Overtime', ar: 'العمل الإضافي' },
   'Salary Adjustments': { en: 'Salary Adjustments', ar: 'تعديلات الرواتب' },
+  'SALARY_ADJUSTMENT': { en: 'Salary Adjustment', ar: 'تسوية راتب' },
   'Final Settlements': { en: 'Final Settlements', ar: 'مستحقات نهاية الخدمة' },
+  'EMPLOYEE_VERIFICATION': { en: 'Employee Verification', ar: 'توثيق بيانات موظف' },
+  'EMPLOYEE_BRANCH_CHANGE': { en: 'Branch Transfer', ar: 'نقل فرع الموظف' },
 };
 
 export function PendingApprovalsTile({ data, onClick, onApproveItem, onOpenItem }) {
@@ -75,34 +80,36 @@ export function PendingApprovalsTile({ data, onClick, onApproveItem, onOpenItem 
                     {language === 'ar' ? (item.employeeAr || item.employee) : item.employee}
                   </span>
                   <span className="text-[10px] text-text-muted block leading-none">
-                    {item.type} · {item.age}
+                    {(language === 'ar'
+                      ? APPROVAL_TYPE_LABELS[item.type]?.ar
+                      : APPROVAL_TYPE_LABELS[item.type]?.en) || item.type} · {item.age}
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-1 flex-shrink-0">
-                {!item.isOwn ? (
+                {onApproveItem && !item.isOwn ? (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onApproveItem && onApproveItem(item);
+                      onApproveItem(item);
                     }}
                     className="px-2 py-0.5 rounded text-[11px] font-bold bg-secondary text-white hover:bg-secondary/90 flex items-center gap-1 transition-colors"
                   >
                     <Check className="w-3 h-3" />
                     <span>{language === 'ar' ? 'موافقة' : 'Approve'}</span>
                   </button>
-                ) : (
+                ) : onOpenItem ? (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onOpenItem && onOpenItem(item);
+                      onOpenItem(item);
                     }}
                     className="px-2 py-0.5 rounded text-[11px] font-medium bg-black/5 dark:bg-inset text-text hover:bg-black/10 dark:hover:bg-inset-hover transition-colors"
                   >
                     <span>{language === 'ar' ? 'فتح' : 'Open'}</span>
                   </button>
-                )}
+                ) : null}
               </div>
             </InsetBox>
           ))}

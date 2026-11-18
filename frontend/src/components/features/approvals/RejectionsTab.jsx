@@ -334,7 +334,7 @@ export function RejectionsTab({ isPersonal = false }) {
                       </td>
                       <td className="py-3.5 px-4 max-w-[280px]">
                         <p className="line-clamp-2 text-text/90 italic" title={r.reason}>
-                          "{r.reason}"
+                          &ldquo;{r.reason}&rdquo;
                         </p>
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap text-text-muted">
@@ -354,6 +354,7 @@ export function RejectionsTab({ isPersonal = false }) {
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         <button
                           type="button"
+                          data-testid="btn-view-rejection"
                           onClick={() => setSelectedItem(r)}
                           className="p-1.5 rounded-lg text-text-muted hover:text-text hover:bg-surface border border-transparent hover:border-border transition-colors"
                           title={isAr ? 'عرض التفاصيل' : 'View Full Details'}

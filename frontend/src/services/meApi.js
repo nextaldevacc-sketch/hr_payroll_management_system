@@ -70,6 +70,12 @@ export async function getMyRejections({ search = '', requestType = '', startDate
   const query = params.toString();
   const endpoint = `/me/rejections${query ? `?${query}` : ''}`;
   const res = await request(endpoint);
+  if (Array.isArray(res)) {
+    return {
+      data: res,
+      pagination: { total: res.length, page: Number(page) || 1, limit: Number(limit) || 20, totalPages: 1 },
+    };
+  }
   return {
     data: res?.data || [],
     pagination: res?.pagination || { total: 0, page: 1, limit: 20, totalPages: 1 },

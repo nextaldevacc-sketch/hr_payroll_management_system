@@ -153,7 +153,8 @@ async function checkForRawTexts(page) {
           'EMPLOYEE', 'HR_MANAGER', 'HR_OFFICER', 'HR_OFFICER_V2', 'PAYROLL_OFFICER', 'DEPT_MANAGER', 'COMPANY_ADMIN',
           'NOT_APPLICABLE', 'ACTIVE', 'INACTIVE', 'PROBATION', 'NOTICE_PERIOD', 'TERMINATED', 'RESIGNED',
           'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'SUBMITTED', 'DRAFT', 'ON_HOLD', 'PROCESSING', 'PAID',
-          'COMPLETED', 'PENDING_FINANCE', 'PENDING_GM', 'PENDING_HR'
+          'COMPLETED', 'PENDING_FINANCE', 'PENDING_GM', 'PENDING_HR',
+          'EMPLOYEE_VERIFICATION', 'EMPLOYEE_BRANCH_CHANGE', 'BANK_ACCOUNT_CHANGE', 'SALARY_ADJUSTMENT'
         ].includes(code) &&
         !code.startsWith('NEXTAL_') &&
         !code.startsWith('EMP_') &&
@@ -167,6 +168,187 @@ async function checkForRawTexts(page) {
 
     return badTokens;
   });
+}
+
+const COMPANY_REJECTION_LOG_ROLES = ['HR_MANAGER', 'HR_OFFICER', 'HR_OFFICER_V2', 'GM', 'COMPANY_ADMIN'];
+const RESTRICTED_REJECTION_ROLES = ['DEPT_MANAGER', 'PAYROLL_OFFICER', 'FINANCE', 'EMPLOYEE'];
+
+async function verifyApprovalsAndRejections(page, role, email, allBugs, roleBugs) {
+  if (RESTRICTED_REJECTION_ROLES.includes(role)) {
+    console.log(`  -> [${role}] Verifying Rejection Log access is restricted...`);
+    await page.goto(`${BASE_URL}/approvals`, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
+    await page.waitForSelector('main button, [data-testid="access-denied-403"], #tab-pending-approvals, #tab-my-rejected-approvals, h2', { timeout: 10000 }).catch(() => null);
+    await page.waitForTimeout(500);
+
+    // 1. Assert #tab-rejected-approvals is NOT present in DOM
+    const rejTab = await page.$('#tab-rejected-approvals');
+    if (rejTab !== null) {
+      const bug = {
+        role,
+        route: '/approvals',
+        type: 'SECURITY_LEAK_REJECTION_TAB',
+        detail: `Restricted role ${role} has #tab-rejected-approvals visible on /approvals`,
+      };
+      console.log(`    [BUG ${bug.type}]: ${bug.detail}`);
+      allBugs.push(bug);
+      roleBugs.push(bug);
+    } else {
+      console.log(`     [PASS] #tab-rejected-approvals is NOT present for ${role}`);
+    }
+
+    // 2. Assert direct API call returns 403
+    const apiStatus = await page.evaluate(async () => {
+      try {
+        const res = await fetch('/api/v1/approvals/rejections', { credentials: 'include' });
+        return res.status;
+      } catch (e) {
+        return 0;
+      }
+    });
+
+    if (apiStatus !== 403) {
+      const bug = {
+        role,
+        route: '/approvals',
+        type: 'SECURITY_LEAK_API_REJECTIONS',
+        detail: `Direct API GET /api/v1/approvals/rejections returned HTTP ${apiStatus}, expected 403`,
+      };
+      console.log(`    [BUG ${bug.type}]: ${bug.detail}`);
+      allBugs.push(bug);
+      roleBugs.push(bug);
+    } else {
+      console.log(`     [PASS] Direct API call returned HTTP 403 for ${role}`);
+    }
+    return;
+  }
+
+  if (COMPANY_REJECTION_LOG_ROLES.includes(role)) {
+    console.log(`  -> [${role}] Verifying Rejection Log tab and reject dialog flow on /approvals...`);
+    await page.goto(`${BASE_URL}/approvals`, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(1000);
+    console.log(`     [DEBUG] Page URL: ${page.url()}`);
+    const bodyTextSnippet = (await page.evaluate(() => document.body.innerText || '')).slice(0, 150).replace(/\s+/g, ' ');
+    console.log(`     [DEBUG] Body text preview: "${bodyTextSnippet}"`);
+    const rejTab = await page.waitForSelector('#tab-rejected-approvals', { timeout: 15000 }).catch(() => null);
+
+    // 1. Click "Rejection Log" tab
+    if (!rejTab) {
+      const bug = {
+        role,
+        route: '/approvals',
+        type: 'MISSING_REJECTION_TAB',
+        detail: `Allowed role ${role} cannot find #tab-rejected-approvals on /approvals`,
+      };
+      console.log(`    [BUG ${bug.type}]: ${bug.detail}`);
+      allBugs.push(bug);
+      roleBugs.push(bug);
+      return;
+    }
+
+    await rejTab.click();
+    console.log(`     [PASS] Clicked #tab-rejected-approvals for ${role}`);
+    await page.waitForTimeout(600);
+
+    // 2. Open a row in the rejections table (click eye button)
+    const viewBtn = await page.waitForSelector('button[data-testid="btn-view-rejection"], tbody tr td button:has(svg.lucide-eye), tbody tr td button:has(svg)', { timeout: 10000 }).catch(() => null);
+    if (viewBtn) {
+      await viewBtn.click();
+      await page.waitForTimeout(500);
+      console.log(`     [PASS] Opened rejection record detail modal`);
+
+      // Close modal
+      const closeBtn = await page.waitForSelector('div[role="dialog"] [title="Close"], div[role="dialog"] .icon-well, div[role="dialog"] button:has(svg)', { timeout: 5000 }).catch(() => null);
+      if (closeBtn) {
+        await closeBtn.click().catch(() => {});
+        await page.waitForTimeout(400);
+        console.log(`     [PASS] Closed rejection detail modal`);
+      }
+      const dialogStillOpen = await page.$('div[role="dialog"]');
+      if (dialogStillOpen) {
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(400);
+      }
+    } else {
+      console.log(`     [INFO] No row with eye button found in Rejection Log table for ${role}`);
+    }
+
+    // 3. Switch back to "Pending Approvals" tab
+    const pendingTab = await page.waitForSelector('#tab-pending-approvals', { timeout: 5000 }).catch(() => null);
+    if (pendingTab) {
+      await pendingTab.click();
+      await page.waitForTimeout(600);
+    }
+
+    // 4. For a pending request: open the reject dialog
+    const rejectBtn = await page.waitForSelector('button#btn-verify-sendback, [data-testid^="btn-reject-"]', { timeout: 10000 }).catch(() => null);
+    if (!rejectBtn) {
+      console.log(`     [INFO] No pending requests awaiting action for ${role}`);
+      return;
+    }
+
+    await rejectBtn.click();
+    await page.waitForTimeout(500);
+    console.log(`     [PASS] Opened reject dialog for pending request`);
+
+    const reasonInput = await page.waitForSelector('#reject-dialog-reason, [data-testid="reject-dialog-reason-input"]', { timeout: 5000 }).catch(() => null);
+    const confirmBtn = await page.waitForSelector('#btn-confirm-rejection, [data-testid="btn-confirm-rejection"]', { timeout: 5000 }).catch(() => null);
+
+    if (!reasonInput || !confirmBtn) {
+      const bug = {
+        role,
+        route: '/approvals',
+        type: 'MISSING_REJECT_DIALOG_ELEMENTS',
+        detail: 'Reject dialog missing textarea or confirm button',
+      };
+      console.log(`    [BUG ${bug.type}]: ${bug.detail}`);
+      allBugs.push(bug);
+      roleBugs.push(bug);
+      return;
+    }
+
+    // 5. Confirm Submit button is DISABLED with 9 characters
+    await reasonInput.fill('123456789'); // 9 chars
+    await page.waitForTimeout(200);
+    const isDisabled9 = await confirmBtn.isDisabled();
+    if (!isDisabled9) {
+      const bug = {
+        role,
+        route: '/approvals',
+        type: 'REJECT_VALIDATION_FAILURE',
+        detail: 'Confirm Rejection button was ENABLED with 9 characters (must require >= 10)',
+      };
+      console.log(`    [BUG ${bug.type}]: ${bug.detail}`);
+      allBugs.push(bug);
+      roleBugs.push(bug);
+    } else {
+      console.log(`     [PASS] Confirm Rejection button is DISABLED with 9-character reason`);
+    }
+
+    // 6. Confirm Submit button is ENABLED with 10 characters
+    await reasonInput.fill('1234567890'); // 10 chars
+    await page.waitForTimeout(200);
+    const isDisabled10 = await confirmBtn.isDisabled();
+    if (isDisabled10) {
+      const bug = {
+        role,
+        route: '/approvals',
+        type: 'REJECT_VALIDATION_FAILURE',
+        detail: 'Confirm Rejection button remained DISABLED with 10 characters',
+      };
+      console.log(`    [BUG ${bug.type}]: ${bug.detail}`);
+      allBugs.push(bug);
+      roleBugs.push(bug);
+    } else {
+      console.log(`     [PASS] Confirm Rejection button is ENABLED with 10-character reason`);
+    }
+
+    // 7. Submit one rejection with a realistic reason
+    await reasonInput.fill('Audit crawl automated validation: request returned for document clarity.');
+    await page.waitForTimeout(200);
+    await confirmBtn.click();
+    await page.waitForTimeout(800);
+    console.log(`     [PASS] Successfully submitted rejection with >= 10 character reason`);
+  }
 }
 
 async function run() {
@@ -287,6 +469,9 @@ async function run() {
 
       try {
         await loginUser(page, email);
+
+        // Exercise Approvals & Rejection Log (Step 2)
+        await verifyApprovalsAndRejections(page, role, email, allBugs, roleBugs);
 
         // Collect visible navigation links
         const navLinks = await page.evaluate(() => {

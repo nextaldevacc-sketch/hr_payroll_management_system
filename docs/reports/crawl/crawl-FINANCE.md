@@ -1,10 +1,10 @@
 # UI Crawler Audit Report: FINANCE
 
 - **Role Code**: `FINANCE`
-- **Controls Discovered**: 43
-- **Controls Clicked & Verified**: 43
+- **Controls Discovered**: 45
+- **Controls Clicked & Verified**: 45
 - **Bugs & Anomalies**: 0
-- **Timestamp**: 2026-11-18T05:28:33.624Z
+- **Timestamp**: 2026-11-18T12:41:17.376Z
 
 ### Status: PASS (0 Bugs)
 

@@ -1,10 +1,10 @@
 # UI Crawler Audit Report: DEPT_MANAGER
 
 - **Role Code**: `DEPT_MANAGER`
-- **Controls Discovered**: 114
-- **Controls Clicked & Verified**: 114
+- **Controls Discovered**: 116
+- **Controls Clicked & Verified**: 116
 - **Bugs & Anomalies**: 0
-- **Timestamp**: 2026-11-18T05:28:33.635Z
+- **Timestamp**: 2026-11-18T12:41:17.377Z
 
 ### Status: PASS (0 Bugs)
 

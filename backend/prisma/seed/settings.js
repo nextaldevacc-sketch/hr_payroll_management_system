@@ -95,6 +95,34 @@ export async function seedSettings(prisma, { company1, company2, rolesMap, branc
     },
   });
 
+  const adminGovFlow = await prisma.approval_flows.create({
+    data: {
+      company_id: company1.id,
+      request_type: 'POLICY_OVERRIDE',
+      name: 'Executive & Policy Governance Flow',
+      priority: 1,
+      is_active: true,
+    },
+  });
+  await prisma.approval_flow_steps.create({
+    data: {
+      company_id: company1.id,
+      flow_id: adminGovFlow.id,
+      step_no: 1,
+      role_id: rolesMap['COMPANY_ADMIN'].id,
+      approver_rule: 'SpecificRole',
+    },
+  });
+
+  const flowsMap1 = {
+    leaveFlow1,
+    otFlow1,
+    payRunFlow1,
+    separationFlow1,
+    verifFlow1,
+    adminGovFlow,
+  };
+
   // 2. Shifts & Policies for Company 1
   console.log('Seeding shifts and attendance policies for Company 1...');
   const shift1 = await prisma.shifts.create({
@@ -333,6 +361,7 @@ export async function seedSettings(prisma, { company1, company2, rolesMap, branc
   return {
     shift1,
     policy1,
+    flowsMap1,
     leaveTypesMap1,
     accrualPlan1,
     salaryStructure1,

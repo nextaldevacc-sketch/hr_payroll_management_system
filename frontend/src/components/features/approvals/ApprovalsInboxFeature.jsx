@@ -163,9 +163,11 @@ export function ApprovalsInboxFeature() {
       </div>
 
       {/* Tab Navigation: Pending Approvals vs Rejection Log / My Rejected Requests */}
-      <div className="flex items-center gap-2 border-b border-border/80 pb-2">
+      <div role="tablist" aria-label="Approvals views" className="flex items-center gap-2 border-b border-border/80 pb-2">
         <button
           type="button"
+          role="tab"
+          aria-selected={activeTab === 'pending'}
           id="tab-pending-approvals"
           data-testid="tab-pending-approvals"
           onClick={() => setActiveTab('pending')}
@@ -190,6 +192,8 @@ export function ApprovalsInboxFeature() {
         {canViewCompanyRejections ? (
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === 'rejected'}
             id="tab-rejected-approvals"
             data-testid="tab-rejected-approvals"
             onClick={() => setActiveTab('rejected')}
@@ -204,6 +208,8 @@ export function ApprovalsInboxFeature() {
         ) : (
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === 'my_rejected'}
             id="tab-my-rejected-approvals"
             data-testid="tab-my-rejected-approvals"
             onClick={() => setActiveTab('my_rejected')}

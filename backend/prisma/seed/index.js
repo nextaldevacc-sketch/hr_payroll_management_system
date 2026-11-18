@@ -15,6 +15,7 @@ import { seedEmployees } from './employees.js';
 import { seedAttendance } from './attendance.js';
 import { seedPayroll } from './payroll.js';
 import { seedSeparations } from './separations.js';
+import { seedApprovals } from './approvals.js';
 import complianceService from '../../src/services/complianceService.js';
 
 const prisma = new PrismaClient();
@@ -22,7 +23,7 @@ const prisma = new PrismaClient();
 const allModels = [
   'companies', 'company_visas', 'branches', 'departments', 'jobs', 'users', 'roles',
   'user_roles', 'support_access_grants', 'approval_flows', 'approval_flow_steps',
-  'approval_requests', 'approval_actions', 'audit_logs', 'employees', 'contracts',
+  'approval_requests', 'approval_actions', 'approval_rejections', 'audit_logs', 'employees', 'contracts',
   'employee_documents', 'bank_accounts', 'shifts', 'attendance_policies', 'penalty_steps',
   'device_mappings', 'biometric_imports', 'punches', 'attendance_days', 'attendance_requests',
   'overtime_requests', 'public_holidays', 'leave_types', 'accrual_plans', 'leave_allocations',
@@ -161,7 +162,15 @@ export async function main() {
     demoUsersMap: users.demoUsersMap,
   });
 
-  // 8. Run Compliance Expiry Evaluation Job
+  // 8. Approvals & Rejections (Pending requests across roles + sample rejection audit logs)
+  await seedApprovals(prisma, {
+    company1: org.company1,
+    demoUsersMap: users.demoUsersMap,
+    seededEmployees: employees.seededEmployees,
+    flowsMap1: settings.flowsMap1,
+  });
+
+  // 9. Run Compliance Expiry Evaluation Job
   console.log('Running compliance check on seeded documents...');
   try {
     await complianceService.runComplianceJob({ referenceDate: new Date('2026-10-31') });

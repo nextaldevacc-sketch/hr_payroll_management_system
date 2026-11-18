@@ -49,6 +49,7 @@ export default function DashboardPage() {
   const canNavAttendance = canAccessNavArea(userRoles, 'attendance', seesSalary);
   const canNavPayroll = canAccessNavArea(userRoles, 'payroll', seesSalary);
   const canNavAudit = canAccessNavArea(userRoles, 'audit', seesSalary);
+  const canNavApprovals = canAccessNavArea(userRoles, 'approvals', seesSalary);
   const { selectedVisaId, selectedVisa, companyName, companyNameAr } = useVisa();
   const [activeDrawer, setActiveDrawer] = useState(null);
   const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
@@ -555,9 +556,9 @@ export default function DashboardPage() {
 
         <PendingApprovalsTile
           data={pendingApprovalsData}
-          onClick={canNavLeave ? () => router.push('/leave') : undefined}
-          onApproveItem={canNavLeave ? () => router.push('/leave') : undefined}
-          onOpenItem={canNavLeave ? () => router.push('/leave') : undefined}
+          onClick={canNavApprovals ? () => router.push('/approvals') : (canNavLeave ? () => router.push('/leave') : undefined)}
+          onApproveItem={canNavApprovals ? () => router.push('/approvals') : (canNavLeave ? () => router.push('/leave') : undefined)}
+          onOpenItem={canNavApprovals ? () => router.push('/approvals') : (canNavLeave ? () => router.push('/leave') : undefined)}
         />
 
         <WpsReadinessTile
