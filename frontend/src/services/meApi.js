@@ -58,6 +58,24 @@ export async function uploadMyDocument(data) {
   });
 }
 
+export async function getMyRejections({ search = '', requestType = '', startDate = '', endDate = '', page = 1, limit = 20 } = {}) {
+  const params = new URLSearchParams();
+  if (search) params.append('search', search);
+  if (requestType) params.append('requestType', requestType);
+  if (startDate) params.append('startDate', startDate);
+  if (endDate) params.append('endDate', endDate);
+  if (page) params.append('page', page);
+  if (limit) params.append('limit', limit);
+
+  const query = params.toString();
+  const endpoint = `/me/rejections${query ? `?${query}` : ''}`;
+  const res = await request(endpoint);
+  return {
+    data: res?.data || [],
+    pagination: res?.pagination || { total: 0, page: 1, limit: 20, totalPages: 1 },
+  };
+}
+
 export default {
   getMyHome,
   getMyProfile,
@@ -71,5 +89,6 @@ export default {
   cancelMyRequest,
   getMyDocuments,
   uploadMyDocument,
+  getMyRejections,
 };
 

@@ -28,6 +28,10 @@ export function ApprovalsInboxFeature() {
   const { t, isRTL, language } = useLanguage();
   const isAr = language === 'ar';
   const { user } = useAuth();
+  const userRoles = user?.roles || (user?.role ? [user.role] : []);
+  const canViewCompanyRejections =
+    user?.isPlatformAdmin ||
+    userRoles.some((r) => ['HR_OFFICER', 'HR_MANAGER', 'GM', 'COMPANY_ADMIN'].includes(r));
 
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'rejected'
   const [items, setItems] = useState([]);
@@ -158,7 +162,7 @@ export function ApprovalsInboxFeature() {
         </div>
       </div>
 
-      {/* Tab Navigation: Pending Approvals vs Rejection Log */}
+      {/* Tab Navigation: Pending Approvals vs Rejection Log / My Rejected Requests */}
       <div className="flex items-center gap-2 border-b border-border/80 pb-2">
         <button
           type="button"
@@ -182,23 +186,42 @@ export function ApprovalsInboxFeature() {
             {items.length}
           </span>
         </button>
-        <button
-          type="button"
-          id="tab-rejected-approvals"
-          data-testid="tab-rejected-approvals"
-          onClick={() => setActiveTab('rejected')}
-          className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center gap-2 ${
-            activeTab === 'rejected'
-              ? 'bg-rose-600 text-white'
-              : 'bg-surface hover:bg-surface-raised text-text-muted hover:text-text'
-          }`}
-        >
-          <span>{isAr ? 'سجل الرفض' : 'Rejection Log'}</span>
-        </button>
+
+        {canViewCompanyRejections ? (
+          <button
+            type="button"
+            id="tab-rejected-approvals"
+            data-testid="tab-rejected-approvals"
+            onClick={() => setActiveTab('rejected')}
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center gap-2 ${
+              activeTab === 'rejected'
+                ? 'bg-rose-600 text-white'
+                : 'bg-surface hover:bg-surface-raised text-text-muted hover:text-text'
+            }`}
+          >
+            <span>{isAr ? 'سجل الرفض' : 'Rejection Log'}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            id="tab-my-rejected-approvals"
+            data-testid="tab-my-rejected-approvals"
+            onClick={() => setActiveTab('my_rejected')}
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors flex items-center gap-2 ${
+              activeTab === 'my_rejected'
+                ? 'bg-rose-600 text-white'
+                : 'bg-surface hover:bg-surface-raised text-text-muted hover:text-text'
+            }`}
+          >
+            <span>{isAr ? 'طلباتي المرفوضة' : 'My Rejected Requests'}</span>
+          </button>
+        )}
       </div>
 
-      {activeTab === 'rejected' ? (
+      {activeTab === 'rejected' && canViewCompanyRejections ? (
         <RejectionsTab />
+      ) : activeTab === 'my_rejected' && !canViewCompanyRejections ? (
+        <RejectionsTab isPersonal={true} />
       ) : (
         <>
           {/* Inline quick comment field (mirrored from profile for step runner compatibility) */}

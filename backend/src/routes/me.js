@@ -32,4 +32,7 @@ router.get('/payslips/:id/pdf', meController.getMyPayslipPdf);
 router.get('/documents', meController.getMyDocuments);
 router.post('/documents', meController.uploadMyDocument);
 
+// 8. My Rejected Requests (Self-service personal rejection trail)
+router.get('/rejections', meController.getMyRejections);
+
 export default router;

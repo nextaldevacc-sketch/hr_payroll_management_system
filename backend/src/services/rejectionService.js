@@ -1,11 +1,90 @@
 import rejectionRepository from '../repositories/rejectionRepository.js';
 import { toDubaiDateString } from '@nextal/shared';
+import { scopeService } from './scopeService.js';
 
 const SALARY_ROLES = ['PAYROLL_OFFICER', 'HR_MANAGER', 'GM', 'FINANCE'];
+const COMPANY_LOG_ROLES = ['HR_OFFICER', 'HR_MANAGER', 'GM', 'COMPANY_ADMIN'];
 
 export class RejectionService {
   constructor(repo = rejectionRepository) {
     this.repo = repo;
+  }
+
+  /**
+   * Enforce company-wide rejection log access (defence-in-depth)
+   */
+  _assertCompanyLogAccess(user) {
+    if (!user) {
+      const err = new Error('Authentication required');
+      err.status = 401;
+      err.code = 'UNAUTHORIZED';
+      throw err;
+    }
+    if (user.isPlatformAdmin || user.roles?.includes('PLATFORM_ADMIN')) {
+      return;
+    }
+    const roles = user.roles || (user.role ? [user.role] : []);
+    const isAllowed = roles.some((r) => COMPANY_LOG_ROLES.includes(r));
+    if (!isAllowed) {
+      const err = new Error('Access denied to company-wide rejection log');
+      err.status = 403;
+      err.code = 'FORBIDDEN';
+      throw err;
+    }
+  }
+
+  /**
+   * Check if a single rejection is within viewer's data scope
+   */
+  async _isRejectionInScope(rejection, scope, companyId) {
+    if (!scope || scope.all) return true;
+
+    // 1. Check requester employee's visa / branch
+    const reqEmp = rejection.requester?.employee;
+    if (reqEmp) {
+      if (scope.visaIds?.length > 0 && scope.visaIds.includes(reqEmp.company_visa_id)) {
+        return true;
+      }
+      if (scope.branchIds?.length > 0 && scope.branchIds.includes(reqEmp.branch_id)) {
+        return true;
+      }
+    }
+
+    // 2. Check underlying record
+    if (rejection.record_id) {
+      const client = this.repo.getClient();
+      // Check if record_id is an employee
+      const emp = await client.employees.findUnique({
+        where: { id: rejection.record_id },
+        select: { company_visa_id: true, branch_id: true },
+      });
+      if (emp) {
+        if (scope.visaIds?.length > 0 && scope.visaIds.includes(emp.company_visa_id)) {
+          return true;
+        }
+        if (scope.branchIds?.length > 0 && scope.branchIds.includes(emp.branch_id)) {
+          return true;
+        }
+      }
+
+      // Check if record_id is a leave request
+      if (rejection.request_type === 'LEAVE') {
+        const lr = await client.leave_requests.findUnique({
+          where: { id: rejection.record_id },
+          select: { employee: { select: { company_visa_id: true, branch_id: true } } },
+        });
+        if (lr?.employee) {
+          if (scope.visaIds?.length > 0 && scope.visaIds.includes(lr.employee.company_visa_id)) {
+            return true;
+          }
+          if (scope.branchIds?.length > 0 && scope.branchIds.includes(lr.employee.branch_id)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -89,7 +168,7 @@ export class RejectionService {
   }
 
   /**
-   * Query rejections with pagination, filtering, and salary masking
+   * Query company-wide rejections with pagination, filtering, data scoping, and salary masking
    */
   async listRejections({
     companyId,
@@ -101,14 +180,14 @@ export class RejectionService {
     limit = 20,
     user = null,
   }) {
+    this._assertCompanyLogAccess(user);
+
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
-    // Scope check: If caller is purely EMPLOYEE, only show their own rejections
-    const roles = user?.roles || [];
-    const isStaffOnly = roles.length === 1 && roles[0] === 'EMPLOYEE';
-    const requesterId = isStaffOnly ? user?.userId : null;
+    const scope = scopeService.resolveDataScope(user);
+    const scopedRecordIds = await this.repo.resolveScopedRecordIds(companyId, scope);
 
     const [items, total] = await Promise.all([
       this.repo.findRejections({
@@ -117,7 +196,8 @@ export class RejectionService {
         requestType,
         startDate,
         endDate,
-        requesterId,
+        scope,
+        scopedRecordIds,
         skip,
         take: limitNum,
       }),
@@ -127,7 +207,8 @@ export class RejectionService {
         requestType,
         startDate,
         endDate,
-        requesterId,
+        scope,
+        scopedRecordIds,
       }),
     ]);
 
@@ -152,6 +233,8 @@ export class RejectionService {
   }
 
   async getRejection(companyId, id, user = null) {
+    this._assertCompanyLogAccess(user);
+
     const rejection = await this.repo.findRejectionById(companyId, id);
     if (!rejection) {
       const err = new Error('Rejection record not found');
@@ -160,14 +243,15 @@ export class RejectionService {
       throw err;
     }
 
-    // Scope check for purely EMPLOYEE role
-    const roles = user?.roles || [];
-    const isStaffOnly = roles.length === 1 && roles[0] === 'EMPLOYEE';
-    if (isStaffOnly && rejection.requester_id !== user?.userId) {
-      const err = new Error('Rejection record not found');
-      err.status = 404;
-      err.code = 'NOT_FOUND';
-      throw err;
+    const scope = scopeService.resolveDataScope(user);
+    if (!scope.all) {
+      const inScope = await this._isRejectionInScope(rejection, scope, companyId);
+      if (!inScope) {
+        const err = new Error('Rejection record not found');
+        err.status = 404;
+        err.code = 'NOT_FOUND';
+        throw err;
+      }
     }
 
     const canViewSalary = this._canViewSalary(user);
@@ -179,7 +263,7 @@ export class RejectionService {
   }
 
   /**
-   * Export rejections to CSV format
+   * Export rejections to CSV format (restricted to company log roles)
    */
   async exportCsv({
     companyId,
@@ -189,9 +273,10 @@ export class RejectionService {
     endDate = null,
     user = null,
   }) {
-    const roles = user?.roles || [];
-    const isStaffOnly = roles.length === 1 && roles[0] === 'EMPLOYEE';
-    const requesterId = isStaffOnly ? user?.userId : null;
+    this._assertCompanyLogAccess(user);
+
+    const scope = scopeService.resolveDataScope(user);
+    const scopedRecordIds = await this.repo.resolveScopedRecordIds(companyId, scope);
 
     const items = await this.repo.findRejections({
       companyId,
@@ -199,7 +284,8 @@ export class RejectionService {
       requestType,
       startDate,
       endDate,
-      requesterId,
+      scope,
+      scopedRecordIds,
       skip: 0,
       take: 5000,
     });
@@ -246,6 +332,73 @@ export class RejectionService {
     });
 
     return [headers.join(','), ...rows].join('\r\n');
+  }
+
+  /**
+   * Self-service rejection log: returns rejections requested by the current user
+   */
+  async getMyRejections({
+    companyId,
+    userId,
+    search = '',
+    requestType = null,
+    startDate = null,
+    endDate = null,
+    page = 1,
+    limit = 20,
+    user = null,
+  }) {
+    const requesterId = userId || user?.id || user?.userId;
+    if (!requesterId) {
+      const err = new Error('User identity is required');
+      err.status = 401;
+      err.code = 'UNAUTHORIZED';
+      throw err;
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [items, total] = await Promise.all([
+      this.repo.findRejections({
+        companyId,
+        search,
+        requestType,
+        startDate,
+        endDate,
+        requesterId,
+        skip,
+        take: limitNum,
+      }),
+      this.repo.countRejections({
+        companyId,
+        search,
+        requestType,
+        startDate,
+        endDate,
+        requesterId,
+      }),
+    ]);
+
+    const canViewSalary = this._canViewSalary(user);
+    const sanitizedItems = items.map((item) => {
+      const sanitized = this._sanitizeRejection(item, canViewSalary);
+      return {
+        ...sanitized,
+        rejection_date_dubai: toDubaiDateString(item.rejection_date || item.created_at),
+      };
+    });
+
+    return {
+      data: sanitizedItems,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum) || 1,
+      },
+    };
   }
 }
 

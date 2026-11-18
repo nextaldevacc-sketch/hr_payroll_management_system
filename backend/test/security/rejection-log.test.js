@@ -22,11 +22,20 @@ test('STEP 8 Security: Rejection Log Feature & Shared Engine', async (t) => {
   let hrManagerUser, hrManagerToken;
   let hrOfficerUser, hrOfficerToken;
   let gmUser, gmToken;
+  let adminUser, adminToken;
+  let deptManagerUser, deptManagerToken;
+  let payrollUser, payrollToken;
+  let financeUser, financeToken;
+  let employeeUser, employeeToken;
+  let hrOfficerV2User, hrOfficerV2Token;
   let otherCompanyUser, otherCompanyToken;
 
+  let visa01, visa02;
+  let employeeV2;
   let approvalFlow;
   let approvalRequest;
   let createdRejectionId;
+  let createdRejectionV2Id;
 
   await t.test('setup companies, employees, roles, and test users', async () => {
     company = await prisma.$base().companies.findFirst({
@@ -53,7 +62,23 @@ test('STEP 8 Security: Rejection Log Feature & Shared Engine', async (t) => {
     }
 
     branch = await prisma.$base().branches.findFirst({ where: { company_id: company.id } });
-    visa = await prisma.$base().company_visas.findFirst({ where: { company_id: company.id } });
+    const allVisas = await prisma.$base().company_visas.findMany({
+      where: { company_id: company.id },
+      orderBy: { created_at: 'asc' },
+    });
+    visa01 = allVisas[0];
+    visa = visa01;
+    if (allVisas.length > 1) {
+      visa02 = allVisas[1];
+    } else {
+      visa02 = await prisma.$base().company_visas.create({
+        data: {
+          company_id: company.id,
+          name: `Secondary Visa ${Date.now()}`,
+          mol_establishment_id: `MOL-${Date.now()}`.slice(0, 20),
+        },
+      });
+    }
     department = await prisma.$base().departments.findFirst({ where: { company_id: company.id } });
 
     const timestamp = Date.now();
@@ -63,9 +88,13 @@ test('STEP 8 Security: Rejection Log Feature & Shared Engine', async (t) => {
     const hroRole = await prisma.$base().roles.findFirst({ where: { code: 'HR_OFFICER' } });
     const gmRole = await prisma.$base().roles.findFirst({ where: { code: 'GM' } });
     const caRole = await prisma.$base().roles.findFirst({ where: { code: 'COMPANY_ADMIN' } });
-    assert.ok(hrmRole && hroRole && gmRole && caRole, 'Roles must exist');
+    const dmRole = await prisma.$base().roles.findFirst({ where: { code: 'DEPT_MANAGER' } });
+    const poRole = await prisma.$base().roles.findFirst({ where: { code: 'PAYROLL_OFFICER' } });
+    const finRole = await prisma.$base().roles.findFirst({ where: { code: 'FINANCE' } });
+    const empRole = await prisma.$base().roles.findFirst({ where: { code: 'EMPLOYEE' } });
+    assert.ok(hrmRole && hroRole && gmRole && caRole && dmRole && poRole && finRole && empRole, 'All 8 roles must exist');
 
-    // Users
+    // Users: Allowed Company-wide Log Roles
     hrManagerUser = await prisma.$base().users.create({
       data: {
         company_id: company.id,
@@ -102,6 +131,87 @@ test('STEP 8 Security: Rejection Log Feature & Shared Engine', async (t) => {
       data: { company_id: company.id, user_id: gmUser.id, role_id: gmRole.id, scope_type: 'Company' },
     });
 
+    adminUser = await prisma.$base().users.create({
+      data: {
+        company_id: company.id,
+        email: `sec.admin.rej.${timestamp}@example.com`,
+        password_hash: await authService.hashPassword(testPassword),
+        status: 'Active',
+      },
+    });
+    await prisma.$base().user_roles.create({
+      data: { company_id: company.id, user_id: adminUser.id, role_id: caRole.id, scope_type: 'Company' },
+    });
+
+    // Users: Restricted Roles (DEPT_MANAGER, PAYROLL_OFFICER, FINANCE, EMPLOYEE)
+    deptManagerUser = await prisma.$base().users.create({
+      data: {
+        company_id: company.id,
+        email: `sec.dm.rej.${timestamp}@example.com`,
+        password_hash: await authService.hashPassword(testPassword),
+        status: 'Active',
+      },
+    });
+    await prisma.$base().user_roles.create({
+      data: { company_id: company.id, user_id: deptManagerUser.id, role_id: dmRole.id, scope_type: 'Company' },
+    });
+
+    payrollUser = await prisma.$base().users.create({
+      data: {
+        company_id: company.id,
+        email: `sec.po.rej.${timestamp}@example.com`,
+        password_hash: await authService.hashPassword(testPassword),
+        status: 'Active',
+      },
+    });
+    await prisma.$base().user_roles.create({
+      data: { company_id: company.id, user_id: payrollUser.id, role_id: poRole.id, scope_type: 'Company' },
+    });
+
+    financeUser = await prisma.$base().users.create({
+      data: {
+        company_id: company.id,
+        email: `sec.fin.rej.${timestamp}@example.com`,
+        password_hash: await authService.hashPassword(testPassword),
+        status: 'Active',
+      },
+    });
+    await prisma.$base().user_roles.create({
+      data: { company_id: company.id, user_id: financeUser.id, role_id: finRole.id, scope_type: 'Company' },
+    });
+
+    employeeUser = await prisma.$base().users.create({
+      data: {
+        company_id: company.id,
+        email: `sec.emp.rej.${timestamp}@example.com`,
+        password_hash: await authService.hashPassword(testPassword),
+        status: 'Active',
+      },
+    });
+    await prisma.$base().user_roles.create({
+      data: { company_id: company.id, user_id: employeeUser.id, role_id: empRole.id, scope_type: 'Company' },
+    });
+
+    // Scoped HR_OFFICER: Visa 02 only
+    hrOfficerV2User = await prisma.$base().users.create({
+      data: {
+        company_id: company.id,
+        email: `sec.hro.v2.rej.${timestamp}@example.com`,
+        password_hash: await authService.hashPassword(testPassword),
+        status: 'Active',
+      },
+    });
+    await prisma.$base().user_roles.create({
+      data: {
+        company_id: company.id,
+        user_id: hrOfficerV2User.id,
+        role_id: hroRole.id,
+        scope_type: 'CompanyVisa',
+        scope_id: visa02.id,
+      },
+    });
+
+    // Cross-tenant user
     otherCompanyUser = await prisma.$base().users.create({
       data: {
         company_id: otherCompany.id,
@@ -114,15 +224,30 @@ test('STEP 8 Security: Rejection Log Feature & Shared Engine', async (t) => {
       data: { company_id: otherCompany.id, user_id: otherCompanyUser.id, role_id: caRole.id, scope_type: 'Company' },
     });
 
-    // Employee
+    // Employee 1 (Visa 01)
     employee = await prisma.$base().employees.create({
       data: {
         company_id: company.id,
         branch_id: branch.id,
-        company_visa_id: visa.id,
+        company_visa_id: visa01.id,
         name: `Rejection Test Employee ${timestamp}`,
         employee_code: `ER${timestamp}`.slice(0, 20),
         gender: 'Female',
+        nationality: 'ARE',
+        joining_date: new Date('2023-01-01'),
+        status: 'Active',
+      },
+    });
+
+    // Employee 2 (Visa 02)
+    employeeV2 = await prisma.$base().employees.create({
+      data: {
+        company_id: company.id,
+        branch_id: branch.id,
+        company_visa_id: visa02.id,
+        name: `Rejection Test Employee Visa 2 ${timestamp}`,
+        employee_code: `EV2${timestamp}`.slice(0, 20),
+        gender: 'Male',
         nationality: 'ARE',
         joining_date: new Date('2023-01-01'),
         status: 'Active',
@@ -176,8 +301,38 @@ test('STEP 8 Security: Rejection Log Feature & Shared Engine', async (t) => {
     const gmLogin = await authService.login({ email: gmUser.email, password: testPassword });
     gmToken = gmLogin.token;
 
+    const adminLogin = await authService.login({ email: adminUser.email, password: testPassword });
+    adminToken = adminLogin.token;
+
+    const dmLogin = await authService.login({ email: deptManagerUser.email, password: testPassword });
+    deptManagerToken = dmLogin.token;
+
+    const poLogin = await authService.login({ email: payrollUser.email, password: testPassword });
+    payrollToken = poLogin.token;
+
+    const finLogin = await authService.login({ email: financeUser.email, password: testPassword });
+    financeToken = finLogin.token;
+
+    const empLogin = await authService.login({ email: employeeUser.email, password: testPassword });
+    employeeToken = empLogin.token;
+
+    const hroV2Login = await authService.login({ email: hrOfficerV2User.email, password: testPassword });
+    hrOfficerV2Token = hroV2Login.token;
+
     const otherLogin = await authService.login({ email: otherCompanyUser.email, password: testPassword });
     otherCompanyToken = otherLogin.token;
+
+    // Create a rejection record explicitly under Visa 02
+    const rejV2 = await rejectionService.recordRejection({
+      company_id: company.id,
+      request_type: 'EMPLOYEE',
+      record_id: employeeV2.id,
+      record_title: `Onboarding Profile for ${employeeV2.name}`,
+      requester_id: hrOfficerV2User.id,
+      rejected_by_id: hrManagerUser.id,
+      reason: 'Passport copy must be re-scanned in color and full resolution.',
+    });
+    createdRejectionV2Id = rejV2.id;
   });
 
   await t.test('1. Rejecting request with reason < 10 chars is rejected with 400 REASON_REQUIRED', async () => {
@@ -341,5 +496,134 @@ test('STEP 8 Security: Rejection Log Feature & Shared Engine', async (t) => {
     assert.match(res.headers['content-type'], /text\/csv/);
     assert.match(res.text, /Rejection ID,Date \(Asia\/Dubai\),Request Type/);
     assert.match(res.text, new RegExp(createdRejectionId));
+  });
+
+  await t.test('10. Restricted roles (DEPT_MANAGER, PAYROLL_OFFICER, FINANCE, EMPLOYEE) receive 403 on all company endpoints', async () => {
+    const restrictedTokens = [
+      { role: 'DEPT_MANAGER', token: deptManagerToken },
+      { role: 'PAYROLL_OFFICER', token: payrollToken },
+      { role: 'FINANCE', token: financeToken },
+      { role: 'EMPLOYEE', token: employeeToken },
+    ];
+
+    for (const { role, token } of restrictedTokens) {
+      // 1. List
+      const resList = await request(app)
+        .get('/api/v1/approvals/rejections')
+        .set('Authorization', `Bearer ${token}`);
+      assert.equal(resList.status, 403, `${role} must receive 403 on GET /approvals/rejections`);
+
+      // 2. Detail
+      const resDetail = await request(app)
+        .get(`/api/v1/approvals/rejections/${createdRejectionId}`)
+        .set('Authorization', `Bearer ${token}`);
+      assert.equal(resDetail.status, 403, `${role} must receive 403 on GET /approvals/rejections/:id`);
+
+      // 3. Export CSV
+      const resCsv = await request(app)
+        .get('/api/v1/approvals/rejections/export/csv')
+        .set('Authorization', `Bearer ${token}`);
+      assert.equal(resCsv.status, 403, `${role} must receive 403 on GET /approvals/rejections/export/csv`);
+    }
+  });
+
+  await t.test('11. Allowed roles (HR_OFFICER, HR_MANAGER, GM, COMPANY_ADMIN) receive 200 on all company endpoints', async () => {
+    const allowedTokens = [
+      { role: 'HR_OFFICER', token: hrOfficerToken },
+      { role: 'HR_MANAGER', token: hrManagerToken },
+      { role: 'GM', token: gmToken },
+      { role: 'COMPANY_ADMIN', token: adminToken },
+    ];
+
+    for (const { role, token } of allowedTokens) {
+      // 1. List
+      const resList = await request(app)
+        .get('/api/v1/approvals/rejections')
+        .set('Authorization', `Bearer ${token}`);
+      assert.equal(resList.status, 200, `${role} must receive 200 on GET /approvals/rejections`);
+
+      // 2. Detail
+      const resDetail = await request(app)
+        .get(`/api/v1/approvals/rejections/${createdRejectionId}`)
+        .set('Authorization', `Bearer ${token}`);
+      assert.equal(resDetail.status, 200, `${role} must receive 200 on GET /approvals/rejections/:id`);
+
+      // 3. Export CSV
+      const resCsv = await request(app)
+        .get('/api/v1/approvals/rejections/export/csv')
+        .set('Authorization', `Bearer ${token}`);
+      assert.equal(resCsv.status, 200, `${role} must receive 200 on GET /approvals/rejections/export/csv`);
+    }
+  });
+
+  await t.test('12. HR_OFFICER_V2 (visa-02 scoped) does not see visa-01 rejections, sees visa-02 rejection', async () => {
+    // List check
+    const resList = await request(app)
+      .get('/api/v1/approvals/rejections')
+      .set('Authorization', `Bearer ${hrOfficerV2Token}`);
+
+    assert.equal(resList.status, 200);
+    const hasVisa01Rejection = resList.body.data.some((r) => r.id === createdRejectionId);
+    assert.equal(hasVisa01Rejection, false, 'Visa 02 scoped HR officer must NOT see Visa 01 rejection in list');
+
+    const hasVisa02Rejection = resList.body.data.some((r) => r.id === createdRejectionV2Id);
+    assert.equal(hasVisa02Rejection, true, 'Visa 02 scoped HR officer must see Visa 02 rejection in list');
+
+    // Detail check: Visa 01 rejection must return 404 (never reveal record existence)
+    const resDetailV1 = await request(app)
+      .get(`/api/v1/approvals/rejections/${createdRejectionId}`)
+      .set('Authorization', `Bearer ${hrOfficerV2Token}`);
+    assert.equal(resDetailV1.status, 404, 'Direct access to out-of-scope rejection must return 404');
+
+    // Detail check: Visa 02 rejection returns 200
+    const resDetailV2 = await request(app)
+      .get(`/api/v1/approvals/rejections/${createdRejectionV2Id}`)
+      .set('Authorization', `Bearer ${hrOfficerV2Token}`);
+    assert.equal(resDetailV2.status, 200, 'Direct access to in-scope rejection must return 200');
+  });
+
+  await t.test('13. Rejections CSV export is audited in audit_logs table', async () => {
+    const beforeCount = await prisma.$base().audit_logs.count({
+      where: {
+        company_id: company.id,
+        table_name: 'approval_rejections',
+        action: 'EXPORT_CSV',
+      },
+    });
+
+    const res = await request(app)
+      .get('/api/v1/approvals/rejections/export/csv')
+      .set('Authorization', `Bearer ${adminToken}`);
+    assert.equal(res.status, 200);
+
+    const afterCount = await prisma.$base().audit_logs.count({
+      where: {
+        company_id: company.id,
+        table_name: 'approval_rejections',
+        action: 'EXPORT_CSV',
+      },
+    });
+
+    assert.equal(afterCount, beforeCount + 1, 'CSV export must append an entry in audit_logs');
+  });
+
+  await t.test('14. GET /api/v1/me/rejections returns caller personal rejected requests for any role', async () => {
+    // 1. Requester (hrOfficerUser requested approvalRequest which was rejected)
+    const resRequester = await request(app)
+      .get('/api/v1/me/rejections')
+      .set('Authorization', `Bearer ${hrOfficerToken}`);
+    assert.equal(resRequester.status, 200);
+    assert.equal(resRequester.body.status, 'success');
+    const myRej = resRequester.body.data.find((r) => r.id === createdRejectionId);
+    assert.ok(myRej, 'Requester must see their own rejected request in /me/rejections');
+
+    // 2. User with no rejections (deptManagerUser) receives 200 with empty list
+    const resDm = await request(app)
+      .get('/api/v1/me/rejections')
+      .set('Authorization', `Bearer ${deptManagerToken}`);
+    assert.equal(resDm.status, 200);
+    assert.equal(resDm.body.status, 'success');
+    const leakedRej = resDm.body.data.find((r) => r.id === createdRejectionId || r.id === createdRejectionV2Id);
+    assert.equal(leakedRej, undefined, 'User must not see other people rejections in /me/rejections');
   });
 });

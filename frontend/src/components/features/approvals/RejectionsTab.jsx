@@ -18,7 +18,7 @@ import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
 import { useLanguage } from '../../../context/LanguageContext';
-import { fetchRejections, downloadRejectionsCsv } from '../../../services/approvalApi';
+import { fetchRejections, fetchMyRejections, downloadRejectionsCsv } from '../../../services/approvalApi';
 
 const REQUEST_TYPES = [
   { value: '', labelEn: 'All Request Types', labelAr: 'جميع أنواع الطلبات' },
@@ -30,7 +30,7 @@ const REQUEST_TYPES = [
   { value: 'SALARY_ADJUSTMENT', labelEn: 'Salary Adjustment', labelAr: 'تسوية راتب' },
 ];
 
-export function RejectionsTab() {
+export function RejectionsTab({ isPersonal = false }) {
   const { language, isRTL } = useLanguage();
   const isAr = language === 'ar';
 
@@ -53,11 +53,13 @@ export function RejectionsTab() {
   // Detail Modal
   const [selectedItem, setSelectedItem] = useState(null);
 
+  const fetcher = isPersonal ? fetchMyRejections : fetchRejections;
+
   const loadData = async (targetPage = page) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchRejections({
+      const res = await fetcher({
         search,
         requestType,
         startDate,
@@ -91,7 +93,7 @@ export function RejectionsTab() {
     setStartDate('');
     setEndDate('');
     setPage(1);
-    fetchRejections({ page: 1, limit: pagination.limit }).then((res) => {
+    fetcher({ page: 1, limit: pagination.limit }).then((res) => {
       setItems(res.data || []);
       setPagination(res.pagination || { total: 0, totalPages: 1, limit: 15 });
     });
@@ -152,16 +154,18 @@ export function RejectionsTab() {
             )}
           </button>
 
-          {/* CSV Export */}
-          <button
-            type="button"
-            onClick={handleExportCsv}
-            disabled={exporting || items.length === 0}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-surface border border-border text-text hover:bg-surface-raised transition-colors disabled:opacity-50"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>{exporting ? (isAr ? 'جاري التصدير...' : 'Exporting...') : (isAr ? 'تصدير CSV' : 'Export CSV')}</span>
-          </button>
+          {/* CSV Export (Company Log only) */}
+          {!isPersonal && (
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={exporting || items.length === 0}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-surface border border-border text-text hover:bg-surface-raised transition-colors disabled:opacity-50"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{exporting ? (isAr ? 'جاري التصدير...' : 'Exporting...') : (isAr ? 'تصدير CSV' : 'Export CSV')}</span>
+            </button>
+          )}
 
           {/* Refresh */}
           <button

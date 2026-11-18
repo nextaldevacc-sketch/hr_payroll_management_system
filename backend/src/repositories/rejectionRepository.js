@@ -37,7 +37,40 @@ export class RejectionRepository {
     });
   }
 
-  _buildWhere({ companyId, search, requestType, startDate, endDate, requesterId }) {
+  async resolveScopedRecordIds(companyId, scope) {
+    if (!scope || scope.all) return null;
+    const client = this.getClient();
+
+    const empWhere = { company_id: companyId };
+    if (scope.visaIds && scope.visaIds.length > 0) {
+      empWhere.company_visa_id = { in: scope.visaIds };
+    }
+    if (scope.branchIds && scope.branchIds.length > 0) {
+      empWhere.branch_id = { in: scope.branchIds };
+    }
+
+    const emps = await client.employees.findMany({
+      where: empWhere,
+      select: { id: true },
+    });
+    const empIds = emps.map((e) => e.id);
+
+    let leaveIds = [];
+    if (empIds.length > 0) {
+      const leaves = await client.leave_requests.findMany({
+        where: {
+          company_id: companyId,
+          employee_id: { in: empIds },
+        },
+        select: { id: true },
+      });
+      leaveIds = leaves.map((l) => l.id);
+    }
+
+    return { empIds, leaveIds };
+  }
+
+  _buildWhere({ companyId, search, requestType, startDate, endDate, requesterId, scope, scopedRecordIds }) {
     const where = { company_id: companyId };
 
     if (requesterId) {
@@ -58,21 +91,66 @@ export class RejectionRepository {
       }
     }
 
+    const conditions = [];
+
     if (search && search.trim()) {
       const term = search.trim();
-      where.OR = [
-        { record_title: { contains: term, mode: 'insensitive' } },
-        { reason: { contains: term, mode: 'insensitive' } },
-        { request_type: { contains: term, mode: 'insensitive' } },
+      conditions.push({
+        OR: [
+          { record_title: { contains: term, mode: 'insensitive' } },
+          { reason: { contains: term, mode: 'insensitive' } },
+          { request_type: { contains: term, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    if (scope && !scope.all) {
+      const scopeOr = [];
+      if (scope.visaIds && scope.visaIds.length > 0) {
+        scopeOr.push({
+          requester: {
+            employee: {
+              company_visa_id: { in: scope.visaIds },
+            },
+          },
+        });
+      }
+      if (scope.branchIds && scope.branchIds.length > 0) {
+        scopeOr.push({
+          requester: {
+            employee: {
+              branch_id: { in: scope.branchIds },
+            },
+          },
+        });
+      }
+      const targetIds = [
+        ...(scopedRecordIds?.empIds || []),
+        ...(scopedRecordIds?.leaveIds || []),
       ];
+      if (targetIds.length > 0) {
+        scopeOr.push({ record_id: { in: targetIds } });
+      }
+
+      if (scopeOr.length > 0) {
+        conditions.push({ OR: scopeOr });
+      } else {
+        where.id = '00000000-0000-0000-0000-000000000000';
+      }
+    }
+
+    if (conditions.length === 1) {
+      Object.assign(where, conditions[0]);
+    } else if (conditions.length > 1) {
+      where.AND = conditions;
     }
 
     return where;
   }
 
-  async findRejections({ companyId, search, requestType, startDate, endDate, requesterId, skip = 0, take = 50 }) {
+  async findRejections({ companyId, search, requestType, startDate, endDate, requesterId, scope, scopedRecordIds, skip = 0, take = 50 }) {
     const client = this.getClient();
-    const where = this._buildWhere({ companyId, search, requestType, startDate, endDate, requesterId });
+    const where = this._buildWhere({ companyId, search, requestType, startDate, endDate, requesterId, scope, scopedRecordIds });
 
     return client.approval_rejections.findMany({
       where,
@@ -81,18 +159,26 @@ export class RejectionRepository {
       orderBy: { created_at: 'desc' },
       include: {
         rejected_by: {
-          select: { id: true, email: true, employee: { select: { id: true, name: true } } },
+          select: {
+            id: true,
+            email: true,
+            employee: { select: { id: true, name: true, company_visa_id: true, branch_id: true } },
+          },
         },
         requester: {
-          select: { id: true, email: true, employee: { select: { id: true, name: true } } },
+          select: {
+            id: true,
+            email: true,
+            employee: { select: { id: true, name: true, company_visa_id: true, branch_id: true } },
+          },
         },
       },
     });
   }
 
-  async countRejections({ companyId, search, requestType, startDate, endDate, requesterId }) {
+  async countRejections({ companyId, search, requestType, startDate, endDate, requesterId, scope, scopedRecordIds }) {
     const client = this.getClient();
-    const where = this._buildWhere({ companyId, search, requestType, startDate, endDate, requesterId });
+    const where = this._buildWhere({ companyId, search, requestType, startDate, endDate, requesterId, scope, scopedRecordIds });
     return client.approval_rejections.count({ where });
   }
 
@@ -102,10 +188,18 @@ export class RejectionRepository {
       where: { id, company_id: companyId },
       include: {
         rejected_by: {
-          select: { id: true, email: true, employee: { select: { id: true, name: true } } },
+          select: {
+            id: true,
+            email: true,
+            employee: { select: { id: true, name: true, company_visa_id: true, branch_id: true } },
+          },
         },
         requester: {
-          select: { id: true, email: true, employee: { select: { id: true, name: true } } },
+          select: {
+            id: true,
+            email: true,
+            employee: { select: { id: true, name: true, company_visa_id: true, branch_id: true } },
+          },
         },
         approval_request: {
           include: {

@@ -2,6 +2,7 @@ import prisma from '../lib/prisma.js';
 import auditService from '../services/auditService.js';
 import leaveService from '../services/leaveService.js';
 import overtimeService from '../services/overtimeService.js';
+import rejectionService from '../services/rejectionService.js';
 import { PayrollService } from '../services/payrollService.js';
 import notificationService from '../services/notificationService.js';
 import { toDubaiDateString, maskIban, maskIdentityNumber } from '@nextal/shared';
@@ -699,6 +700,37 @@ export async function uploadMyDocument(req, res, next) {
   }
 }
 
+/**
+ * 8. My Rejected Requests (Self-service personal rejection trail)
+ */
+export async function getMyRejections(req, res, next) {
+  try {
+    const companyId = req.companyId || req.user?.companyId;
+    const userId = req.user?.id || req.user?.userId;
+    const { search, requestType, startDate, endDate, page, limit } = req.query;
+
+    const result = await rejectionService.getMyRejections({
+      companyId,
+      userId,
+      search,
+      requestType,
+      startDate,
+      endDate,
+      page,
+      limit,
+      user: req.user,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data: result.data,
+      pagination: result.pagination,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export default {
   getMyHome,
   getMyProfile,
@@ -712,4 +744,5 @@ export default {
   getMyPayslipPdf,
   getMyDocuments,
   uploadMyDocument,
+  getMyRejections,
 };

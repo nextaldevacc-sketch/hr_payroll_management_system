@@ -1,4 +1,5 @@
 import rejectionService from '../services/rejectionService.js';
+import auditService from '../services/auditService.js';
 
 export async function listRejections(req, res, next) {
   try {
@@ -53,6 +54,16 @@ export async function exportRejectionsCsv(req, res, next) {
       startDate,
       endDate,
       user: req.user,
+    });
+
+    await auditService.log({
+      companyId,
+      userId: req.user?.id || req.user?.userId,
+      action: 'EXPORT_CSV',
+      tableName: 'approval_rejections',
+      recordId: companyId,
+      ipAddress: req.ip,
+      newValues: { format: 'csv', search, requestType, startDate, endDate },
     });
 
     res.setHeader('Content-Type', 'text/csv');

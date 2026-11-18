@@ -1,4 +1,5 @@
 import { request, API_BASE } from './apiClient';
+import { getMyRejections } from './meApi';
 
 export async function fetchPendingApprovals() {
   const res = await request('/approvals/pending');
@@ -55,10 +56,13 @@ export async function downloadRejectionsCsv({ search = '', requestType = '', sta
   window.URL.revokeObjectURL(url);
 }
 
+export { getMyRejections as fetchMyRejections };
+
 export default {
   fetchPendingApprovals,
   actOnApproval,
   fetchRejections,
+  fetchMyRejections: getMyRejections,
   fetchRejectionById,
   downloadRejectionsCsv,
 };
