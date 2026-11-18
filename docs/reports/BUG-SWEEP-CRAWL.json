@@ -7,6 +7,48 @@
       "bugs": 0
     },
     {
+      "role": "HR_MANAGER",
+      "controlsFound": 254,
+      "controlsClicked": 254,
+      "bugs": 0
+    },
+    {
+      "role": "HR_OFFICER",
+      "controlsFound": 235,
+      "controlsClicked": 235,
+      "bugs": 0
+    },
+    {
+      "role": "HR_OFFICER_V2",
+      "controlsFound": 170,
+      "controlsClicked": 170,
+      "bugs": 0
+    },
+    {
+      "role": "PAYROLL_OFFICER",
+      "controlsFound": 135,
+      "controlsClicked": 135,
+      "bugs": 0
+    },
+    {
+      "role": "GM",
+      "controlsFound": 241,
+      "controlsClicked": 241,
+      "bugs": 0
+    },
+    {
+      "role": "FINANCE",
+      "controlsFound": 43,
+      "controlsClicked": 43,
+      "bugs": 0
+    },
+    {
+      "role": "DEPT_MANAGER",
+      "controlsFound": 114,
+      "controlsClicked": 114,
+      "bugs": 0
+    },
+    {
       "role": "EMPLOYEE",
       "controlsFound": 21,
       "controlsClicked": 21,
