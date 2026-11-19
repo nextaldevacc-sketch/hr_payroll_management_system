@@ -44,18 +44,53 @@ async function logTableCounts() {
   return counts;
 }
 
-export async function main() {
+export function getDatabaseName(url = process.env.DATABASE_URL, envPostgresDb = process.env.POSTGRES_DB) {
+  if (envPostgresDb && typeof envPostgresDb === 'string' && envPostgresDb.trim()) {
+    return envPostgresDb.trim();
+  }
+  if (!url || typeof url !== 'string') return '';
+  try {
+    const parsed = new URL(url);
+    return parsed.pathname.replace(/^\//, '').split('?')[0].trim();
+  } catch {
+    const match = url.match(/\/([^/?#]+)(?:\?|$)/);
+    return match ? match[1].trim() : '';
+  }
+}
+
+export function validateSeederSafety(env = process.env) {
+  const nodeEnv = (env.NODE_ENV || '').toLowerCase().trim();
+  const dbName = getDatabaseName(env.DATABASE_URL, env.POSTGRES_DB);
+  const isProdEnv = nodeEnv === 'production';
+  const isProdDb = dbName.toLowerCase().endsWith('_prod');
+
+  if (isProdEnv || isProdDb) {
+    const reasons = [];
+    if (isProdEnv) reasons.push(`NODE_ENV is 'production'`);
+    if (isProdDb) reasons.push(`database name '${dbName}' ends with '_prod'`);
+    const message = `[CRITICAL SECURITY BLOCK] Destructive demo seeder cannot run against production database (${reasons.join(' and ')}).`;
+    return { allowed: false, message, dbName, isProdEnv, isProdDb };
+  }
+  return { allowed: true, message: '', dbName, isProdEnv: false, isProdDb: false };
+}
+
+export async function main(options = {}) {
+  const safety = validateSeederSafety(process.env);
+  if (!safety.allowed) {
+    console.error('========================================================================');
+    console.error(safety.message);
+    console.error('========================================================================');
+    if (options.throwOnError) {
+      const err = new Error(safety.message);
+      err.code = 'PRODUCTION_DEMO_SEED_FORBIDDEN';
+      throw err;
+    }
+    process.exit(1);
+  }
+
   const dbUrl = process.env.DATABASE_URL || '';
   const isDevDb = dbUrl.includes('/nextal_hr_payroll');
   const isDemoMode = process.env.SEED_MODE === 'demo';
-  const isProd = process.env.NODE_ENV === 'production';
-
-  if (isProd && isDemoMode) {
-    console.error('========================================================================');
-    console.error('[SECURITY BLOCK] Demo seeding is FORBIDDEN in production (NODE_ENV=production).');
-    console.error('========================================================================');
-    process.exit(1);
-  }
 
   if (isDemoMode && isDevDb && process.env.FORCE_DEMO_SEED !== 'yes') {
     console.error('========================================================================');
