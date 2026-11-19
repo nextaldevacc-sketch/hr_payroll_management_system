@@ -1,31 +1,31 @@
 # Comprehensive End-to-End Workflow Verification Report
 
-- **Execution Date**: 19/11/2026, 16:14:36 (Asia/Dubai, UTC+4)
+- **Execution Date**: 19/11/2026, 16:36:33 (Asia/Dubai, UTC+4)
 - **Target URL**: `https://localhost`
 - **Result**: **ALL 16 SCENARIOS PASSED (100%)**
-- **Total Duration**: 4158 ms
+- **Total Duration**: 4279 ms
 - **Credential Source**: `demo-credentials.txt`
 
 ## Scenario Verification Matrix
 
 | # | Scenario Title | Status | Duration | Assertions & Evidence |
 |---|----------------|--------|----------|----------------------|
-| 01 | New Employee Onboarding & Verification | ✅ **PASS** | 1190ms | Employee created by HR Officer, contract v1 created by Payroll & approved by HR Mgr, activation checklist verified, final verification by HR Manager. |
-| 02 | Leave Approval Chain, Self-Approval Block & Admin Override | ✅ **PASS** | 381ms | Multi-level approval flow validated: Employee self-approval blocked (HTTP 403), Admin override succeeded with reason >= 10 chars. |
-| 03 | Leave Rejection Rules & Rejection Log Role-Based Isolation | ✅ **PASS** | 541ms | Rejection requires >= 10 chars (HTTP 400 guard). Company log isolated to HR/GM/Admin; DEPT_MGR & FINANCE get HTTP 403; requester sees personal record on /me/rejections. |
-| 04 | Statutory Sick & Unpaid Leave Rules and Public Holiday Skipping | ✅ **PASS** | 7ms | Verified Decree-Law 33/2021 Article 31 rules: Sick leave (15d full, 30d half, 45d unpaid), Unpaid deduction rules, and statutory UAE holidays skipping. |
-| 05 | Attendance, Biometric Punches & Overtime Flow into Payroll | ✅ **PASS** | 13ms | Overtime request lifecycle verified: OT hours aggregated and mapped into monthly payroll calculate. |
-| 06 | Branch Transfer with Asia/Dubai Effective Date and Contract Bump | ✅ **PASS** | 43ms | Branch transfer processed with Asia/Dubai effective date (2026-12-01), contract version bumped to 2. |
-| 07 | Mid-Period Bank Account Update with Dual Approval Guard | ✅ **PASS** | 20ms | Mid-period bank update saved with mod-97 IBAN AE770355511551145307084. Dual approval guard enforced before salary disbursement. |
+| 01 | New Employee Onboarding & Verification | ✅ **PASS** | 1207ms | Employee created by HR Officer, contract v1 created by Payroll & approved by HR Mgr, activation checklist verified, final verification by HR Manager. |
+| 02 | Leave Approval Chain, Self-Approval Block & Admin Override | ✅ **PASS** | 386ms | Multi-level approval flow validated: Employee self-approval blocked (HTTP 403), Admin override succeeded with reason >= 10 chars. |
+| 03 | Leave Rejection Rules & Rejection Log Role-Based Isolation | ✅ **PASS** | 551ms | Rejection requires >= 10 chars (HTTP 400 guard). Company log isolated to HR/GM/Admin; DEPT_MGR & FINANCE get HTTP 403; requester sees personal record on /me/rejections. |
+| 04 | Statutory Sick & Unpaid Leave Rules and Public Holiday Skipping | ✅ **PASS** | 8ms | Verified Decree-Law 33/2021 Article 31 rules: Sick leave (15d full, 30d half, 45d unpaid), Unpaid deduction rules, and statutory UAE holidays skipping. |
+| 05 | Attendance, Biometric Punches & Overtime Flow into Payroll | ✅ **PASS** | 15ms | Overtime request lifecycle verified: OT hours aggregated and mapped into monthly payroll calculate. |
+| 06 | Branch Transfer with Asia/Dubai Effective Date and Contract Bump | ✅ **PASS** | 53ms | Branch transfer processed with Asia/Dubai effective date (2026-12-01), contract version bumped to 2. |
+| 07 | Mid-Period Bank Account Update with Dual Approval Guard | ✅ **PASS** | 21ms | Mid-period bank update saved with mod-97 IBAN AE920352787678351759151. Dual approval guard enforced before salary disbursement. |
 | 08 | Pay Run Complete Lifecycle and WPS SIF File Generation | ✅ **PASS** | 43ms | Pay run lifecycle verified (Draft->Calculate->Validate->Lock->Paid). Statutory WPS SIF file compliant with Central Bank format. |
-| 09 | Salary Adjustments and Recurring Loan Deductions | ✅ **PASS** | 9ms | Salary adjustment rules (LOAN, ADV, BONUS) verified: deductions deducted from gross and net payslip lines. |
-| 10 | Separation & Gratuity Calculation (UAE Decree-Law 33/2021 Art 51) | ✅ **PASS** | 9ms | Gratuity strictly verified against Article 51: <1 yr = 0 AED, 1-5 yrs = 21 days/yr, >5 yrs = 30 days/yr, pro-rata for partial days. |
-| 11 | Document Magic-Bytes Guard, AES-256 Storage & Reveal Audit | ✅ **PASS** | 31ms | Fake PDF rejected via magic bytes (HTTP 400). Valid files AES-256 encrypted at rest. Reveal audited with action REVEAL_FIELD. |
-| 12 | Scope Isolation: HR Officer Visa 2 Cannot Access Visa 1 | ✅ **PASS** | 250ms | Scope isolation confirmed: All-company count = 32, Visa 2 scoped count = 6. Zero cross-visa leakage. |
+| 09 | Salary Adjustments and Recurring Loan Deductions | ✅ **PASS** | 10ms | Salary adjustment rules (LOAN, ADV, BONUS) verified: deductions deducted from gross and net payslip lines. |
+| 10 | Separation & Gratuity Calculation (UAE Decree-Law 33/2021 Art 51) | ✅ **PASS** | 10ms | Gratuity strictly verified against Article 51: <1 yr = 0 AED, 1-5 yrs = 21 days/yr, >5 yrs = 30 days/yr, pro-rata for partial days. |
+| 11 | Document Magic-Bytes Guard, AES-256 Storage & Reveal Audit | ✅ **PASS** | 34ms | Fake PDF rejected via magic bytes (HTTP 400). Valid files AES-256 encrypted at rest. Reveal audited with action REVEAL_FIELD. |
+| 12 | Scope Isolation: HR Officer Visa 2 Cannot Access Visa 1 | ✅ **PASS** | 262ms | Scope isolation confirmed: All-company count = 26, Visa 2 scoped count = 6. Zero cross-visa leakage. |
 | 13 | Multi-Tenant Isolation and Header Spoofing Rejection | ✅ **PASS** | 33ms | Client header spoofing rejected (Rule C4). Server authenticates tenant context exclusively from signed JWT session. |
-| 14 | Audit Log Protection: Append-Only DB Trigger Prevents Tampering | ✅ **PASS** | 13ms | PostgreSQL trigger trg_prevent_audit_log_tampering successfully prevented UPDATE and DELETE operations. |
-| 15 | Authentication Lockout, Password Policy & Token Revocation | ✅ **PASS** | 1184ms | Account locked after 5 failed attempts (HTTP 423). JWT revoked on logout (HTTP 401 on reuse). |
-| 16 | Employee Bulk Import (Dry-Run Preview & Atomic Execution) | ✅ **PASS** | 391ms | Dry-run preview validated 1 row (0 DB writes). Real run executed atomic transaction, created records, and emitted EMPLOYEE_BULK_IMPORT audit log. |
+| 14 | Audit Log Protection: Append-Only DB Trigger Prevents Tampering | ✅ **PASS** | 14ms | PostgreSQL trigger trg_prevent_audit_log_tampering successfully prevented UPDATE and DELETE operations. |
+| 15 | Authentication Lockout, Password Policy & Token Revocation | ✅ **PASS** | 1226ms | Account locked after 5 failed attempts (HTTP 423). JWT revoked on logout (HTTP 401 on reuse). |
+| 16 | Employee Bulk Import (Dry-Run Preview & Atomic Execution) | ✅ **PASS** | 406ms | Dry-run preview validated 1 row (0 DB writes). Real run executed atomic transaction, created records, and emitted EMPLOYEE_BULK_IMPORT audit log. |
 
 ## Security & Compliance Invariants Proven
 1. **Rule C4 & Multi-Tenancy**: Client spoofing of `x-company-id` and `x-platform-admin` headers is strictly ignored; tenant scoping is enforced from signed JWT session tokens.

@@ -1,7 +1,7 @@
 # Role Permissions vs Frontend Visibility Matrix (Section A3)
 
 > **Platform**: Nextal HR & Payroll Management System
-> **Generated At**: 2026-11-17T09:56:38.126Z
+> **Generated At**: 2026-11-19T12:36:51.916Z
 > **Audit Scope**: 38 Key API Endpoints across 8 RBAC Roles
 > **Status**: ✅ 100% IN FULL COMPLIANCE
 

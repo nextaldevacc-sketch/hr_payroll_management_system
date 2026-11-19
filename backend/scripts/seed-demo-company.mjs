@@ -266,16 +266,6 @@ export async function runDemoCompanySeed({
     },
   });
 
-  const branch1b = await prisma.$base().branches.create({
-    data: {
-      company_id: company.id,
-      company_visa_id: visa1.id,
-      name: 'Dubai Silicon Oasis Branch',
-      name_ar: 'فرع واحة دبي للسيليكون',
-      emirate: 'Dubai',
-    },
-  });
-
   const visa2 = await prisma.$base().company_visas.create({
     data: {
       company_id: company.id,
