@@ -9,7 +9,7 @@ export function csrfProtection(req, res, next) {
   }
 
   // Exempt health and public doc endpoints
-  if (req.path === '/health' || req.path === '/api/v1/health' || req.path.startsWith('/api/docs')) {
+  if (req.path === '/health' || req.path === '/healthz' || req.path === '/api/v1/health' || req.path === '/api/v1/healthz' || req.path.startsWith('/api/docs')) {
     return next();
   }
 

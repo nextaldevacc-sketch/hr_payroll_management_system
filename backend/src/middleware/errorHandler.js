@@ -61,17 +61,24 @@ export function errorHandler(err, req, res, next) {
     err.message?.includes('Invalid `prisma.') ||
     err.message?.includes('Invocation:');
 
-  let safeMessage = err.message || 'An unexpected error occurred.';
+  const requestId = req?.id || req?.headers?.['x-request-id'] || null;
+
   if (!isDev) {
     if (statusCode === 500 || isPrismaInternal) {
-      safeMessage = 'An internal server error occurred. Please contact system administrator.';
+      return res.status(500).json({
+        status: 'error',
+        error: 'Internal Server Error',
+        message: 'Internal Server Error',
+        requestId,
+      });
     }
   }
 
   res.status(statusCode).json({
     status: 'error',
     code: err.code || 'INTERNAL_SERVER_ERROR',
-    message: safeMessage,
+    message: err.message || 'An unexpected error occurred.',
+    ...(requestId ? { requestId } : {}),
     ...(err.field ? { field: err.field } : {}),
     ...(isDev && { stack: err.stack }),
   });

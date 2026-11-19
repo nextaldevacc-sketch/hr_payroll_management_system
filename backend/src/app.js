@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'node:crypto';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -38,6 +39,31 @@ const isProd = process.env.NODE_ENV === 'production';
 
 // B2: Reverse Proxy Configuration for rate limits & secure cookies
 app.set('trust proxy', Number(process.env.TRUST_PROXY || 1));
+
+// Request ID & Structured JSON Logging (SEC-STEP5)
+app.use((req, res, next) => {
+  req.id = req.headers['x-request-id'] || crypto.randomUUID();
+  res.setHeader('X-Request-Id', req.id);
+  const startTime = Date.now();
+
+  res.on('finish', () => {
+    if (isProd || process.env.ENABLE_JSON_LOGS === 'true') {
+      const duration_ms = Date.now() - startTime;
+      const logEntry = {
+        requestId: req.id,
+        method: req.method,
+        path: req.originalUrl || req.url,
+        status: res.statusCode,
+        duration_ms,
+        userId: req.user?.id || null,
+        companyId: req.companyId || req.user?.company_id || null,
+      };
+      console.log(JSON.stringify(logEntry));
+    }
+  });
+
+  next();
+});
 
 // 1. Security Headers via Helmet (strict CSP in production with no unsafe-eval)
 app.use(
@@ -139,8 +165,8 @@ if (!isProd || process.env.ENABLE_API_DOCS === 'true') {
   });
 }
 
-// 8. Health Check at /api/v1/health and /health
-app.get(['/health', '/api/v1/health'], async (req, res, next) => {
+// 8. Health Check at /api/v1/health, /health, /healthz, /api/v1/healthz
+app.get(['/health', '/healthz', '/api/v1/health', '/api/v1/healthz'], async (req, res, next) => {
   try {
     // Ping PostgreSQL through raw query
     await prisma.$base().$queryRaw`SELECT 1`;
@@ -156,6 +182,7 @@ app.get(['/health', '/api/v1/health'], async (req, res, next) => {
       status: 'ok',
       service: 'Nextal HR & Payroll API',
       version: '1.0.0',
+      uptime: process.uptime(),
       database: 'connected',
       tables_count: tableCount,
       timestamp: new Date().toISOString(),
@@ -165,8 +192,9 @@ app.get(['/health', '/api/v1/health'], async (req, res, next) => {
       status: 'degraded',
       service: 'Nextal HR & Payroll API',
       version: '1.0.0',
+      uptime: process.uptime(),
       database: 'disconnected',
-      error: err.message,
+      error: isProd ? 'Database connectivity degraded' : err.message,
       timestamp: new Date().toISOString(),
     });
   }
