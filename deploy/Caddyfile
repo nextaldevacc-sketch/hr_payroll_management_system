@@ -44,6 +44,16 @@
         }
     }
 
+    # Health check reverse proxy route
+    handle /health* {
+        reverse_proxy api:5000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
     # Web frontend reverse proxy route
     handle {
         reverse_proxy web:3100 {
