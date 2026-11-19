@@ -30,6 +30,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from '../../services/notificationsApi';
+import { Skeleton } from '../ui/skeleton/Skeleton';
 
 export function GlassTopBar({ onToggleMobileNav }) {
   const router = useRouter();
@@ -411,6 +412,15 @@ export function GlassTopBar({ onToggleMobileNav }) {
 
         {/* User Menu */}
         <div className="relative">
+          {!user ? (
+            <div className="flex items-center gap-2.5 ps-2 min-h-[40px]">
+              <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
+              <div className="hidden sm:block space-y-1">
+                <Skeleton className="h-3.5 w-20 rounded" />
+                <Skeleton className="h-3 w-14 rounded" />
+              </div>
+            </div>
+          ) : (
           <button
             type="button"
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -437,6 +447,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-text-muted hidden sm:block" />
           </button>
+          )}
 
           {isUserMenuOpen && (
             <>

@@ -23,6 +23,7 @@ import { useLanguage } from '../../../context/LanguageContext';
 import { useAuth } from '../../../context/AuthContext';
 import { RejectDialog } from './RejectDialog';
 import { RejectionsTab } from './RejectionsTab';
+import { Skeleton } from '../../ui/skeleton/Skeleton';
 
 export function ApprovalsInboxFeature() {
   const { t, isRTL, language } = useLanguage();
@@ -296,11 +297,25 @@ export function ApprovalsInboxFeature() {
             </thead>
             <tbody className="divide-y divide-border/40">
               {loading ? (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-text-muted italic">
-                    {isAr ? 'جاري تحميل الطلبات...' : 'Loading pending approvals...'}
-                  </td>
-                </tr>
+                [...Array(5)].map((_, i) => (
+                  <tr key={i}>
+                    <td className="p-3"><Skeleton className="h-4 w-28 rounded" /></td>
+                    <td className="p-3">
+                      <div className="space-y-1">
+                        <Skeleton className="h-4 w-36 rounded" />
+                        <Skeleton className="h-3 w-48 rounded" />
+                      </div>
+                    </td>
+                    <td className="p-3"><Skeleton className="h-4 w-32 rounded" /></td>
+                    <td className="p-3"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                    <td className="p-3 text-end">
+                      <div className="flex items-center justify-end gap-2">
+                        <Skeleton className="h-8 w-16 rounded-lg" />
+                        <Skeleton className="h-8 w-16 rounded-lg" />
+                      </div>
+                    </td>
+                  </tr>
+                ))
               ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-12 text-center text-text-muted">

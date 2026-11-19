@@ -19,6 +19,7 @@ import { StatusPill } from '../../primitives/StatusPill';
 import { Modal } from '../../primitives/Modal';
 import { useLanguage } from '../../../context/LanguageContext';
 import { fetchRejections, fetchMyRejections, downloadRejectionsCsv } from '../../../services/approvalApi';
+import { Skeleton } from '../../ui/skeleton/Skeleton';
 
 const REQUEST_TYPES = [
   { value: '', labelEn: 'All Request Types', labelAr: 'جميع أنواع الطلبات' },
@@ -292,11 +293,17 @@ export function RejectionsTab({ isPersonal = false }) {
             </thead>
             <tbody className="divide-y divide-border/40">
               {loading ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-text-muted italic">
-                    {isAr ? 'جاري تحميل سجل الرفض...' : 'Loading rejections log...'}
-                  </td>
-                </tr>
+                [...Array(6)].map((_, i) => (
+                  <tr key={i}>
+                    <td className="p-3"><Skeleton className="h-4 w-28 rounded" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-24 rounded" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-32 rounded" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-28 rounded" /></td>
+                    <td className="p-3"><Skeleton className="h-4 w-44 rounded" /></td>
+                    <td className="p-3"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                    <td className="p-3 text-end"><Skeleton className="h-8 w-16 rounded-lg ms-auto" /></td>
+                  </tr>
+                ))
               ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-text-muted">

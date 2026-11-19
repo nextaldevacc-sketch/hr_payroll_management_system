@@ -26,6 +26,7 @@ import { StatusPill } from '../../primitives/StatusPill';
 import { Select } from '../../primitives/form/Select';
 import { getEnumLabel, getVisaNameAr } from '../../../i18n/enums';
 import { EmployeeImportModal } from './EmployeeImportModal';
+import { Skeleton } from '../../ui/skeleton/Skeleton';
 
 export function EmployeeListFeature() {
   const { user, canAccess } = useAuth();
@@ -472,14 +473,29 @@ export function EmployeeListFeature() {
             </thead>
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
-                <tr>
-                  <td colSpan={canSeeSalary ? 11 : 9} className="py-12 text-center text-text-muted">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                      <span>Loading employee master records...</span>
-                    </div>
-                  </td>
-                </tr>
+                [...Array(8)].map((_, i) => (
+                  <tr key={i} className="animate-pulse-subtle">
+                    <td className="py-2.5 px-2.5"><Skeleton className="h-4 w-16 rounded" /></td>
+                    <td className="py-2.5 px-2.5">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
+                        <div className="space-y-1">
+                          <Skeleton className="h-4 w-28 rounded" />
+                          <Skeleton className="h-3 w-36 rounded" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-2.5"><Skeleton className="h-4 w-24 rounded" /></td>
+                    <td className="py-2.5 px-2.5"><Skeleton className="h-4 w-28 rounded" /></td>
+                    <td className="py-2.5 px-2.5"><Skeleton className="h-4 w-20 rounded" /></td>
+                    <td className="py-2.5 px-2.5"><Skeleton className="h-5 w-24 rounded-full" /></td>
+                    <td className="py-2.5 px-2.5"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                    <td className="py-2.5 px-2.5"><Skeleton className="h-4 w-20 rounded" /></td>
+                    {canSeeSalary && <td className="py-2.5 px-2.5"><Skeleton className="h-4 w-20 rounded" /></td>}
+                    {canSeeSalary && <td className="py-2.5 px-2.5"><Skeleton className="h-4 w-24 rounded" /></td>}
+                    <td className="py-2.5 px-2.5 text-center"><Skeleton className="h-8 w-8 rounded-lg mx-auto" /></td>
+                  </tr>
+                ))
               ) : employees.length === 0 ? (
                 <tr>
                   <td colSpan={canSeeSalary ? 11 : 9} className="py-12 text-center text-text-muted">
