@@ -5,7 +5,15 @@ import { getEncryptionKey } from '../lib/storage.js';
 import { createQRCodeSvg } from '../lib/qrcode.js';
 import { invalidateUserSession } from '../middleware/authCache.js';
 
-export const PRIVILEGED_ROLES = ['HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'COMPANY_ADMIN'];
+export const PRIVILEGED_ROLES = [
+  'PLATFORM_ADMIN',
+  'COMPANY_ADMIN',
+  'HR_MANAGER',
+  'PAYROLL_OFFICER',
+  'GM',
+  'FINANCE',
+  'HR_OFFICER',
+];
 
 const RFC4648_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const LOCKOUT_THRESHOLD = 5;

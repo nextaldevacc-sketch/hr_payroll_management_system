@@ -15,6 +15,7 @@ export async function login(req, res, next) {
         status: 'mfa_required',
         mfa_required: true,
         mfa_enrol_required: Boolean(result.mfa_enrol_required),
+        mfa_enrolment_required: Boolean(result.mfa_enrol_required),
         mfa_token: result.mfa_token,
         user: result.user,
       });

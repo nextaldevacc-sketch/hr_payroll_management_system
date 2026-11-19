@@ -7,6 +7,7 @@ import mailer from '../lib/mailer.js';
 import { invalidateUserSession } from '../middleware/authCache.js';
 import { SALARY_ROLES, hasSalaryAccess } from '../serializers/index.js';
 import { PRIVILEGED_ROLES } from './mfaService.js';
+export { PRIVILEGED_ROLES };
 import { assertPasswordCompliant } from '@nextal/shared';
 
 const getJwtSecret = () => {
@@ -295,6 +296,7 @@ export class AuthService {
       return {
         mfa_required: true,
         mfa_enrol_required: !user.mfa_enabled,
+        mfa_enrolment_required: !user.mfa_enabled,
         mfa_token: mfaToken,
         user: {
           id: user.id,

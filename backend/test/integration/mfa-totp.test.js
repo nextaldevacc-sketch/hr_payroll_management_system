@@ -18,10 +18,12 @@ describe('Part 8 Item 1: TOTP MFA (SEC-2) for Privileged Roles', () => {
   let adminUser;
   let hrManagerUser;
   let employeeUser;
-  let originalPassword = 'Password123!';
+  let hrOfficerUser;
+  let originalPassword = 'Password#Nextal2026!';
   const runId = Date.now();
   const adminEmail = `admin-${runId}@mfatest.ae`;
   const hrEmail = `hrmgr-${runId}@mfatest.ae`;
+  const hroEmail = `hro-${runId}@mfatest.ae`;
   const empEmail = `emp-${runId}@mfatest.ae`;
 
   before(async () => {
@@ -37,6 +39,7 @@ describe('Part 8 Item 1: TOTP MFA (SEC-2) for Privileged Roles', () => {
 
     const roleAdmin = await prisma.$base().roles.findUnique({ where: { code: 'COMPANY_ADMIN' } });
     const roleHrMgr = await prisma.$base().roles.findUnique({ where: { code: 'HR_MANAGER' } });
+    const roleHrOff = await prisma.$base().roles.findUnique({ where: { code: 'HR_OFFICER' } });
     const roleEmp = await prisma.$base().roles.findUnique({ where: { code: 'EMPLOYEE' } });
 
     const passwordHash = await authService.hashPassword(originalPassword);
@@ -67,7 +70,20 @@ describe('Part 8 Item 1: TOTP MFA (SEC-2) for Privileged Roles', () => {
       data: { user_id: hrManagerUser.id, role_id: roleHrMgr.id, company_id: company.id },
     });
 
-    // 3. Normal Employee (Non-privileged)
+    // 3. HR Officer (Privileged - STEP 4)
+    hrOfficerUser = await prisma.$base().users.create({
+      data: {
+        email: hroEmail,
+        password_hash: passwordHash,
+        company_id: company.id,
+        status: 'Active',
+      },
+    });
+    await prisma.$base().user_roles.create({
+      data: { user_id: hrOfficerUser.id, role_id: roleHrOff.id, company_id: company.id },
+    });
+
+    // 4. Normal Employee (Non-privileged)
     employeeUser = await prisma.$base().users.create({
       data: {
         email: empEmail,
@@ -85,10 +101,10 @@ describe('Part 8 Item 1: TOTP MFA (SEC-2) for Privileged Roles', () => {
     // Do not attempt to delete from append-only audit_logs
     try {
       await prisma.$base().user_roles.deleteMany({
-        where: { user: { email: { in: [adminEmail, hrEmail, empEmail] } } },
+        where: { user: { email: { in: [adminEmail, hrEmail, hroEmail, empEmail] } } },
       });
       await prisma.$base().users.deleteMany({
-        where: { email: { in: [adminEmail, hrEmail, empEmail] } },
+        where: { email: { in: [adminEmail, hrEmail, hroEmail, empEmail] } },
       });
       await prisma.$base().companies.deleteMany({ where: { id: company.id } });
     } catch {}
@@ -124,6 +140,37 @@ describe('Part 8 Item 1: TOTP MFA (SEC-2) for Privileged Roles', () => {
     const empLogin = await authService.login({ email: empEmail, password: originalPassword });
     assert.ok(empLogin.token, 'Employee should receive full JWT session token');
     assert.equal(empLogin.mfa_required, undefined);
+  });
+
+  it('2b. STEP 4: HR_OFFICER is privileged and requires mandatory MFA enrolment, then succeeds with TOTP', async () => {
+    // 1. HR Officer login without MFA returns mfa_required & mfa_enrolment_required
+    const hroLogin = await authService.login({ email: hroEmail, password: originalPassword });
+    assert.equal(hroLogin.mfa_required, true);
+    assert.equal(hroLogin.mfa_enrol_required, true);
+    assert.equal(hroLogin.mfa_enrolment_required, true);
+    assert.ok(hroLogin.mfa_token, 'Must return temporary mfa_token for enrolment');
+
+    // 2. Enrol TOTP for HR Officer
+    const enrol = await mfaService.initEnrolment(hrOfficerUser.id);
+    assert.ok(enrol.secret);
+    const dbUser = await prisma.$base().users.findUnique({ where: { id: hrOfficerUser.id } });
+    const secret = decryptMfaSecret(dbUser.mfa_temp_secret);
+    const validCode = calculateTotp(secret);
+    await mfaService.confirmEnrolment(hrOfficerUser.id, validCode);
+
+    // 3. Login after enrolment requires TOTP code (enrolment no longer required)
+    const afterEnrolLogin = await authService.login({ email: hroEmail, password: originalPassword });
+    assert.equal(afterEnrolLogin.mfa_required, true);
+    assert.equal(afterEnrolLogin.mfa_enrol_required, false);
+    assert.equal(afterEnrolLogin.mfa_enrolment_required, false);
+
+    // 4. Verify with valid TOTP code succeeds
+    const nextStepTime = Math.floor(Date.now() / 1000) + 30;
+    const verifySuccess = await mfaService.verifyCodeOrRecovery(hrOfficerUser.id, calculateTotp(secret, nextStepTime), {
+      nowSeconds: nextStepTime,
+    });
+    assert.equal(verifySuccess.success, true);
+    assert.equal(verifySuccess.method, 'totp');
   });
 
   it('3. Enrolment initialization: creates QR code and stores encrypted temp secret', async () => {
