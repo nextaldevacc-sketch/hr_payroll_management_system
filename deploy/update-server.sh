@@ -9,12 +9,20 @@ set -euo pipefail
 
 ENV_FILE=".env.production"
 
+USE_AAPANEL=""
+
 # HARD RULE: Refuse destructive operations
 for arg in "$@"; do
   case "$arg" in
     *reset*|*truncate*|*drop*|*force-reset*)
       echo "FATAL: Destructive argument '${arg}' detected. Updates must be strictly non-destructive." >&2
       exit 1
+      ;;
+    --aapanel)
+      USE_AAPANEL="true"
+      ;;
+    --standalone)
+      USE_AAPANEL="false"
       ;;
     *.env*)
       if [ -f "$arg" ]; then
@@ -36,8 +44,10 @@ fi
 
 # Compose files setup: -f docker-compose.prod.yml -f docker-compose.aapanel.yml (where aapanel is an override)
 COMPOSE_ARGS=("-f" "docker-compose.prod.yml")
-if [ -f "docker-compose.aapanel.yml" ]; then
-  COMPOSE_ARGS+=("-f" "docker-compose.aapanel.yml")
+if [ "$USE_AAPANEL" = "true" ] || ([ "$USE_AAPANEL" != "false" ] && [ -f "docker-compose.aapanel.yml" ]); then
+  if [ -f "docker-compose.aapanel.yml" ]; then
+    COMPOSE_ARGS+=("-f" "docker-compose.aapanel.yml")
+  fi
 fi
 
 echo "================================================================"
