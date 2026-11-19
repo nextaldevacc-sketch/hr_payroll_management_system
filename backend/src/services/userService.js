@@ -3,6 +3,7 @@ import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
 import authService from './authService.js';
 import { invalidateUserSession } from '../middleware/authCache.js';
+import { assertPasswordCompliant } from '@nextal/shared';
 
 export class UserService {
   constructor(client = prisma) {
@@ -140,6 +141,7 @@ export class UserService {
 
     // Default temporary password
     const tempPassword = 'Tmp!' + crypto.randomBytes(6).toString('hex') + 'A9';
+    assertPasswordCompliant(tempPassword, { email: cleanEmail });
     const passwordHash = await authService.hashPassword(tempPassword);
 
     const user = await this.prisma.$base().users.create({
@@ -387,6 +389,7 @@ export class UserService {
         if (existing) {
           if (existing.password_hash === 'UNINITIALIZED_INVITE') {
             const tempPassword = 'Tmp!' + crypto.randomBytes(6).toString('hex') + 'A9';
+            assertPasswordCompliant(tempPassword, { email });
             const passwordHash = await authService.hashPassword(tempPassword);
             await this.prisma.$base().users.update({
               where: { id: existing.id },
@@ -436,6 +439,7 @@ export class UserService {
         }
 
         const tempPassword = 'Tmp!' + crypto.randomBytes(6).toString('hex') + 'A9';
+        assertPasswordCompliant(tempPassword, { email });
         const passwordHash = await authService.hashPassword(tempPassword);
 
         const newUser = await this.prisma.$base().users.create({

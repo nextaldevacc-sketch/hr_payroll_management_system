@@ -7,6 +7,7 @@ import mailer from '../lib/mailer.js';
 import { invalidateUserSession } from '../middleware/authCache.js';
 import { SALARY_ROLES, hasSalaryAccess } from '../serializers/index.js';
 import { PRIVILEGED_ROLES } from './mfaService.js';
+import { assertPasswordCompliant } from '@nextal/shared';
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
@@ -569,13 +570,6 @@ export class AuthService {
       throw err;
     }
 
-    if (password.length < 10 || !/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
-      const err = new Error('Password must be at least 10 characters and contain letters and numbers');
-      err.status = 400;
-      err.code = 'VALIDATION_ERROR';
-      throw err;
-    }
-
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const authToken = await this.prisma.$base().auth_tokens.findUnique({
       where: { token_hash: tokenHash },
@@ -602,6 +596,12 @@ export class AuthService {
       err.code = 'TOKEN_EXPIRED';
       throw err;
     }
+
+    // Enforce enterprise password complexity policy (SEC-M6)
+    assertPasswordCompliant(password, {
+      email: authToken.user?.email,
+      name: authToken.user?.name,
+    });
 
     // Mark token used (single-use)
     await this.prisma.$base().auth_tokens.update({
@@ -707,13 +707,6 @@ export class AuthService {
       throw err;
     }
 
-    if (newPassword.length < 10 || !/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
-      const err = new Error('Password must be at least 10 characters and contain letters and numbers');
-      err.status = 400;
-      err.code = 'VALIDATION_ERROR';
-      throw err;
-    }
-
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const authToken = await this.prisma.$base().auth_tokens.findUnique({
       where: { token_hash: tokenHash },
@@ -740,6 +733,12 @@ export class AuthService {
       err.code = 'TOKEN_EXPIRED';
       throw err;
     }
+
+    // Enforce enterprise password complexity policy (SEC-M6)
+    assertPasswordCompliant(newPassword, {
+      email: authToken.user?.email,
+      name: authToken.user?.name,
+    });
 
     // Mark token used (single-use)
     await this.prisma.$base().auth_tokens.update({
@@ -791,13 +790,6 @@ export class AuthService {
       throw err;
     }
 
-    if (newPassword.length < 10 || !/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
-      const err = new Error('Password must be at least 10 characters and contain letters and numbers');
-      err.status = 400;
-      err.code = 'WEAK_PASSWORD';
-      throw err;
-    }
-
     const user = await this.prisma.$base().users.findUnique({
       where: { id: userId },
       include: {
@@ -817,6 +809,14 @@ export class AuthService {
       err.code = 'USER_NOT_FOUND';
       throw err;
     }
+
+    // Enforce enterprise password complexity policy (SEC-M6)
+    assertPasswordCompliant(newPassword, {
+      email: user.email,
+      name: user.name || user.employee?.name,
+      firstName: user.employee?.first_name,
+      lastName: user.employee?.last_name,
+    });
 
     if (currentPassword) {
       const isCurrentValid = await this.verifyPassword(currentPassword, user.password_hash);

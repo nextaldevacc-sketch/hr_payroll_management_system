@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { API_BASE } from '../../../services/apiClient';
+import { validatePassword } from '@nextal/shared';
 import { Lock, Eye, EyeOff, AlertTriangle, ArrowRight, ArrowLeft, Loader2, Check } from 'lucide-react';
 
 export default function ChangePasswordPage() {
@@ -21,18 +22,25 @@ export default function ChangePasswordPage() {
   const isAr = locale === 'ar';
 
   const hasLength = newPassword.length >= 10;
-  const hasLetter = /[a-zA-Z]/.test(newPassword);
-  const hasNumber = /\d/.test(newPassword);
+  const hasUpper = /[A-Z]/.test(newPassword);
+  const hasLower = /[a-z]/.test(newPassword);
+  const hasNumber = /[0-9]/.test(newPassword);
+  const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(newPassword);
   const isMatch = newPassword.length > 0 && newPassword === confirmPassword;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!hasLength || !hasLetter || !hasNumber) {
+    const policy = validatePassword(newPassword, {
+      email: user?.email,
+      name: user?.name,
+    });
+
+    if (!policy.valid) {
       setErrorMessage(
         isAr
-          ? 'يجب أن تتكون كلمة المرور من 10 خانات على الأقل وتحتوي على حروف وأرقام'
-          : 'Password must be at least 10 characters and contain letters and numbers'
+          ? 'يجب أن تتكون كلمة المرور من 10 خانات على الأقل وتحتوي على حروف كبيرة وصغيرة وأرقام ورموز خاصة، وألا تحتوي على اسمك أو بريدك'
+          : policy.errors[0] || 'Password does not meet complexity requirements'
       );
       return;
     }
@@ -156,13 +164,13 @@ export default function ChangePasswordPage() {
           <div className="flex items-center gap-2 text-[11px]">
             <span
               className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${
-                hasLetter ? 'bg-emerald-500 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-500'
+                hasUpper && hasLower ? 'bg-emerald-500 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-500'
               }`}
             >
-              {hasLetter ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : '•'}
+              {hasUpper && hasLower ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : '•'}
             </span>
-            <span className={hasLetter ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}>
-              {isAr ? 'تحتوي على حروف (A-Z أو a-z)' : 'Contains letters (a-z, A-Z)'}
+            <span className={hasUpper && hasLower ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}>
+              {isAr ? 'حروف كبيرة وصغيرة (A-Z و a-z)' : 'Upper and lowercase letters (A-Z & a-z)'}
             </span>
           </div>
           <div className="flex items-center gap-2 text-[11px]">
@@ -175,6 +183,18 @@ export default function ChangePasswordPage() {
             </span>
             <span className={hasNumber ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}>
               {isAr ? 'تحتوي على أرقام (0-9)' : 'Contains numbers (0-9)'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-[11px]">
+            <span
+              className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${
+                hasSpecial ? 'bg-emerald-500 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-500'
+              }`}
+            >
+              {hasSpecial ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : '•'}
+            </span>
+            <span className={hasSpecial ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}>
+              {isAr ? 'رموز خاصة (!@#$%)' : 'Special character (!@#$%)'}
             </span>
           </div>
           {confirmPassword.length > 0 && (

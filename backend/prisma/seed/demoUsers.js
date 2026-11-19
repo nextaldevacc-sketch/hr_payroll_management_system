@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import { PERMISSIONS_MATRIX } from '../../../shared/src/constants/permissions.js';
+import { assertPasswordCompliant } from '../../../shared/src/utils/passwordPolicy.js';
 
 /**
  * Seed Module: Demo Users & Roles
@@ -27,6 +28,7 @@ export async function seedDemoUsers(prisma, { company1, company2, depts1, visas1
     rolesMap[r.code] = role;
   }
 
+  assertPasswordCompliant('Nextal@2026!');
   const passwordHash = await bcrypt.hash('Nextal@2026!', 10);
 
   // Platform Admin (Disabled feature flag check in authService returns 403 FEATURE_DISABLED)

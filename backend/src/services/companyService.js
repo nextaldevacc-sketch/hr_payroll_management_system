@@ -4,6 +4,7 @@ import prisma from '../lib/prisma.js';
 import auditService from './auditService.js';
 import authService from './authService.js';
 import { invalidateCompanySessions } from '../middleware/authCache.js';
+import { assertPasswordCompliant } from '@nextal/shared';
 
 export class CompanyService {
   constructor(client = prisma) {
@@ -179,6 +180,7 @@ export class CompanyService {
     }
 
     const tempPassword = 'Tmp!' + crypto.randomBytes(6).toString('hex') + 'A9';
+    assertPasswordCompliant(tempPassword, { email: cleanEmail });
     const passwordHash = await authService.hashPassword(tempPassword);
 
     // Provision company with UAE defaults in a single atomic transaction (rolls back on failure)

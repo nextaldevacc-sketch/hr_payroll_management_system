@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '../../../context/LanguageContext';
 import { API_BASE } from '../../../services/apiClient';
+import { validatePassword } from '@nextal/shared';
 import { Lock, Eye, EyeOff, AlertTriangle, ArrowRight, ArrowLeft, Loader2, Check, UserCheck } from 'lucide-react';
 
 export default function AcceptInvitePage() {
@@ -22,8 +23,10 @@ export default function AcceptInvitePage() {
   const isAr = locale === 'ar';
 
   const hasLength = password.length >= 10;
-  const hasLetter = /[a-zA-Z]/.test(password);
-  const hasNumber = /\d/.test(password);
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password);
   const isMatch = password.length > 0 && password === confirmPassword;
 
   const handleSubmit = async (e) => {
@@ -33,11 +36,12 @@ export default function AcceptInvitePage() {
       return;
     }
 
-    if (!hasLength || !hasLetter || !hasNumber) {
+    const policy = validatePassword(password);
+    if (!policy.valid) {
       setErrorMessage(
         isAr
-          ? 'يجب أن تتكون كلمة المرور من 10 خانات على الأقل وتحتوي على حروف وأرقام'
-          : 'Password must be at least 10 characters and contain letters and numbers'
+          ? 'يجب أن تتكون كلمة المرور من 10 خانات على الأقل وتحتوي على حروف كبيرة وصغيرة وأرقام ورموز خاصة'
+          : policy.errors[0] || 'Password does not meet complexity requirements'
       );
       return;
     }
@@ -171,19 +175,23 @@ export default function AcceptInvitePage() {
               <span>{isAr ? '10 خانات على الأقل' : 'At least 10 characters'}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Check className={`w-3.5 h-3.5 ${hasLetter ? 'text-emerald-500 font-bold' : 'text-slate-400'}`} />
-              <span>{isAr ? 'تحتوي على حروف (أ-ي أو a-z)' : 'Contains letters'}</span>
+              <Check className={`w-3.5 h-3.5 ${hasUpper && hasLower ? 'text-emerald-500 font-bold' : 'text-slate-400'}`} />
+              <span>{isAr ? 'حروف كبيرة وصغيرة (A-Z و a-z)' : 'Upper and lowercase letters'}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Check className={`w-3.5 h-3.5 ${hasNumber ? 'text-emerald-500 font-bold' : 'text-slate-400'}`} />
-              <span>{isAr ? 'تحتوي على أرقام (0-9)' : 'Contains numbers'}</span>
+              <span>{isAr ? 'تحتوي على أرقام (0-9)' : 'Contains numbers (0-9)'}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Check className={`w-3.5 h-3.5 ${hasSpecial ? 'text-emerald-500 font-bold' : 'text-slate-400'}`} />
+              <span>{isAr ? 'رموز خاصة (!@#$%)' : 'Special character (!@#$%)'}</span>
             </div>
           </div>
 
           <button
             id="btn-submit-invite"
             type="submit"
-            disabled={isLoading || !hasLength || !hasLetter || !hasNumber || !isMatch}
+            disabled={isLoading || !hasLength || !hasUpper || !hasLower || !hasNumber || !hasSpecial || !isMatch}
             className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/20 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all"
           >
             {isLoading ? (

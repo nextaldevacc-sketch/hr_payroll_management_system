@@ -3,6 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import bcrypt from 'bcrypt';
+import { assertPasswordCompliant } from '../../../shared/src/utils/passwordPolicy.js';
 import { getEncryptionKey } from '../../src/lib/storage.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -659,6 +660,7 @@ export async function seedEmployees(prisma, {
 
   // Seed user logins for every active employee of both companies (RC3 Part 1 / Item 9)
   const employeeRole = rolesMap ? rolesMap['EMPLOYEE'] : await prisma.roles.findUnique({ where: { code: 'EMPLOYEE' } });
+  assertPasswordCompliant('Nextal@2026!');
   const defaultPasswordHash = await bcrypt.hash('Nextal@2026!', 10);
 
   const allEmps = await prisma.employees.findMany({

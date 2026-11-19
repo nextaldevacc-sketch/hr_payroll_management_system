@@ -12,6 +12,7 @@ import {
   calculateOpeningLeaveAllocation,
   DEFAULT_EMPLOYEE_CODE_PREFIX,
   toDubaiDateString,
+  assertPasswordCompliant,
 } from '@nextal/shared';
 import storageService from '../lib/storage.js';
 import auditService from './auditService.js';
@@ -1181,6 +1182,7 @@ export class EmployeeService {
 
     const viewerUserId = getViewerUserId(viewer);
     const tempPassword = 'Tmp!' + crypto.randomBytes(6).toString('hex') + 'A9';
+    assertPasswordCompliant(tempPassword, { email });
     const passwordHash = await authService.hashPassword(tempPassword);
 
     let user = employee.user;
