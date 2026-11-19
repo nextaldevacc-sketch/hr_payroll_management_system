@@ -142,21 +142,14 @@ In aaPanel -> Website -> Add Site -> Reverse Proxy:
 
 Nextal enforces strict role separation and zero default credentials. Create your first administrator using the standalone CLI script:
 
-### Create Company Admin:
+### Create Company Admin (Inside Container):
 ```bash
-node scripts/create-first-admin.mjs \
-  --role COMPANY_ADMIN \
-  --email admin@yourcompany.ae \
-  --name "Administrator" \
-  --company "Your Company LLC"
+docker compose --env-file .env.production -f docker-compose.prod.yml exec api node scripts/create-first-admin.mjs --email admin@yourcompany.ae --company "Your Company LLC"
 ```
 
 ### Create Platform Admin (Optional):
 ```bash
-node scripts/create-first-admin.mjs \
-  --role PLATFORM_ADMIN \
-  --email superadmin@nextal.ae \
-  --name "Platform Admin"
+docker compose --env-file .env.production -f docker-compose.prod.yml exec api node scripts/create-first-admin.mjs --role PLATFORM_ADMIN --email superadmin@nextal.ae --name "Platform Admin"
 ```
 The script generates a secure, policy-compliant 16-character password and outputs it to the console once. Store this password securely in a password manager. On first login, the admin is required to configure TOTP MFA if privileged.
 
