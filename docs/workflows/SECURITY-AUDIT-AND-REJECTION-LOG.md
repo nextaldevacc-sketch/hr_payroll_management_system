@@ -25,8 +25,11 @@ This document details the security review findings and requirements for HR & Pay
 | **M6** | Medium | Authentication | Password complexity enforcement (10+ chars, upper, lower, number, special, no name/email username, 20-word common blocklist) | Fixed | `50611ca` | `backend/test/security/password-policy.test.js` |
 | **M7** | Medium | Encryption at Rest | Column-level encryption at rest with blind index (SEC-31) | Deferred (Reason: file uploads are AES-256-GCM encrypted, UI masking active; blind indexing deferred post-1.0.0; documented in `docs/KNOWN-LIMITATIONS.md`) | `N/A` | `no automated test (documented in docs/KNOWN-LIMITATIONS.md)` |
 | **M8** | Medium | Cryptography | Argon2id password hashing migration (SEC-1) | Deferred (Reason: native C++ toolchain compatibility on Windows/container; bcrypt cost 12 with transparent rehash active; documented in `docs/KNOWN-LIMITATIONS.md`) | `N/A` | `no automated test (documented in docs/KNOWN-LIMITATIONS.md)` |
+| **MFA** | High | Privileged Access | Mandatory TOTP MFA for HR_OFFICER alongside COMPANY_ADMIN, HR_MANAGER, PAYROLL_OFFICER, FINANCE | Closed | `225a7cd` | `backend/test/integration/mfa-totp.test.js` |
 | **REJ-LOG** | Feature / Security | Rejection Audit | Dedicated append-only `approval_rejections` log table with trigger, mandatory >=10 char reason, UI tab & dialog, restricted to HR, GM, Admin | Closed | `624aa33` | `backend/test/security/rejection-log.test.js` |
+| **SMOKE** | Quality / Ops | Production Reliability | Automated production smoke test suite covering /healthz, 401 unauth, tenant isolation, headers, rate limits | Closed | `e77502a` | `backend/test/smoke-prod.test.js` |
 | **HARDEN** | Hardening | General Security | Body limit (100kb), rate limiting on login/MFA, CSRF Origin/Referer check, and production preflight checks | Closed | `e47010a` | `backend/test/security/hardening.test.js` |
+| **DEPLOY** | Operations | VPS Deployment Package | Production VPS deployment package, aaPanel compose override, Caddy TLS proxy, zero-downtime updates, beginner guide | Closed | `037dbc2` | `deploy/DEPLOY.md` |
 
 ---
 
