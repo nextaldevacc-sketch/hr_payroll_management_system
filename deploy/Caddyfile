@@ -25,11 +25,18 @@
         Referrer-Policy "strict-origin-when-cross-origin"
         # Permissions Policy
         Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
-        # Content Security Policy (strict, self-hosted fonts, no unsafe-eval)
-        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; connect-src 'self'"
+        # Content Security Policy (strict, self-hosted fonts, no unsafe-eval, self-hosted media)
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; connect-src 'self'"
         # Remove Server disclosure header
         -Server
     }
+
+    # Static assets cache policies
+    @staticNext path /_next/static/*
+    header @staticNext Cache-Control "public, max-age=31536000, immutable"
+
+    @staticMedia path /media/*
+    header @staticMedia Cache-Control "public, max-age=604800"
 
     # Compress responses (gzip / zstd)
     encode gzip zstd

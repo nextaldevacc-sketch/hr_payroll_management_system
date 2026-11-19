@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { BentoGrid } from '../../components/primitives/BentoGrid';
 import { LivePayrollHeroTile } from '../../components/features/dashboard/LivePayrollHeroTile';
@@ -11,8 +12,6 @@ import { DocumentsExpiryTile } from '../../components/features/dashboard/Documen
 import { ExceptionsTile } from '../../components/features/dashboard/ExceptionsTile';
 import { AttendanceSegmentTile } from '../../components/features/dashboard/AttendanceSegmentTile';
 import { OvertimeTile } from '../../components/features/dashboard/OvertimeTile';
-import { PayrollTrendTile } from '../../components/features/dashboard/PayrollTrendTile';
-import { DepartmentChartTile } from '../../components/features/dashboard/DepartmentChartTile';
 import { FinanceLiabilitiesTile } from '../../components/features/dashboard/FinanceLiabilitiesTile';
 import { WeekAheadTile } from '../../components/features/dashboard/WeekAheadTile';
 import { QuickActionsTile } from '../../components/features/dashboard/QuickActionsTile';
@@ -20,8 +19,23 @@ import { RecentActivityTile } from '../../components/features/dashboard/RecentAc
 import { VarianceTile } from '../../components/features/dashboard/VarianceTile';
 import { CompanyOnboardingChecklistTile } from '../../components/features/dashboard/CompanyOnboardingChecklistTile';
 
+import { SkeletonCard } from '../../components/ui/skeleton';
+
+// Dynamic code-splitting for below-the-fold Recharts & heavy drawers
+const PayrollTrendTile = dynamic(
+  () => import('../../components/features/dashboard/PayrollTrendTile').then((mod) => mod.PayrollTrendTile),
+  { ssr: false, loading: () => <SkeletonCard className="col-span-12 lg:col-span-8 min-h-[280px]" /> }
+);
+const DepartmentChartTile = dynamic(
+  () => import('../../components/features/dashboard/DepartmentChartTile').then((mod) => mod.DepartmentChartTile),
+  { ssr: false, loading: () => <SkeletonCard className="col-span-12 lg:col-span-4 min-h-[280px]" /> }
+);
+const BiometricImportFeature = dynamic(
+  () => import('../../components/features/attendance/BiometricImportFeature'),
+  { ssr: false }
+);
+
 import { Drawer } from '../../components/primitives/Drawer';
-import BiometricImportFeature from '../../components/features/attendance/BiometricImportFeature';
 import { Modal } from '../../components/primitives/Modal';
 import { Button } from '../../components/primitives/form/Button';
 import { useLanguage } from '../../context/LanguageContext';
