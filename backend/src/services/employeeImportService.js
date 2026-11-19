@@ -750,7 +750,12 @@ export class EmployeeImportService {
     }
 
     // DRY RUN = FALSE: Execute all-or-nothing in a single atomic transaction
-    const employeeRole = await this.prisma.$base().roles.findUnique({ where: { code: 'EMPLOYEE' } });
+    const [employeeRole, defaultAttendancePolicy, defaultStructure, defaultShift] = await Promise.all([
+      this.prisma.$base().roles.findUnique({ where: { code: 'EMPLOYEE' } }),
+      this.prisma.$base().attendance_policies.findFirst({ where: { company_id: companyId } }),
+      this.prisma.$base().salary_structures.findFirst({ where: { company_id: companyId } }),
+      this.prisma.$base().shifts.findFirst({ where: { company_id: companyId } }),
+    ]);
     if (!employeeRole) {
       throw new Error('System role "EMPLOYEE" not found. Please run "npm run seed:system".');
     }

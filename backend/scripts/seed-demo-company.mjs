@@ -266,6 +266,16 @@ export async function runDemoCompanySeed({
     },
   });
 
+  const branch1b = await prisma.$base().branches.create({
+    data: {
+      company_id: company.id,
+      company_visa_id: visa1.id,
+      name: 'Dubai Silicon Oasis Branch',
+      name_ar: 'فرع واحة دبي للسيليكون',
+      emirate: 'Dubai',
+    },
+  });
+
   const visa2 = await prisma.$base().company_visas.create({
     data: {
       company_id: company.id,
@@ -716,6 +726,24 @@ export async function runDemoCompanySeed({
         verification_status: 'Verified',
       },
     });
+  }
+
+  // Statutory UAE Annual Leave Allocations (30 days/yr under UAE Labour Law Article 29)
+  if (annualLeaveType) {
+    for (const emp of seededEmployees) {
+      await prisma.$base().leave_allocations.create({
+        data: {
+          company_id: company.id,
+          employee_id: emp.id,
+          leave_type_id: annualLeaveType.id,
+          allocation_type: 'Regular',
+          days_allocated: 30.00,
+          days_taken: 0.00,
+          valid_from: new Date('2026-01-01'),
+          valid_to: new Date('2026-12-31'),
+        },
+      });
+    }
   }
 
   // 12. One Past Month of Attendance and Overtime (October 2026)

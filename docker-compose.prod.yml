@@ -85,6 +85,8 @@ services:
       ENABLE_JOBS: ${ENABLE_JOBS:-true}
       ENABLE_API_DOCS: ${ENABLE_API_DOCS:-false}
       ENABLE_JOB_TRIGGER_API: ${ENABLE_JOB_TRIGGER_API:-false}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-1000}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-5000}
       STORAGE_DRIVER: local
       STORAGE_LOCAL_DIR: /app/backend/storage
       MAIL_MODE: ${MAIL_MODE:-disabled}
@@ -122,6 +124,8 @@ services:
     image: postgres:16-alpine
     container_name: nextal-postgres-prod
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
