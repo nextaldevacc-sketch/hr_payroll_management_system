@@ -63,3 +63,7 @@ nextal-images.tar
 demo-credentials.txt
 *.credentials.txt
 *.enc
+
+# Audit recordings & logs
+frontend/log/
+*.mp4

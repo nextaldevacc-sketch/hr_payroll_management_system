@@ -1,7 +1,10 @@
 import { Router } from 'express';
+import multer from 'multer';
+import path from 'node:path';
+import rateLimit from 'express-rate-limit';
 import { safeFileUpload as upload } from '../middleware/fileUpload.js';
 import { authenticate } from '../middleware/auth.js';
-import { requirePermission } from '../middleware/permissions.js';
+import { requirePermission, requireRole } from '../middleware/permissions.js';
 import { salaryMaskMiddleware } from '../middleware/salaryMask.js';
 import { validate } from '../middleware/validate.js';
 import {
@@ -15,11 +18,82 @@ const router = Router();
 
 router.use(authenticate);
 
+const importUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!['.csv', '.xlsx'].includes(ext)) {
+      const err = new Error(`File upload rejected: Only .csv and .xlsx files are supported for employee import`);
+      err.status = 400;
+      err.code = 'UNSUPPORTED_FILE_TYPE';
+      return cb(err);
+    }
+    cb(null, true);
+  },
+});
+
+const importRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: process.env.NODE_ENV === 'test' ? 1000 : 5,
+  keyGenerator: (req) => req.user?.id || req.ip,
+  message: { error: 'Too many import requests. Maximum 5 requests per minute allowed.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // 1. Employee Directory & CRUD
 router.get('/', requirePermission('employees', 'view'), salaryMaskMiddleware, employeeController.listEmployees);
 router.post('/', requirePermission('employees', 'create'), validate(createEmployeeSchema), employeeController.createEmployee);
 router.get('/meta/options', requirePermission('employees', 'view'), employeeController.getEmployeeMetaOptions);
 router.get('/meta/next-code', requirePermission('employees', 'view'), employeeController.getNextEmployeeCode);
+
+// Bulk Import Routes (Must be before /:id)
+router.get(
+  '/import/template',
+  requireRole('HR_MANAGER', 'COMPANY_ADMIN'),
+  employeeController.downloadImportTemplate
+);
+router.post(
+  '/import/validate',
+  importRateLimiter,
+  requireRole('HR_MANAGER', 'COMPANY_ADMIN'),
+  (req, res, next) => {
+    importUpload.single('file')(req, res, (err) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ error: 'File size exceeds maximum allowed limit of 5MB' });
+        }
+        return res.status(400).json({ error: err.message });
+      }
+      next();
+    });
+  },
+  (req, res, next) => {
+    req.query.dryRun = 'true';
+    employeeController.bulkImportEmployees(req, res, next);
+  }
+);
+router.post(
+  '/import',
+  importRateLimiter,
+  requireRole('HR_MANAGER', 'COMPANY_ADMIN'),
+  (req, res, next) => {
+    importUpload.single('file')(req, res, (err) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ error: 'File size exceeds maximum allowed limit of 5MB' });
+        }
+        return res.status(400).json({ error: err.message });
+      }
+      next();
+    });
+  },
+  employeeController.bulkImportEmployees
+);
+
 router.get('/:id', requirePermission('employees', 'view'), salaryMaskMiddleware, employeeController.getEmployeeById);
 router.put('/:id', requirePermission('employees', 'edit'), employeeController.updateEmployee);
 

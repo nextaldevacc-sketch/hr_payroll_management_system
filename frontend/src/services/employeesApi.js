@@ -272,3 +272,45 @@ export async function fetchEmployeeAuditHistory(id) {
   const json = await handleResponse(res);
   return json.data;
 }
+
+export async function downloadImportTemplate(format = 'xlsx') {
+  const res = await fetch(`${API_BASE}/import/template?format=${format}`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to download template');
+  }
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `employee-import-template.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+export async function validateEmployeeImport(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(`${API_BASE}/import/validate`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+  return handleResponse(res);
+}
+
+export async function executeEmployeeImport(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(`${API_BASE}/import?dryRun=false`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  });
+  return handleResponse(res);
+}

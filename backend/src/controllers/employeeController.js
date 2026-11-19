@@ -1,4 +1,5 @@
 import employeeService from '../services/employeeService.js';
+import employeeImportService from '../services/employeeImportService.js';
 import { hasSalaryAccess } from '../serializers/index.js';
 import auditService from '../services/auditService.js';
 import prisma from '../lib/prisma.js';
@@ -595,11 +596,60 @@ export async function revealSensitiveField(req, res, next) {
   }
 }
 
+export async function downloadImportTemplate(req, res, next) {
+  try {
+    const format = (req.query.format || 'xlsx').toLowerCase();
+    const result = await employeeImportService.generateTemplate({
+      companyId: req.companyId,
+      format,
+    });
+    res.setHeader('Content-Type', result.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.send(result.buffer);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function bulkImportEmployees(req, res, next) {
+  try {
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ error: 'No file uploaded. Please upload a CSV or XLSX file.' });
+    }
+
+    const dryRun = req.query.dryRun !== 'false';
+    const result = await employeeImportService.processImport({
+      buffer: req.file.buffer,
+      filename: req.file.originalname,
+      companyId: req.companyId,
+      dryRun,
+      user: req.user,
+    });
+
+    if (result.errors && result.errors.length > 0) {
+      return res.status(400).json({
+        status: 'error',
+        message: `Validation failed for ${result.invalidRows} row(s)`,
+        ...result,
+      });
+    }
+
+    res.json({
+      status: 'success',
+      ...result,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export default {
   listEmployees,
   createEmployee,
   getEmployeeMetaOptions,
   getNextEmployeeCode,
+  downloadImportTemplate,
+  bulkImportEmployees,
   getEmployeeById,
   updateEmployee,
   updateEmployeeStatus,

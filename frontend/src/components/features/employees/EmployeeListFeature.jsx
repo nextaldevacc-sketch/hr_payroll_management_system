@@ -13,6 +13,7 @@ import {
   ChevronRight,
   CreditCard,
   Lock,
+  Upload,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
@@ -24,6 +25,7 @@ import { GlassCard } from '../../primitives/GlassCard';
 import { StatusPill } from '../../primitives/StatusPill';
 import { Select } from '../../primitives/form/Select';
 import { getEnumLabel, getVisaNameAr } from '../../../i18n/enums';
+import { EmployeeImportModal } from './EmployeeImportModal';
 
 export function EmployeeListFeature() {
   const { user, canAccess } = useAuth();
@@ -39,8 +41,11 @@ export function EmployeeListFeature() {
   const [visaFilter, setVisaFilter] = useState(selectedVisaId === 'all' || !selectedVisaId ? '' : selectedVisaId);
   const [nationalityFilter, setNationalityFilter] = useState('');
   const [docStatusFilter, setDocStatusFilter] = useState('');
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const limit = 10;
+
+  const canImport = user?.roles?.some((r) => ['HR_MANAGER', 'COMPANY_ADMIN'].includes(r));
 
   // Sync visaFilter with selectedVisaId from top bar
   useEffect(() => {
@@ -93,6 +98,7 @@ export function EmployeeListFeature() {
   const {
     data: responseData,
     isLoading,
+    refetch,
   } = useQuery({
     queryKey: [
       'employees-list',
@@ -189,6 +195,18 @@ export function EmployeeListFeature() {
         </div>
 
         <div className="flex items-center gap-3">
+          {canImport && (
+            <button
+              type="button"
+              id="btn-import-employees"
+              onClick={() => setIsImportModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-sm shadow-sm transition-all active:scale-95"
+            >
+              <Upload className="w-4 h-4" />
+              <span>{isRTL ? 'استيراد جماعي' : 'Import Employees'}</span>
+            </button>
+          )}
+
           {canAccess('employees', 'create') && (
             <Link
               href="/employees/new"
@@ -635,6 +653,14 @@ export function EmployeeListFeature() {
           </div>
         </div>
       </GlassCard>
+
+      <EmployeeImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => {
+          refetch();
+        }}
+      />
     </div>
   );
 }
