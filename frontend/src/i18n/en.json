@@ -17,7 +17,8 @@
     "approved": "Approved",
     "pending": "Pending",
     "rejected": "Rejected",
-    "actions": "Actions"
+    "actions": "Actions",
+    "loading": "Loading..."
   },
   "menu": {
     "dashboard": "Dashboard",

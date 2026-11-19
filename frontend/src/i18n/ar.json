@@ -17,7 +17,8 @@
     "approved": "معتمد",
     "pending": "معلق",
     "rejected": "مرفوض",
-    "actions": "الإجراءات"
+    "actions": "الإجراءات",
+    "loading": "جارٍ التحميل..."
   },
   "menu": {
     "dashboard": "لوحة المؤشرات",
