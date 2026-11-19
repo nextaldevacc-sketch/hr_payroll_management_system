@@ -89,7 +89,7 @@ docker compose --env-file "${ENV_FILE}" "${COMPOSE_ARGS[@]}" run --rm api npx pr
 
 # Step 4b: Ensure idempotent system seed
 echo "[Step 4b] Verifying system roles catalog..."
-docker compose --env-file "${ENV_FILE}" "${COMPOSE_ARGS[@]}" run --rm api npm run seed:system || true
+docker compose --env-file "${ENV_FILE}" "${COMPOSE_ARGS[@]}" run --rm api npm run seed:system
 
 # Step 5: Rolling restart of API, then Web
 rollback() {

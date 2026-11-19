@@ -1,9 +1,13 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PERMISSIONS_MATRIX } from '../../../shared/src/constants/permissions.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+let PERMISSIONS_MATRIX;
+try {
+  const shared = await import('@nextal/shared');
+  PERMISSIONS_MATRIX = shared.PERMISSIONS_MATRIX;
+} catch {
+  const rel = await import('../../../shared/src/constants/permissions.js');
+  PERMISSIONS_MATRIX = rel.PERMISSIONS_MATRIX;
+}
 
 export const SYSTEM_ROLE_DEFS = [
   { code: 'EMPLOYEE', name: 'Employee', sees_salary: false },

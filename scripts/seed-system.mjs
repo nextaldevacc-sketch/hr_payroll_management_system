@@ -19,7 +19,19 @@ for (const p of envPaths) {
 }
 
 import { PrismaClient } from '@prisma/client';
-import { seedSystemData } from '../backend/prisma/seed/systemData.js';
+let seedSystemData;
+try {
+  const mod = await import('../backend/prisma/seed/systemData.js');
+  seedSystemData = mod.seedSystemData;
+} catch {
+  try {
+    const mod = await import('./prisma/seed/systemData.js');
+    seedSystemData = mod.seedSystemData;
+  } catch {
+    const mod = await import('../prisma/seed/systemData.js');
+    seedSystemData = mod.seedSystemData;
+  }
+}
 
 const prisma = new PrismaClient();
 
@@ -56,6 +68,14 @@ async function main() {
     console.log(`  Database is ready for company initialization via "npm run setup:company".\n`);
     process.exit(0);
   } catch (err) {
+    if (err.code === 'EXISTING_COMPANIES_REFUSED' || err.message?.includes('EXISTING_COMPANIES_REFUSED')) {
+      const rolesCount = await prisma.roles.count();
+      if (rolesCount >= 8) {
+        console.log(`\n[INFO] Database contains existing company data and all 8 canonical roles already exist (${rolesCount} roles).`);
+        console.log(`✅ System roles already initialized. Treating existing roles as success.\n`);
+        process.exit(0);
+      }
+    }
     console.error('\n❌ System seed failed:', err.message);
     process.exit(1);
   } finally {
