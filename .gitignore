@@ -58,3 +58,8 @@ backups/*
 nextal-images.tar
 *.tar
 *.tar.gz
+
+# Demo credentials & sensitive scratch
+demo-credentials.txt
+*.credentials.txt
+*.enc
