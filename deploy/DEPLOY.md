@@ -209,3 +209,18 @@ docker compose -f docker-compose.prod.yml start api web
   docker logs -f nextal-api-prod
   ```
   Every request includes `requestId`, `method`, `path`, `status`, `duration_ms`, `userId`, and `companyId`.
+
+---
+
+## 10. Live Post-Deployment Smoke Verification
+
+After deployment, run the automated live smoke verification against your public HTTPS domain to validate end-to-end operational health, strict security headers, unauthenticated route guards, cookie flags, and CORS isolation:
+
+```bash
+# Basic live smoke test (health, login page, headers, 401 unauth guard, CORS)
+node scripts/smoke-live.mjs https://payroll.yourcompany.ae
+
+# Full live smoke test including authenticated login and cookie inspection:
+SMOKE_EMAIL=admin@yourcompany.ae SMOKE_PASSWORD="YourPasswordHere" node scripts/smoke-live.mjs https://payroll.yourcompany.ae
+```
+The script exits with code `0` on 100% success or non-zero on any failure. Ensure all checks pass before opening access to employees.
