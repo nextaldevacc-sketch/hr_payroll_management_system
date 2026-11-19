@@ -224,3 +224,67 @@ node scripts/smoke-live.mjs https://payroll.yourcompany.ae
 SMOKE_EMAIL=admin@yourcompany.ae SMOKE_PASSWORD="YourPasswordHere" node scripts/smoke-live.mjs https://payroll.yourcompany.ae
 ```
 The script exits with code `0` on 100% success or non-zero on any failure. Ensure all checks pass before opening access to employees.
+
+---
+
+## 11. Operational Deployment Modes: DEMO SHOWCASE vs PRODUCTION
+
+Nextal HR & Payroll provides two distinct operational operating paths tailored for client evaluations vs permanent enterprise installations:
+
+### Comparison Matrix
+
+| Operational Aspect | Demo Showcase Mode (Client Evaluation) | Live Production Mode (Enterprise Operation) |
+| :--- | :--- | :--- |
+| **Primary Goal** | Client walkthrough, stakeholder sign-off & evaluation | Live HR operations, payroll processing & WPS SIF generation |
+| **Hosting Region** | Any developer VPS or local server (non-UAE allowed) | **UAE Sovereign Cloud Only** (Azure UAE North / AWS me-central-1) |
+| **Offsite Backups** | Local backups sufficient for demo purposes | **Required**: Cross-region UAE replication (Abu Dhabi) via `offsite-backup.sh` |
+| **Data Protection** | Synthetic names, simulated Emirates IDs, mod-97 valid demo IBANs | Real UAE employee PII, encrypted at rest via AES-256 (`DOCUMENT_ENCRYPTION_KEY`) |
+| **Company Provisioning** | `node scripts/seed-demo-company.mjs --name "..." --confirm-demo` | Sovereign bootstrap: `node scripts/create-first-admin.mjs --email ... --company ...` |
+| **First Admin MFA** | TOTP bypassed for rapid reviewer evaluation | **Mandatory**: TOTP Authenticator enrollment enforced before dashboard access |
+| **Employee Setup** | 25 auto-generated employees with past attendance & paid pay runs | Bulk CSV/XLSX import via UI or `node scripts/import-employees.mjs` |
+| **Email Subsystem** | `MAIL_MODE=disabled` or local development outbox | Active TLS SMTP (`MAIL_MODE=smtp`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`) |
+| **Preflight Audit** | `node scripts/workflow-e2e.mjs` verifies 16 core workflows | `node scripts/preflight-prod.mjs .env.production` **must exit 0** |
+| **Seeder Guard** | Destructive demo seeder blocked in production | Destructive seeder hard-refuses execution (`NODE_ENV=production` or `_prod` DB) |
+
+### Demo Showcase Setup Command Chain:
+```bash
+# 1. Start clean container cluster
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+
+# 2. Deploy database migrations & canonical roles
+docker compose -f docker-compose.prod.yml exec api npx prisma migrate deploy
+docker compose -f docker-compose.prod.yml exec api npm run seed:system
+
+# 3. Seed additive demo company with 25 employees and sample workflows
+docker compose -f docker-compose.prod.yml exec api node scripts/seed-demo-company.mjs \
+  --name "Demo Co (Nextal Showcase)" --employees 25 --confirm-demo
+
+# 4. Retrieve credentials for the 8 evaluation roles
+docker compose -f docker-compose.prod.yml cp api:/app/backend/demo-credentials.txt ./demo-credentials.txt
+cat demo-credentials.txt
+
+# 5. Execute 16-scenario end-to-end automated verification suite
+node scripts/workflow-e2e.mjs https://localhost --credentials demo-credentials.txt
+```
+
+### Live Enterprise Production Setup Command Chain:
+```bash
+# 1. Run preflight configuration audit (must pass 100%)
+node scripts/preflight-prod.mjs .env.production
+
+# 2. Start container stack
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+
+# 3. Deploy migrations & canonical roles
+docker compose -f docker-compose.prod.yml exec api npx prisma migrate deploy
+docker compose -f docker-compose.prod.yml exec api npm run seed:system
+
+# 4. Bootstrap sovereign company & first COMPANY_ADMIN account
+docker compose -f docker-compose.prod.yml exec api node scripts/create-first-admin.mjs \
+  --email ops@yourcompany.ae --company "Your Legal Entity LLC"
+
+# 5. Log in through HTTPS domain, change temporary password, and enroll TOTP authenticator
+# 6. Bulk import real employee records via UI or scripts/import-employees.mjs
+# 7. Execute live HTTPS smoke checks
+node scripts/smoke-live.mjs https://payroll.yourcompany.ae
+```

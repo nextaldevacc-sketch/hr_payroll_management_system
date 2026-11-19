@@ -2,8 +2,8 @@
 
 > **Document Status**: Complete Audit & Verification  
 > **Source Reference**: `docs/workflows/SECURITY-REQUIREMENTS.md` (Audited against OWASP Top 10, UAE Federal Decree-Law No. 33/2021, UAE PDPL Federal Decree-Law No. 45/2021, and Part 7/8 specifications).  
-> **Audit Date**: 2026-11-16  
-> **Target Release**: `v1.0.0-rc6`  
+> **Audit Date**: 2026-11-19  
+> **Target Release**: `v1.0.0-rc8`  
 
 ---
 
@@ -123,4 +123,30 @@
 | **SEC-C19** | Nightly Expiry Background Scanner | **IMPLEMENTED** | `backend/src/jobs/nightlyExpiryJob.js`, `backend/test/jobs-scheduler.test.js` |
 | **SEC-C20** | Dual MOHRE Visa Entity WPS Segregation | **IMPLEMENTED** | `backend/src/services/payrollService.js:600`, `scripts/steps-4b.mjs` |
 | **SEC-C21** | Separation Clearance Checklist Verification | **IMPLEMENTED** | `backend/src/services/separationService.js:400`, `scripts/steps-4c.mjs` |
+
+---
+
+## 4. Security Audit Findings Tracking (C1–C4, H1–H7, M1–M8)
+
+| Finding ID | Finding Description | Severity | Status | Resolution / Verification Evidence |
+| :--- | :--- | :---: | :---: | :--- |
+| **C1** | Approval Engine Pipeline Bypass & Role Conflation | Critical | **FIXED** | Enforced strict pipeline order, self-approval block, role checks, and atomic transaction (`backend/test/security/approval-engine.test.js`). |
+| **C2** | Hard-coded JWT Secret Fallback | Critical | **FIXED** | Fallback removed; strict startup validation requires >= 32 chars non-default secret in production (`backend/test/security/jwt-secret.test.js`). |
+| **C3** | Mock Actor Fallback Authorization Backdoor | Critical | **FIXED** | Removed `admin-id` and fallback users; requires authenticated active user UUID (`backend/test/security/mock-actor-removal.test.js`). |
+| **C4** | Client Header Trust Spoofing (`x-company-id`) | Critical | **FIXED** | Context derived strictly from verified JWT; headers completely ignored for non-platform admins (`backend/test/security/client-headers.test.js`). |
+| **H1** | Approval Step Role Separation (`HR_OFFICER` vs `HR_MANAGER`) | High | **FIXED** | Exact role mapping per approval step enforced in `approvalService.js` and tested in `approval-engine.test.js`. |
+| **H2** | Company Admin Blanket Step Override | High | **FIXED** | Blanket override removed; explicit `override: true` and justification >= 10 characters required with audit trail (`approval-engine.test.js`). |
+| **H3** | Document Upload Magic-Bytes Guard & Encryption | High | **FIXED** | Magic-bytes validation rejects disguised binaries; AES-256-GCM encryption at rest verified in `workflow-e2e.mjs` Scenario 11. |
+| **H4** | Sensitive-Field Reveal Access Control & Auditing | High | **FIXED** | RBAC allowlist and 10-req/15-min rate limit with `REVEAL_FIELD` audit log verified in `backend/test/security/sensitive-reveal.test.js`. |
+| **H5** | Bank-Account IDOR Protection & Mid-Period Dual Approval | High | **FIXED** | Triple-scoped queries `{ id, company_id, employee_id }` and dual approval guard for active pay runs (`backend/test/security/bank-account-security.test.js`). |
+| **H6** | Password Policy Enforcement & Auth Lockout | High | **FIXED** | 5 failed attempts locks account for 15 minutes; complex password rules verified in `workflow-e2e.mjs` Scenario 15. |
+| **H7** | Append-Only Audit Trail Protection | High | **FIXED** | PostgreSQL trigger `trg_prevent_audit_log_tampering` prevents UPDATE and DELETE statements (`workflow-e2e.mjs` Scenario 14). |
+| **M1** | Asia/Dubai (UTC+4) Date Utilities Standardization | Medium | **FIXED** | `toDubaiDateString()` applied to all business dates (`backend/test/unit/dubai-date-utils.test.js`). |
+| **M2** | Settlements & Separations Granular Route Guards | Medium | **FIXED** | Endpoints protected with Section 5.3 granular permissions matrix (`backend/test/security/settlements-security.test.js`). |
+| **M3** | WPS SIF File Format & Wage Sum Mathematical Equality | Medium | **FIXED** | Central Bank 2009/2019 SCR/EDR standard compliant; header equals exact payslip sum (`workflow-e2e.mjs` Scenario 8). |
+| **M4** | Rejection Log Role-Based Isolation & Min-10-Char Reason | Medium | **FIXED** | Company log restricted to 4 roles; employees restricted to `/me/rejections`; min 10 chars enforced (`workflow-e2e.mjs` Scenario 3). |
+| **M5** | Branch Transfer Effective Date & Contract Bump | Medium | **FIXED** | Atomic contract version increment with Asia/Dubai effective date verified in `workflow-e2e.mjs` Scenario 6. |
+| **M6** | Overtime Approval Flow into Payroll | Medium | **FIXED** | Approved overtime units and statutory multipliers flow into pay run verified in `workflow-e2e.mjs` Scenario 5. |
+| **M7** | Statutory Sick & Unpaid Leave Rules and Holiday Skipping | Medium | **FIXED** | Article 31 tiers (15 full / 30 half / 45 unpaid) and public holiday skipping verified in `workflow-e2e.mjs` Scenario 4. |
+| **M8** | Employee Bulk Import Preview & Atomic Transaction | Medium | **FIXED** | Formula injection protection, preview dry-run, and atomic database write verified in `workflow-e2e.mjs` Scenario 16. |
 

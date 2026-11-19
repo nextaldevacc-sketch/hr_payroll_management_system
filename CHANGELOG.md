@@ -5,6 +5,34 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ---
 
+## [1.0.0-rc8] - 2026-11-19
+
+### Production Release Hardening, Workflow E2E Suite & Additive Demo Provisioning
+- **Destructive Seeder Protection** [`19e1f5a`]:
+  - Added hard production guard to `backend/prisma/seed/index.js` preventing database truncation if `NODE_ENV=production` or database name ends with `_prod`.
+  - Added 10/10 automated tests in `backend/test/security/seed-production-guard.test.js`.
+- **Additive Demo Company Provisioning & Safe Teardown** [`ae3e631`]:
+  - Built `backend/scripts/seed-demo-company.mjs` creating an isolated, additive showcase company with 25 employees across 2 visas and 2 branches, 4 departments, shifts, UAE statutory leave rules, salary structures, past attendance punches, and 1 paid pay run.
+  - Added `--confirm-demo` requirement and safe FK-cascade `--remove` teardown that leaves all other tenant data untouched.
+  - Tested in `backend/test/integration/seed-demo-company.test.js`.
+- **Bulk Employee Import (CSV & XLSX)** [`9da37e3`]:
+  - Built `EmployeeImportService` supporting bilingual headers (Arabic & English), ExcelJS cell sanitization against formula injection (`=`, `+`, `-`, `@`), and UAE mod-97 IBAN format validation.
+  - Added preview dry-run mode (`/import?dryRun=true` and `/import/validate`) and atomic all-or-nothing transaction execution with credentials output.
+  - Integrated into frontend `EmployeeImportModal.jsx` and CLI tool `scripts/import-employees.mjs`.
+  - Added test suite `backend/test/integration/employee-bulk-import.test.js`.
+- **Comprehensive 16-Scenario End-to-End Workflow Verification Suite** [`0731921`]:
+  - Built `scripts/workflow-e2e.mjs` validating all 16 critical enterprise workflows: onboarding, leave approval chains, self-approval guards, leave rejection reasons, statutory sick/unpaid leave rules, attendance & overtime flow into pay run, branch transfer with Asia/Dubai effective date, mid-period bank account dual approval, WPS SIF generation, loan adjustments, UAE Decree-Law 33/2021 Article 51 gratuity calculation, document magic-bytes & AES-256 encryption, visa 2 scope isolation, multi-tenant boundary checks, append-only audit trigger protection, auth account lockout, and employee bulk import.
+  - Automated report generation outputting `docs/reports/WORKFLOW-E2E.md`.
+- **Consecutive Pipeline Green Verification** [`b7356d4`]:
+  - Validated two consecutive clean-slate runs across Docker volumes wipe, Prisma migrate deploy, canonical system roles seed, first admin bootstrap, demo company provisioning, 16-scenario E2E execution, full backend suite (504/504 pass), full frontend suite (20/20 pass), and live HTTPS smoke test (7/7 pass).
+- **Hardening & Operational Tooling**:
+  - Added `deploy/healthcheck.sh` external monitor probe for Uptime Kuma, Datadog, or Pingdom checks.
+  - Enhanced `deploy/offsite-backup.sh` with dual-mode support for both S3 cloud object storage (AWS S3, Cloudflare R2, MinIO) and SSH/Rsync remote targets.
+  - Added `docs/KNOWN-LIMITATIONS.md` outlining regulatory, batch processing, and cryptographic system boundaries.
+  - Added comprehensive DEMO SHOWCASE vs PRODUCTION deployment guidance to `deploy/DEPLOY.md`.
+
+---
+
 ## [1.0.0-rc7] - 2026-11-17
 
 ### Security Review Audit Fixes & Rejection Log Release
