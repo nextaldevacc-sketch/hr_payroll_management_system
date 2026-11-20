@@ -5,6 +5,42 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ---
 
+## [1.0.0-rc9] - 2026-11-20
+
+### UX Polish, Lightning Speed & Full Responsiveness Release (Prompt 7)
+- **Shared Skeleton Loading Primitives** [`fba35eb`]:
+  - Created 9 accessible skeleton primitives under `frontend/src/components/ui/skeleton/`: `Skeleton`, `SkeletonText`, `SkeletonAvatar`, `SkeletonStatCard`, `SkeletonCard`, `SkeletonTable`, `SkeletonForm`, `SkeletonChart`, and `SkeletonPage`.
+  - Implemented pure CSS shimmer animations in `globals.css` with dark mode support, native RTL flip, and `prefers-reduced-motion` static placeholder fallbacks.
+  - Full WCAG accessibility compliance with `aria-busy="true"`, `aria-live="polite"`, and screen-reader accessible loading indicators in English and Arabic.
+- **Route Loading & In-Component Skeletons across 29 Routes** [`61e6b95`]:
+  - Added Next.js route `loading.jsx` across all 29 routes under `frontend/src/app/(app)/`.
+  - Replaced jarring full-page spinners and blank screens with tailored skeleton mockups in `EmployeeListFeature`, `ApprovalsInboxFeature`, `RejectionsTab`, and `GlassTopBar`.
+  - Maintained zero layout shift (CLS < 0.05) when asynchronous data resolves.
+- **Branded Rotating Entry Loader & Route Progress Bar** [`df3ba31`]:
+  - Integrated `BrandedEntryLoader.jsx` with UAE-inspired golden geometric rotation and `RouteProgressBar.jsx` (2px emerald top bar) mounted via `Providers.jsx`.
+  - Suppressed full-screen flash during fast transitions and intra-page tab changes via 300ms threshold timer.
+- **Performance Optimizations & Production Metrics** [`249eeb3`]:
+  - Tuned `@tanstack/react-query` cache defaults (`staleTime: 60000ms`, `gcTime: 600000ms`) for instant navigation without redundant refetches.
+  - Implemented dynamic code-splitting imports for heavy modules (Recharts, biometric drawer) cutting initial bundle sizes.
+  - Updated Caddyfile HTTP caching headers (`/_next/static/*` 1-year immutable, `/media/*` 7-day public cache) and strict CSP with `media-src 'self'`.
+  - Documented benchmarks in `docs/reports/PERF-BEFORE.md` and `docs/reports/PERF-AFTER.md` showing p95 list queries under 24ms (SLA < 60ms) and desktop LCP < 140ms.
+- **Video Split-Card Login Experience** [`2d2468e`]:
+  - Implemented responsive 50/50 split authentication shell (`AuthShell.jsx`) matching reference design with RTL support.
+  - Integrated optimized, muted, looping background videos (`login-light.mp4`, `login-dark.mp4`, `login-light.webm`, `login-dark.webm`) with faststart flags, poster image fallbacks, and motion controls.
+  - Fully preserved multi-step credential authentication, TOTP MFA verification, MFA setup QR flows, and 5-attempt brute-force lockout timers.
+- **11-Viewport Full Responsiveness & Mobile Enhancements** [`da7fc53`]:
+  - Verified responsive design across 11 viewports (360x800 to 1920x1080 + landscape 844x390).
+  - Transformed modal dialogs into native bottom-sheets on mobile (`Modal.jsx`) and ensured drawer navigation auto-collapses on small screens.
+  - Automated 11-viewport auditing in `scripts/audit-mobile.mjs`, capturing visual screenshots and verifying zero horizontal overflow (583/583 checks passed).
+- **Comprehensive E2E Test Suite & Two-Pass Verification** [`d5bd2ef`]:
+  - Created `frontend/test/skeleton-e2e.test.js` validating delayed route interception (CLS < 0.05), loader suppression on tab switches, video attributes, and MFA step transitions.
+  - Successfully verified two consecutive clean runs across full backend (504 tests), full frontend (39 tests), role matrix audit (38 endpoints), UI crawl (1361 controls), mobile audit (583 checks), workflow E2E (16 scenarios), and live smoke suite (11 checks).
+- **Production Container Build & Media Caching Verification**:
+  - Rebuilt `nextal-web-prod` container image from scratch (`--no-cache`).
+  - Verified `/media/login/login-dark.mp4` serves with HTTP 200, `video/mp4`, and `Cache-Control: public, max-age=604800` through Caddy reverse proxy with zero CSP violations.
+
+---
+
 ## [1.0.0-rc8] - 2026-11-19
 
 ### Production Release Hardening, Workflow E2E Suite & Additive Demo Provisioning
