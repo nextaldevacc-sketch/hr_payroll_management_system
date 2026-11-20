@@ -34,6 +34,7 @@ export function parseEnvContent(content) {
 export function runPreflight(env) {
   const failures = [];
   const successes = [];
+  const warnings = [];
 
   // 1. NODE_ENV check (must be 'production')
   if (env.NODE_ENV !== 'production') {
@@ -129,9 +130,15 @@ export function runPreflight(env) {
     successes.push('[BACKUP] BACKUP_ENCRYPTION_PASSPHRASE is strong');
   }
 
-  // 9. MAIL_MODE & SMTP check (FAIL on disabled or placeholder SMTP)
+  // 9. MAIL_MODE & SMTP check (FAIL on disabled or placeholder SMTP unless ALLOW_DEMO_MAIL_DISABLED=true)
+  const allowDemoMailDisabled = env.ALLOW_DEMO_MAIL_DISABLED === 'true';
   if (!env.MAIL_MODE || env.MAIL_MODE === 'disabled') {
-    failures.push(`[EMAIL] MAIL_MODE cannot be 'disabled' in production (found: '${env.MAIL_MODE}')`);
+    if (env.MAIL_MODE === 'disabled' && allowDemoMailDisabled) {
+      warnings.push("[EMAIL WARNING] MAIL_MODE is set to 'disabled' with ALLOW_DEMO_MAIL_DISABLED=true override. Outbound email is disabled for demo showcase.");
+      successes.push("[EMAIL] Demo override active: MAIL_MODE=disabled permitted via ALLOW_DEMO_MAIL_DISABLED=true");
+    } else {
+      failures.push(`[EMAIL] MAIL_MODE cannot be 'disabled' in production without explicit demo override ALLOW_DEMO_MAIL_DISABLED=true (found: '${env.MAIL_MODE}')`);
+    }
   } else {
     const smtpKeys = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'MAIL_FROM'];
     const missing = smtpKeys.filter((k) => !env[k] || /REPLACE_WITH|CHANGE_ME|example\.com|example\.ae/i.test(env[k]));
@@ -170,6 +177,7 @@ export function runPreflight(env) {
     valid: failures.length === 0,
     failures,
     successes,
+    warnings,
   };
 }
 
@@ -195,6 +203,13 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   console.log('\n--- Checks Executed ---');
   for (const s of result.successes) {
     console.log('  PASS:', s);
+  }
+
+  if (result.warnings && result.warnings.length > 0) {
+    console.log('\n--- Preflight Warnings ---');
+    for (const w of result.warnings) {
+      console.warn('  WARN:', w);
+    }
   }
 
   if (!result.valid) {

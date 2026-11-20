@@ -68,7 +68,12 @@ Edit `.env.production` to set your target domain and database credentials:
 ```bash
 nano .env.production
 ```
-*Note: For a demo walkthrough on a public VPS, set `DOMAIN=payroll.yourdomain.com` (pointing to your server IP) and `ALLOWED_ORIGIN=https://payroll.yourdomain.com`. For a private evaluation, `DOMAIN=localhost` with `-k` flag works out-of-the-box.*
+*Note: For a demo walkthrough on a public VPS, set `DOMAIN=payroll.nextaltechnologies.com` and `ALLOWED_ORIGIN=https://payroll.nextaltechnologies.com`. If no corporate SMTP server is configured yet for the demo showcase, enable the loud demo email override:*
+```bash
+MAIL_MODE=disabled
+ALLOW_DEMO_MAIL_DISABLED=true
+```
+*Preflight will output an explicit `[EMAIL WARNING]` notice while allowing the showcase stack to proceed.*
 
 ---
 

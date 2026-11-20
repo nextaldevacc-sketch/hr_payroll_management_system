@@ -112,4 +112,16 @@ describe('SEC-PREFLIGHT: Production Preflight Hardening Validation', () => {
       assert.ok(res.failures.some((f) => f.includes('[JWT_SECRET]')));
     }
   });
+
+  it('10. ALLOW_DEMO_MAIL_DISABLED=true: allows MAIL_MODE=disabled with warning, but fails without it', () => {
+    // 1. Fails when MAIL_MODE=disabled without ALLOW_DEMO_MAIL_DISABLED
+    const failRes = runPreflight({ ...validProductionEnv, MAIL_MODE: 'disabled' });
+    assert.equal(failRes.valid, false);
+    assert.ok(failRes.failures.some((f) => f.includes("[EMAIL] MAIL_MODE cannot be 'disabled'")));
+
+    // 2. Passes when MAIL_MODE=disabled with ALLOW_DEMO_MAIL_DISABLED=true and emits warning
+    const passRes = runPreflight({ ...validProductionEnv, MAIL_MODE: 'disabled', ALLOW_DEMO_MAIL_DISABLED: 'true' });
+    assert.equal(passRes.valid, true, `Expected valid with demo override, failed with: ${passRes.failures.join(', ')}`);
+    assert.ok(passRes.warnings.some((w) => w.includes('[EMAIL WARNING]')));
+  });
 });
