@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('nextal_hr_payroll')) {
+  process.env.DATABASE_URL = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
+}
+
 import prisma from '../../src/lib/prisma.js';
 import { runDemoCompanySeed } from '../../scripts/seed-demo-company.mjs';
 import { validateUaeIban } from '../../prisma/seed/employees.js';
@@ -226,5 +231,99 @@ test('Step 2: Additive Demo Company Seeder & Safe Removal', async (t) => {
 
     // Cleanup unrelated company
     await prisma.$base().companies.delete({ where: { id: otherComp.id } });
+  });
+
+  await t.test('6. Provisions custom branches with Visa 1 and Visa 2 associations', async () => {
+    const customBranchesCompName = `Custom Branches Co ${Date.now()}`;
+    const customBranchList = [
+      'Dubai City Main Branch',
+      'Jebel Ali Branch',
+      'Hatta Branch',
+      'Al Awir Branch',
+      'Al Lisaili Branch',
+    ];
+
+    const res = await runDemoCompanySeed({
+      name: customBranchesCompName,
+      employeesCount: 5,
+      branches: customBranchList.join(','),
+      confirmDemo: true,
+      credentialsPath: tempCredsPath,
+    });
+
+    assert.equal(res.success, true);
+    assert.equal(res.branchesCount, 5);
+
+    const comp = await prisma.$base().companies.findUnique({
+      where: { id: res.companyId },
+      include: { branches: true, company_visas: true },
+    });
+
+    assert.equal(comp.branches.length, 5, 'Must have created 5 branches');
+    const branchNames = comp.branches.map((b) => b.name);
+    for (const b of customBranchList) {
+      assert.ok(branchNames.includes(b), `Branch ${b} must be present`);
+    }
+
+    const visa1 = comp.company_visas.find((v) => v.name.includes('Visa 01'));
+    const visa2 = comp.company_visas.find((v) => v.name.includes('Visa 02'));
+    assert.ok(visa1);
+    assert.ok(visa2);
+
+    const mainBranch = comp.branches.find((b) => b.name === 'Dubai City Main Branch');
+    const secondBranch = comp.branches.find((b) => b.name === 'Jebel Ali Branch');
+    assert.equal(mainBranch.company_visa_id, visa1.id, 'Main branch must be linked to Visa 1');
+    assert.equal(secondBranch.company_visa_id, visa2.id, 'Second branch must be linked to Visa 2');
+
+    // Cleanup
+    await runDemoCompanySeed({
+      name: customBranchesCompName,
+      confirmDemo: true,
+      isRemove: true,
+      credentialsPath: tempCredsPath,
+    });
+  });
+
+  await t.test('7. Accepts --employees 0: provisions 0 employees while creating all 8 role accounts', async () => {
+    const zeroEmployeesCompName = `Zero Employees Co ${Date.now()}`;
+
+    const res = await runDemoCompanySeed({
+      name: zeroEmployeesCompName,
+      employeesCount: 0,
+      branches: 'Dubai City Main Branch,Jebel Ali Branch',
+      confirmDemo: true,
+      credentialsPath: tempCredsPath,
+    });
+
+    assert.equal(res.success, true);
+    assert.equal(res.employeesCount, 0);
+
+    const empCount = await prisma.$base().employees.count({ where: { company_id: res.companyId } });
+    assert.equal(empCount, 0, 'Must have seeded 0 employees');
+
+    const users = await prisma.$base().users.findMany({
+      where: { company_id: res.companyId },
+      include: { user_roles: { include: { role: true } } },
+    });
+
+    // 8 role accounts must exist
+    assert.equal(users.length, 8, 'Must have created exactly 8 role users');
+    const roleCodes = users.flatMap((u) => u.user_roles.map((ur) => ur.role.code));
+    const expectedRoles = ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'PAYROLL_OFFICER', 'GM', 'FINANCE', 'DEPT_MANAGER'];
+    for (const r of expectedRoles) {
+      assert.ok(roleCodes.includes(r), `User with role ${r} must exist`);
+    }
+
+    // No pay runs
+    const payRunCount = await prisma.$base().pay_runs.count({ where: { company_id: res.companyId } });
+    assert.equal(payRunCount, 0, 'No pay run should be created with 0 employees');
+
+    // Cleanup
+    await runDemoCompanySeed({
+      name: zeroEmployeesCompName,
+      confirmDemo: true,
+      isRemove: true,
+      credentialsPath: tempCredsPath,
+    });
   });
 });

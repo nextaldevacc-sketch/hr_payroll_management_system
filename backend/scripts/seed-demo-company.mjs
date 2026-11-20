@@ -19,6 +19,7 @@ import { generateValidUaeIban, validateUaeIban } from '../prisma/seed/employees.
 export async function runDemoCompanySeed({
   name,
   employeesCount = 25,
+  branches = null,
   confirmDemo = false,
   isRemove = false,
   credentialsPath = 'demo-credentials.txt',
@@ -244,7 +245,17 @@ export async function runDemoCompanySeed({
     },
   });
 
-  // 2. Create 2 Visas & 2 Branches
+  // 2. Parse Branches & Create 2 Visas & Specified Branches
+  let branchNames = [];
+  if (Array.isArray(branches)) {
+    branchNames = branches.map((b) => (typeof b === 'string' ? b.trim() : '')).filter(Boolean);
+  } else if (typeof branches === 'string' && branches.trim()) {
+    branchNames = branches.split(',').map((b) => b.trim()).filter(Boolean);
+  }
+  if (branchNames.length === 0) {
+    branchNames = ['Dubai Main Branch', 'DIFC Free Zone Branch'];
+  }
+
   const randHex = crypto.randomBytes(4).toString('hex').toUpperCase();
   const visa1 = await prisma.$base().company_visas.create({
     data: {
@@ -252,16 +263,6 @@ export async function runDemoCompanySeed({
       name: `Visa 01 (MOHRE Dubai)`,
       mol_establishment_id: `MOL-${randHex}-1`,
       bank_routing_code: '033',
-      emirate: 'Dubai',
-    },
-  });
-
-  const branch1 = await prisma.$base().branches.create({
-    data: {
-      company_id: company.id,
-      company_visa_id: visa1.id,
-      name: 'Dubai Main Branch',
-      name_ar: 'الفرع الرئيسي دبي',
       emirate: 'Dubai',
     },
   });
@@ -276,15 +277,25 @@ export async function runDemoCompanySeed({
     },
   });
 
-  const branch2 = await prisma.$base().branches.create({
-    data: {
-      company_id: company.id,
-      company_visa_id: visa2.id,
-      name: 'DIFC Free Zone Branch',
-      name_ar: 'فرع مركز دبي المالي العالمي',
-      emirate: 'Dubai',
-    },
-  });
+  const createdBranches = [];
+  for (let i = 0; i < branchNames.length; i++) {
+    const bName = branchNames[i];
+    // Put first branch (and additional branches beyond 2nd) under Visa 1. Put second branch under Visa 2.
+    const targetVisa = (i === 1) ? visa2 : visa1;
+    const branchRecord = await prisma.$base().branches.create({
+      data: {
+        company_id: company.id,
+        company_visa_id: targetVisa.id,
+        name: bName,
+        name_ar: `فرع ${bName}`,
+        emirate: 'Dubai',
+      },
+    });
+    createdBranches.push(branchRecord);
+  }
+
+  const branch1 = createdBranches[0];
+  const branch2 = createdBranches[1] || createdBranches[0];
 
   // 3. Create 4 Departments
   const deptOps = await prisma.$base().departments.create({
@@ -543,7 +554,8 @@ export async function runDemoCompanySeed({
 
   // 11. Provision N Employees with EMPLOYEE logins on @demo-nextal.test
   const seededEmployees = [];
-  const totalEmployeesToSeed = Math.max(1, parseInt(employeesCount, 10) || 25);
+  const parsedEmployees = parseInt(employeesCount, 10);
+  const totalEmployeesToSeed = Number.isNaN(parsedEmployees) ? 25 : Math.max(0, parsedEmployees);
 
   const sampleNames = [
     { en: 'Rashid Al-Falasi', ar: 'راشد الفلاسي', nat: 'ARE', gender: 'Male' },
@@ -565,9 +577,8 @@ export async function runDemoCompanySeed({
 
   for (let i = 1; i <= totalEmployeesToSeed; i++) {
     const nameInfo = sampleNames[(i - 1) % sampleNames.length];
-    const isVisa2 = (i % 4 === 0); // 25% of employees on Visa 2
-    const targetVisa = isVisa2 ? visa2 : visa1;
-    const targetBranch = isVisa2 ? branch2 : branch1;
+    const targetBranch = createdBranches[(i - 1) % createdBranches.length];
+    const targetVisa = targetBranch.company_visa_id === visa2.id ? visa2 : visa1;
     const targetDept = departmentsList[(i - 1) % departmentsList.length];
     const targetJob = jobsList[(i - 1) % jobsList.length];
 
@@ -795,25 +806,27 @@ export async function runDemoCompanySeed({
     });
   }
 
-  // 13. One PAID Pay Run (October 2026 Regular Pay Run)
-  console.log('Calculating and finalizing one PAID pay run for October 2026...');
-  const payrollService = new PayrollService(prisma.$base());
-  const payRun = await payrollService.createPayRun(
-    company.id,
-    {
-      company_visa_id: visa1.id,
-      period_month: '2026-10-01',
-      cutoff_date: '2026-10-25',
-      run_type: 'Regular',
-    },
-    createdRoleUsers['PAYROLL_OFFICER'].id
-  );
+  // 13. One PAID Pay Run (October 2026 Regular Pay Run) - only if employees were seeded
+  if (seededEmployees.length >= 1) {
+    console.log('Calculating and finalizing one PAID pay run for October 2026...');
+    const payrollService = new PayrollService(prisma.$base());
+    const payRun = await payrollService.createPayRun(
+      company.id,
+      {
+        company_visa_id: visa1.id,
+        period_month: '2026-10-01',
+        cutoff_date: '2026-10-25',
+        run_type: 'Regular',
+      },
+      createdRoleUsers['PAYROLL_OFFICER'].id
+    );
 
-  await payrollService.calculatePayRun(company.id, payRun.id, createdRoleUsers['PAYROLL_OFFICER'].id);
-  await payrollService.validatePayRun(company.id, payRun.id, createdRoleUsers['HR_MANAGER'].id);
-  await payrollService.lockPayRun(company.id, payRun.id, createdRoleUsers['GM'].id);
-  await payrollService.markPayRunPaid(company.id, payRun.id, createdRoleUsers['FINANCE'].id);
-  console.log(`Pay Run ${payRun.id} successfully locked and marked PAID.`);
+    await payrollService.calculatePayRun(company.id, payRun.id, createdRoleUsers['PAYROLL_OFFICER'].id);
+    await payrollService.validatePayRun(company.id, payRun.id, createdRoleUsers['HR_MANAGER'].id);
+    await payrollService.lockPayRun(company.id, payRun.id, createdRoleUsers['GM'].id);
+    await payrollService.markPayRunPaid(company.id, payRun.id, createdRoleUsers['FINANCE'].id);
+    console.log(`Pay Run ${payRun.id} successfully locked and marked PAID.`);
+  }
 
   // 14. 2 Leave Requests (1 Approved past, 1 Pending future with approval_requests entry)
   if (seededEmployees.length >= 2) {
@@ -901,17 +914,22 @@ export async function runDemoCompanySeed({
 
   fs.writeFileSync(fullCredsPath, credContent, { mode: 0o600 });
   console.log(`✅ Demo company "${companyName}" provisioned successfully.`);
-  console.log(`  - 2 Visas & 2 Branches created`);
+  console.log(`  - 2 Visas & ${createdBranches.length} Branches created`);
   console.log(`  - 4 Departments, Shifts, Leave Types, Salary Rules, and Approval Flows created`);
   console.log(`  - 8 Privileged Role Accounts created (TOTP bypassed)`);
-  console.log(`  - ${totalEmployeesToSeed} Employees provisioned with mod-97 valid IBANs and valid Emirates IDs`);
-  console.log(`  - 1 Paid Pay Run, 2 Overtime records, 2 Leave Requests, 1 Loan Adjustment seeded`);
+  if (totalEmployeesToSeed > 0) {
+    console.log(`  - ${totalEmployeesToSeed} Employees provisioned with mod-97 valid IBANs and valid Emirates IDs`);
+    console.log(`  - 1 Paid Pay Run, 2 Overtime records, 2 Leave Requests, 1 Loan Adjustment seeded`);
+  } else {
+    console.log(`  - 0 Employees seeded (clean company shell ready for employee import)`);
+  }
   console.log(`  - Credentials written ONCE to ${credentialsPath} (strictly gitignored).\n`);
 
   return {
     success: true,
     companyId: company.id,
     companyName: company.name,
+    branchesCount: createdBranches.length,
     employeesCount: totalEmployeesToSeed,
     credentialsFile: fullCredsPath,
   };
@@ -921,6 +939,7 @@ async function main() {
   const options = {
     name: { type: 'string', short: 'n' },
     employees: { type: 'string', default: '25' },
+    branches: { type: 'string' },
     'confirm-demo': { type: 'boolean' },
     remove: { type: 'boolean' },
     'credentials-file': { type: 'string', default: 'demo-credentials.txt' },
@@ -929,7 +948,9 @@ async function main() {
   const { values } = parseArgs({ options, allowPositionals: true, strict: false });
 
   const name = values.name || process.argv[2];
-  const employeesCount = parseInt(values.employees, 10) || 25;
+  const parsedEmployees = parseInt(values.employees, 10);
+  const employeesCount = Number.isNaN(parsedEmployees) ? 25 : Math.max(0, parsedEmployees);
+  const branches = values.branches || null;
   const confirmDemo = Boolean(values['confirm-demo']);
   const isRemove = Boolean(values.remove);
   const credentialsPath = values['credentials-file'] || 'demo-credentials.txt';
@@ -938,6 +959,7 @@ async function main() {
     await runDemoCompanySeed({
       name,
       employeesCount,
+      branches,
       confirmDemo,
       isRemove,
       credentialsPath,
