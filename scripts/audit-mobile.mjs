@@ -38,8 +38,8 @@ for (const a of args) {
   }
 }
 
-// Hard 8-minute killswitch to guarantee no hung runs
-const HARD_TIMEOUT_MS = 480000;
+// Hard 30-minute killswitch to guarantee no hung runs across all 11 viewports
+const HARD_TIMEOUT_MS = 1800000;
 const killTimer = setTimeout(() => {
   console.error(`\n[audit-mobile] FATAL: In-script hard timeout (${HARD_TIMEOUT_MS / 1000}s) reached!`);
   process.exit(1);

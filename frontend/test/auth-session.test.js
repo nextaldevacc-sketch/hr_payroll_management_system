@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import treeKill from 'tree-kill';
 import { PrismaClient } from '@prisma/client';
+import dotenv from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +16,8 @@ const webDir = path.resolve(__dirname, '..');
 const rootDir = path.resolve(__dirname, '../..');
 const apiDir = path.resolve(rootDir, 'backend');
 const nextBin = path.resolve(rootDir, 'node_modules/next/dist/bin/next');
+
+dotenv.config({ path: path.resolve(apiDir, '.env') });
 
 describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout: 150000 }, () => {
   let apiProcess = null;
@@ -66,10 +69,12 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
       await prisma.users.updateMany({
         data: { failed_logins: 0, locked_until: null },
       });
-      if (process.env.DATABASE_URL) {
-        const devPrisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });
-        await devPrisma.users.updateMany({ data: { failed_logins: 0, locked_until: null } });
-        await devPrisma.$disconnect();
+      if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('nextal_hr_payroll')) {
+        try {
+          const devPrisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } });
+          await devPrisma.users.updateMany({ data: { failed_logins: 0, locked_until: null } });
+          await devPrisma.$disconnect();
+        } catch {}
       }
 
       // 1. Ensure API server is running on test database
@@ -84,6 +89,8 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
             NODE_ENV: 'test',
             DATABASE_URL: testDbUrl,
             DATABASE_URL_TEST: testDbUrl,
+            JWT_SECRET: process.env.JWT_SECRET || 'nextal_super_secret_jwt_key_2026_uae',
+            DOCUMENT_ENCRYPTION_KEY: process.env.DOCUMENT_ENCRYPTION_KEY || '01234567890123456789012345678901',
             FEATURE_PLATFORM_ADMIN: 'false',
           },
           stdio: 'ignore',
@@ -231,7 +238,7 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
     for (let i = 0; i < 4; i++) {
       await fetch(`http://127.0.0.1:${API_PORT}/api/v1/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Origin': `http://127.0.0.1:${WEB_PORT}` },
         body: JSON.stringify({ email: lockTargetEmail, password: 'WrongPassword!' }),
       });
     }
@@ -239,7 +246,7 @@ describe('Part 1: Real Login, Logout, Route Protection & Permissions', { timeout
     // 5th attempt triggers lockout
     const res5 = await fetch(`http://127.0.0.1:${API_PORT}/api/v1/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Origin': `http://127.0.0.1:${WEB_PORT}` },
       body: JSON.stringify({ email: lockTargetEmail, password: 'WrongPassword!' }),
     });
     const data5 = await res5.json();

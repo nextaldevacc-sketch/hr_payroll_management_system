@@ -7,7 +7,7 @@
     "dev": "next dev -p 3100",
     "build": "next build",
     "start": "next start -p 3100",
-    "test": "node --test test/arabic-i18n.test.js && node --test test/no-demo-code.test.js && node --test test/settings-shift-persistence.test.js && node --test test/responsive-390px.test.js && node --test test/auth-session.test.js && node --test test/web-security-headers.test.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js",
     "clean": "node -e \"const fs = require('fs'); ['.next', '.next-build'].forEach(p => fs.existsSync(p) && fs.rmSync(p, {recursive: true, force: true}));\"",
     "lint": "next lint"
   },
