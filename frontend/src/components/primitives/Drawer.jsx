@@ -47,7 +47,7 @@ export function Drawer({
         id="drawer-panel"
         onClick={(e) => e.stopPropagation()}
         className={clsx(
-          'glass-panel relative z-10 h-full w-full flex flex-col p-6 shadow-2xl transition-transform duration-300 pointer-events-auto',
+          'glass-panel relative z-10 h-full w-full sm:max-w-md flex flex-col p-4 sm:p-6 shadow-2xl transition-transform duration-300 pointer-events-auto',
           width,
           className
         )}

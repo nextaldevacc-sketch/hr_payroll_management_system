@@ -31,7 +31,7 @@ export function Modal({
   if (!isOpen) return null;
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 dark:bg-black/75 backdrop-blur-sm transition-opacity"
@@ -41,7 +41,7 @@ export function Modal({
       {/* Glass Dialog */}
       <div
         className={clsx(
-          'glass-panel rounded-tile w-full p-6 relative z-10 shadow-2xl transition-all max-h-[90vh] flex flex-col',
+          'glass-panel rounded-t-3xl sm:rounded-tile w-full p-5 sm:p-6 relative z-10 shadow-2xl transition-all max-h-[90dvh] flex flex-col',
           maxWidth,
           className
         )}

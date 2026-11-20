@@ -78,7 +78,7 @@ export function AuthShell({ children, showVideo = true }) {
       }}
     >
       {/* Centered Floating Card Container */}
-      <div className="w-full max-w-[1160px] min-h-[640px] lg:min-h-[680px] rounded-3xl overflow-hidden border border-slate-200/90 dark:border-white/10 bg-white dark:bg-[#0C101A] shadow-2xl shadow-slate-300/40 dark:shadow-black/70 flex flex-col md:flex-row rtl:md:flex-row-reverse relative">
+      <div className="w-full max-w-[1160px] min-h-0 md:min-h-[640px] lg:min-h-[680px] rounded-3xl overflow-hidden border border-slate-200/90 dark:border-white/10 bg-white dark:bg-[#0C101A] shadow-2xl shadow-slate-300/40 dark:shadow-black/70 flex flex-col md:flex-row rtl:md:flex-row-reverse relative">
         {/* Top Controls: Language and Theme Switchers */}
         <div className="absolute top-4 end-4 z-30 flex items-center gap-2">
           <button
@@ -107,8 +107,8 @@ export function AuthShell({ children, showVideo = true }) {
           )}
         </div>
 
-        {/* LEFT PANEL: Media & Brand Showcase (50% on md+) */}
-        <div className="md:w-1/2 relative bg-slate-950 overflow-hidden flex flex-col justify-between p-6 sm:p-10 text-white min-h-[320px] md:min-h-full">
+        {/* LEFT PANEL: Media & Brand Showcase (hidden on mobile, 50% on md+) */}
+        <div className="hidden md:flex md:w-1/2 relative bg-slate-950 overflow-hidden flex-col justify-between p-6 sm:p-10 text-white min-h-[320px] md:min-h-full">
           {/* Background Video Element */}
           {showVideo ? (
             <video
@@ -188,8 +188,8 @@ export function AuthShell({ children, showVideo = true }) {
           </div>
         </div>
 
-        {/* RIGHT PANEL: Centered Interactive Form (50% on md+) */}
-        <div className="md:w-1/2 flex flex-col justify-center px-6 py-8 sm:p-10 lg:p-14 bg-white dark:bg-[#0C101A] relative z-20">
+        {/* RIGHT PANEL: Centered Interactive Form (Full width on mobile, 50% on md+) */}
+        <div className="w-full md:w-1/2 flex flex-col justify-center px-4 py-8 sm:px-8 sm:py-10 lg:p-14 bg-white dark:bg-[#0C101A] relative z-20">
           <div className="w-full max-w-[420px] mx-auto space-y-6">
             {/* Brand Header: Logo + NEXTAL wordmark + Badge */}
             <div className="flex items-center gap-3">

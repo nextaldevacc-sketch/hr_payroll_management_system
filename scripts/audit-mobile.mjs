@@ -15,7 +15,7 @@ const webDir = path.resolve(rootDir, 'frontend');
 const nextBin = path.resolve(rootDir, 'node_modules/next/dist/bin/next');
 
 const REPORT_MD = path.resolve(rootDir, 'docs/reports/MOBILE-RESPONSIVE-AUDIT.md');
-const SCREENSHOTS_DIR = path.resolve(rootDir, 'docs/reports/mobile');
+const SCREENSHOTS_DIR = path.resolve(rootDir, 'docs/reports/ui');
 
 let API_PORT = Number(process.env.API_PORT) || 5000;
 let WEB_PORT = Number(process.env.WEB_PORT) || 3102;
@@ -47,8 +47,17 @@ const killTimer = setTimeout(() => {
 killTimer.unref();
 
 const ALL_VIEWPORTS = [
+  { name: 'mobile-360', label: '360x800 (Galaxy S20)', width: 360, height: 800 },
   { name: 'mobile-390', label: '390x844 (iPhone 14)', width: 390, height: 844 },
-  { name: 'mobile-360', label: '360x800 (Android)', width: 360, height: 800 },
+  { name: 'mobile-412', label: '412x915 (Pixel 7)', width: 412, height: 915 },
+  { name: 'tablet-768', label: '768x1024 (iPad Portrait)', width: 768, height: 1024 },
+  { name: 'tablet-1024', label: '1024x768 (iPad Landscape)', width: 1024, height: 768 },
+  { name: 'tablet-820', label: '820x1180 (iPad Air)', width: 820, height: 1180 },
+  { name: 'laptop-1280', label: '1280x720 (Laptop Small)', width: 1280, height: 720 },
+  { name: 'laptop-1366', label: '1366x768 (Laptop Std)', width: 1366, height: 768 },
+  { name: 'desktop-1440', label: '1440x900 (Desktop Std)', width: 1440, height: 900 },
+  { name: 'desktop-1920', label: '1920x1080 (Desktop Large)', width: 1920, height: 1080 },
+  { name: 'landscape-844', label: '844x390 (Landscape Mobile)', width: 844, height: 390 },
 ];
 
 const VIEWPORTS = vpFilter
