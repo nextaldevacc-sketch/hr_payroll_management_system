@@ -1,10 +1,73 @@
 # Nextal HR & Payroll — VPS Demonstration Deployment Runbook
 
 > **Target Date**: Thursday, 19 November 2026  
-> **Target Audience**: Systems Engineers, Solution Architects, DevOps Evaluators  
+> **Target VPS**: `https://payroll.nextaltechnologies.com`  
 > **Audited Deployment Modes**: Standalone Caddy Automated HTTPS / aaPanel Reverse Proxy
 
-This runbook contains **exact, copy-pasteable commands** and **expected outputs** to provision, deploy, and verify the complete Nextal HR & Payroll showcase stack on a clean Ubuntu 24.04/22.04 LTS VPS in under 10 minutes.
+---
+
+## ⚡ Quick VPS Command Sheet: Al Jalil 50-Employee Demonstration Showcase
+
+For a demonstration deployment or database refresh on the VPS (`https://payroll.nextaltechnologies.com`), execute this **single copy-paste sequence in exact order**:
+
+```bash
+# 1. Navigate to deployment root and pull latest code
+cd /opt/nextal && git pull origin main
+
+# 2. Rebuild container images from scratch and launch stack
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+
+# 3. Wipe and reset application database (fresh migrations & system roles)
+./deploy/reset-demo-db.sh --yes-wipe-database
+
+# 4. Provision Al Jalil demo company shell (0 employees, 5 Dubai branches, 8 privileged roles)
+docker compose -f docker-compose.prod.yml --env-file .env.production exec -T api node scripts/seed-demo-company.mjs \
+  --name "Al Jalil Private Limited Company" \
+  --branches "Dubai City Main Branch,Jebel Ali Branch,Hatta Branch,Al Awir Branch,Al Lisaili Branch" \
+  --employees 0 \
+  --confirm-demo
+
+# 5. Bulk-import 50 employees from sample CSV (dry-run preview, then atomic write)
+docker compose -f docker-compose.prod.yml --env-file .env.production exec -T api node scripts/import-employees.mjs \
+  docs/samples/al-jalil-employees-50.csv --company "Al Jalil Private Limited Company" --dry-run
+
+docker compose -f docker-compose.prod.yml --env-file .env.production exec -T api node scripts/import-employees.mjs \
+  docs/samples/al-jalil-employees-50.csv --company "Al Jalil Private Limited Company"
+
+# 6. Extract credentials file and inspect generated logins
+docker compose -f docker-compose.prod.yml --env-file .env.production cp api:/app/backend/demo-credentials.txt ./demo-credentials.txt
+cat ./demo-credentials.txt
+
+# 7. Run live HTTPS smoke test and full workflow verification
+node scripts/smoke-live.mjs https://payroll.nextaltechnologies.com
+node scripts/workflow-e2e.mjs https://payroll.nextaltechnologies.com --credentials demo-credentials.txt
+```
+
+---
+
+## 👥 Evaluator Logins & Role Accounts Matrix
+
+All passwords are cryptographically generated per deployment, forced to change on first login, and stored in `./demo-credentials.txt` (strictly gitignored).
+
+| Role | Email Address | Authority & Evaluator Scope |
+| :--- | :--- | :--- |
+| `COMPANY_ADMIN` | `admin@aljalil-demo.test` | Full tenant governance, system settings, approval flows, entity hierarchy |
+| `HR_MANAGER` | `hr.manager@aljalil-demo.test` | Complete employee lifecycle, onboarding verification, leave approvals |
+| `HR_OFFICER` | `hr.officer@aljalil-demo.test` | Employee profile management, document uploads, visa renewals |
+| `HR_OFFICER_V2` | `hr.officer2@aljalil-demo.test` | Visa 2 scoped officer (branch/visa isolation audit compliance) |
+| `PAYROLL_OFFICER`| `payroll.officer@aljalil-demo.test`| Pay run calculation, overtime inputs, salary adjustments, payroll register |
+| `GM` | `gm@aljalil-demo.test` | Executive sign-off, leave requests > 5 days, pay run locking |
+| `FINANCE` | `finance@aljalil-demo.test` | Pay run payment disbursement, WPS SIF generation, bank authorization |
+| `DEPT_MANAGER` | `dept.manager@aljalil-demo.test` | Departmental leave initial sign-off, shift scheduling, attendance checks |
+| `EMPLOYEE` (x50) | `*@aljalil-demo.test` | Self-service portal: view payslips, submit leave requests, profile review |
+
+### 50 Employees Branch Distribution:
+- **Dubai City Main Branch**: 20 employees (Headquarters / Core Operations)
+- **Jebel Ali Branch**: 10 employees (Logistics & Industrial Operations)
+- **Hatta Branch**: 6 employees (Regional Logistics & Field Operations)
+- **Al Awir Branch**: 7 employees (Supply Chain & Warehousing)
+- **Al Lisaili Branch**: 7 employees (Transport & Fleet Maintenance)
+*(Total: 50 employees across Operations, HR & Administration, Finance & Accounts, and IT & Engineering departments)*
 
 ---
 
@@ -104,7 +167,7 @@ nextal-web-prod        hr-payroll-management-web     "docker-entrypoint.s…"   
 Execute inside the running API container:
 
 ```bash
-# 1. Apply all 15 Prisma migrations
+# 1. Apply all Prisma migrations
 docker compose -f docker-compose.prod.yml --env-file .env.production exec -T api npx prisma migrate deploy
 
 # 2. Seed canonical system roles catalog (idempotent, 0 data truncated)
@@ -127,49 +190,68 @@ System seed completed successfully (8 canonical roles upserted, 0 tables truncat
 
 ## 6. Seed Additive Demo Showcase Company
 
-Provisions an isolated showcase company with 25 employees across 2 company visas and 2 branches, 1 paid pay run, and sample workflows without touching any existing tenants:
+Provisions an isolated showcase company with 5 custom branches across 2 company visas without touching any existing tenants:
 
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.production exec -T api node scripts/seed-demo-company.mjs \
-  --name "Demo Co (Nextal Showcase)" --employees 25 --confirm-demo
+  --name "Al Jalil Private Limited Company" \
+  --branches "Dubai City Main Branch,Jebel Ali Branch,Hatta Branch,Al Awir Branch,Al Lisaili Branch" \
+  --employees 0 \
+  --confirm-demo
 ```
 
 ### Expected Output:
 ```text
---- Provisioning Additive Demo Company: "Demo Co (Nextal Showcase)" ---
-Seeding one past month of attendance punches and overtime requests...
-Calculating and finalizing one PAID pay run for October 2026...
-Pay Run <UUID> successfully locked and marked PAID.
-✅ Demo company "Demo Co (Nextal Showcase)" provisioned successfully.
-  - 2 Visas & 2 Branches created
-  - 4 Departments, Shifts, Leave Types, Salary Rules, and Approval Flows created
-  - 8 Privileged Role Accounts created (TOTP bypassed)
-  - 25 Employees provisioned with mod-97 valid IBANs and valid Emirates IDs
-  - 1 Paid Pay Run, 2 Overtime records, 2 Leave Requests, 1 Loan Adjustment seeded
-  - Credentials written ONCE to demo-credentials.txt (strictly gitignored).
+--- Provisioning Additive Demo Company: "Al Jalil Private Limited Company" ---
+Custom branches specified (5): Dubai City Main Branch, Jebel Ali Branch, Hatta Branch, Al Awir Branch, Al Lisaili Branch
+Created branches:
+  - Dubai City Main Branch (main, visa: Dubai Main Entity)
+  - Jebel Ali Branch (visa: DIFC Entity)
+  - Hatta Branch (visa: Dubai Main Entity)
+  - Al Awir Branch (visa: Dubai Main Entity)
+  - Al Lisaili Branch (visa: Dubai Main Entity)
+Created 8 privileged demo users with TOTP bypassed:
+  - COMPANY_ADMIN    : admin@aljalil-demo.test
+  - HR_MANAGER       : hr.manager@aljalil-demo.test
+  - HR_OFFICER       : hr.officer@aljalil-demo.test
+  - HR_OFFICER_V2    : hr.officer2@aljalil-demo.test (scoped to DIFC Entity)
+  - PAYROLL_OFFICER  : payroll.officer@aljalil-demo.test
+  - GM               : gm@aljalil-demo.test
+  - FINANCE          : finance@aljalil-demo.test
+  - DEPT_MANAGER     : dept.manager@aljalil-demo.test
+Employees requested: 0. Skipping synthetic employee creation and past pay runs.
+✅ Demo company "Al Jalil Private Limited Company" provisioned successfully.
 ```
 
 ---
 
-## 7. Retrieve Demo Credentials & Accounts
+## 7. Bulk Import Employees from Sample CSV
+
+The CSV `docs/samples/al-jalil-employees-50.csv` is baked directly into the production container image.
 
 ```bash
-# Copy credentials from container to host
-docker compose -f docker-compose.prod.yml cp api:/app/backend/demo-credentials.txt ./demo-credentials.txt
+# 1. Dry-run validation (non-destructive)
+docker compose -f docker-compose.prod.yml --env-file .env.production exec -T api node scripts/import-employees.mjs \
+  docs/samples/al-jalil-employees-50.csv --company "Al Jalil Private Limited Company" --dry-run
 
-# View credentials for all 8 evaluation roles
-cat demo-credentials.txt
+# 2. Real import (transactional write)
+docker compose -f docker-compose.prod.yml --env-file .env.production exec -T api node scripts/import-employees.mjs \
+  docs/samples/al-jalil-employees-50.csv --company "Al Jalil Private Limited Company"
 ```
 
-### Evaluation Roles Available:
-1. `COMPANY_ADMIN`: Complete company governance and settings
-2. `HR_MANAGER`: Employee lifecycle, onboarding verification, statutory leave approval
-3. `HR_OFFICER`: Employee profile entry and document upload
-4. `HR_OFFICER_V2`: Scoped exclusively to Visa 2 (DIFC entity)
-5. `PAYROLL_OFFICER`: Pay run calculation and salary adjustment entry
-6. `GM` (General Manager): Executive sign-off for leaves > 5 days and pay run lock
-7. `FINANCE`: Pay run disbursement sign-off and payment execution
-8. `DEPT_MANAGER`: Departmental leave requests review
+### Expected Output:
+```text
+--- Starting Employee Bulk Import ---
+  File       : al-jalil-employees-50.csv (13.1 KB)
+  Target Path: /app/docs/samples/al-jalil-employees-50.csv
+  Company ID : <UUID>
+  Mode       : REAL (Transactional write)
+
+✅ REAL IMPORT SUCCESSFUL:
+  Imported Employees : 50
+  Created IDs        : ...
+  Credentials saved to: demo-credentials.txt (strictly gitignored)
+```
 
 ---
 
@@ -177,7 +259,7 @@ cat demo-credentials.txt
 
 ### A. 16-Scenario End-to-End Workflow Suite:
 ```bash
-node scripts/workflow-e2e.mjs https://localhost --credentials demo-credentials.txt
+node scripts/workflow-e2e.mjs https://payroll.nextaltechnologies.com --credentials demo-credentials.txt
 ```
 ### Expected Output:
 ```text
@@ -204,7 +286,7 @@ node scripts/workflow-e2e.mjs https://localhost --credentials demo-credentials.t
 
 ### B. Live HTTPS Smoke Test:
 ```bash
-node scripts/smoke-live.mjs https://localhost -k
+node scripts/smoke-live.mjs https://payroll.nextaltechnologies.com
 ```
 ### Expected Output:
 ```text
@@ -216,15 +298,6 @@ node scripts/smoke-live.mjs https://localhost -k
   ✅ PASS: Unauthenticated Access Guard (HTTP 401)
   ✅ PASS: CORS Origin Restriction
   Verification Summary: 7/7 checks passed (0 failed)
-```
-
-### C. Cluster Health Probe (External Monitor Ready):
-```bash
-./deploy/healthcheck.sh https://localhost -k
-```
-### Expected Output:
-```text
-OK: Nextal HR & Payroll cluster healthy at https://localhost (API: 200/ok, Web: 200)
 ```
 
 ---
@@ -250,13 +323,13 @@ To remove only the demo company after the demonstration without affecting system
 
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.production exec -T api node scripts/seed-demo-company.mjs \
-  --name "Demo Co (Nextal Showcase)" --remove --confirm-demo
+  --name "Al Jalil Private Limited Company" --remove --confirm-demo
 ```
 
 ### Expected Output:
 ```text
---- Safe Demo Company Removal: "Demo Co (Nextal Showcase)" ---
+--- Safe Demo Company Removal: "Al Jalil Private Limited Company" ---
 Found target company ID: <UUID>. Initiating FK-safe cascade removal...
 [PURGE] Company record completely deleted.
-✅ Demo company "Demo Co (Nextal Showcase)" cleanly removed without touching other companies.
+✅ Demo company "Al Jalil Private Limited Company" cleanly removed without touching other companies.
 ```

@@ -18,7 +18,9 @@ RUN npm ci
 # Copy source trees
 COPY shared ./shared
 COPY backend ./backend
-COPY scripts/setup-company.mjs scripts/seed-system.mjs scripts/create-first-admin.mjs scripts/seed-demo-company.mjs ./scripts/
+COPY scripts/setup-company.mjs scripts/seed-system.mjs scripts/create-first-admin.mjs scripts/seed-demo-company.mjs scripts/import-employees.mjs ./scripts/
+COPY docs/samples ./docs/samples
+COPY docs/samples ./backend/docs/samples
 
 # Generate Prisma Client
 WORKDIR /app/backend
@@ -59,6 +61,8 @@ COPY --chown=node:node --from=builder /app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /app/shared ./shared
 COPY --chown=node:node --from=builder /app/backend ./backend
 COPY --chown=node:node --from=builder /app/scripts ./scripts
+COPY --chown=node:node --from=builder /app/docs/samples ./docs/samples
+COPY --chown=node:node --from=builder /app/backend/docs/samples ./backend/docs/samples
 
 WORKDIR /app/backend
 
