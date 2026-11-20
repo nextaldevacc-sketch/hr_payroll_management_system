@@ -926,6 +926,9 @@ export class EmployeeImportService {
           },
         },
       });
+    }, {
+      maxWait: 20000,
+      timeout: 60000,
     });
 
     return {
