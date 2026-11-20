@@ -218,7 +218,7 @@ export default function ChangePasswordPage() {
         <button
           type="submit"
           data-testid="change-password-submit-btn"
-          disabled={isLoading || !hasLength || !hasLetter || !hasNumber || !isMatch}
+          disabled={isLoading || !hasLength || !hasUpper || !hasLower || !hasNumber || !hasSpecial || !isMatch}
           className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:bg-sky-700 text-white text-xs font-semibold transition disabled:opacity-50 disabled:pointer-events-none shadow-sm shadow-sky-500/20"
         >
           {isLoading ? (
