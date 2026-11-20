@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import {
@@ -34,10 +35,10 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [lockRemaining, setLockRemaining] = useState(null);
   const [hydrated, setHydrated] = useState(false);
 
   // MFA Flow States: 'credentials' | 'mfa_verify' | 'mfa_enrol' | 'mfa_recovery'
@@ -66,7 +67,6 @@ export default function LoginPage() {
 
     setIsLoading(true);
     setErrorMessage('');
-    setLockRemaining(null);
 
     try {
       const result = await login(email, password);
@@ -235,10 +235,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div>
+    <div className="w-full">
       {/* Session Expired Notice */}
       {reasonParam === 'session_expired' && step === 'credentials' && (
-        <div className="mb-4 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs flex items-center gap-2">
+        <div className="mb-4 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
           <Clock className="w-4 h-4 shrink-0 text-amber-500" />
           <span>
             {isAr
@@ -250,7 +250,7 @@ export default function LoginPage() {
 
       {/* Success Banner */}
       {successParam && step === 'credentials' && (
-        <div className="mb-4 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs flex items-center gap-2">
+        <div className="mb-4 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
           <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
           <span>
             {successParam === 'password_reset'
@@ -266,364 +266,405 @@ export default function LoginPage() {
 
       {/* Error Message */}
       {errorMessage && (
-        <div className="mb-4 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 text-xs flex items-start gap-2">
+        <div className="mb-4 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 text-xs flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
           <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
           <span className="leading-snug">{errorMessage}</span>
         </div>
       )}
 
-      {/* STEP 1: Standard Credentials Form */}
-      {step === 'credentials' && (
-        <div>
-          <div className="mb-5 text-start">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              {isAr ? 'تسجيل الدخول إلى حسابك' : 'Sign in to your account'}
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {isAr
-                ? 'أدخل بيانات الاعتماد المؤسسية الخاصة بك للمتابعة'
-                : 'Enter your corporate credentials to continue'}
-            </p>
-          </div>
-
-          <form onSubmit={handleCredentialsSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 text-start">
-                {isAr ? 'البريد الإلكتروني المؤسسي' : 'Work Email'}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-slate-400">
-                  <Mail className="w-4 h-4" />
-                </div>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. name@company.ae"
-                  required
-                  autoComplete="email"
-                  dir="ltr"
-                  className="w-full ps-9 pe-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
-                />
-              </div>
+      <AnimatePresence mode="wait">
+        {/* STEP 1: Standard Credentials Form */}
+        {step === 'credentials' && (
+          <motion.div
+            key="credentials"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16 }}
+          >
+            <div className="mb-6 text-start">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {isAr ? 'تسجيل الدخول' : 'Sign in'}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {isAr
+                  ? 'أدخل بيانات الاعتماد للوصول إلى بوابتك'
+                  : 'Enter your credentials to access your portal'}
+              </p>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  {isAr ? 'كلمة المرور' : 'Password'}
+            <form onSubmit={handleCredentialsSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 text-start">
+                  {isAr ? 'عنوان البريد الإلكتروني' : 'Email address'}
                 </label>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline"
-                >
-                  {isAr ? 'نسيت كلمة المرور؟' : 'Forgot password?'}
-                </Link>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="w-4 h-4" />
+                <div className="relative">
+                  <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. name@company.ae"
+                    required
+                    autoComplete="email"
+                    dir="ltr"
+                    className="w-full ps-10 pe-3.5 py-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] text-slate-900 dark:text-white text-xs font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                  />
                 </div>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  required
-                  autoComplete="current-password"
-                  dir="ltr"
-                  className="w-full ps-9 pe-9 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
-                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    {isAr ? 'كلمة المرور' : 'Password'}
+                  </label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline"
+                  >
+                    {isAr ? 'نسيت كلمة المرور؟' : 'Forgot password?'}
+                  </Link>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    required
+                    autoComplete="current-password"
+                    dir="ltr"
+                    className="w-full ps-10 pe-10 py-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] text-slate-900 dark:text-white text-xs font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 end-0 pe-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Remember Me Option */}
+              <div className="flex items-center justify-start pt-0.5">
+                <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-medium text-slate-600 dark:text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-amber-500 accent-amber-500"
+                  />
+                  <span>{isAr ? 'تذكرني' : 'Remember me'}</span>
+                </label>
+              </div>
+
+              {/* Enhanced Primary Button with Shine Effect */}
+              <button
+                type="submit"
+                id="btn-login-submit"
+                disabled={!hydrated || isLoading}
+                className="relative group overflow-hidden w-full py-3 px-4 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all duration-200"
+              >
+                {/* CSS Shine Sweep */}
+                <span className="absolute inset-0 w-1/2 h-full bg-white/25 skew-x-12 -translate-x-full group-hover:translate-x-[300%] transition-transform duration-1000 ease-out pointer-events-none" />
+
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                    <span>{isAr ? 'جاري التحقق...' : 'Signing in...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{isAr ? 'تسجيل الدخول' : 'Sign in'}</span>
+                    {isRTL ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                  </>
+                )}
+              </button>
+            </form>
+          </motion.div>
+        )}
+
+        {/* STEP 2: MFA Verification Screen */}
+        {step === 'mfa_verify' && (
+          <motion.div
+            key="mfa_verify"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16 }}
+          >
+            <div className="mb-5 text-start">
+              <div className="inline-flex p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 mb-2">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                {isAr ? 'المصادقة الثنائية (MFA)' : 'Two-Factor Authentication'}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {isRecoveryMode
+                  ? isAr
+                    ? 'أدخل أحد رموز الاسترداد الاحتياطية المكونة من 10 خانات'
+                    : 'Enter one of your 10-character emergency recovery codes'
+                  : isAr
+                  ? 'أدخل الرمز المكون من 6 أرقام من تطبيق المصادقة الخاص بك'
+                  : 'Enter the 6-digit verification code from your authenticator app'}
+              </p>
+            </div>
+
+            <form onSubmit={handleMfaVerifySubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 text-start">
+                  {isRecoveryMode
+                    ? isAr
+                      ? 'رمز الاسترداد للطوارئ'
+                      : 'Emergency Recovery Code'
+                    : isAr
+                    ? 'رمز التحقق (6 أرقام)'
+                    : 'Authentication Code (6 digits)'}
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-slate-400">
+                    {isRecoveryMode ? <Key className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
+                  </div>
+                  <input
+                    type="text"
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value)}
+                    placeholder={isRecoveryMode ? 'e.g. A1B2C-3D4E5' : '123456'}
+                    autoFocus
+                    required
+                    dir="ltr"
+                    maxLength={isRecoveryMode ? 20 : 6}
+                    className="w-full ps-10 pe-3.5 py-3 text-center text-sm tracking-widest font-mono rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading || !mfaCode.trim()}
+                className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                    <span>{isAr ? 'جاري التحقق...' : 'Verifying...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{isAr ? 'تأكيد الرمز' : 'Verify & Continue'}</span>
+                    {isRTL ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                  </>
+                )}
+              </button>
+
+              <div className="pt-2 flex flex-col gap-2 text-center">
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 end-0 pe-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  onClick={() => {
+                    setIsRecoveryMode(!isRecoveryMode);
+                    setMfaCode('');
+                    setErrorMessage('');
+                  }}
+                  className="text-xs text-amber-600 dark:text-amber-400 hover:underline font-semibold"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {isRecoveryMode
+                    ? isAr
+                      ? 'استخدام تطبيق المصادقة بدلاً من ذلك'
+                      : 'Use authenticator app instead'
+                    : isAr
+                    ? 'استخدام رمز استرداد الطوارئ'
+                    : 'Use an emergency recovery code'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep('credentials');
+                    setMfaToken('');
+                    setMfaCode('');
+                    setErrorMessage('');
+                  }}
+                  className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                >
+                  {isAr ? 'العودة إلى تسجيل الدخول' : 'Back to login'}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        )}
+
+        {/* STEP 3: MFA Enrolment Wizard Screen */}
+        {step === 'mfa_enrol' && enrolData && (
+          <motion.div
+            key="mfa_enrol"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16 }}
+          >
+            <div className="mb-4 text-start">
+              <div className="inline-flex p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 mb-2">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                {isAr ? 'إعداد المصادقة الثنائية (MFA)' : 'Enrol in Multi-Factor Authentication'}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {isAr
+                  ? 'يتطلب دورك المؤسسي تفعيل المصادقة الثنائية لحماية الحساب'
+                  : 'Your privileged role requires multi-factor authentication to secure this account'}
+              </p>
+            </div>
+
+            {/* QR Code display */}
+            <div className="my-3 p-3 bg-white dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-white/10 flex flex-col items-center">
+              <img
+                src={enrolData.qr_code}
+                alt="MFA QR Code"
+                className="w-40 h-40 rounded-lg bg-white p-1 border border-slate-100 dark:border-slate-800"
+              />
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 text-center">
+                {isAr
+                  ? 'امسح رمز الاستجابة السريعة بتطبيق Google Authenticator أو ما شابه'
+                  : 'Scan QR with Google Authenticator or any RFC 6238 TOTP app'}
+              </p>
+
+              {/* Manual Secret Key */}
+              <div className="mt-2.5 w-full p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 flex items-center justify-between">
+                <div className="text-start overflow-hidden">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                    {isAr ? 'المفتاح اليدوي' : 'Manual Setup Key'}
+                  </span>
+                  <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 select-all tracking-wider">
+                    {enrolData.manual_key}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={copyManualKey}
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                  title="Copy Key"
+                >
+                  {copiedKey ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            <button
-              type="submit"
-              id="btn-login-submit"
-              disabled={!hydrated || isLoading}
-              className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/20 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{isAr ? 'جاري التحقق...' : 'Signing in...'}</span>
-                </>
-              ) : (
-                <>
-                  <span>{isAr ? 'تسجيل الدخول' : 'Sign in'}</span>
-                  {isRTL ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-                </>
-              )}
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* STEP 2: MFA Verification Screen */}
-      {step === 'mfa_verify' && (
-        <div>
-          <div className="mb-5 text-start">
-            <div className="inline-flex p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 mb-2">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              {isAr ? 'المصادقة الثنائية (MFA)' : 'Two-Factor Authentication'}
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {isRecoveryMode
-                ? isAr
-                  ? 'أدخل أحد رموز الاسترداد الاحتياطية المكونة من 10 خانات'
-                  : 'Enter one of your 10-character emergency recovery codes'
-                : isAr
-                ? 'أدخل الرمز المكون من 6 أرقام من تطبيق المصادقة الخاص بك'
-                : 'Enter the 6-digit verification code from your authenticator app'}
-            </p>
-          </div>
-
-          <form onSubmit={handleMfaVerifySubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 text-start">
-                {isRecoveryMode
-                  ? isAr
-                    ? 'رمز الاسترداد للطوارئ'
-                    : 'Emergency Recovery Code'
-                  : isAr
-                  ? 'رمز التحقق (6 أرقام)'
-                  : 'Authentication Code (6 digits)'}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-slate-400">
-                  {isRecoveryMode ? <Key className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
-                </div>
+            <form onSubmit={handleMfaEnrolSubmit} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 text-start">
+                  {isAr ? 'أدخل الرمز المكون من 6 أرقام لتأكيد التفعيل' : 'Enter 6-digit confirmation code'}
+                </label>
                 <input
                   type="text"
                   value={mfaCode}
                   onChange={(e) => setMfaCode(e.target.value)}
-                  placeholder={isRecoveryMode ? 'e.g. A1B2C-3D4E5' : '123456'}
+                  placeholder="123456"
                   autoFocus
                   required
+                  maxLength={6}
                   dir="ltr"
-                  maxLength={isRecoveryMode ? 20 : 6}
-                  className="w-full ps-9 pe-3 py-2.5 text-center text-sm tracking-widest font-mono rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                  className="w-full py-2.5 px-3 text-center text-sm tracking-widest font-mono rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
                 />
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={isLoading || !mfaCode.trim()}
-              className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/20 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{isAr ? 'جاري التحقق...' : 'Verifying...'}</span>
-                </>
-              ) : (
-                <>
-                  <span>{isAr ? 'تأكيد الرمز' : 'Verify & Continue'}</span>
-                  {isRTL ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-                </>
-              )}
-            </button>
-
-            <div className="pt-2 flex flex-col gap-2 text-center">
               <button
-                type="button"
-                onClick={() => {
-                  setIsRecoveryMode(!isRecoveryMode);
-                  setMfaCode('');
-                  setErrorMessage('');
-                }}
-                className="text-xs text-amber-600 dark:text-amber-400 hover:underline font-semibold"
+                type="submit"
+                disabled={isLoading || mfaCode.length !== 6}
+                className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all"
               >
-                {isRecoveryMode
-                  ? isAr
-                    ? 'استخدام تطبيق المصادقة بدلاً من ذلك'
-                    : 'Use authenticator app instead'
-                  : isAr
-                  ? 'استخدام رمز استرداد الطوارئ'
-                  : 'Use an emergency recovery code'}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                    <span>{isAr ? 'جاري التحقق والتفعيل...' : 'Activating MFA...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{isAr ? 'تأكيد وتفعيل المصادقة' : 'Confirm & Enable MFA'}</span>
+                    {isRTL ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                  </>
+                )}
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setStep('credentials');
-                  setMfaToken('');
-                  setMfaCode('');
-                  setErrorMessage('');
-                }}
-                className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-              >
-                {isAr ? 'العودة إلى تسجيل الدخول' : 'Back to login'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+            </form>
+          </motion.div>
+        )}
 
-      {/* STEP 3: MFA Enrolment Wizard Screen */}
-      {step === 'mfa_enrol' && enrolData && (
-        <div>
-          <div className="mb-4 text-start">
-            <div className="inline-flex p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 mb-2">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              {isAr ? 'إعداد المصادقة الثنائية (MFA)' : 'Enrol in Multi-Factor Authentication'}
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {isAr
-                ? 'يتطلب دورك المؤسسي تفعيل المصادقة الثنائية لحماية الحساب'
-                : 'Your privileged role requires multi-factor authentication to secure this account'}
-            </p>
-          </div>
-
-          {/* QR Code display */}
-          <div className="my-3 p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center">
-            <img
-              src={enrolData.qr_code}
-              alt="MFA QR Code"
-              className="w-44 h-44 rounded-lg bg-white p-1 border border-slate-100 dark:border-slate-800"
-            />
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 text-center">
-              {isAr
-                ? 'امسح رمز الاستجابة السريعة بتطبيق Google Authenticator أو ما شابه'
-                : 'Scan QR with Google Authenticator or any RFC 6238 TOTP app'}
-            </p>
-
-            {/* Manual Secret Key */}
-            <div className="mt-2.5 w-full p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <div className="text-start overflow-hidden">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                  {isAr ? 'المفتاح اليدوي' : 'Manual Setup Key'}
-                </span>
-                <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 select-all tracking-wider">
-                  {enrolData.manual_key}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={copyManualKey}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
-                title="Copy Key"
-              >
-                {copiedKey ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          <form onSubmit={handleMfaEnrolSubmit} className="space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 text-start">
-                {isAr ? 'أدخل الرمز المكون من 6 أرقام لتأكيد التفعيل' : 'Enter 6-digit confirmation code'}
-              </label>
-              <input
-                type="text"
-                value={mfaCode}
-                onChange={(e) => setMfaCode(e.target.value)}
-                placeholder="123456"
-                autoFocus
-                required
-                maxLength={6}
-                dir="ltr"
-                className="w-full py-2.5 px-3 text-center text-sm tracking-widest font-mono rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading || mfaCode.length !== 6}
-              className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/20 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{isAr ? 'جاري التحقق والتفعيل...' : 'Activating MFA...'}</span>
-                </>
-              ) : (
-                <>
-                  <span>{isAr ? 'تأكيد وتفعيل المصادقة' : 'Confirm & Enable MFA'}</span>
-                  {isRTL ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-                </>
-              )}
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* STEP 4: Display 10 Single-Use Emergency Recovery Codes */}
-      {step === 'mfa_recovery' && (
-        <div>
-          <div className="mb-4 text-start">
-            <div className="inline-flex p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-2">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              {isAr ? 'تم تفعيل المصادقة الثنائية بنجاح' : 'MFA Enabled Successfully'}
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {isAr
-                ? 'احفظ هذه الرموز الاحتياطية العشرة للاستخدام في حالات الطوارئ (كل رمز يُستخدم مرة واحدة فقط)'
-                : 'Save these 10 emergency recovery codes. Each code can be used once if you lose device access.'}
-            </p>
-          </div>
-
-          <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 mb-4">
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-800">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                {isAr ? 'رموز الاسترداد للطوارئ' : 'Emergency Recovery Codes'}
-              </span>
-              <button
-                type="button"
-                onClick={copyAllRecoveryCodes}
-                className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1 hover:underline"
-              >
-                {copiedCodes ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedCodes ? (isAr ? 'تم النسخ!' : 'Copied!') : (isAr ? 'نسخ الكل' : 'Copy All')}</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-center">
-              {recoveryCodes.map((code, idx) => (
-                <div
-                  key={idx}
-                  className="py-1 px-2 font-mono text-xs font-semibold bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 tracking-wider"
-                >
-                  {code}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-800 dark:text-amber-300 text-xs mb-4 flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
-            <span className="leading-snug">
-              {isAr
-                ? 'لن تظهر هذه الرموز مرة أخرى. قم بنسخها وتخزينها في مكان آمن.'
-                : 'These recovery codes will not be shown again. Store them securely in a password manager.'}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleFinishRecoveryAndProceed}
-            className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/20 active:scale-[0.99] flex items-center justify-center gap-2 transition-all"
+        {/* STEP 4: Display 10 Single-Use Emergency Recovery Codes */}
+        {step === 'mfa_recovery' && (
+          <motion.div
+            key="mfa_recovery"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16 }}
           >
-            <span>{isAr ? 'متابعة إلى لوحة التحكم' : 'Continue to Dashboard'}</span>
-            {isRTL ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-          </button>
-        </div>
-      )}
+            <div className="mb-4 text-start">
+              <div className="inline-flex p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-2">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                {isAr ? 'تم تفعيل المصادقة الثنائية بنجاح' : 'MFA Enabled Successfully'}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {isAr
+                  ? 'احفظ هذه الرموز الاحتياطية العشرة للاستخدام في حالات الطوارئ (كل رمز يُستخدم مرة واحدة فقط)'
+                  : 'Save these 10 emergency recovery codes. Each code can be used once if you lose device access.'}
+              </p>
+            </div>
+
+            <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-white/10 mb-4">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-800">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  {isAr ? 'رموز الاسترداد للطوارئ' : 'Emergency Recovery Codes'}
+                </span>
+                <button
+                  type="button"
+                  onClick={copyAllRecoveryCodes}
+                  className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1 hover:underline"
+                >
+                  {copiedCodes ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedCodes ? (isAr ? 'تم النسخ!' : 'Copied!') : (isAr ? 'نسخ الكل' : 'Copy All')}</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-center">
+                {recoveryCodes.map((code, idx) => (
+                  <div
+                    key={idx}
+                    className="py-1 px-2 font-mono text-xs font-semibold bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 tracking-wider"
+                  >
+                    {code}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-800 dark:text-amber-300 text-xs mb-4 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+              <span className="leading-snug">
+                {isAr
+                  ? 'لن تظهر هذه الرموز مرة أخرى. قم بنسخها وتخزينها في مكان آمن.'
+                  : 'These recovery codes will not be shown again. Store them securely in a password manager.'}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleFinishRecoveryAndProceed}
+              className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 active:scale-[0.99] flex items-center justify-center gap-2 transition-all"
+            >
+              <span>{isAr ? 'متابعة إلى لوحة التحكم' : 'Continue to Dashboard'}</span>
+              {isRTL ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
-
-
