@@ -51,11 +51,15 @@ export async function getMyDocuments() {
   return await request('/me/documents', {}, []);
 }
 
-export async function uploadMyDocument(data) {
+export async function uploadMyDocument(formData) {
   return await request('/me/documents', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: formData,
   });
+}
+
+export function getMyDocumentDownloadUrl(id) {
+  return `${API_BASE}/me/documents/${id}/download`;
 }
 
 export async function getMyRejections({ search = '', requestType = '', startDate = '', endDate = '', page = 1, limit = 20 } = {}) {
@@ -95,6 +99,7 @@ export default {
   cancelMyRequest,
   getMyDocuments,
   uploadMyDocument,
+  getMyDocumentDownloadUrl,
   getMyRejections,
 };
 

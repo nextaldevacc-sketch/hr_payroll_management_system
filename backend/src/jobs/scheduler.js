@@ -123,6 +123,30 @@ export async function executeJob(jobKey, triggeredBy = 'CRON') {
     throw err;
   }
 
+  // Acquire PostgreSQL advisory lock to prevent concurrent runs across cluster instances
+  const lockKey = `job:${jobKey}`;
+  let lockAcquired = false;
+  try {
+    const lockResult = await prisma.$base().$queryRawUnsafe(
+      'SELECT pg_try_advisory_lock(hashtext($1)) as acquired',
+      lockKey
+    );
+    lockAcquired = lockResult?.[0]?.acquired === true;
+  } catch (lockErr) {
+    console.warn(`[Scheduler] Advisory lock check failed for '${jobDef.name}', proceeding with execution:`, lockErr.message);
+    lockAcquired = true; // Fallback if test DB or non-PostgreSQL environment
+  }
+
+  if (!lockAcquired) {
+    console.log(`[Scheduler] Job '${jobDef.name}' is already running on another instance. Skipping.`);
+    return {
+      success: true,
+      job: jobDef.name,
+      skipped: true,
+      reason: 'LOCKED_BY_ANOTHER_INSTANCE',
+    };
+  }
+
   const startTime = new Date();
   console.log(`[Scheduler] [${startTime.toISOString()}] Starting job '${jobDef.name}' (Trigger: ${triggeredBy})...`);
 
@@ -168,6 +192,15 @@ export async function executeJob(jobKey, triggeredBy = 'CRON') {
   } catch (err) {
     console.error(`[Scheduler] Job '${jobDef.name}' failed:`, err.message);
     throw err;
+  } finally {
+    try {
+      await prisma.$base().$queryRawUnsafe(
+        'SELECT pg_advisory_unlock(hashtext($1)) as unlocked',
+        lockKey
+      );
+    } catch (unlockErr) {
+      console.warn(`[Scheduler] Failed to release advisory lock for '${jobDef.name}':`, unlockErr.message);
+    }
   }
 }
 

@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import {
   FileText,
   Upload,
+  Download,
   CheckCircle2,
   AlertTriangle,
   Clock,
@@ -64,6 +65,7 @@ export default function MyDocumentsPage() {
   const [docType, setDocType] = useState('EMIRATES_ID');
   const [docNumber, setDocNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -87,17 +89,43 @@ export default function MyDocumentsPage() {
     loadDocs();
   }, []);
 
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+    const maxBytes = 25 * 1024 * 1024; // 25MB
+    if (file.size > maxBytes) {
+      showError(language === 'ar' ? 'حجم الملف يتجاوز الحد الأقصى المسموح به (25 ميجابايت)' : 'File size exceeds maximum allowed limit of 25MB');
+      e.target.value = '';
+      setSelectedFile(null);
+      return;
+    }
+    setSelectedFile(file);
+  };
+
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
+    if (!selectedFile) {
+      showError(language === 'ar' ? 'يرجى اختيار ملف المستند للرفع' : 'Please select a document file to upload');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await uploadMyDocument({
-        doc_type: docType,
-        doc_number: docNumber,
-        expiry_date: expiryDate,
-      });
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('doc_type', docType);
+      formData.append('doc_number', docNumber);
+      formData.append('expiry_date', expiryDate);
+
+      await uploadMyDocument(formData);
       showSuccess(language === 'ar' ? 'تم رفع المستند بنجاح وهو الآن قيد مراجعة الموارد البشرية' : 'Document uploaded successfully and routed to HR for verification');
       setUploadModalOpen(false);
+      setSelectedFile(null);
+      setDocNumber('');
+      setExpiryDate('');
       loadDocs();
     } catch (err) {
       showError(formatErrorMessage(err, language));
@@ -165,7 +193,7 @@ export default function MyDocumentsPage() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-border/40 text-xs space-y-1">
+              <div className="pt-3 border-t border-border/40 text-xs space-y-2">
                 <div className="flex justify-between items-center text-text-muted">
                   <span>{language === 'ar' ? 'تاريخ الانتهاء:' : 'Expiry Date:'}</span>
                   <span className="font-bold text-text tabular-nums">
@@ -178,6 +206,18 @@ export default function MyDocumentsPage() {
                     {doc.days_left} {language === 'ar' ? 'يوم' : 'days'}
                   </span>
                 </div>
+                {doc.file_url && (
+                  <div className="pt-1 flex justify-end">
+                    <a
+                      href={`/api/v1/me/documents/${doc.id}/download`}
+                      download
+                      className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-semibold"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>{language === 'ar' ? 'تحميل المستند' : 'Download Document'}</span>
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -233,9 +273,33 @@ export default function MyDocumentsPage() {
             />
           </div>
 
-          <div className="border-2 border-dashed border-border rounded-xl p-4 text-center bg-black/[0.01] dark:bg-white/[0.01]">
-            <Upload className="w-5 h-5 mx-auto text-primary mb-1" />
-            <p className="text-[11px] text-text-muted">{language === 'ar' ? 'سيتم إرفاق نسخة ضوئية أو ملف PDF' : 'PDF or scanned image copy will be attached'}</p>
+          <div className="border-2 border-dashed border-border rounded-xl p-4 text-center bg-black/[0.01] dark:bg-white/[0.01] relative hover:border-primary/50 transition-colors">
+            <input
+              id="my-doc-file-input"
+              type="file"
+              required
+              accept=".pdf,.png,.jpg,.jpeg"
+              onChange={handleFileChange}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+            <Upload className="w-6 h-6 mx-auto text-primary mb-1.5" />
+            {selectedFile ? (
+              <div>
+                <p className="font-semibold text-text text-xs">{selectedFile.name}</p>
+                <p className="text-[11px] text-text-muted mt-0.5">
+                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB — {language === 'ar' ? 'انقر للتغيير' : 'Click to change file'}
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p className="font-semibold text-text text-xs">
+                  {language === 'ar' ? 'انقر لاختيار ملف (PDF أو صورة)' : 'Click or drop PDF / image here'}
+                </p>
+                <p className="text-[11px] text-text-muted mt-0.5">
+                  {language === 'ar' ? 'الحد الأقصى 25 ميجابايت (PDF, PNG, JPG)' : 'Maximum 25MB (PDF, PNG, JPG)'}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="pt-2 flex justify-end gap-2 border-t border-border/40">

@@ -24,7 +24,7 @@ This guide provides end-to-end instructions for deploying Nextal HR & Payroll on
 
 ---
 
-## 2. DNS Configuration
+## 2. DNS & Reverse Proxy Configuration (aaPanel / Nginx)
 
 1. Point your domain or subdomain's **DNS A record** to your VPS public IPv4 address:
    ```text
@@ -39,6 +39,28 @@ This guide provides end-to-end instructions for deploying Nextal HR & Payroll on
    # Expected Output:
    # 198.51.100.25
    ```
+
+### aaPanel / Nginx Reverse Proxy Setup (MANDATORY for Large File Uploads & Real Client IP)
+When terminating SSL with an external Nginx / aaPanel reverse proxy in front of Nextal:
+
+1. **Upload Size Limit (`client_max_body_size`)**:
+   Nginx default is `1m` or `2m`. Any employee passport, Emirates ID, or bulk import upload over this threshold will be dropped by Nginx with `HTTP 413 Request Entity Too Large` before ever reaching Caddy or the API.
+   In your Nginx site configuration block (`server { ... }` or `location / { ... }`), add:
+   ```nginx
+   client_max_body_size 25M;
+   ```
+
+2. **Real Client IP & Proxy Headers**:
+   To ensure rate limiting and security lockout accurately distinguish clients behind the proxy:
+   ```nginx
+   proxy_set_header Host $host;
+   proxy_set_header X-Real-IP $remote_addr;
+   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+   proxy_set_header X-Forwarded-Proto $scheme;
+   ```
+
+3. **Trust Proxy Configuration**:
+   In `/opt/nextal/.env.production`, ensure `TRUST_PROXY=1` (or your reverse proxy hop count) is set so Express properly reads `req.ip` from the `X-Forwarded-For` header.
 
 ---
 

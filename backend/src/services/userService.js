@@ -4,6 +4,7 @@ import auditService from './auditService.js';
 import authService from './authService.js';
 import { invalidateUserSession } from '../middleware/authCache.js';
 import { assertPasswordCompliant } from '@nextal/shared';
+import { authEmailLimiter } from '../lib/rateLimiter.js';
 
 export class UserService {
   constructor(client = prisma) {
@@ -275,6 +276,12 @@ export class UserService {
       where: { id: userId },
       data: { token_version: { increment: 1 } },
     });
+
+    // Revoke all active sessions on role change
+    await this.prisma.$base().sessions.updateMany({
+      where: { user_id: userId, revoked_at: null },
+      data: { revoked_at: new Date() },
+    }).catch(() => {});
 
     invalidateUserSession(userId);
 
@@ -570,6 +577,10 @@ export class UserService {
     });
 
     invalidateUserSession(userId);
+
+    if (user.email) {
+      await authEmailLimiter.reset(user.email.toLowerCase().trim()).catch(() => {});
+    }
 
     await auditService.log({
       companyId,

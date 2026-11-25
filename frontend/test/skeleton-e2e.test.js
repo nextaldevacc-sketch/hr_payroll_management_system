@@ -1,10 +1,33 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
+import fs from 'node:fs';
+import path from 'node:path';
 import { chromium } from 'playwright';
 
 const BASE_URL = process.env.BASE_URL || 'https://localhost';
-const DEMO_ADMIN_EMAIL = 'admin.democonext-6a84c1@demo-nextal.test';
-const DEMO_ADMIN_PASS = 'Demo@53dc4afeA9!';
+
+let DEMO_ADMIN_EMAIL = process.env.DEMO_ADMIN_EMAIL;
+let DEMO_ADMIN_PASS = process.env.DEMO_ADMIN_PASS;
+
+if (!DEMO_ADMIN_EMAIL || !DEMO_ADMIN_PASS) {
+  try {
+    const credPath = path.resolve(process.cwd(), '../demo-credentials.txt');
+    const altCredPath = path.resolve(process.cwd(), 'demo-credentials.txt');
+    const targetFile = fs.existsSync(credPath) ? credPath : fs.existsSync(altCredPath) ? altCredPath : null;
+    if (targetFile) {
+      const content = fs.readFileSync(targetFile, 'utf8');
+      const adminMatch = content.match(/COMPANY_ADMIN\s*:\s*(\S+)\s*\|\s*Password:\s*(\S+)/);
+      if (adminMatch) {
+        DEMO_ADMIN_EMAIL = DEMO_ADMIN_EMAIL || adminMatch[1];
+        DEMO_ADMIN_PASS = DEMO_ADMIN_PASS || adminMatch[2];
+      }
+    }
+  } catch {}
+}
+
+if (!DEMO_ADMIN_EMAIL || !DEMO_ADMIN_PASS) {
+  console.warn('[WARN] DEMO_ADMIN_EMAIL / DEMO_ADMIN_PASS not found in env or demo-credentials.txt');
+}
 
 describe('Step 7: E2E Verification of Skeletons, Loader Suppression, Video Login & MFA', () => {
   let browser;
@@ -26,7 +49,7 @@ describe('Step 7: E2E Verification of Skeletons, Loader Suppression, Video Login
     await page.fill('input[type="email"]', DEMO_ADMIN_EMAIL);
     await page.fill('input[type="password"]', DEMO_ADMIN_PASS);
     await page.click('#btn-login-submit');
-    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15000 });
+    await page.waitForFunction(() => !window.location.pathname.includes('/login'), { timeout: 15000 });
   }
 
   it('1. Delayed route interception: Skeletons visible immediately, no blank flash, CLS < 0.05', async () => {

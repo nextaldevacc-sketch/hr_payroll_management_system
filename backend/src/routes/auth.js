@@ -29,6 +29,7 @@ const mfaLimiter = rateLimit({
 
 router.post('/login', validate(loginSchema), authController.login);
 router.post('/logout', authController.logout);
+router.post('/logout-all', authenticate, authController.logoutAll);
 router.get('/me', optionalAuthenticate, authController.getCurrentUser);
 router.post('/forgot-password', validate(forgotPasswordSchema), authController.forgotPassword);
 router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);

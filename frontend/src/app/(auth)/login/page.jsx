@@ -106,12 +106,20 @@ export default function LoginPage() {
       router.replace(destination);
     } catch (err) {
       setIsLoading(false);
-      if (err.code === 'ACCOUNT_LOCKED') {
+      if (err.code === 'ACCOUNT_LOCKED' || err.status === 423) {
         setErrorMessage(
           err.message ||
             (isAr
-              ? 'تم قفل الحساب بسبب محاولات دخول فاشلة متكررة (5 محاولات). يرجى المحاولة بعد 15 دقيقة.'
-              : 'Account is locked due to 5 consecutive failed login attempts. Please try again in 15 minutes.')
+              ? 'تم قفل الحساب بسبب محاولات دخول فاشلة متكررة (5 محاولات). يرجى المحاولة بعد 15 دقيقة أو مراجعة مسؤول الشركة.'
+              : 'Account is locked due to consecutive failed login attempts. Please try again in 15 minutes or contact your company administrator.')
+        );
+      } else if (err.code === 'TOO_MANY_REQUESTS' || err.status === 429) {
+        const retrySec = err.retryAfter ? ` (${err.retryAfter}s)` : '';
+        setErrorMessage(
+          err.message ||
+            (isAr
+              ? `تم تجاوز الحد المسموح به من المحاولات. يرجى الانتظار والمحاولة لاحقاً${retrySec}.`
+              : `Too many authentication attempts. Please try again shortly${retrySec}.`)
         );
       } else if (err.code === 'COMPANY_SUSPENDED') {
         setErrorMessage(
@@ -131,11 +139,24 @@ export default function LoginPage() {
             ? 'مدير المنصة غير متوفر في هذا الإصدار (المرحلة 2).'
             : 'Platform administration is not available in this release (Phase 2).'
         );
+      } else if (err.status >= 500) {
+        setErrorMessage(
+          isAr
+            ? 'حدث خطأ في الخادم (5xx). يرجى المحاولة مرة أخرى لاحقاً.'
+            : 'Server error encountered. Please try again later.'
+        );
+      } else if (err.name === 'TypeError' || (typeof navigator !== 'undefined' && !navigator.onLine) || err.message?.includes('fetch')) {
+        setErrorMessage(
+          isAr
+            ? 'تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة ثانية.'
+            : 'Unable to connect to the server. Please check your network connection.'
+        );
       } else {
+        const remaining = err.remainingAttempts !== undefined ? ` (${err.remainingAttempts} attempts remaining)` : '';
         setErrorMessage(
           isAr
             ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
-            : 'Invalid email or password'
+            : `Invalid email or password${remaining}`
         );
       }
     }

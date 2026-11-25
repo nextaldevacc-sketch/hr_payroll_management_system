@@ -95,20 +95,31 @@ export function AuthProvider({ children }) {
     async (email, password) => {
       setStatus('loading');
       try {
+        const cleanEmail = String(email || '').trim().toLowerCase();
         const res = await fetch(`${API_BASE}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email: cleanEmail, password }),
         });
 
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           setStatus('unauthenticated');
-          const error = new Error(data.message || 'Invalid email or password');
+          const error = new Error(
+            data.message ||
+            (res.status === 429
+              ? 'Too many attempts. Please try again later.'
+              : res.status === 423
+              ? 'Account is locked.'
+              : res.status >= 500
+              ? 'Server error occurred.'
+              : 'Invalid email or password')
+          );
           error.status = res.status;
-          error.code = data.code;
+          error.code = data.code || (res.status === 429 ? 'TOO_MANY_REQUESTS' : res.status === 423 ? 'ACCOUNT_LOCKED' : res.status >= 500 ? 'SERVER_ERROR' : 'UNAUTHORIZED');
           error.remainingAttempts = data.remainingAttempts;
+          error.retryAfter = data.retryAfter;
           throw error;
         }
 
@@ -263,6 +274,28 @@ export function AuthProvider({ children }) {
     }
   }, [router, queryClient]);
 
+  // Log out all devices via server truth
+  const logoutAll = useCallback(async () => {
+    try {
+      await fetch(`${API_BASE}/auth/logout-all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      }).catch((err) => {
+        console.warn('[AuthContext] logoutAll network notification failed:', err?.message);
+      });
+    } finally {
+      queryClient.clear();
+      setUser(null);
+      setStatus('unauthenticated');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      } else {
+        router.replace('/login');
+      }
+    }
+  }, [router, queryClient]);
+
   const seesSalary = Boolean(user?.sees_salary);
 
   // Section 5.3 Permission Helper: strictly defaults to DENY (false)
@@ -315,6 +348,7 @@ export function AuthProvider({ children }) {
         initMfaEnrol,
         confirmMfaEnrol,
         logout,
+        logoutAll,
         refreshUser,
         seesSalary,
         canAccess,

@@ -35,8 +35,25 @@ function extractToken(req) {
 /**
  * Validate user live state: active, not locked, company not suspended, token_version matches.
  * Uses 60-second in-memory cache to minimize DB load while guaranteeing prompt revocation.
+ * If sessionId is present, validates that the specific device session has not been revoked.
  */
-async function validateUserSessionState(userId, tokenVersion) {
+async function validateUserSessionState(userId, tokenVersion, sessionId = null) {
+  // 0. If sessionId is present, verify that this specific session is not revoked
+  if (sessionId) {
+    const session = await prisma.$base().sessions.findUnique({
+      where: { id: sessionId },
+      select: { id: true, user_id: true, revoked_at: true },
+    });
+    if (!session || session.revoked_at !== null || session.user_id !== userId) {
+      return {
+        valid: false,
+        httpStatus: 401,
+        code: 'SESSION_REVOKED',
+        message: 'Session has been invalidated. Please sign in again.',
+      };
+    }
+  }
+
   let sessionState = getCachedUserSession(userId);
 
   if (!sessionState) {
@@ -156,7 +173,7 @@ export async function authenticate(req, res, next) {
   }
 
   // Re-check live user & company state (with 60-second TTL cache)
-  const validation = await validateUserSessionState(decoded.userId, decoded.tokenVersion);
+  const validation = await validateUserSessionState(decoded.userId, decoded.tokenVersion, decoded.sessionId);
   if (!validation.valid) {
     clearAuthCookie(req, res);
     return res.status(validation.httpStatus).json({
@@ -170,6 +187,7 @@ export async function authenticate(req, res, next) {
   req.user.id = decoded.userId;
   req.user.company_id = decoded.companyId;
   req.user.is_platform_admin = Boolean(decoded.isPlatformAdmin);
+  req.sessionId = decoded.sessionId || null;
 
   // Determine companyId: platform admin might specify X-Company-Id for context
   let companyId = decoded.companyId;
@@ -249,7 +267,7 @@ export async function optionalAuthenticate(req, res, next) {
   }
 
   // Re-check live user & company state (with 60-second TTL cache)
-  const validation = await validateUserSessionState(decoded.userId, decoded.tokenVersion);
+  const validation = await validateUserSessionState(decoded.userId, decoded.tokenVersion, decoded.sessionId);
   if (!validation.valid) {
     clearAuthCookie(req, res);
     return res.status(validation.httpStatus).json({
@@ -263,6 +281,7 @@ export async function optionalAuthenticate(req, res, next) {
   req.user.id = decoded.userId;
   req.user.company_id = decoded.companyId;
   req.user.is_platform_admin = Boolean(decoded.isPlatformAdmin);
+  req.sessionId = decoded.sessionId || null;
 
   let companyId = decoded.companyId;
   const isPlatformAdmin = Boolean(decoded.isPlatformAdmin);
@@ -300,7 +319,7 @@ export async function optionalAuth(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, getJwtSecret());
-    const validation = await validateUserSessionState(decoded.userId, decoded.tokenVersion);
+    const validation = await validateUserSessionState(decoded.userId, decoded.tokenVersion, decoded.sessionId);
     if (!validation.valid) {
       return next();
     }
@@ -309,6 +328,7 @@ export async function optionalAuth(req, res, next) {
     req.user.id = decoded.userId;
     req.user.company_id = decoded.companyId;
     req.user.is_platform_admin = Boolean(decoded.isPlatformAdmin);
+    req.sessionId = decoded.sessionId || null;
 
     let companyId = decoded.companyId;
     const isPlatformAdmin = Boolean(decoded.isPlatformAdmin);

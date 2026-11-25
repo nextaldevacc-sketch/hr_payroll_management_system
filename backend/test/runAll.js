@@ -11,10 +11,10 @@ dotenv.config({ path: path.join(backendDir, '.env') });
 
 const testUrl = process.env.DATABASE_URL_TEST || 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
 
-// 1. Reset and seed the TEST database
+// 1. Deploy additive migrations to the TEST database
 console.log(`[test:runner] Initializing isolated test database: ${testUrl}`);
 try {
-  execSync('npx prisma migrate reset --schema prisma/schema.prisma --force --skip-seed --skip-generate', {
+  execSync('npx prisma migrate deploy --schema prisma/schema.prisma', {
     cwd: backendDir,
     env: { ...process.env, DATABASE_URL: testUrl, NODE_ENV: 'test' },
     stdio: 'inherit',

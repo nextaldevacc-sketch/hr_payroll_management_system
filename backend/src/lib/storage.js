@@ -12,7 +12,7 @@ const STORAGE_ROOT = process.env.STORAGE_PATH || path.resolve(__dirname, '../../
 
 // Allowed MIME types and extensions
 const ALLOWED_MIME_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png']);
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+export const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB max (harmonized with safeFileUpload and Caddy)
 
 const ENCRYPTION_MAGIC = Buffer.from('NEXTAL_ENC_V1'); // 13 bytes
 
@@ -85,7 +85,7 @@ export class StorageService {
     }
 
     if (buffer.length > MAX_FILE_SIZE) {
-      const err = new Error('File exceeds maximum size limit of 10 MB');
+      const err = new Error('File exceeds maximum size limit of 25 MB');
       err.status = 400;
       err.code = 'FILE_TOO_LARGE';
       throw err;

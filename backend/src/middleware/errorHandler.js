@@ -80,6 +80,9 @@ export function errorHandler(err, req, res, next) {
     message: err.message || 'An unexpected error occurred.',
     ...(requestId ? { requestId } : {}),
     ...(err.field ? { field: err.field } : {}),
+    ...(err.remainingAttempts !== undefined ? { remainingAttempts: err.remainingAttempts } : {}),
+    ...(err.locked_until ? { locked_until: err.locked_until } : {}),
+    ...(err.retryAfter !== undefined ? { retryAfter: err.retryAfter } : {}),
     ...(isDev && { stack: err.stack }),
   });
 }

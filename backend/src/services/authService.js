@@ -9,6 +9,7 @@ import { SALARY_ROLES, hasSalaryAccess } from '../serializers/index.js';
 import { PRIVILEGED_ROLES } from './mfaService.js';
 export { PRIVILEGED_ROLES };
 import { assertPasswordCompliant } from '@nextal/shared';
+import { authEmailLimiter, authEmailIpLimiter } from '../lib/rateLimiter.js';
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
@@ -47,9 +48,10 @@ export class AuthService {
     return false;
   }
 
-  generateToken(user, roles = [], scopes = [], seesSalary = false) {
+  generateToken(user, roles = [], scopes = [], seesSalary = false, sessionId = null) {
     const tokenPayload = {
       userId: user.id,
+      sessionId,
       email: user.email,
       companyId: user.company_id,
       isPlatformAdmin: user.is_platform_admin,
@@ -68,7 +70,7 @@ export class AuthService {
   /**
    * Log in a user with email and password
    */
-  async login({ email, password, ipAddress = null }) {
+  async login({ email, password, ipAddress = null, userAgent = null }) {
     if (!email || !password) {
       const err = new Error('Email and password are required');
       err.status = 400;
@@ -258,6 +260,10 @@ export class AuthService {
     });
 
     invalidateUserSession(user.id);
+    await authEmailLimiter.reset(cleanEmail).catch(() => {});
+    if (ipAddress) {
+      await authEmailIpLimiter.reset(`${cleanEmail}:${ipAddress}`).catch(() => {});
+    }
 
     // Determine roles & permissions
     const roles = user.user_roles.map((ur) => ur.role.code);
@@ -311,22 +317,23 @@ export class AuthService {
     // Company Admin does NOT see salary unless they also hold one of those 4 roles!
     const seesSalary = user.user_roles.some((ur) => SALARY_ROLES.includes(ur.role.code));
 
-    // Generate JWT (8 hours) with token_version for immediate revocation
-    const tokenPayload = {
-      userId: user.id,
-      email: user.email,
-      companyId: user.company_id,
-      isPlatformAdmin: user.is_platform_admin,
-      employeeId: user.employee_id,
-      roles,
-      scopes,
-      seesSalary,
-      tokenVersion: user.token_version || 1,
-    };
+    // Create per-device session record
+    let sessionId = null;
+    try {
+      const session = await this.prisma.$base().sessions.create({
+        data: {
+          user_id: user.id,
+          device: userAgent ? String(userAgent).slice(0, 255) : null,
+          user_agent: userAgent ? String(userAgent) : null,
+          ip: ipAddress ? String(ipAddress).slice(0, 100) : null,
+        },
+      });
+      sessionId = session.id;
+    } catch (sessionErr) {
+      console.warn('[AuthService] Failed to create session record:', sessionErr.message);
+    }
 
-    const token = jwt.sign(tokenPayload, getJwtSecret(), {
-      expiresIn: SESSION_DURATION,
-    });
+    const token = this.generateToken(user, roles, scopes, seesSalary, sessionId);
 
     if (user.company_id) {
       await auditService.log({
@@ -335,13 +342,14 @@ export class AuthService {
         action: 'LOGIN',
         tableName: 'users',
         recordId: user.id,
-        newValues: { last_login_at: now, ip: ipAddress },
+        newValues: { last_login_at: now, ip: ipAddress, session_id: sessionId },
         ipAddress,
       });
     }
 
     return {
       token,
+      sessionId,
       sessionDurationMs: SESSION_DURATION_MS,
       user: {
         id: user.id,
@@ -434,8 +442,24 @@ export class AuthService {
 
     const seesSalary = user.user_roles.some((ur) => SALARY_ROLES.includes(ur.role.code));
 
+    let sessionId = null;
+    try {
+      const session = await this.prisma.$base().sessions.create({
+        data: {
+          user_id: user.id,
+          device: userAgent ? String(userAgent).slice(0, 255) : null,
+          user_agent: userAgent ? String(userAgent) : null,
+          ip: ipAddress ? String(ipAddress).slice(0, 100) : null,
+        },
+      });
+      sessionId = session.id;
+    } catch (sessionErr) {
+      console.warn('[AuthService] Failed to create session record in generateSessionForUser:', sessionErr.message);
+    }
+
     const tokenPayload = {
       userId: user.id,
+      sessionId,
       email: user.email,
       companyId: user.company_id,
       isPlatformAdmin: user.is_platform_admin,
@@ -457,13 +481,14 @@ export class AuthService {
         action: 'LOGIN',
         tableName: 'users',
         recordId: user.id,
-        newValues: { last_login_at: now, ip: ipAddress, mfa_verified: true },
+        newValues: { last_login_at: now, ip: ipAddress, mfa_verified: true, session_id: sessionId },
         ipAddress,
       });
     }
 
     return {
       token,
+      sessionId,
       sessionDurationMs: SESSION_DURATION_MS,
       user: {
         id: user.id,
@@ -490,20 +515,48 @@ export class AuthService {
   }
 
   /**
-   * Log out a user and immediately invalidate existing JWT tokens by bumping token_version
+   * Log out a user session.
+   * If sessionId is provided, revokes ONLY that device's session.
+   * If no sessionId, bumps token_version to invalidate all legacy sessions.
    */
-  async logout(userId) {
+  async logout(userId, sessionId = null) {
     if (!userId) return;
     try {
+      if (sessionId) {
+        await this.prisma.$base().sessions.updateMany({
+          where: { id: sessionId, user_id: userId },
+          data: { revoked_at: new Date() },
+        });
+      } else {
+        await this.prisma.$base().users.update({
+          where: { id: userId },
+          data: { token_version: { increment: 1 } },
+        });
+        invalidateUserSession(userId);
+      }
+    } catch (e) {
+      // User or session may not exist or error during logout
+    }
+  }
+
+  /**
+   * Log out all devices for a user: marks all active sessions as revoked
+   * and bumps token_version.
+   */
+  async logoutAll(userId) {
+    if (!userId) return;
+    try {
+      await this.prisma.$base().sessions.updateMany({
+        where: { user_id: userId, revoked_at: null },
+        data: { revoked_at: new Date() },
+      });
       await this.prisma.$base().users.update({
         where: { id: userId },
-        data: {
-          token_version: { increment: 1 },
-        },
+        data: { token_version: { increment: 1 } },
       });
       invalidateUserSession(userId);
     } catch (e) {
-      // User may not exist or error during logout
+      // Error during logout-all
     }
   }
 
@@ -623,6 +676,11 @@ export class AuthService {
         token_version: { increment: 1 },
       },
     });
+
+    await this.prisma.$base().sessions.updateMany({
+      where: { user_id: authToken.user_id, revoked_at: null },
+      data: { revoked_at: new Date() },
+    }).catch(() => {});
 
     invalidateUserSession(updatedUser.id);
 
@@ -761,6 +819,11 @@ export class AuthService {
       },
     });
 
+    await this.prisma.$base().sessions.updateMany({
+      where: { user_id: authToken.user_id, revoked_at: null },
+      data: { revoked_at: new Date() },
+    }).catch(() => {});
+
     invalidateUserSession(updatedUser.id);
 
     if (updatedUser.company_id) {
@@ -851,6 +914,26 @@ export class AuthService {
       },
     });
 
+    // Revoke all existing sessions on password change
+    await this.prisma.$base().sessions.updateMany({
+      where: { user_id: userId, revoked_at: null },
+      data: { revoked_at: new Date() },
+    }).catch(() => {});
+
+    // Create fresh session for this device
+    let newSessionId = null;
+    try {
+      const newSession = await this.prisma.$base().sessions.create({
+        data: {
+          user_id: user.id,
+          device: 'Password Change',
+        },
+      });
+      newSessionId = newSession.id;
+    } catch (sErr) {
+      console.warn('[AuthService] Failed to create session on changePassword:', sErr.message);
+    }
+
     invalidateUserSession(userId);
 
     if (user.company_id) {
@@ -860,7 +943,7 @@ export class AuthService {
         action: 'CHANGE_PASSWORD',
         tableName: 'users',
         recordId: user.id,
-        newValues: { status: 'Active', must_change_password: false, token_version: newVersion },
+        newValues: { status: 'Active', must_change_password: false, token_version: newVersion, session_id: newSessionId },
       });
     }
 
@@ -868,7 +951,7 @@ export class AuthService {
     const SALARY_ROLES = ['HR_MANAGER', 'PAYROLL_OFFICER', 'GM', 'FINANCE'];
     const seesSalary = user.user_roles.some((ur) => SALARY_ROLES.includes(ur.role.code));
 
-    const token = this.generateToken(updatedUser, roles, [], seesSalary);
+    const token = this.generateToken(updatedUser, roles, [], seesSalary, newSessionId);
 
     return {
       status: 'success',

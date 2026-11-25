@@ -1,4 +1,5 @@
 import prisma from '../lib/prisma.js';
+import storageService from '../lib/storage.js';
 import auditService from '../services/auditService.js';
 import leaveService from '../services/leaveService.js';
 import overtimeService from '../services/overtimeService.js';
@@ -646,26 +647,61 @@ export async function uploadMyDocument(req, res, next) {
   try {
     const employeeId = req.user.employeeId;
     if (!employeeId) {
-      return res.status(403).json({ status: 'error', message: 'User is not linked to an employee' });
+      return res.status(403).json({ status: 'error', code: 'FORBIDDEN', message: 'User is not linked to an employee' });
     }
 
-    const { doc_type, doc_number, expiry_date, file_url } = req.body;
-    if (!doc_type || !expiry_date) {
-      return res.status(400).json({ status: 'error', message: 'doc_type and expiry_date are required' });
+    let fileBuffer = req.file?.buffer;
+    let originalName = req.file?.originalname;
+    let mimeType = req.file?.mimetype;
+
+    if (!fileBuffer && req.body.file_base64) {
+      fileBuffer = Buffer.from(req.body.file_base64, 'base64');
+      originalName = req.body.file_name || 'document.pdf';
+      mimeType = req.body.mime_type;
     }
+
+    if (!fileBuffer) {
+      const err = new Error('No file uploaded');
+      err.status = 400;
+      err.code = 'NO_FILE';
+      throw err;
+    }
+
+    const { doc_type, doc_number, expiry_date, issue_date } = req.body;
+    if (!doc_type || !expiry_date) {
+      return res.status(400).json({ status: 'error', code: 'VALIDATION_ERROR', message: 'doc_type and expiry_date are required' });
+    }
+
+    // Save with safe storage pipeline: magic bytes check, size limit, AES-256-GCM encryption at rest
+    const saved = await storageService.saveFile({
+      buffer: fileBuffer,
+      originalName: originalName || 'document.pdf',
+      mimeType,
+    });
 
     const doc = await prisma.$base().employee_documents.create({
       data: {
         company_id: req.companyId,
         employee_id: employeeId,
         doc_type,
-        doc_number: doc_number || 'DOC-PENDING',
+        doc_number: doc_number || 'DOC-SELF',
+        issue_date: issue_date ? new Date(issue_date) : null,
         expiry_date: new Date(expiry_date),
-        file_url: file_url || `/uploads/${employeeId}/${Date.now()}-${doc_type}.pdf`,
-        uploaded_by: req.user.id,
+        file_url: saved.storagePath,
+        uploaded_by: req.user.id || req.user.userId,
+        owner_id: req.user.id || req.user.userId,
         status: 'Pending Verification',
         verification_status: 'Pending',
       },
+    });
+
+    await auditService.log({
+      companyId: req.companyId,
+      userId: req.user.id || req.user.userId,
+      action: 'UploadDocument',
+      tableName: 'employee_documents',
+      recordId: doc.id,
+      newValues: { doc_type: doc.doc_type, expiry_date, file_name: saved.fileName },
     });
 
     // Notify HR Manager to verify
@@ -695,6 +731,53 @@ export async function uploadMyDocument(req, res, next) {
     }
 
     res.status(201).json({ status: 'success', data: doc });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function downloadMyDocument(req, res, next) {
+  try {
+    const employeeId = req.user.employeeId;
+    if (!employeeId) {
+      return res.status(403).json({ status: 'error', code: 'FORBIDDEN', message: 'User is not linked to an employee' });
+    }
+
+    const docId = req.params.id;
+    const doc = await prisma.$base().employee_documents.findUnique({
+      where: { id: docId },
+    });
+
+    if (!doc || doc.company_id !== req.companyId || doc.employee_id !== employeeId) {
+      const err = new Error('Document not found or does not belong to you');
+      err.status = 404;
+      err.code = 'NOT_FOUND';
+      throw err;
+    }
+
+    if (!doc.file_url) {
+      const err = new Error('No physical file attached to this document');
+      err.status = 404;
+      err.code = 'FILE_NOT_FOUND';
+      throw err;
+    }
+
+    const fileData = await storageService.getFile(doc.file_url);
+
+    await auditService.log({
+      companyId: req.companyId,
+      userId: req.user.id || req.user.userId,
+      action: 'DownloadDocument',
+      tableName: 'employee_documents',
+      recordId: doc.id,
+      newValues: { doc_type: doc.doc_type },
+    });
+
+    res.setHeader('Content-Type', fileData.mimeType);
+    res.setHeader('Content-Length', fileData.size);
+    res.setHeader('Content-Disposition', `attachment; filename="${doc.doc_type.toLowerCase()}-${doc.id.slice(0, 8)}.pdf"`);
+
+    fileData.stream.pipe(res);
   } catch (err) {
     next(err);
   }
@@ -744,5 +827,6 @@ export default {
   getMyPayslipPdf,
   getMyDocuments,
   uploadMyDocument,
+  downloadMyDocument,
   getMyRejections,
 };

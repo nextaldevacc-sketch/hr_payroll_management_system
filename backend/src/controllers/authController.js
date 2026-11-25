@@ -3,11 +3,16 @@ import authService from '../services/authService.js';
 import mfaService from '../services/mfaService.js';
 
 export async function login(req, res, next) {
-  try {
-    const { email, password } = req.body;
-    const ipAddress = req.ip || req.headers['x-forwarded-for'] || null;
+  const email = req.body?.email ? String(req.body.email).trim().toLowerCase() : '';
+  const ipAddress = req.ip || req.connection?.remoteAddress || null;
+  const xForwardedFor = req.headers['x-forwarded-for'] || '';
+  const userAgent = req.headers['user-agent'] || null;
 
-    const result = await authService.login({ email, password, ipAddress });
+  try {
+    const { password } = req.body;
+    const result = await authService.login({ email, password, ipAddress, userAgent });
+
+    console.info(`[AUTH_LOGIN] SUCCESS ip="${ipAddress}" xff="${xForwardedFor}" email="${email}" status=200`);
 
     // If MFA is required for this user, do not issue session cookie yet
     if (result.mfa_required) {
@@ -34,9 +39,13 @@ export async function login(req, res, next) {
       status: 'success',
       message: 'Login successful',
       token: result.token,
+      sessionId: result.sessionId,
       user: result.user,
     });
   } catch (err) {
+    const statusCode = err.status || 500;
+    const errorCode = err.code || 'INTERNAL_ERROR';
+    console.warn(`[AUTH_LOGIN] FAILED ip="${ipAddress}" xff="${xForwardedFor}" email="${email}" status=${statusCode} code=${errorCode}`);
     next(err);
   }
 }
@@ -51,7 +60,7 @@ export async function logout(req, res, next) {
       try {
         const decoded = authService.verifyToken(token);
         if (decoded?.userId) {
-          await authService.logout(decoded.userId);
+          await authService.logout(decoded.userId, decoded.sessionId);
         }
       } catch (err) {
         // Token might already be expired or invalid, continue clearing cookie
@@ -68,6 +77,29 @@ export async function logout(req, res, next) {
     res.json({
       status: 'success',
       message: 'Logged out successfully',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function logoutAll(req, res, next) {
+  try {
+    const userId = req.user?.id || req.user?.userId;
+    if (userId) {
+      await authService.logoutAll(userId);
+    }
+
+    const isSecure = process.env.COOKIE_SECURE === 'true' || Boolean(req.secure);
+    res.clearCookie('nextal_token', {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'lax',
+    });
+
+    res.json({
+      status: 'success',
+      message: 'Logged out from all devices successfully',
     });
   } catch (err) {
     next(err);
@@ -286,7 +318,10 @@ export async function mfaEnrolConfirm(req, res, next) {
 
     let session = null;
     if (mfa_token || !req.user) {
-      session = await authService.generateSessionForUser(userId, { ipAddress });
+      session = await authService.generateSessionForUser(userId, {
+        ipAddress,
+        userAgent: req.headers['user-agent'] || null,
+      });
       const isSecure = process.env.COOKIE_SECURE === 'true' || Boolean(req.secure);
       res.cookie('nextal_token', session.token, {
         httpOnly: true,
@@ -334,7 +369,10 @@ export async function mfaVerify(req, res, next) {
     }
 
     const verifyResult = await mfaService.verifyCodeOrRecovery(decoded.userId, code, { ipAddress });
-    const session = await authService.generateSessionForUser(decoded.userId, { ipAddress });
+    const session = await authService.generateSessionForUser(decoded.userId, {
+      ipAddress,
+      userAgent: req.headers['user-agent'] || null,
+    });
 
     const isSecure = process.env.COOKIE_SECURE === 'true' || Boolean(req.secure);
     res.cookie('nextal_token', session.token, {
@@ -377,6 +415,7 @@ export async function mfaStatus(req, res, next) {
 export default {
   login,
   logout,
+  logoutAll,
   getCurrentUser,
   forgotPassword,
   resetPassword,

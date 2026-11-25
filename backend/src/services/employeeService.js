@@ -2074,32 +2074,7 @@ export class EmployeeService {
       throw err;
     }
 
-    // Effective date >= today check
-    const todayStr = toDubaiDateString(new Date());
-    const effDateStr = String(effectiveDate).slice(0, 10);
-    if (effDateStr < todayStr) {
-      const err = new Error('Effective date cannot be in the past');
-      err.status = 400;
-      err.code = 'INVALID_EFFECTIVE_DATE';
-      throw err;
-    }
-
-    // Only one pending branch change request per employee
-    const existingPending = await this.prisma.approval_requests.findFirst({
-      where: {
-        company_id: companyId,
-        request_type: 'EMPLOYEE_BRANCH_CHANGE',
-        record_id: employeeId,
-        status: 'Pending',
-      },
-    });
-    if (existingPending) {
-      const err = new Error('A branch change request is already pending for this employee');
-      err.status = 409;
-      err.code = 'BRANCH_CHANGE_PENDING';
-      throw err;
-    }
-
+    // 1. Structural branch validation: branch existence and visa alignment
     const branch = await this.prisma.branches.findUnique({
       where: { id: targetBranchId },
     });
@@ -2114,6 +2089,32 @@ export class EmployeeService {
       const err = new Error('Selected branch does not belong to the selected company visa');
       err.status = 400;
       err.code = 'BRANCH_VISA_MISMATCH';
+      throw err;
+    }
+
+    // 2. Temporal validation: effective date cannot be in the past
+    const todayStr = toDubaiDateString(new Date());
+    const effDateStr = String(effectiveDate).slice(0, 10);
+    if (effDateStr < todayStr) {
+      const err = new Error('Effective date cannot be in the past');
+      err.status = 400;
+      err.code = 'INVALID_EFFECTIVE_DATE';
+      throw err;
+    }
+
+    // 3. Concurrency guard: only one pending branch change request per employee
+    const existingPending = await this.prisma.approval_requests.findFirst({
+      where: {
+        company_id: companyId,
+        request_type: 'EMPLOYEE_BRANCH_CHANGE',
+        record_id: employeeId,
+        status: 'Pending',
+      },
+    });
+    if (existingPending) {
+      const err = new Error('A branch change request is already pending for this employee');
+      err.status = 409;
+      err.code = 'BRANCH_CHANGE_PENDING';
       throw err;
     }
 

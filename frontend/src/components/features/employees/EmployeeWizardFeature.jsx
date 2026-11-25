@@ -19,6 +19,8 @@ import {
   Sparkles,
   Lock,
   ClipboardList,
+  Upload,
+  RefreshCw,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../context/AuthContext';
@@ -96,6 +98,60 @@ export function EmployeeWizardFeature() {
     iban: 'AE070331234567890123456',
     routing_code: 'ENBD001',
   });
+
+  // Initial Onboarding Documents State (passport, Emirates ID, labour card, visa, photo)
+  const [docUploads, setDocUploads] = useState({
+    PASSPORT: { file: null, status: 'idle', progress: 0, error: null, docId: null },
+    EMIRATES_ID: { file: null, status: 'idle', progress: 0, error: null, docId: null },
+    LABOUR_CARD: { file: null, status: 'idle', progress: 0, error: null, docId: null },
+    RESIDENCE_VISA: { file: null, status: 'idle', progress: 0, error: null, docId: null },
+    PHOTO: { file: null, status: 'idle', progress: 0, error: null, docId: null },
+  });
+
+  const handleDocUpload = async (docType, file) => {
+    if (!createdEmpId || !file) return;
+
+    const maxBytes = 25 * 1024 * 1024;
+    const allowedExtensions = /\.(pdf|png|jpe?g)$/i;
+    if (file.size > maxBytes) {
+      setDocUploads((prev) => ({
+        ...prev,
+        [docType]: { ...prev[docType], status: 'error', error: language === 'ar' ? 'حجم الملف يتجاوز 25 ميجابايت' : 'File exceeds 25MB limit' },
+      }));
+      return;
+    }
+    if (!allowedExtensions.test(file.name)) {
+      setDocUploads((prev) => ({
+        ...prev,
+        [docType]: { ...prev[docType], status: 'error', error: language === 'ar' ? 'نوع الملف غير مدعوم (PDF, PNG, JPG فقط)' : 'Unsupported type (PDF, PNG, JPG only)' },
+      }));
+      return;
+    }
+
+    setDocUploads((prev) => ({
+      ...prev,
+      [docType]: { file, status: 'uploading', progress: 40, error: null, docId: null },
+    }));
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('doc_type', docType);
+      formData.append('doc_number', `${docType}-${createdEmpCode || 'INITIAL'}`);
+      formData.append('expiry_date', new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+
+      const res = await uploadEmployeeDocument(createdEmpId, formData);
+      setDocUploads((prev) => ({
+        ...prev,
+        [docType]: { file, status: 'success', progress: 100, error: null, docId: res?.id },
+      }));
+    } catch (err) {
+      setDocUploads((prev) => ({
+        ...prev,
+        [docType]: { ...prev[docType], status: 'error', error: err.message || (language === 'ar' ? 'فشل الرفع' : 'Upload failed') },
+      }));
+    }
+  };
 
   // Fetch Meta Options for dropdowns (scoped by company_id, fresh on switch)
   const { data: metaOptions } = useQuery({
@@ -829,6 +885,95 @@ export function EmployeeWizardFeature() {
                   className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text font-mono font-black text-sm text-primary"
                   required
                 />
+              </div>
+            </div>
+
+            {/* Initial Documents Upload Section */}
+            <div className="pt-4 border-t border-border space-y-3">
+              <div>
+                <h3 className="font-bold text-sm text-text">
+                  {language === 'ar' ? 'المستندات الرسمية الأولية (اختياري الآن أو بعد التعيين)' : 'Initial Compliance Documents'}
+                </h3>
+                <p className="text-[11px] text-text-muted">
+                  {language === 'ar'
+                    ? 'رفع نسخ الجواز، الهوية الإماراتية، بطاقة العمل، الإقامة، والصورة الشخصية (الحد الأقصى 25 ميجابايت لكل ملف)'
+                    : 'Attach passport, Emirates ID, labour card, visa, and photo (up to 25MB each, AES-256 encrypted)'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {[
+                  { key: 'PASSPORT', labelEn: 'Passport Copy', labelAr: 'جواز السفر' },
+                  { key: 'EMIRATES_ID', labelEn: 'Emirates ID Copy', labelAr: 'الهوية الإماراتية' },
+                  { key: 'LABOUR_CARD', labelEn: 'Labour Card / MOHRE', labelAr: 'بطاقة العمل' },
+                  { key: 'RESIDENCE_VISA', labelEn: 'Residence Visa', labelAr: 'تأشيرة الإقامة' },
+                  { key: 'PHOTO', labelEn: 'Personal Photo', labelAr: 'الصورة الشخصية' },
+                ].map((item) => {
+                  const uploadState = docUploads[item.key];
+                  const isUploading = uploadState.status === 'uploading';
+                  const isSuccess = uploadState.status === 'success';
+                  const isError = uploadState.status === 'error';
+
+                  return (
+                    <div
+                      key={item.key}
+                      className={`p-3 rounded-xl border transition-all text-xs flex flex-col justify-between space-y-2 ${
+                        isSuccess
+                          ? 'border-emerald-500/40 bg-emerald-500/5'
+                          : isError
+                          ? 'border-danger/40 bg-danger/5'
+                          : 'border-border bg-surface-raised/40 dark:bg-inset/40'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-1">
+                        <div>
+                          <span className="font-bold text-text block">
+                            {language === 'ar' ? item.labelAr : item.labelEn}
+                          </span>
+                          <span className="text-[10px] text-text-muted truncate max-w-[140px] block">
+                            {uploadState.file ? uploadState.file.name : (language === 'ar' ? 'لم يتم الرفع' : 'No file chosen')}
+                          </span>
+                        </div>
+                        {isSuccess && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
+                        {isError && <AlertTriangle className="w-4 h-4 text-danger shrink-0" />}
+                        {isUploading && <RefreshCw className="w-4 h-4 text-primary animate-spin shrink-0" />}
+                      </div>
+
+                      {isError && (
+                        <p className="text-[10px] text-danger font-medium">{uploadState.error}</p>
+                      )}
+
+                      <div className="flex items-center justify-between pt-1">
+                        <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-border text-[11px] font-semibold text-text hover:bg-surface-raised transition-colors">
+                          <Upload className="w-3 h-3 text-primary" />
+                          <span>{isSuccess ? (language === 'ar' ? 'تغيير' : 'Replace') : (language === 'ar' ? 'رفع' : 'Upload')}</span>
+                          <input
+                            type="file"
+                            accept=".pdf,.png,.jpg,.jpeg"
+                            disabled={isUploading || !createdEmpId}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleDocUpload(item.key, file);
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                        {isError && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (uploadState.file) handleDocUpload(item.key, uploadState.file);
+                            }}
+                            className="text-[10px] text-primary hover:underline font-bold inline-flex items-center gap-1"
+                          >
+                            <RefreshCw className="w-2.5 h-2.5" />
+                            <span>{language === 'ar' ? 'إعادة' : 'Retry'}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

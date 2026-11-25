@@ -216,6 +216,7 @@ model users {
   employee                employees?              @relation(fields: [employee_id], references: [id], onDelete: Restrict)
   user_roles              user_roles[]
   auth_tokens             auth_tokens[]
+  sessions                sessions[]
   platform_grants         support_access_grants[] @relation("PlatformUser")
   granted_by_user         support_access_grants[] @relation("GrantedByUser")
   requested_approvals     approval_requests[]     @relation("ApprovalRequestedBy")
@@ -253,6 +254,30 @@ model auth_tokens {
 
   @@index([user_id])
   @@index([token_hash])
+}
+
+model sessions {
+  id         String    @id @default(uuid()) @db.Uuid
+  user_id    String    @db.Uuid
+  device     String?   @db.VarChar(255)
+  user_agent String?   @db.Text
+  ip         String?   @db.VarChar(100)
+  created_at DateTime  @default(now()) @db.Timestamptz
+  last_seen  DateTime  @default(now()) @db.Timestamptz
+  revoked_at DateTime? @db.Timestamptz
+
+  user       users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([user_id, revoked_at])
+}
+
+model rate_limits {
+  key       String   @id @db.VarChar(255)
+  points    Int      @default(1)
+  expire_at DateTime @db.Timestamptz
+
+  @@index([expire_at])
 }
 
 model roles {

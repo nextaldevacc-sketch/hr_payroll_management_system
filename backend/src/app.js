@@ -9,6 +9,7 @@ import { swaggerSpec } from './docs/swagger.js';
 import { companyContextMiddleware } from './middleware/companyContext.js';
 import { csrfProtection } from './middleware/csrfProtection.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { authRateLimitMiddleware } from './lib/rateLimiter.js';
 import prisma from './lib/prisma.js';
 import auditService from './services/auditService.js';
 
@@ -38,7 +39,18 @@ const app = express();
 const isProd = process.env.NODE_ENV === 'production';
 
 // B2: Reverse Proxy Configuration for rate limits & secure cookies
-app.set('trust proxy', Number(process.env.TRUST_PROXY || 1));
+const trustProxyEnv = process.env.TRUST_PROXY;
+if (trustProxyEnv === 'true') {
+  app.set('trust proxy', true);
+} else if (trustProxyEnv === 'false') {
+  app.set('trust proxy', false);
+} else if (trustProxyEnv && !Number.isNaN(Number(trustProxyEnv))) {
+  app.set('trust proxy', Number(trustProxyEnv));
+} else if (trustProxyEnv) {
+  app.set('trust proxy', trustProxyEnv);
+} else {
+  app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
+}
 
 // Request ID & Structured JSON Logging (SEC-STEP5)
 app.use((req, res, next) => {
@@ -141,7 +153,7 @@ const authLimiter = rateLimit({
   },
 });
 
-// 5. JSON body parser (100kb default limit)
+// 5. JSON body parser (100kb limit; multipart file uploads handled via 25MB multer)
 app.use(express.json({ limit: process.env.BODY_LIMIT || '100kb' }));
 
 // 5b. CSRF & Origin Protection
@@ -200,12 +212,55 @@ app.get(['/health', '/healthz', '/api/v1/health', '/api/v1/healthz'], async (req
   }
 });
 
+// 8b. Readiness Check at /ready, /readyz, /api/v1/ready, /api/v1/readyz
+app.get(['/ready', '/readyz', '/api/v1/ready', '/api/v1/readyz'], async (req, res) => {
+  try {
+    // 1. Verify database connectivity
+    await prisma.$base().$queryRaw`SELECT 1`;
+
+    // 2. Memory threshold check (< 1024MB heap on 3.8GB RAM VPS)
+    const memUsage = process.memoryUsage();
+    const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+    const heapTotalMB = Math.round(memUsage.heapTotal / 1024 / 1024);
+    const rssMB = Math.round(memUsage.rss / 1024 / 1024);
+
+    if (heapUsedMB > 1024) {
+      return res.status(503).json({
+        status: 'degraded',
+        reason: 'High memory pressure (>1GB heap)',
+        memory: { heapUsedMB, heapTotalMB, rssMB },
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    res.json({
+      status: 'ready',
+      service: 'Nextal HR & Payroll API',
+      version: '1.0.0',
+      uptime: process.uptime(),
+      database: 'connected',
+      memory: { heapUsedMB, heapTotalMB, rssMB },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    res.status(503).json({
+      status: 'not_ready',
+      service: 'Nextal HR & Payroll API',
+      version: '1.0.0',
+      uptime: process.uptime(),
+      database: 'disconnected',
+      error: isProd ? 'Database connectivity degraded' : err.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // 9. API Modules
 app.use('/api/v1/auth', (req, res, next) => {
-  if (req.path === '/me' || req.path === '/logout' || req.path === '/mfa/status') {
+  if (req.path === '/me' || req.path === '/logout' || req.path === '/logout-all' || req.path === '/mfa/status') {
     return next();
   }
-  return authLimiter(req, res, next);
+  return authRateLimitMiddleware(req, res, next);
 }, authRoutes);
 if (process.env.FEATURE_PLATFORM_ADMIN === 'true') {
   app.use('/api/v1/platform', platformRoutes);
