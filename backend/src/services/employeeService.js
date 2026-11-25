@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
+import bcrypt from 'bcrypt';
 import prisma, { companyStorage } from '../lib/prisma.js';
+import mailer from '../lib/mailer.js';
 import { validateAndResolveVisa } from './visaValidator.js';
 import { scopeService, resolveDataScope } from './scopeService.js';
 import {
@@ -13,6 +15,10 @@ import {
   DEFAULT_EMPLOYEE_CODE_PREFIX,
   toDubaiDateString,
   assertPasswordCompliant,
+  isValidDocumentType,
+  normalizeDocumentType,
+  DOCUMENT_TYPES,
+  getDocumentTypeConfig,
 } from '@nextal/shared';
 import storageService from '../lib/storage.js';
 import auditService from './auditService.js';
@@ -879,6 +885,13 @@ export class EmployeeService {
         });
       }
 
+      // Send welcome email if employee has work_email (idempotent; errors never block verification)
+      try {
+        await this.sendWelcomeEmail({ companyId, employeeId, viewer });
+      } catch (mailErr) {
+        console.warn(`[EmployeeService] Welcome email trigger failed for ${employeeId}:`, mailErr.message);
+      }
+
       return serializeEmployee(updated, viewer);
     } else if (action === 'SEND_BACK') {
       const updated = await employeeModel.update({
@@ -1137,6 +1150,13 @@ export class EmployeeService {
       oldValues: { status: employee.status },
       newValues: { status: 'Active', activated_at: updated.activated_at },
     });
+
+    // Send welcome email if not already sent
+    try {
+      await this.sendWelcomeEmail({ companyId, employeeId, viewer });
+    } catch (mailErr) {
+      console.warn(`[EmployeeService] Welcome email on activation failed for ${employeeId}:`, mailErr.message);
+    }
 
     const result = serializeEmployee(updated, viewer);
     return {
@@ -1826,21 +1846,33 @@ export class EmployeeService {
       orderBy: { expiry_date: 'asc' },
     });
 
+    const isOwnEmployee = viewer.employeeId && viewer.employeeId === employeeId;
+    const canSeeBank = hasSalaryAccess(viewer) || isOwnEmployee;
+
+    // Filter out BANK_DETAILS for viewers who cannot see bank data
+    const filteredDocs = docs.filter((d) => {
+      const type = normalizeDocumentType(d.doc_type);
+      if (type === 'BANK_DETAILS' && !canSeeBank) {
+        return false;
+      }
+      return true;
+    });
+
     await auditService.log({
       companyId,
       userId: getViewerUserId(viewer),
       action: 'DOCUMENT_VIEW',
       tableName: 'employee_documents',
       recordId: employeeId,
-      newValues: { count: docs.length },
+      newValues: { count: filteredDocs.length },
     });
 
-    return docs.map((d) => serializeDocument(d, viewer, employeeId));
+    return filteredDocs.map((d) => serializeDocument(d, viewer, employeeId));
   }
 
   /**
    * Upload and attach an employee document (Rule C).
-   * Validates magic bytes, max 10MB, stores outside web root.
+   * Validates magic bytes, max 25MB, stores outside web root.
    */
   async uploadDocument({ companyId, employeeId, file, meta, viewer }) {
     if (!file || !file.buffer) {
@@ -1850,25 +1882,42 @@ export class EmployeeService {
       throw err;
     }
 
+    const rawType = meta.doc_type;
+    const normalizedType = normalizeDocumentType(rawType);
+    if (!normalizedType || !isValidDocumentType(normalizedType)) {
+      const err = new Error(`Invalid document type '${rawType}'. Allowed types: ${DOCUMENT_TYPES.join(', ')}`);
+      err.status = 400;
+      err.code = 'INVALID_DOCUMENT_TYPE';
+      throw err;
+    }
+
+    const docConfig = getDocumentTypeConfig(normalizedType);
+    if (docConfig.requiresExpiry && !meta.expiry_date) {
+      const err = new Error(`Expiry date is required for document type '${normalizedType}'`);
+      err.status = 400;
+      err.code = 'EXPIRY_REQUIRED';
+      throw err;
+    }
+
     const saved = await storageService.saveFile({
       buffer: file.buffer,
       originalName: file.originalname || 'document.pdf',
       mimeType: file.mimetype,
     });
 
-    const status = calculateDocumentStatus({
+    const status = meta.expiry_date ? calculateDocumentStatus({
       doc_number: meta.doc_number,
       expiry_date: meta.expiry_date,
-    });
+    }) : 'Valid';
 
     const doc = await this.prisma.employee_documents.create({
       data: {
         company_id: companyId,
         employee_id: employeeId,
-        doc_type: meta.doc_type || 'GENERAL',
-        doc_number: meta.doc_number || 'DOC-001',
+        doc_type: normalizedType,
+        doc_number: meta.doc_number || (normalizedType === 'BANK_DETAILS' ? 'BANK-PROOF' : 'DOC-001'),
         issue_date: meta.issue_date ? new Date(meta.issue_date) : null,
-        expiry_date: new Date(meta.expiry_date),
+        expiry_date: meta.expiry_date ? new Date(meta.expiry_date) : null,
         file_url: saved.storagePath,
         owner_id: meta.owner_id || getViewerUserId(viewer),
         status,
@@ -1881,13 +1930,22 @@ export class EmployeeService {
       },
     });
 
+    // Filename / metadata never exposes raw IBAN in audit log
+    const safeAuditFileName = (normalizedType === 'BANK_DETAILS')
+      ? 'BANK_DETAILS_DOCUMENT.pdf'
+      : saved.fileName;
+
     await auditService.log({
       companyId,
       userId: getViewerUserId(viewer),
       action: 'UploadDocument',
       tableName: 'employee_documents',
       recordId: doc.id,
-      newValues: { doc_type: doc.doc_type, expiry_date: meta.expiry_date, file_name: saved.fileName },
+      newValues: {
+        doc_type: doc.doc_type,
+        expiry_date: meta.expiry_date || null,
+        file_name: safeAuditFileName,
+      },
     });
 
     return serializeDocument(doc, viewer, employeeId);
@@ -1915,12 +1973,26 @@ export class EmployeeService {
       throw err;
     }
 
+    // Bank details access check
+    const normalizedDocType = normalizeDocumentType(doc.doc_type);
+    if (normalizedDocType === 'BANK_DETAILS') {
+      const isOwnEmployee = viewer.employeeId && viewer.employeeId === employeeId;
+      const canSeeBank = hasSalaryAccess(viewer) || isOwnEmployee;
+      if (!canSeeBank) {
+        const err = new Error('Access denied: You do not have permission to view or download bank detail documents');
+        err.status = 403;
+        err.code = 'FORBIDDEN_BANK_DOCUMENT';
+        throw err;
+      }
+    }
+
     // Rule E: Sensitive identity documents require sensitive ID access or self-ownership
     const docTypeStr = String(doc.doc_type || '').toUpperCase();
     const isSensitive = docTypeStr.includes('PASSPORT') ||
                         docTypeStr.includes('EMIRATES') ||
                         docTypeStr.includes('EID') ||
-                        docTypeStr.includes('VISA');
+                        docTypeStr.includes('VISA') ||
+                        docTypeStr.includes('PERMIT');
 
     if (isSensitive && !hasSensitiveIdAccess(viewer, employeeId)) {
       const err = new Error('Access denied: You do not have permission to view or download sensitive identity documents');
@@ -1937,6 +2009,7 @@ export class EmployeeService {
       action: 'DownloadDocument',
       tableName: 'employee_documents',
       recordId: documentId,
+      newValues: { doc_type: doc.doc_type }, // Never exposes IBAN
     });
 
     return {
@@ -2140,6 +2213,179 @@ export class EmployeeService {
     });
 
     return approvalReq;
+  }
+
+  /**
+   * Dispatches welcome email to an active/verified employee (idempotent, failures never block)
+   */
+  async sendWelcomeEmail({ companyId, employeeId, viewer = null, forceResend = false }) {
+    const employee = await this.prisma.employees.findUnique({
+      where: { id: employeeId },
+      include: {
+        company: true,
+      },
+    });
+
+    if (!employee || employee.company_id !== companyId) {
+      const err = new Error('Employee not found');
+      err.status = 404;
+      throw err;
+    }
+
+    if (!employee.work_email) {
+      return { sent: false, reason: 'NO_WORK_EMAIL' };
+    }
+
+    if (employee.welcome_email_sent_at && !forceResend) {
+      return { sent: false, reason: 'ALREADY_SENT', welcome_email_sent_at: employee.welcome_email_sent_at };
+    }
+
+    const companyName = employee.company?.name || 'Al Jalil Private Limited Company';
+    const domain = process.env.APP_DOMAIN || 'payroll.nextaltechnologies.com';
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    const baseUrl = `${protocol}://${domain}`;
+    const loginUrl = `${baseUrl}/login`;
+
+    const credentialsMode = process.env.WELCOME_CREDENTIALS_MODE || 'link';
+    let setPasswordUrl = null;
+    let tempPassword = null;
+    let persistedHtml = null;
+    let persistedText = null;
+
+    // Check or create user for this employee
+    let user = await this.prisma.users.findUnique({
+      where: { email: employee.work_email },
+    });
+
+    if (!user) {
+      user = await this.prisma.users.create({
+        data: {
+          company_id: companyId,
+          employee_id: employeeId,
+          email: employee.work_email,
+          password_hash: 'PENDING_INITIALIZATION',
+          status: 'Active',
+        },
+      });
+
+      const empRole = await this.prisma.roles.findUnique({ where: { code: 'EMPLOYEE' } });
+      if (empRole) {
+        await this.prisma.user_roles.create({
+          data: {
+            company_id: companyId,
+            user_id: user.id,
+            role_id: empRole.id,
+            scope_type: 'Self',
+          },
+        }).catch(() => {});
+      }
+    }
+
+    if (credentialsMode === 'temp_password') {
+      const randomPart = crypto.randomBytes(6).toString('base64').replace(/[^a-zA-Z0-9]/g, 'X').slice(0, 8);
+      tempPassword = `Nx@${randomPart}!9`;
+      const salt = await bcrypt.genSalt(10);
+      const hash = await bcrypt.hash(tempPassword, salt);
+
+      await this.prisma.users.update({
+        where: { id: user.id },
+        data: {
+          password_hash: hash,
+          must_change_password: true,
+        },
+      });
+
+      const redactedTpl = mailer.renderWelcomeTemplate({
+        employeeName: employee.name,
+        companyName,
+        loginUrl,
+        workEmail: employee.work_email,
+        credentialsMode: 'temp_password',
+        tempPassword: '[REDACTED_TEMPORARY_PASSWORD]',
+      });
+      persistedHtml = redactedTpl.html;
+      persistedText = redactedTpl.text;
+    } else {
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+
+      await this.prisma.auth_tokens.create({
+        data: {
+          user_id: user.id,
+          token_hash: tokenHash,
+          purpose: 'invite',
+          expires_at: expiresAt,
+        },
+      });
+
+      setPasswordUrl = `${baseUrl}/set-password?token=${rawToken}&email=${encodeURIComponent(employee.work_email)}`;
+    }
+
+    const emailTpl = mailer.renderWelcomeTemplate({
+      employeeName: employee.name,
+      companyName,
+      loginUrl,
+      workEmail: employee.work_email,
+      credentialsMode,
+      setPasswordUrl,
+      tempPassword,
+    });
+
+    const dispatchResult = await mailer.sendMail({
+      to: employee.work_email,
+      subject: emailTpl.subject,
+      html: emailTpl.html,
+      text: emailTpl.text,
+      companyId,
+      metadata: {
+        type: 'WELCOME_EMAIL',
+        employee_id: employeeId,
+        credentials_mode: credentialsMode,
+        persistedBodyHtml: persistedHtml,
+        persistedBodyText: persistedText,
+      },
+    });
+
+    const updated = await this.prisma.employees.update({
+      where: { id: employeeId },
+      data: {
+        welcome_email_sent_at: new Date(),
+      },
+    });
+
+    if (forceResend && viewer) {
+      await auditService.log({
+        companyId,
+        userId: viewer.id,
+        action: 'ResendWelcomeEmail',
+        tableName: 'employees',
+        recordId: employeeId,
+        oldValues: { welcome_email_sent_at: employee.welcome_email_sent_at },
+        newValues: { welcome_email_sent_at: updated.welcome_email_sent_at, mode: credentialsMode },
+      });
+    }
+
+    return {
+      sent: true,
+      recipient: employee.work_email,
+      credentials_mode: credentialsMode,
+      outbox_id: dispatchResult.outboxId,
+      message_id: dispatchResult.messageId,
+      welcome_email_sent_at: updated.welcome_email_sent_at,
+    };
+  }
+
+  async resendWelcomeEmail({ companyId, employeeId, viewer }) {
+    const roles = viewer?.roles || [];
+    const isAuthorized = roles.includes('COMPANY_ADMIN') || roles.includes('HR_MANAGER');
+    if (!isAuthorized) {
+      const err = new Error('Only Company Admin or HR Manager may resend welcome emails');
+      err.status = 403;
+      err.code = 'FORBIDDEN';
+      throw err;
+    }
+    return await this.sendWelcomeEmail({ companyId, employeeId, viewer, forceResend: true });
   }
 }
 

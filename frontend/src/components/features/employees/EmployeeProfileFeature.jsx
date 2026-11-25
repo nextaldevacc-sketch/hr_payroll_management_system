@@ -36,6 +36,7 @@ import clsx from 'clsx';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { Select } from '../../primitives/form/Select';
+import { DOCUMENT_TYPES_LIST, getDocumentTypeConfig } from '@nextal/shared';
 import {
   fetchEmployeeProfile,
   fetchEmployeeContracts,
@@ -1349,35 +1350,37 @@ export function EmployeeProfileFeature({ id } = {}) {
                   label="Document Type"
                   value={docType}
                   onChange={(e) => setDocType(e.target.value)}
-                  options={[
-                    { value: 'PASSPORT', label: 'Passport' },
-                    { value: 'EMIRATES_ID', label: 'Emirates ID' },
-                    { value: 'VISA', label: 'Residence Visa' },
-                    { value: 'LABOUR_CARD', label: 'MOHRE Labour Card' },
-                  ]}
+                  options={DOCUMENT_TYPES_LIST.map((d) => ({
+                    value: d.code,
+                    label: language === 'ar' ? d.labelAr : d.labelEn,
+                  }))}
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-text mb-1">Document Number</label>
+                <label className="block font-semibold text-text mb-1">
+                  Document Number {getDocumentTypeConfig(docType)?.requiresNumber ? '*' : '(Optional)'}
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. 784-1990-1234567-1"
                   value={docNumber}
                   onChange={(e) => setDocNumber(e.target.value)}
                   className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text font-mono"
-                  required
+                  required={getDocumentTypeConfig(docType)?.requiresNumber}
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-text mb-1">Expiry Date</label>
+                <label className="block font-semibold text-text mb-1">
+                  Expiry Date {getDocumentTypeConfig(docType)?.requiresExpiry ? '*' : '(Optional)'}
+                </label>
                 <input
                   type="date"
                   value={docExpiry}
                   onChange={(e) => setDocExpiry(e.target.value)}
                   className="w-full p-2.5 rounded-xl bg-surface-raised dark:bg-inset border border-border text-text font-mono"
-                  required
+                  required={getDocumentTypeConfig(docType)?.requiresExpiry}
                 />
               </div>
 

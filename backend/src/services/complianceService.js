@@ -4,7 +4,7 @@ import auditService from './auditService.js';
 import storageService from '../lib/storage.js';
 import { validateAndResolveVisa } from './visaValidator.js';
 import scopeService from './scopeService.js';
-import { toDubaiDateString } from '@nextal/shared';
+import { toDubaiDateString, normalizeDocumentType } from '@nextal/shared';
 
 // Dubai timezone is UTC+4 (no DST)
 const DUBAI_OFFSET_MS = 4 * 60 * 60 * 1000;
@@ -370,7 +370,21 @@ export class ComplianceService {
     }
 
     if (doc_type) {
-      where.doc_type = doc_type;
+      const norm = normalizeDocumentType(doc_type);
+      if (norm === 'RESIDENCE_VISA') {
+        where.doc_type = { in: ['RESIDENCE_VISA', 'VISA'] };
+      } else {
+        where.doc_type = norm;
+      }
+    }
+
+    // Role-based protection: BANK_DETAILS hidden from viewers without salary/bank access
+    const viewerRoles = viewer?.roles || [];
+    const hasBankPerm = viewerRoles.some((r) => ['COMPANY_ADMIN', 'HR_MANAGER', 'HR_OFFICER', 'FINANCE', 'PAYROLL_OFFICER'].includes(r));
+    if (!hasBankPerm) {
+      where.doc_type = where.doc_type
+        ? (typeof where.doc_type === 'object' ? { ...where.doc_type, not: 'BANK_DETAILS' } : (where.doc_type === 'BANK_DETAILS' ? '__FORBIDDEN__' : where.doc_type))
+        : { not: 'BANK_DETAILS' };
     }
 
     if (department_id) {

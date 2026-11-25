@@ -230,11 +230,15 @@ export function serializeDocument(doc, viewer, targetEmployeeId = null) {
   const isSensitive = docTypeStr.includes('PASSPORT') ||
                       docTypeStr.includes('EMIRATES') ||
                       docTypeStr.includes('EID') ||
-                      docTypeStr.includes('VISA');
+                      docTypeStr.includes('VISA') ||
+                      docTypeStr.includes('PERMIT');
 
-  const docNumber = (!canSeeSensitive && isSensitive)
-    ? maskIdentityNumber(doc.doc_type, doc.doc_number)
-    : doc.doc_number;
+  let docNumber = doc.doc_number;
+  if (!canSeeSensitive && isSensitive) {
+    docNumber = maskIdentityNumber(doc.doc_type, doc.doc_number);
+  } else if (doc.doc_type === 'BANK_DETAILS' && docNumber) {
+    docNumber = maskIban(docNumber);
+  }
 
   return {
     id: doc.id,

@@ -94,6 +94,20 @@ router.post(
   employeeController.bulkImportEmployees
 );
 
+// Bulk documents upload preview & process (max 100 PDFs)
+router.post(
+  '/documents/bulk-upload/preview',
+  requirePermission('employees', 'edit'),
+  upload.array('files', 100),
+  employeeController.bulkUploadPreview
+);
+router.post(
+  '/documents/bulk-upload/process',
+  requirePermission('employees', 'edit'),
+  upload.array('files', 100),
+  employeeController.bulkUploadProcess
+);
+
 router.get('/:id', requirePermission('employees', 'view'), salaryMaskMiddleware, employeeController.getEmployeeById);
 router.put('/:id', requirePermission('employees', 'edit'), employeeController.updateEmployee);
 
@@ -102,6 +116,7 @@ router.post('/:id/status', requirePermission('employees', 'edit'), validate(upda
 router.post('/:id/verify', requirePermission('employees', 'verify'), validate(verifyEmployeeSchema), employeeController.verifyEmployee);
 router.get('/:id/activation-check', requirePermission('employees', 'view'), employeeController.getActivationCheck);
 router.post('/:id/activate', requirePermission('employees', 'edit'), employeeController.activateEmployee);
+router.post('/:id/resend-welcome', requirePermission('employees', 'edit'), employeeController.resendWelcomeEmail);
 router.post('/:id/create-login', requirePermission('employees', 'edit'), employeeController.createEmployeeLogin);
 router.post('/:id/reveal-sensitive', requirePermission('employees', 'view'), employeeController.revealSensitiveField);
 router.post('/:id/branch-change', requirePermission('employees', 'edit'), employeeController.requestBranchChange);

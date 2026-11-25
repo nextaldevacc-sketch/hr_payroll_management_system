@@ -1,4 +1,5 @@
 import employeeService from '../services/employeeService.js';
+import bulkDocumentService from '../services/bulkDocumentService.js';
 import employeeImportService from '../services/employeeImportService.js';
 import { hasSalaryAccess } from '../serializers/index.js';
 import auditService from '../services/auditService.js';
@@ -643,6 +644,61 @@ export async function bulkImportEmployees(req, res, next) {
   }
 }
 
+export async function resendWelcomeEmail(req, res, next) {
+  try {
+    const result = await employeeService.resendWelcomeEmail({
+      companyId: req.companyId,
+      employeeId: req.params.id,
+      viewer: req.user,
+    });
+    res.json({
+      status: 'success',
+      message: 'Welcome email resent successfully',
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function bulkUploadPreview(req, res, next) {
+  try {
+    const files = req.files || [];
+    let manifestBuffer = null;
+    if (req.body?.manifest) {
+      manifestBuffer = Buffer.from(req.body.manifest, 'utf8');
+    }
+    const preview = await bulkDocumentService.previewBatch({
+      companyId: req.companyId,
+      files,
+      manifestBuffer,
+      viewer: req.user,
+    });
+    res.json({ status: 'success', data: preview });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function bulkUploadProcess(req, res, next) {
+  try {
+    const files = req.files || [];
+    let manifestBuffer = null;
+    if (req.body?.manifest) {
+      manifestBuffer = Buffer.from(req.body.manifest, 'utf8');
+    }
+    const result = await bulkDocumentService.processBatch({
+      companyId: req.companyId,
+      files,
+      manifestBuffer,
+      viewer: req.user,
+    });
+    res.json({ status: 'success', data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export default {
   listEmployees,
   createEmployee,
@@ -669,4 +725,7 @@ export default {
   downloadDocument,
   getEmployeeHistory,
   revealSensitiveField,
+  resendWelcomeEmail,
+  bulkUploadPreview,
+  bulkUploadProcess,
 };
