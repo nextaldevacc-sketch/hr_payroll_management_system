@@ -153,5 +153,7 @@ router.delete('/support-access/:id', authorizeSettings('company', 'edit'), setti
 
 // 14. Email Delivery Logs (E1) - Company Admin / HR Manager views outbox status and delivery failures
 router.get('/email-delivery', authorizeSettings('general', 'view'), settingsController.getEmailDeliveryLogs);
+router.get('/outbox-status', authorizeSettings('general', 'view'), settingsController.getOutboxStatus);
+router.post('/test-email', authorizeSettings('company', 'edit'), settingsController.sendTestEmail);
 
 export default router;

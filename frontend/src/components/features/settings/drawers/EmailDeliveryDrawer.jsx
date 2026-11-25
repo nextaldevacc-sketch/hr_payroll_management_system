@@ -1,14 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Drawer } from '../../../primitives/Drawer';
-import { Mail, RefreshCw, CheckCircle2, Clock, AlertTriangle, XCircle, ShieldAlert } from 'lucide-react';
+import { Mail, RefreshCw, CheckCircle2, Clock, AlertTriangle, XCircle, ShieldAlert, Send, Server } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 import { request } from '../../../../services/apiClient';
 
 export function EmailDeliveryDrawer({ isOpen, onClose }) {
   const { isRTL, language } = useLanguage();
+  const [testEmail, setTestEmail] = useState('');
+  const [testSending, setTestSending] = useState(false);
+  const [testFeedback, setTestFeedback] = useState(null);
 
   const {
     data: deliveryLogs = [],
@@ -24,6 +27,44 @@ export function EmailDeliveryDrawer({ isOpen, onClose }) {
     enabled: isOpen,
     refetchInterval: isOpen ? 10000 : false,
   });
+
+  const {
+    data: outboxStatus = null,
+    refetch: refetchStatus,
+  } = useQuery({
+    queryKey: ['settings', 'outbox-status'],
+    queryFn: async () => {
+      const res = await request('/settings/outbox-status');
+      return res?.data || res || null;
+    },
+    enabled: isOpen,
+  });
+
+  const handleSendTest = async (e) => {
+    e.preventDefault();
+    if (!testEmail) return;
+    setTestSending(true);
+    setTestFeedback(null);
+    try {
+      const res = await request('/settings/test-email', {
+        method: 'POST',
+        body: JSON.stringify({ recipient: testEmail }),
+      });
+      setTestFeedback({
+        type: 'success',
+        msg: language === 'ar' ? 'تم إرسال بريد الاختبار بنجاح' : 'Test email dispatched successfully',
+      });
+      refetch();
+      refetchStatus();
+    } catch (err) {
+      setTestFeedback({
+        type: 'error',
+        msg: err.message || (language === 'ar' ? 'تعذر إرسال بريد الاختبار' : 'Failed to send test email'),
+      });
+    } finally {
+      setTestSending(false);
+    }
+  };
 
   const totalSent = deliveryLogs.filter((l) => l.status === 'sent').length;
   const totalFailed = deliveryLogs.filter((l) => l.status === 'failed').length;
@@ -42,6 +83,66 @@ export function EmailDeliveryDrawer({ isOpen, onClose }) {
       size="xl"
     >
       <div className="space-y-4">
+        {/* SMTP Configuration Bar */}
+        <div className="p-3.5 rounded-xl border border-border bg-surface/80 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+              <Server className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-text">
+                  {outboxStatus?.mail_mode === 'smtp' ? 'SMTP Relay Active' : 'Simulation Mode (MAIL_MODE=disabled)'}
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  outboxStatus?.mail_mode === 'smtp'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                }`}>
+                  {outboxStatus?.mail_mode === 'smtp' ? 'Connected' : 'Disabled'}
+                </span>
+              </div>
+              <p className="text-[11px] text-text-muted mt-0.5">
+                {outboxStatus?.smtp_host
+                  ? `Host: ${outboxStatus.smtp_host}:${outboxStatus.smtp_port} • Rate Limit: ${outboxStatus.rate_limit_per_hour}/hr`
+                  : 'Safe simulation: emails stored in database outbox without sending external SMTP traffic'}
+              </p>
+            </div>
+          </div>
+
+          {/* Test Email Action */}
+          <form onSubmit={handleSendTest} className="flex items-center gap-2 w-full sm:w-auto">
+            <input
+              id="input-test-email"
+              type="email"
+              required
+              placeholder={language === 'ar' ? 'أدخل بريد إلكتروني للتجربة...' : 'Enter test recipient email...'}
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              className="topbar-field text-xs px-2.5 py-1.5 rounded-lg border border-border flex-1 sm:w-56"
+            />
+            <button
+              id="btn-send-test-email"
+              type="submit"
+              disabled={testSending || !testEmail}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-on-primary hover:bg-primary-hover transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <Send className={`w-3.5 h-3.5 ${testSending ? 'animate-spin' : ''}`} />
+              <span>{testSending ? (language === 'ar' ? 'جاري الإرسال...' : 'Sending...') : (language === 'ar' ? 'إرسال تجربة' : 'Send Test')}</span>
+            </button>
+          </form>
+        </div>
+
+        {testFeedback && (
+          <div className={`p-2.5 rounded-lg text-xs font-medium flex items-center justify-between ${
+            testFeedback.type === 'success'
+              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+          }`}>
+            <span>{testFeedback.msg}</span>
+            <button type="button" onClick={() => setTestFeedback(null)} className="text-[10px] opacity-70 hover:opacity-100">✕</button>
+          </div>
+        )}
         {/* Summary Metrics */}
         <div className="grid grid-cols-3 gap-3">
           <div className="p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5">

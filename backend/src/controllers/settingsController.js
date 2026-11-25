@@ -1,6 +1,7 @@
 import settingsService from '../services/settingsService.js';
 import companyService from '../services/companyService.js';
 import prisma from '../lib/prisma.js';
+import mailer from '../lib/mailer.js';
 
 export async function getOverview(req, res, next) {
   try {
@@ -587,6 +588,34 @@ export async function getEmailDeliveryLogs(req, res, next) {
   } catch (err) { next(err); }
 }
 
+export async function sendTestEmail(req, res, next) {
+  try {
+    const recipient = req.body?.recipient || req.user?.email;
+    if (!recipient) {
+      return res.status(400).json({ status: 'error', message: 'Recipient email is required' });
+    }
+    const company = await companyService.getCompany(req.companyId);
+    const result = await mailer.sendTestEmail({
+      to: recipient,
+      requestedBy: req.user?.name || req.user?.email || 'Company Admin',
+      companyName: company?.name || 'Al Jalil Private Limited Company',
+      companyId: req.companyId,
+    });
+    res.json({
+      status: 'success',
+      message: 'Test email successfully dispatched',
+      data: result,
+    });
+  } catch (err) { next(err); }
+}
+
+export async function getOutboxStatus(req, res, next) {
+  try {
+    const status = await mailer.getOutboxStatus(req.companyId);
+    res.json({ status: 'success', data: status });
+  } catch (err) { next(err); }
+}
+
 export default {
   getOverview,
   getCompany,
@@ -641,4 +670,6 @@ export default {
   createSupportGrant,
   revokeSupportGrant,
   getEmailDeliveryLogs,
+  sendTestEmail,
+  getOutboxStatus,
 };
