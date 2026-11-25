@@ -2,14 +2,14 @@
   "roleSummaries": [
     {
       "role": "COMPANY_ADMIN",
-      "controlsFound": 158,
-      "controlsClicked": 158,
+      "controlsFound": 161,
+      "controlsClicked": 161,
       "bugs": 0
     },
     {
       "role": "HR_MANAGER",
-      "controlsFound": 246,
-      "controlsClicked": 246,
+      "controlsFound": 250,
+      "controlsClicked": 250,
       "bugs": 0
     }
   ],

@@ -1,10 +1,10 @@
 # UI Crawler Audit Report: COMPANY_ADMIN
 
 - **Role Code**: `COMPANY_ADMIN`
-- **Controls Discovered**: 158
-- **Controls Clicked & Verified**: 158
+- **Controls Discovered**: 161
+- **Controls Clicked & Verified**: 161
 - **Bugs & Anomalies**: 0
-- **Timestamp**: 2026-11-25T07:17:05.611Z
+- **Timestamp**: 2026-11-25T16:54:28.393Z
 
 ### Status: PASS (0 Bugs)
 

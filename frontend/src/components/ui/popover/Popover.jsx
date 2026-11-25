@@ -67,20 +67,25 @@ export function Popover({
   }, [isControlled, onOpenChange]);
 
   const open = useCallback(() => {
+    registerOpenPopover(close);
     if (isControlled) {
       onOpenChange?.(true);
     } else {
       setUncontrolledOpen(true);
     }
-  }, [isControlled, onOpenChange]);
+  }, [isControlled, onOpenChange, close]);
 
   const toggle = useCallback(() => {
     if (isControlled) {
+      if (!controlledOpen) registerOpenPopover(close);
       onOpenChange?.(!controlledOpen);
     } else {
-      setUncontrolledOpen((prev) => !prev);
+      setUncontrolledOpen((prev) => {
+        if (!prev) registerOpenPopover(close);
+        return !prev;
+      });
     }
-  }, [isControlled, controlledOpen, onOpenChange]);
+  }, [isControlled, controlledOpen, onOpenChange, close]);
 
   // Single active open instance coordinator
   useEffect(() => {
@@ -93,11 +98,13 @@ export function Popover({
   }, [isOpen, close]);
 
   // Close on route change
+  const initialPathRef = useRef(pathname);
   useEffect(() => {
-    if (isOpen) {
+    if (initialPathRef.current !== pathname) {
+      initialPathRef.current = pathname;
       close();
     }
-  }, [pathname, isOpen, close]);
+  }, [pathname, close]);
 
   return (
     <PopoverContext.Provider
@@ -189,8 +196,9 @@ export function PopoverContent({
 }) {
   const { id, isOpen, close, triggerRef, contentRef } = usePopover();
   const [mounted, setMounted] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 768 : false));
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 'auto', maxHeight: 400 });
+  const mountTimeRef = useRef(0);
 
   useEffect(() => {
     setMounted(true);
@@ -201,6 +209,12 @@ export function PopoverContent({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      mountTimeRef.current = Date.now();
+    }
+  }, [isOpen]);
 
   // Compute fixed positioning
   const updatePosition = useCallback(() => {
@@ -300,6 +314,7 @@ export function PopoverContent({
     if (!isOpen) return;
 
     const handlePointerDown = (e) => {
+      if (Date.now() - mountTimeRef.current < 150) return;
       if (
         triggerRef.current?.contains(e.target) ||
         contentRef.current?.contains(e.target)
@@ -358,7 +373,9 @@ export function PopoverContent({
         {/* Backdrop */}
         <div
           className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm transition-opacity"
-          onClick={() => {
+          onClick={(e) => {
+            if (Date.now() - mountTimeRef.current < 150) return;
+            if (e.target !== e.currentTarget) return;
             close();
             onClose?.();
           }}
@@ -371,7 +388,7 @@ export function PopoverContent({
           role={role}
           aria-label={ariaLabel}
           className={clsx(
-            'relative z-10 w-full max-h-[85vh] bg-white dark:bg-[#1D1D1D] text-text rounded-t-2xl border-t border-black/10 dark:border-white/10 shadow-2xl p-4 overflow-y-auto flex flex-col animate-slideUp',
+            'relative z-10 !w-full max-h-[85vh] bg-white dark:bg-[#1D1D1D] text-text rounded-t-2xl border-t border-black/10 dark:border-white/10 shadow-2xl p-4 overflow-y-auto flex flex-col animate-slideUp',
             className
           )}
           {...props}

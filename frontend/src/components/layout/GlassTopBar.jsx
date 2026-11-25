@@ -429,12 +429,15 @@ export function GlassTopBar({ onToggleMobileNav }) {
         {/* Notifications Bell */}
         <Popover>
           <PopoverTrigger asChild>
-            <div className="relative min-h-[40px] min-w-[40px] flex items-center justify-center">
+            <button
+              id="btn-notifications-bell"
+              type="button"
+              className="relative min-h-[40px] min-w-[40px] flex items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              title="Notifications"
+            >
               <IconWell
-                id="btn-notifications-bell"
                 size="md"
                 shape="circle"
-                title="Notifications"
               >
                 <Bell className="w-4 h-4 text-text-muted hover:text-text cursor-pointer" />
               </IconWell>
@@ -447,7 +450,7 @@ export function GlassTopBar({ onToggleMobileNav }) {
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
-            </div>
+            </button>
           </PopoverTrigger>
 
           <PopoverContent
