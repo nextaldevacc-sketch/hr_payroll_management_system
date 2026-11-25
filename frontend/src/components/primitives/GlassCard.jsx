@@ -6,8 +6,8 @@ import clsx from 'clsx';
 /**
  * GlassCard Primitive
  * ~50% Glassmorphism surface
- * Light: rgba(255,255,255,0.65) + blur(18px) + 1px border rgba(255,255,255,0.85) + soft shadow
- * Dark: rgba(255,255,255,0.04) + blur(20px) + 1px border rgba(230,166,14,0.14) (thin gold edge)
+ * Light: rgba(255,255,255,0.65) + blur(14px) + 1px border rgba(255,255,255,0.85) + soft shadow
+ * Dark: rgba(38,38,38,0.72) + blur(14px) + 1px border rgba(255,255,255,0.10) (classic glass)
  */
 export function GlassCard({
   children,

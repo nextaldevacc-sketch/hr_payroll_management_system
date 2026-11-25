@@ -580,7 +580,7 @@ export function OffboardingFeature() {
       {activeTab === 'list' && (
         <div className="space-y-4">
           {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-white/60 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md">
+          <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-surface-raised p-4 rounded-xl border border-border">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 {language === 'ar' ? 'التصفية:' : 'Filters:'}

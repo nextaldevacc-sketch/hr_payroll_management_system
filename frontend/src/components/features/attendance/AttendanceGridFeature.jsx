@@ -272,8 +272,8 @@ export default function AttendanceGridFeature() {
           <div className="overflow-x-auto max-h-[600px]">
             <table className="w-full text-left text-xs border-collapse" id="attendance-daily-grid">
               <thead>
-                <tr className="bg-surface/80 border-b border-border sticky top-0 z-20 backdrop-blur-md">
-                  <th className="p-3 font-bold text-text-muted min-w-[200px] sticky left-0 bg-surface/90 backdrop-blur-md z-30 border-r border-border/60">
+                <tr className="bg-surface border-b border-border sticky top-0 z-20">
+                  <th className="p-3 font-bold text-text-muted min-w-[200px] sticky left-0 bg-surface z-30 border-r border-border/60">
                     {isAr ? 'الموظف' : 'Employee'}
                   </th>
                   {daysHeader.map((d) => {
@@ -305,7 +305,7 @@ export default function AttendanceGridFeature() {
                   return (
                     <tr key={row.employee.id} className="hover:bg-surface/40 transition-colors">
                       {/* Sticky Employee Info */}
-                      <td className="p-3 sticky left-0 bg-surface/95 backdrop-blur-md z-10 border-r border-border/60">
+                      <td className="p-3 sticky left-0 bg-surface z-10 border-r border-border/60">
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
                             {row.employee.name.charAt(0)}

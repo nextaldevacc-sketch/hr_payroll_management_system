@@ -120,7 +120,7 @@ export function PayRunListFeature() {
               <Banknote className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-text dark:gold-heading tracking-tight">
+              <h1 className="text-2xl font-black text-text tracking-tight">
                 {language === 'ar' ? 'مسيرات الرواتب ونظام حماية الأجور (WPS)' : 'Pay Runs & WPS Payroll'}
               </h1>
               <p className="text-xs text-text-muted mt-0.5">
@@ -179,7 +179,7 @@ export function PayRunListFeature() {
           </div>
           <div>
             <span className="text-xs text-text-muted font-medium">{language === 'ar' ? 'المبالغ المقفلة / المصروفة' : 'Locked / Paid Disbursement'}</span>
-            <div className="text-lg font-bold text-text dark:text-gold mt-0.5">
+            <div className="text-lg font-bold text-text dark:text-primary mt-0.5">
               AED {totalDisbursed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <span className="text-[11px] text-text-muted">{language === 'ar' ? 'إجمالي تحويلات نظام حماية الأجور' : 'Total Disbursed WPS'}</span>
@@ -343,7 +343,7 @@ export function PayRunListFeature() {
                       <td className="py-3.5 px-4 text-right font-medium text-red-500">
                         {Number(run.total_deductions || 0) > 0 ? `-AED ${Number(run.total_deductions).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'AED 0.00'}
                       </td>
-                      <td className="py-3.5 px-4 text-right font-black text-text dark:text-gold">
+                      <td className="py-3.5 px-4 text-right font-black text-text dark:text-primary">
                         AED {Number(run.total_net || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td className="py-3.5 px-4 text-center">

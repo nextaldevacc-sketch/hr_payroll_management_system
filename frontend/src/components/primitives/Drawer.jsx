@@ -54,7 +54,7 @@ export function Drawer({
       >
         <div className="flex items-start justify-between gap-4 mb-4 pb-3 border-b border-border/60">
           <div>
-            <h2 className="text-lg font-bold text-text dark:gold-heading">{title}</h2>
+            <h2 className="text-lg font-bold text-text">{title}</h2>
             {subtitle && <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>}
           </div>
           <button

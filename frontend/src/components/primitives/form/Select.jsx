@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useId, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useId, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import { ChevronDown, Check, Search, Loader2 } from 'lucide-react';
 
@@ -42,12 +43,19 @@ export function Select({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [mounted, setMounted] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, maxHeight: 280 });
 
   const containerRef = useRef(null);
   const triggerRef = useRef(null);
   const searchInputRef = useRef(null);
   const hiddenSelectRef = useRef(null);
   const optionsListRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Normalize options shape
   const normalizedOptions = useMemo(() => {
@@ -100,20 +108,63 @@ export function Select({
     return normalizedOptions.find((opt) => opt.value === stringVal) || null;
   }, [normalizedOptions, value]);
 
+  // Compute fixed positioning for portal listbox
+  const updatePosition = useCallback(() => {
+    if (!triggerRef.current || !isOpen) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const spaceBelow = viewportHeight - rect.bottom - 8;
+    const spaceAbove = rect.top - 8;
+    const flipToTop = spaceBelow < 200 && spaceAbove > spaceBelow;
+    const maxHeight = Math.max(140, Math.min(280, flipToTop ? spaceAbove - 8 : spaceBelow - 8));
+    const top = flipToTop ? Math.max(8, rect.top - maxHeight - 4) : rect.bottom + 4;
+
+    setCoords({
+      top: Math.round(top),
+      left: Math.round(rect.left),
+      width: Math.round(rect.width),
+      maxHeight: Math.round(maxHeight),
+    });
+  }, [isOpen]);
+
+  // Handle scroll / resize to reposition portal listbox
+  useEffect(() => {
+    if (!isOpen) return;
+    updatePosition();
+    const onScrollOrResize = () => {
+      if (!triggerRef.current) return;
+      const rect = triggerRef.current.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > window.innerHeight) {
+        setIsOpen(false);
+        return;
+      }
+      requestAnimationFrame(updatePosition);
+    };
+    window.addEventListener('scroll', onScrollOrResize, true);
+    window.addEventListener('resize', onScrollOrResize);
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize, true);
+      window.removeEventListener('resize', onScrollOrResize);
+    };
+  }, [isOpen, updatePosition]);
+
   // Handle outside click to close
   useEffect(() => {
     if (!isOpen) return;
 
     function handleOutsideClick(e) {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
+      if (
+        containerRef.current && !containerRef.current.contains(e.target) &&
+        (!dropdownRef.current || !dropdownRef.current.contains(e.target))
+      ) {
         setIsOpen(false);
         setSearchTerm('');
         setActiveIndex(-1);
       }
     }
 
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('pointerdown', handleOutsideClick);
+    return () => document.removeEventListener('pointerdown', handleOutsideClick);
   }, [isOpen]);
 
   // Focus search input when opened
@@ -320,13 +371,22 @@ export function Select({
         />
       </button>
 
-      {/* Dropdown Listbox */}
-      {isOpen && (
+      {/* Dropdown Listbox rendered via Portal to prevent container clipping */}
+      {mounted && isOpen && typeof document !== 'undefined' && createPortal(
         <div
           id={listboxId}
+          ref={dropdownRef}
           role="listbox"
           tabIndex={-1}
-          className="absolute z-50 top-full mt-1.5 w-full rounded-xl border border-border bg-surface-raised dark:bg-inset shadow-2xl backdrop-blur-md overflow-hidden animate-fadeIn"
+          style={{
+            position: 'fixed',
+            top: `${coords.top}px`,
+            left: `${coords.left}px`,
+            width: coords.width ? `${coords.width}px` : undefined,
+            maxHeight: `${coords.maxHeight}px`,
+            zIndex: 90,
+          }}
+          className="rounded-xl border border-border bg-white dark:bg-[#1D1D1D] text-text shadow-2xl overflow-hidden animate-fadeIn flex flex-col"
         >
           {/* Search bar when > 8 options */}
           {normalizedOptions.length > 8 && (
@@ -343,7 +403,7 @@ export function Select({
                   }}
                   onKeyDown={handleKeyDown}
                   placeholder="Search options..."
-                  className="w-full text-xs ps-8 pe-3 py-1.5 rounded-lg border border-border bg-surface-raised dark:bg-inset text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  className="w-full text-xs ps-8 pe-3 py-1.5 rounded-lg border border-border bg-white dark:bg-[#222222] text-text focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
@@ -396,7 +456,8 @@ export function Select({
               })
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Helper / Error Text */}

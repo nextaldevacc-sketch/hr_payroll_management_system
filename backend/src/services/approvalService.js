@@ -3,6 +3,21 @@ import auditService from './auditService.js';
 import notificationService from './notificationService.js';
 import { toDubaiDateString, maskIban } from '@nextal/shared';
 
+const pendingApprovalsCache = new Map();
+const PENDING_CACHE_TTL_MS = 5000;
+
+export function invalidatePendingApprovalsCache(companyId = null) {
+  if (companyId) {
+    for (const key of pendingApprovalsCache.keys()) {
+      if (key.startsWith(`${companyId}:`)) {
+        pendingApprovalsCache.delete(key);
+      }
+    }
+  } else {
+    pendingApprovalsCache.clear();
+  }
+}
+
 export class ApprovalService {
   constructor(client = prisma) {
     this.prisma = client;
@@ -277,6 +292,7 @@ export class ApprovalService {
       console.warn('Failed to dispatch approval waiting notification:', e.message);
     }
 
+    invalidatePendingApprovalsCache(companyId);
     return request;
   }
 
@@ -1123,6 +1139,8 @@ export class ApprovalService {
       console.warn('Failed to dispatch request status notification:', e.message);
     }
 
+    invalidatePendingApprovalsCache(companyId);
+
     return {
       status: 'success',
       action: approvalAction,
@@ -1137,6 +1155,13 @@ export class ApprovalService {
   async getPendingApprovals({ companyId, userId, userRoleCodes = [], showAll = false }) {
     if (!companyId || !userId) {
       return [];
+    }
+
+    const cacheKey = `${companyId}:${userId}:${[...userRoleCodes].sort().join(',')}:${showAll}`;
+    const cached = pendingApprovalsCache.get(cacheKey);
+    const now = Date.now();
+    if (cached && (now - cached.cachedAt < PENDING_CACHE_TTL_MS)) {
+      return cached.data;
     }
 
     const currentUser = await this.prisma.$base().users.findUnique({
@@ -1355,7 +1380,9 @@ export class ApprovalService {
       })
     );
 
-    return enriched.filter(Boolean);
+    const finalResult = enriched.filter(Boolean);
+    pendingApprovalsCache.set(cacheKey, { data: finalResult, cachedAt: now });
+    return finalResult;
   }
 }
 

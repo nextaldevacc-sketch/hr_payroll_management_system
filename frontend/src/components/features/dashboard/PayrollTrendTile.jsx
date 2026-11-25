@@ -22,7 +22,7 @@ export function PayrollTrendTile({ data, onClick }) {
   const { t, isRTL, language } = useLanguage();
   const months = data?.months || [];
 
-  const primaryColor = useThemeColor('--primary', '#E6A60E');
+  const primaryColor = useThemeColor('--primary', '#E5BDDF');
   const infoColor = useThemeColor('--info', '#4BB8FA');
   const tintPrimary = useThemeColor('--tint-primary', 'rgba(230, 166, 14, 0.06)');
   const borderVar = useThemeColor('--border', 'rgba(255, 255, 255, 0.06)');

@@ -146,7 +146,7 @@ export function ApprovalsInboxFeature() {
             <Inbox className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-text dark:gold-heading tracking-tight">
+            <h1 className="text-2xl font-black text-text tracking-tight">
               {isAr ? 'صندوق اعتمادات الموارد البشرية' : 'Approvals & Dual-Control Inbox'}
             </h1>
             <p className="text-xs text-text-muted mt-0.5">

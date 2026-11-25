@@ -523,9 +523,8 @@ export function UsersAndRolesFeature() {
           </div>
 
           <div
-            className="rounded-2xl border overflow-hidden backdrop-blur-md"
+            className="rounded-2xl border border-border overflow-hidden bg-surface-raised"
             style={{
-              background: 'var(--bg-surface)',
               borderColor: 'var(--glass-border)',
             }}
           >

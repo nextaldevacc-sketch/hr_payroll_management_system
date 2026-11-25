@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
+import https from 'node:https';
 import net from 'node:net';
 import { spawn, execSync } from 'node:child_process';
 import { chromium } from 'playwright';
@@ -15,7 +16,20 @@ const nextBin = path.resolve(rootDir, 'node_modules/next/dist/bin/next');
 
 let API_PORT = Number(process.env.API_PORT) || 5000;
 let WEB_PORT = Number(process.env.WEB_PORT) || 3102;
-let BASE_URL = `http://localhost:${WEB_PORT}`;
+const baseUrlArg = process.argv.find((a) => a.startsWith('--base-url='));
+let BASE_URL = baseUrlArg ? baseUrlArg.split('=')[1] : (process.env.BASE_URL || `http://localhost:${WEB_PORT}`);
+
+const credPath = path.resolve(rootDir, 'demo-credentials.txt');
+let demoAdminEmail = process.env.DEMO_ADMIN_EMAIL || '';
+let demoAdminPass = process.env.DEMO_ADMIN_PASSWORD || '';
+if (fs.existsSync(credPath)) {
+  const content = fs.readFileSync(credPath, 'utf8');
+  const adminMatch = content.match(/COMPANY_ADMIN\s*:\s*(\S+)\s*\|\s*Password:\s*(\S+)/);
+  if (adminMatch) {
+    demoAdminEmail = adminMatch[1];
+    demoAdminPass = adminMatch[2];
+  }
+}
 
 function canBindPort(port) {
   return new Promise((resolve) => {
@@ -27,7 +41,9 @@ function canBindPort(port) {
 
 function checkHttp(url) {
   return new Promise((resolve) => {
-    const req = http.get(url, (res) => {
+    const isHttps = url.startsWith('https');
+    const client = isHttps ? https : http;
+    const req = client.get(url, { rejectUnauthorized: false }, (res) => {
       res.resume();
       resolve(res.statusCode < 500);
     });
@@ -42,8 +58,10 @@ function checkHttp(url) {
 function waitForHttp(url, timeoutMs = 45000) {
   return new Promise((resolve, reject) => {
     const start = Date.now();
+    const isHttps = url.startsWith('https');
+    const client = isHttps ? https : http;
     const interval = setInterval(() => {
-      const req = http.get(url, (res) => {
+      const req = client.get(url, { rejectUnauthorized: false }, (res) => {
         res.resume();
         if (res.statusCode < 500) {
           clearInterval(interval);
@@ -84,7 +102,7 @@ function killPort(port) {
   } catch {}
 }
 
-async function loginUser(page, email = 'admin@gulftech.ae', password = 'Nextal@2026!') {
+async function loginUser(page, email = demoAdminEmail, password = demoAdminPass) {
   await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('button[type="submit"]:not([disabled])', { timeout: 15000 });
   await page.fill('input[type="email"]', email);
@@ -129,8 +147,8 @@ async function checkContainerContrast(page, containerSelector, contextName) {
         }
         el = el.parentElement;
       }
-      const isDark = document.documentElement.classList.contains('dark');
-      let current = isDark ? { r: 11, g: 11, b: 12 } : { r: 255, g: 255, b: 255 };
+      const isDark = document.documentElement.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
+      let current = isDark ? { r: 29, g: 29, b: 29 } : { r: 255, g: 255, b: 255 };
       for (const layer of layers) {
         current = {
           r: Math.round(layer.r * layer.a + current.r * (1 - layer.a)),
@@ -208,7 +226,8 @@ async function run() {
   const TEST_DB_URL = 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
 
   try {
-    let apiUp = await checkHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`);
+    const healthUrl = BASE_URL.startsWith('https') ? `${BASE_URL}/api/v1/health` : `http://127.0.0.1:${API_PORT}/api/v1/health`;
+    let apiUp = await checkHttp(healthUrl);
     if (!apiUp) {
       const can5000 = await canBindPort(5000);
       if (!can5000) {
@@ -253,7 +272,10 @@ async function run() {
       await waitForHttp(`${BASE_URL}/login`, 45000);
     }
 
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--ignore-certificate-errors'],
+    });
     const MODES = [
       { theme: 'light', locale: 'en', dir: 'ltr', name: 'light-en' },
       { theme: 'dark', locale: 'en', dir: 'ltr', name: 'dark-en' },
@@ -273,6 +295,7 @@ async function run() {
 
       const context = await browser.newContext({
         viewport: { width: 1440, height: 900 },
+        ignoreHTTPSErrors: true,
       });
       const page = await context.newPage();
 

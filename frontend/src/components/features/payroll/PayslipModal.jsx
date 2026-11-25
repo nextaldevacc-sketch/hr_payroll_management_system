@@ -68,7 +68,7 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
         <div className="glass-card p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-surface/40 flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-bold text-lg text-text dark:text-gold" data-i18n-skip>
+              <h3 className="font-bold text-lg text-text dark:text-primary" data-i18n-skip>
                 {language === 'ar' ? (emp.arabic_name || emp.name) : emp.name}
               </h3>
               {emp.arabic_name && language !== 'ar' && (
@@ -121,7 +121,7 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
           </div>
           <div className="p-3 rounded-xl bg-surface-raised/40 border border-slate-200 dark:border-slate-700">
             <span className="text-text-muted flex items-center gap-1">
-              <Building className="w-3.5 h-3.5 text-amber-500" /> {language === 'ar' ? 'رمز التوجيه / المنشأة' : 'Establishment / Routing'}
+              <Building className="w-3.5 h-3.5 text-primary" /> {language === 'ar' ? 'رمز التوجيه / المنشأة' : 'Establishment / Routing'}
             </span>
             <p className="font-mono font-medium text-text mt-1" data-i18n-skip>{bank.routing_code || payRun.company_visa?.bank_routing_code || 'ENBD001'}</p>
           </div>
@@ -214,7 +214,7 @@ export function PayslipModal({ isOpen, onClose, payslip }) {
             <span className="text-xs uppercase tracking-wider font-bold text-text-muted">
               {language === 'ar' ? 'صافي الراتب المستحق (حماية الأجور)' : 'Net Disbursed Pay (WPS)'}
             </span>
-            <div className="text-3xl font-black text-text dark:text-gold mt-1">
+            <div className="text-3xl font-black text-text dark:text-primary mt-1">
               {formatCurrency(payslip.net, 'AED', language)}
             </div>
           </div>

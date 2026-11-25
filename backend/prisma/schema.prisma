@@ -420,6 +420,7 @@ model approval_requests {
   final_settlements   final_settlements[]
 
   @@index([company_id])
+  @@index([company_id, status])
   @@index([flow_id])
   @@index([requested_by])
   @@index([record_id])
@@ -853,6 +854,7 @@ model attendance_days {
 
   @@unique([employee_id, work_date])
   @@index([company_id])
+  @@index([company_id, work_date])
   @@index([employee_id])
   @@index([pay_run_id])
 }

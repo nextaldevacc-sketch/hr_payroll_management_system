@@ -1523,7 +1523,7 @@ export function EmployeeProfileFeature({ id } = {}) {
             }}
           >
             <div className="flex items-center justify-between pb-3 border-b border-border">
-              <h3 className="font-bold text-base gold-heading flex items-center gap-2">
+              <h3 className="font-bold text-base text-text flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                 <span>{isRTL ? 'تم تجهيز بيانات دخول الموظف' : 'Employee Login Provisioned'}</span>
               </h3>

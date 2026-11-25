@@ -245,7 +245,7 @@ export function PayRunDetailFeature() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-black text-text dark:gold-heading tracking-tight">
+              <h1 className="text-2xl font-black text-text tracking-tight">
                 {language === 'ar' ? `مسير رواتب ${periodName}` : `${periodName} Pay Run`}
               </h1>
               <StatusPill status={payRun.status} />
@@ -479,7 +479,7 @@ export function PayRunDetailFeature() {
               <span className="text-xs uppercase tracking-wider text-primary font-bold">
                 {language === 'ar' ? 'صافي صرف حماية الأجور (WPS)' : 'Net WPS Disbursement'}
               </span>
-              <div className="text-3xl font-black text-text dark:text-gold mt-2">
+              <div className="text-3xl font-black text-text dark:text-primary mt-2">
                 {formatCurrency(payRun.total_net, 'AED', language)}
               </div>
               <span className="text-[11px] text-primary/80 mt-1 block font-semibold">
@@ -765,7 +765,7 @@ export function PayRunDetailFeature() {
                         <td className="py-3.5 px-4 text-right font-medium text-red-500">
                           {Number(ps.total_deductions || 0) > 0 ? `-${formatCurrency(ps.total_deductions, 'AED', language)}` : formatCurrency(0, 'AED', language)}
                         </td>
-                        <td className="py-3.5 px-4 text-right font-black text-text dark:text-gold">
+                        <td className="py-3.5 px-4 text-right font-black text-text dark:text-primary">
                           {formatCurrency(ps.net, 'AED', language)}
                         </td>
                         <td className="py-3.5 px-4 text-center">
@@ -873,7 +873,7 @@ export function PayRunDetailFeature() {
                           <td className="py-3.5 px-4 text-right text-text-muted font-medium">
                             {formatCurrency(prevNet, 'AED', language)}
                           </td>
-                          <td className="py-3.5 px-4 text-right font-black text-text dark:text-gold">
+                          <td className="py-3.5 px-4 text-right font-black text-text dark:text-primary">
                             {formatCurrency(currNet, 'AED', language)}
                           </td>
                           <td className="py-3.5 px-4 text-right font-bold text-text">
@@ -966,7 +966,7 @@ export function PayRunDetailFeature() {
       {activeTab === 'audit' && (
         <div className="space-y-4">
           <GlassCard className="p-6">
-            <h3 className="text-sm font-bold text-text dark:gold-heading mb-4 flex items-center gap-2">
+            <h3 className="text-sm font-bold text-text mb-4 flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-primary" />
               {language === 'ar' ? 'سجل اعتماد وتنفيذ مسير الرواتب' : 'Pay Run Execution & Signoff Log'}
             </h3>
@@ -1059,7 +1059,7 @@ export function PayRunDetailFeature() {
             <div>
               <div className="flex items-center gap-2">
                 <FileSpreadsheet className="w-5 h-5 text-primary" />
-                <h3 className="text-lg font-black text-text dark:text-gold">
+                <h3 className="text-lg font-black text-text dark:text-primary">
                   {language === 'ar' ? 'بيانات وتدقيق ملف حماية الأجور (WPS SIF)' : 'WPS SIF File & Integrity Audit'}
                 </h3>
               </div>
@@ -1179,7 +1179,7 @@ export function PayRunDetailFeature() {
                         <td className="py-2.5 px-3 text-end font-medium text-secondary">
                           {formatCurrency(variable, 'AED', language)}
                         </td>
-                        <td className="py-2.5 px-3 text-end font-bold text-text dark:text-gold">
+                        <td className="py-2.5 px-3 text-end font-bold text-text dark:text-primary">
                           {formatCurrency(net, 'AED', language)}
                         </td>
                       </tr>

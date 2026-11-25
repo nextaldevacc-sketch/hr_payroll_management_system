@@ -214,11 +214,11 @@ export function LivePayrollHeroTile({ data, onClick, onOpenValidation, onRefresh
             <span className="text-[11px] uppercase font-bold tracking-wider text-text-muted block">
               {t('dashboard.livePayroll.netToWps')}
             </span>
-            <bdi className="text-2xl sm:text-3xl font-black text-text dark:gold-hero-number tabular-nums tracking-tight mt-0.5 block" data-i18n-skip>
+            <bdi className="text-2xl sm:text-3xl font-black text-primary tabular-nums tracking-tight mt-0.5 block" data-i18n-skip>
               {seesSalary ? formatCurrency(figures.netToWps, 'AED', language) : 'AED ••••••••'}
             </bdi>
             {!seesSalary && (
-              <span className="text-[10px] text-amber-500 font-semibold block mt-0.5">
+              <span className="text-[10px] text-primary font-semibold block mt-0.5">
                 Section 5.3: Figures confidential to salary roles
               </span>
             )}

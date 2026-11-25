@@ -39,7 +39,7 @@ export function ModulePlaceholder({
           <span className="text-[11px] uppercase tracking-wider font-bold text-text-muted">
             {language === 'ar' ? 'منصة نكستال لإدارة الموارد البشرية والرواتب' : 'Nextal HR & Payroll Enterprise'}
           </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-text gold-heading mt-1">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-text mt-1">
             {title}
           </h1>
           <p className="text-xs text-text-muted mt-1">

@@ -202,7 +202,7 @@ describe('Step 7: E2E Verification of Skeletons, Loader Suppression, Video Login
     await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#btn-login-submit:not([disabled])', { timeout: 15000 });
     await page.fill('input[type="email"]', 'test@example.ae');
-    await page.fill('input[type="password"]', 'Nextal@2026!');
+    await page.fill('input[type="password"]', DEMO_ADMIN_PASS || 'DummyMockPass!123');
     await page.click('#btn-login-submit');
 
     // Wait for the MFA verification screen to appear

@@ -62,7 +62,7 @@ export function Stepper({
               <span
                 className={clsx(
                   'text-[11px] font-semibold mt-1.5 whitespace-nowrap transition-colors duration-200',
-                  isCurrent && 'text-primary font-bold dark:gold-heading',
+                  isCurrent && 'text-primary font-bold',
                   isCompleted && 'text-text dark:text-text-muted',
                   isFuture && 'text-text-muted/70'
                 )}

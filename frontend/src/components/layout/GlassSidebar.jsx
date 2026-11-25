@@ -171,7 +171,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
               <Sparkles className="w-5 h-5 text-primary stroke-[2.2]" />
             </IconWell>
             <div className={isDrawer ? 'block' : 'hidden xl:block'}>
-              <span className="text-base font-extrabold tracking-tight text-text dark:gold-heading block">
+              <span className="text-base font-extrabold tracking-tight text-text block">
                 NEXTAL
               </span>
               <span className="text-[10px] uppercase tracking-widest text-text-muted font-medium block">
@@ -197,7 +197,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
           {isPlatformAdmin && (
             <div className="space-y-1 mb-3">
               <div className={clsx('px-3 pb-1', isDrawer ? 'block' : 'hidden xl:block')}>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
                   Platform Admin
                 </span>
               </div>
@@ -295,7 +295,7 @@ export function GlassSidebar({ isMobileOpen = false, onCloseMobile }) {
               <span className="text-xs font-bold block truncate leading-tight text-text" data-i18n-skip="true">
                 {displayName}
               </span>
-              <span className="text-[10px] block truncate font-medium text-amber-500">
+              <span className="text-[10px] block truncate font-medium text-primary">
                 {isAr
                   ? ({ COMPANY_ADMIN: 'مسؤول النظام', HR_MANAGER: 'مدير الموارد البشرية', EMPLOYEE: 'موظف', FINANCE: 'المالية', GM: 'المدير العام' }[user?.roles?.[0]] || user?.roles?.[0] || 'موظف')
                   : (user?.roles?.[0] || 'USER')}

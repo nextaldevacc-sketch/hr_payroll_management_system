@@ -37,7 +37,7 @@ export function BentoTile({
             {iconWell && <div className="flex-shrink-0 mt-0.5 sm:mt-0">{iconWell}</div>}
             <div className="min-w-0 flex-1">
               {title && (
-                <h3 className="text-base font-bold text-text dark:gold-heading tracking-tight leading-snug line-clamp-2">
+                <h3 className="text-base font-bold text-text tracking-tight leading-snug line-clamp-2">
                   {title}
                 </h3>
               )}

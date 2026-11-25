@@ -36,7 +36,7 @@ export function IconWell({
     default: 'text-text-muted group-hover:text-primary-strong dark:group-hover:text-primary',
     primary: 'text-primary-strong dark:text-primary',
     secondary: 'text-secondary-text dark:text-secondary-text',
-    gold: 'text-[#B07D05] dark:text-primary',
+    gold: 'text-primary dark:text-primary',
     danger: 'text-danger-text',
     warning: 'text-warning-text',
   };
@@ -51,7 +51,7 @@ export function IconWell({
         sizeClasses[size] || sizeClasses.md,
         shapeClasses[shape] || shapeClasses.square,
         colorClasses[color] || colorClasses.default,
-        active && 'active ring-1 ring-primary/40 dark:ring-gold/40',
+        active && 'active ring-1 ring-primary/40 dark:ring-primary/40',
         className
       )}
     >

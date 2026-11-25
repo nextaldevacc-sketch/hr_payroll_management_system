@@ -159,7 +159,7 @@ export function SalaryAdjustmentsFeature() {
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <div>
-              <h1 className="text-2xl font-black text-text dark:gold-heading tracking-tight">
+              <h1 className="text-2xl font-black text-text tracking-tight">
                 {language === 'ar' ? 'تعديلات الرواتب والقروض' : 'Salary Adjustments & Loans'}
               </h1>
               <p className="text-xs text-text-muted mt-0.5">
@@ -205,7 +205,7 @@ export function SalaryAdjustmentsFeature() {
           </div>
           <div>
             <span className="text-xs text-text-muted font-medium">{language === 'ar' ? 'الرصيد المتبقي للقروض' : 'Outstanding Loan Balance'}</span>
-            <div className="text-lg font-bold text-text dark:text-gold mt-0.5">
+            <div className="text-lg font-bold text-text dark:text-primary mt-0.5">
               AED {loanBalanceTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <span className="text-[11px] text-text-muted">{language === 'ar' ? 'رصيد قابل للتحصيل' : 'Recoverable balance'}</span>
@@ -331,7 +331,7 @@ export function SalaryAdjustmentsFeature() {
                       <td className="py-3.5 px-4 text-right font-bold text-red-500">
                         -AED {Number(adj.monthly_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
-                      <td className="py-3.5 px-4 text-right font-black text-text dark:text-gold">
+                      <td className="py-3.5 px-4 text-right font-black text-text dark:text-primary">
                         AED {Number(adj.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td className="py-3.5 px-4 text-text-muted">{startMonthStr}</td>

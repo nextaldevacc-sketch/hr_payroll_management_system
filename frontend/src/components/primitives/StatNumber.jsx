@@ -85,7 +85,7 @@ export function StatNumber({
         <bdi
           className={clsx(
             'tabular-nums tracking-tight',
-            variant === 'gold' ? 'dark:gold-hero-number text-text' : 'text-text',
+            variant === 'gold' || variant === 'primary' ? 'text-primary' : 'text-text',
             sizeClasses[size] || sizeClasses.lg
           )}
         >

@@ -19,6 +19,20 @@ export default {
         'tint-danger': 'var(--tint-danger)',
         'tint-warning': 'var(--tint-warning)',
         'tint-success': 'var(--tint-success)',
+        tint: {
+          orchid: 'rgba(229, 189, 223, 0.12)',
+        },
+        orchid: {
+          DEFAULT: '#E5BDDF',
+          hover: '#EFCDEA',
+          pressed: '#D3A5CB',
+          wash: 'rgba(229, 189, 223, 0.12)',
+        },
+        jet: {
+          DEFAULT: '#1D1D1D',
+          surface: '#222222',
+          raised: '#2A2A2A',
+        },
         primary: {
           DEFAULT: 'var(--primary)',
           strong: 'var(--primary-strong)',
@@ -63,8 +77,8 @@ export default {
         'well-hover': 'var(--shadow-well-hover)'
       },
       backdropBlur: {
-        glass: '18px',
-        'glass-dark': '20px'
+        glass: '14px',
+        'glass-dark': '14px'
       },
       animation: {
         'sheen': 'sheenSweep 2.2s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards',
