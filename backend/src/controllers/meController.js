@@ -1,12 +1,21 @@
 import prisma from '../lib/prisma.js';
 import storageService from '../lib/storage.js';
+import bulkDocumentService from '../services/bulkDocumentService.js';
 import auditService from '../services/auditService.js';
 import leaveService from '../services/leaveService.js';
 import overtimeService from '../services/overtimeService.js';
 import rejectionService from '../services/rejectionService.js';
 import { PayrollService } from '../services/payrollService.js';
 import notificationService from '../services/notificationService.js';
-import { toDubaiDateString, maskIban, maskIdentityNumber } from '@nextal/shared';
+import {
+  toDubaiDateString,
+  maskIban,
+  maskIdentityNumber,
+  isValidDocumentType,
+  normalizeDocumentType,
+  getDocumentTypeConfig,
+  DOCUMENT_TYPES,
+} from '@nextal/shared';
 
 const payrollService = new PayrollService(prisma);
 
@@ -668,8 +677,22 @@ export async function uploadMyDocument(req, res, next) {
     }
 
     const { doc_type, doc_number, expiry_date, issue_date } = req.body;
-    if (!doc_type || !expiry_date) {
-      return res.status(400).json({ status: 'error', code: 'VALIDATION_ERROR', message: 'doc_type and expiry_date are required' });
+    const normalizedType = normalizeDocumentType(doc_type);
+    if (!normalizedType || !isValidDocumentType(normalizedType)) {
+      return res.status(400).json({
+        status: 'error',
+        code: 'INVALID_DOCUMENT_TYPE',
+        message: `Invalid document type '${doc_type}'. Allowed types: ${DOCUMENT_TYPES.join(', ')}`,
+      });
+    }
+
+    const typeConfig = getDocumentTypeConfig(normalizedType);
+    if (typeConfig.requiresExpiry && !expiry_date) {
+      return res.status(400).json({
+        status: 'error',
+        code: 'VALIDATION_ERROR',
+        message: `Expiry date is required for document type '${normalizedType}'`,
+      });
     }
 
     // Save with safe storage pipeline: magic bytes check, size limit, AES-256-GCM encryption at rest
@@ -683,10 +706,10 @@ export async function uploadMyDocument(req, res, next) {
       data: {
         company_id: req.companyId,
         employee_id: employeeId,
-        doc_type,
-        doc_number: doc_number || 'DOC-SELF',
+        doc_type: normalizedType,
+        doc_number: doc_number || (normalizedType === 'BANK_DETAILS' ? 'BANK-PROOF' : 'DOC-SELF'),
         issue_date: issue_date ? new Date(issue_date) : null,
-        expiry_date: new Date(expiry_date),
+        expiry_date: expiry_date ? new Date(expiry_date) : null,
         file_url: saved.storagePath,
         uploaded_by: req.user.id || req.user.userId,
         owner_id: req.user.id || req.user.userId,
@@ -695,13 +718,21 @@ export async function uploadMyDocument(req, res, next) {
       },
     });
 
+    const safeAuditFileName = (normalizedType === 'BANK_DETAILS')
+      ? 'BANK_DETAILS_DOCUMENT.pdf'
+      : saved.fileName;
+
     await auditService.log({
       companyId: req.companyId,
       userId: req.user.id || req.user.userId,
       action: 'UploadDocument',
       tableName: 'employee_documents',
       recordId: doc.id,
-      newValues: { doc_type: doc.doc_type, expiry_date, file_name: saved.fileName },
+      newValues: {
+        doc_type: doc.doc_type,
+        expiry_date: expiry_date || null,
+        file_name: safeAuditFileName,
+      },
     });
 
     // Notify HR Manager to verify
@@ -814,6 +845,25 @@ export async function getMyRejections(req, res, next) {
   }
 }
 
+export async function bulkUploadMyDocuments(req, res, next) {
+  try {
+    const employeeId = req.user.employeeId || req.user.employee_id;
+    if (!employeeId) {
+      return res.status(403).json({ status: 'error', message: 'User is not linked to an employee' });
+    }
+    const files = req.files || [];
+    const result = await bulkDocumentService.processEmployeeSelfUpload({
+      companyId: req.companyId,
+      employeeId,
+      files,
+      viewer: req.user,
+    });
+    res.json({ status: 'success', data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export default {
   getMyHome,
   getMyProfile,
@@ -829,4 +879,5 @@ export default {
   uploadMyDocument,
   downloadMyDocument,
   getMyRejections,
+  bulkUploadMyDocuments,
 };

@@ -58,6 +58,13 @@ export async function uploadMyDocument(formData) {
   });
 }
 
+export async function bulkUploadMyDocuments(formData) {
+  return await request('/me/documents/bulk-upload', {
+    method: 'POST',
+    body: formData,
+  });
+}
+
 export function getMyDocumentDownloadUrl(id) {
   return `${API_BASE}/me/documents/${id}/download`;
 }

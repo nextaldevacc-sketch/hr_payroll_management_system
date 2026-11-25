@@ -33,6 +33,8 @@ import {
 import { Select } from '../../primitives/form/Select';
 import { useVisa } from '../../../context/VisaContext';
 import { withVisa } from '../../../lib/visaQuery';
+import { DOCUMENT_TYPES_LIST } from '@nextal/shared';
+import { BulkDocumentUploadModal } from './BulkDocumentUploadModal';
 
 export default function ComplianceFeature() {
   const { user } = useAuth();
@@ -60,6 +62,7 @@ export default function ComplianceFeature() {
   const initialStatus = (urlStatus === 'Pending' || urlStatus === 'Pending Verification') ? 'Pending Verification' : (urlStatus || 'ALL');
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [typeFilter, setTypeFilter] = useState('ALL');
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
 
   useEffect(() => {
     if (urlStatus) {
@@ -200,13 +203,25 @@ export default function ComplianceFeature() {
               : 'UAE residency visas, Emirates IDs, labour cards, insurance expiry radar and renewals'}
           </p>
         </div>
-        <button
-          onClick={loadData}
-          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          {isAr ? 'تحديث البيانات' : 'Refresh'}
-        </button>
+        <div className="flex items-center gap-2">
+          {canVerify && (
+            <button
+              id="btn-open-bulk-upload"
+              onClick={() => setBulkModalOpen(true)}
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg bg-primary text-on-primary hover:bg-primary-hover transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              <span>{isAr ? 'الرفع المجمع للوثائق' : 'Bulk Upload PDFs'}</span>
+            </button>
+          )}
+          <button
+            onClick={loadData}
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            {isAr ? 'تحديث البيانات' : 'Refresh'}
+          </button>
+        </div>
       </div>
 
       {/* Alert toast */}
@@ -354,11 +369,10 @@ export default function ComplianceFeature() {
               placeholder={isAr ? 'جميع أنواع الوثائق' : 'All Document Types'}
               options={[
                 { value: 'ALL', label: isAr ? 'جميع أنواع الوثائق' : 'All Document Types' },
-                { value: 'VISA', label: isAr ? 'تأشيرة إقامة' : 'Residency Visa' },
-                { value: 'EMIRATES_ID', label: isAr ? 'الهوية الإماراتية' : 'Emirates ID' },
-                { value: 'PASSPORT', label: isAr ? 'جواز السفر' : 'Passport' },
-                { value: 'LABOUR_CARD', label: isAr ? 'بطاقة العمل' : 'Labour Card' },
-                { value: 'INSURANCE', label: isAr ? 'التأمين الصحي' : 'Health Insurance' },
+                ...DOCUMENT_TYPES_LIST.map((dt) => ({
+                  value: dt.type,
+                  label: isAr ? dt.labelAr : dt.labelEn,
+                })),
               ]}
             />
           </div>
@@ -707,6 +721,12 @@ export default function ComplianceFeature() {
           </div>
         </div>
       )}
+      {/* Bulk Upload Modal */}
+      <BulkDocumentUploadModal
+        isOpen={bulkModalOpen}
+        onClose={() => setBulkModalOpen(false)}
+        onSuccess={loadData}
+      />
     </div>
   );
 }

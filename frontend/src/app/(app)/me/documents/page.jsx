@@ -19,27 +19,11 @@ import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
 import { formatErrorMessage } from '@/utils/formatError';
-import { getMyDocuments, uploadMyDocument } from '@/services/meApi';
+import { getMyDocuments, uploadMyDocument, bulkUploadMyDocuments } from '@/services/meApi';
+import { DOCUMENT_TYPES_LIST, getDocumentTypeConfig, getDocumentTypeLabel } from '@nextal/shared';
 
 function getDocTypeLabel(type, lang) {
-  if (lang !== 'ar') {
-    switch (type) {
-      case 'EMIRATES_ID': return 'Emirates ID';
-      case 'PASSPORT': return 'Passport';
-      case 'RESIDENCE_VISA': return 'Residence Visa';
-      case 'LABOUR_CARD': return 'Labour Card';
-      case 'INSURANCE': return 'Health Insurance';
-      default: return type?.replace(/_/g, ' ');
-    }
-  }
-  switch (type) {
-    case 'EMIRATES_ID': return 'الهوية الإماراتية';
-    case 'PASSPORT': return 'جواز السفر';
-    case 'RESIDENCE_VISA': return 'تأشيرة الإقامة';
-    case 'LABOUR_CARD': return 'بطاقة العمل';
-    case 'INSURANCE': return 'التأمين الصحي';
-    default: return type;
-  }
+  return getDocumentTypeLabel(type, lang);
 }
 
 function getStatusLabel(status, lang) {
@@ -66,6 +50,8 @@ export default function MyDocumentsPage() {
   const [docNumber, setDocNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
+  const [multipleFiles, setMultipleFiles] = useState([]);
+  const [uploadMode, setUploadMode] = useState('single'); // 'single' | 'bulk'
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -107,6 +93,35 @@ export default function MyDocumentsPage() {
 
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
+    if (uploadMode === 'bulk') {
+      if (multipleFiles.length === 0) {
+        showError(language === 'ar' ? 'يرجى اختيار ملفات PDF للرفع' : 'Please select PDF files to upload');
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const formData = new FormData();
+        for (const f of multipleFiles) {
+          formData.append('files', f);
+        }
+        const res = await bulkUploadMyDocuments(formData);
+        const data = res?.data || res;
+        showSuccess(
+          language === 'ar'
+            ? `تم رفع ${data.processed || multipleFiles.length} مستندات بنجاح للمراجعة`
+            : `Successfully uploaded ${data.processed || multipleFiles.length} documents for HR verification`
+        );
+        setUploadModalOpen(false);
+        setMultipleFiles([]);
+        loadDocs();
+      } catch (err) {
+        showError(formatErrorMessage(err, language));
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     if (!selectedFile) {
       showError(language === 'ar' ? 'يرجى اختيار ملف المستند للرفع' : 'Please select a document file to upload');
       return;
@@ -228,79 +243,152 @@ export default function MyDocumentsPage() {
       <Modal
         isOpen={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
-        title={language === 'ar' ? 'رفع مستند مجدد' : 'Upload Renewed Document'}
-        subtitle={language === 'ar' ? 'تقديم نسخة المستند المجدد لمراجعة واعتماد الموارد البشرية' : 'Submit updated document for HR Manager verification'}
+        title={language === 'ar' ? 'رفع وثائق الموظف' : 'Upload Employee Documents'}
+        subtitle={language === 'ar' ? 'تقديم وثائق رسمية جديدة أو مجددة لمراجعة واعتماد الموارد البشرية' : 'Submit updated documents for HR Manager verification'}
         maxWidth="max-w-md"
       >
+        <div className="flex rounded-lg border border-border p-1 bg-surface mb-4 text-xs">
+          <button
+            type="button"
+            onClick={() => setUploadMode('single')}
+            className={`flex-1 py-1.5 rounded-md font-semibold transition-colors ${uploadMode === 'single' ? 'bg-primary text-on-primary' : 'text-text-muted hover:text-text'}`}
+          >
+            {language === 'ar' ? 'مستند فردي' : 'Single Document'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setUploadMode('bulk')}
+            className={`flex-1 py-1.5 rounded-md font-semibold transition-colors ${uploadMode === 'bulk' ? 'bg-primary text-on-primary' : 'text-text-muted hover:text-text'}`}
+          >
+            {language === 'ar' ? 'رفع متعدد (PDF)' : 'Multiple PDFs'}
+          </button>
+        </div>
+
         <form id="my-doc-upload-form" onSubmit={handleUploadSubmit} className="space-y-4 text-xs">
-          <div>
-            <Select
-              id="my-doc-type-select"
-              label={language === 'ar' ? 'نوع المستند' : 'Document Type'}
-              value={docType}
-              onChange={(e) => setDocType(e.target.value)}
-              options={[
-                { value: 'EMIRATES_ID', label: language === 'ar' ? 'الهوية الإماراتية' : 'Emirates ID' },
-                { value: 'PASSPORT', label: language === 'ar' ? 'جواز السفر' : 'Passport' },
-                { value: 'LABOUR_CARD', label: language === 'ar' ? 'بطاقة العمل / وزارة الموارد البشرية' : 'Labour Card / MOHRE' },
-                { value: 'RESIDENCE_VISA', label: language === 'ar' ? 'تأشيرة الإقامة' : 'Residence Visa' },
-              ]}
-            />
-          </div>
-
-          <div>
-            <label className="font-bold text-text block mb-1">{language === 'ar' ? 'رقم المستند' : 'Document Number'}</label>
-            <input
-              id="my-doc-number-input"
-              type="text"
-              required
-              value={docNumber}
-              onChange={(e) => setDocNumber(e.target.value)}
-              placeholder="e.g. 784-1990-1234567-1"
-              className="topbar-field w-full px-3 py-2 rounded-lg border border-border"
-            />
-          </div>
-
-          <div>
-            <label className="font-bold text-text block mb-1">{language === 'ar' ? 'تاريخ الانتهاء الجديد' : 'New Expiry Date'}</label>
-            <input
-              id="my-doc-expiry-input"
-              type="date"
-              required
-              value={expiryDate}
-              onChange={(e) => setExpiryDate(e.target.value)}
-              className="topbar-field w-full px-3 py-2 rounded-lg border border-border"
-            />
-          </div>
-
-          <div className="border-2 border-dashed border-border rounded-xl p-4 text-center bg-black/[0.01] dark:bg-white/[0.01] relative hover:border-primary/50 transition-colors">
-            <input
-              id="my-doc-file-input"
-              type="file"
-              required
-              accept=".pdf,.png,.jpg,.jpeg"
-              onChange={handleFileChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-            <Upload className="w-6 h-6 mx-auto text-primary mb-1.5" />
-            {selectedFile ? (
+          {uploadMode === 'single' ? (
+            <>
               <div>
-                <p className="font-semibold text-text text-xs">{selectedFile.name}</p>
-                <p className="text-[11px] text-text-muted mt-0.5">
-                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB — {language === 'ar' ? 'انقر للتغيير' : 'Click to change file'}
-                </p>
+                <Select
+                  id="my-doc-type-select"
+                  label={language === 'ar' ? 'نوع المستند' : 'Document Type'}
+                  value={docType}
+                  onChange={(e) => setDocType(e.target.value)}
+                  options={DOCUMENT_TYPES_LIST.map((dt) => ({
+                    value: dt.type,
+                    label: language === 'ar' ? dt.labelAr : dt.labelEn,
+                  }))}
+                />
               </div>
-            ) : (
+
               <div>
-                <p className="font-semibold text-text text-xs">
-                  {language === 'ar' ? 'انقر لاختيار ملف (PDF أو صورة)' : 'Click or drop PDF / image here'}
-                </p>
-                <p className="text-[11px] text-text-muted mt-0.5">
-                  {language === 'ar' ? 'الحد الأقصى 25 ميجابايت (PDF, PNG, JPG)' : 'Maximum 25MB (PDF, PNG, JPG)'}
-                </p>
+                <label className="font-bold text-text block mb-1">
+                  {language === 'ar' ? 'رقم المستند' : 'Document Number'}
+                  {getDocumentTypeConfig(docType)?.requiresNumber === false && (
+                    <span className="text-text-muted font-normal text-[10px] ml-1">
+                      ({language === 'ar' ? 'اختياري' : 'Optional'})
+                    </span>
+                  )}
+                </label>
+                <input
+                  id="my-doc-number-input"
+                  type="text"
+                  required={getDocumentTypeConfig(docType)?.requiresNumber !== false}
+                  value={docNumber}
+                  onChange={(e) => setDocNumber(e.target.value)}
+                  placeholder="e.g. 784-1990-1234567-1"
+                  className="topbar-field w-full px-3 py-2 rounded-lg border border-border"
+                />
               </div>
-            )}
-          </div>
+
+              <div>
+                <label className="font-bold text-text block mb-1">
+                  {language === 'ar' ? 'تاريخ الانتهاء' : 'Expiry Date'}
+                  {getDocumentTypeConfig(docType)?.requiresExpiry === false && (
+                    <span className="text-text-muted font-normal text-[10px] ml-1">
+                      ({language === 'ar' ? 'اختياري' : 'Optional'})
+                    </span>
+                  )}
+                </label>
+                <input
+                  id="my-doc-expiry-input"
+                  type="date"
+                  required={getDocumentTypeConfig(docType)?.requiresExpiry !== false}
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  className="topbar-field w-full px-3 py-2 rounded-lg border border-border"
+                />
+              </div>
+
+              <div className="border-2 border-dashed border-border rounded-xl p-4 text-center bg-black/[0.01] dark:bg-white/[0.01] relative hover:border-primary/50 transition-colors">
+                <input
+                  id="my-doc-file-input"
+                  type="file"
+                  required
+                  accept=".pdf,.png,.jpg,.jpeg"
+                  onChange={handleFileChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <Upload className="w-6 h-6 mx-auto text-primary mb-1.5" />
+                {selectedFile ? (
+                  <div>
+                    <p className="font-semibold text-text text-xs">{selectedFile.name}</p>
+                    <p className="text-[11px] text-text-muted mt-0.5">
+                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB — {language === 'ar' ? 'انقر للتغيير' : 'Click to change file'}
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="font-semibold text-text text-xs">
+                      {language === 'ar' ? 'انقر لاختيار ملف (PDF أو صورة)' : 'Click or drop PDF / image here'}
+                    </p>
+                    <p className="text-[11px] text-text-muted mt-0.5">
+                      {language === 'ar' ? 'الحد الأقصى 25 ميجابايت (PDF, PNG, JPG)' : 'Maximum 25MB (PDF, PNG, JPG)'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 text-[11px] text-text-muted space-y-1">
+                <p className="font-semibold text-text">{language === 'ar' ? 'تسمية الملفات للمطابقة التلقائية:' : 'Filename convention for auto-matching:'}</p>
+                <p className="font-mono text-text">EMIRATES_ID.pdf, PASSPORT.pdf, BANK_DETAILS.pdf, RESIDENCE_VISA.pdf</p>
+                <p>{language === 'ar' ? 'يمكنك رفع حتى ١٠ ملفات PDF ممسوحة ضوئياً دفعة واحدة.' : 'You can upload up to 10 scanned PDF documents in one batch.'}</p>
+              </div>
+
+              <div className="border-2 border-dashed border-border rounded-xl p-5 text-center bg-black/[0.01] dark:bg-white/[0.01] relative hover:border-primary/50 transition-colors">
+                <input
+                  id="my-doc-bulk-input"
+                  type="file"
+                  multiple
+                  required
+                  accept=".pdf"
+                  onChange={(e) => setMultipleFiles(Array.from(e.target.files || []))}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <Upload className="w-6 h-6 mx-auto text-primary mb-1.5" />
+                {multipleFiles.length > 0 ? (
+                  <div>
+                    <p className="font-semibold text-text text-xs">
+                      {language === 'ar' ? `تم اختيار ${multipleFiles.length} ملفات جاهزة للرفع` : `${multipleFiles.length} PDF files selected`}
+                    </p>
+                    <p className="text-[10px] text-text-muted mt-1 max-w-[280px] mx-auto truncate">
+                      {multipleFiles.map((f) => f.name).join(', ')}
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="font-semibold text-text text-xs">
+                      {language === 'ar' ? 'انقر أو اسحب ملفات PDF هنا' : 'Click or drop multiple PDF files here'}
+                    </p>
+                    <p className="text-[11px] text-text-muted mt-0.5">
+                      {language === 'ar' ? 'الحد الأقصى ١٠ ملفات PDF (حتى ٢٥ ميجابايت لكل ملف)' : 'Up to 10 scanned PDFs (max 25MB each)'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           <div className="pt-2 flex justify-end gap-2 border-t border-border/40">
             <Button type="button" variant="outline" size="sm" onClick={() => setUploadModalOpen(false)}>
