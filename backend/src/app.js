@@ -197,6 +197,12 @@ app.get(['/health', '/healthz', '/api/v1/health', '/api/v1/healthz'], async (req
       uptime: process.uptime(),
       database: 'connected',
       tables_count: tableCount,
+      diagnostics: {
+        client_ip: req.ip,
+        forwarded_for: req.headers['x-forwarded-for'] || null,
+        trust_proxy: req.app.get('trust proxy'),
+        max_upload_size_mb: 25,
+      },
       timestamp: new Date().toISOString(),
     });
   } catch (err) {
@@ -240,6 +246,12 @@ app.get(['/ready', '/readyz', '/api/v1/ready', '/api/v1/readyz'], async (req, re
       uptime: process.uptime(),
       database: 'connected',
       memory: { heapUsedMB, heapTotalMB, rssMB },
+      diagnostics: {
+        client_ip: req.ip,
+        forwarded_for: req.headers['x-forwarded-for'] || null,
+        trust_proxy: req.app.get('trust proxy'),
+        max_upload_size_mb: 25,
+      },
       timestamp: new Date().toISOString(),
     });
   } catch (err) {

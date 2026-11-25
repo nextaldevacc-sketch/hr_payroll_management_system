@@ -1,18 +1,19 @@
 # Nextal HR & Payroll — Release Candidate 7 (RC7) Deployment Runbook
 
 **Target System**: Production VPS (`payroll.nextaltechnologies.com`)  
-**Deployment Model**: aaPanel Host Nginx + Docker Compose  
-**Security & Migration Standard**: Additive schema migrations only, zero database resets, zero data truncation.
+**Deployment Model**: aaPanel Host Nginx + Docker Compose (`docker-compose.prod.yml` + `docker-compose.aapanel.yml`)  
+**Security Standard**: Additive schema migrations only, zero database resets, zero remote repository push.
 
 ---
 
-## 1. Overview & Architecture
+## 1. Production Topology & Proxy Architecture
 
-Release Candidate 7 (RC7) introduces:
-- **Universal Portal Popover System**: Multi-instance coordinator, responsive mobile bottom-drawer sheet, positioning with auto-flip collision handling, and portal root directly at `document.body`.
-- **Jet Black + Orchid Modern Dark Theme**: Base `#1D1D1D`, surface `#222222`, raised `#2A2A2A`, borders `rgba(255,255,255,0.10)`, text `#F5F5F5`, Orchid accent `#E5BDDF`. Zero un-themed blue/sky or decorative gold leftovers.
-- **Glassmorphism & Speed Optimization**: Restricting `backdrop-filter: blur(...)` strictly to outermost shell containers (`GlassSidebar`, `GlassTopBar`, `Modal`, `Drawer`, `Popover`), replacing nested card blurs with solid translucent colors. API p95 response time is < 8ms on all core endpoints (well within SLA < 60ms).
-- **Session Architecture & Distributed Rate Limiting**: Multi-device session tracking in `sessions` table (device-scoped revocation; logout on one device does not kick others), distributed PostgreSQL `rate_limits` store surviving container restarts, and configurable proxy hop extraction (`TRUST_PROXY`).
+The production environment on the VPS uses host **aaPanel Nginx** as the public reverse proxy. Containers run in private Docker networks and bind to loopback (`127.0.0.1`) ports via `docker-compose.aapanel.yml`:
+
+- **Web Container (`nextal-web-prod`)**: Next.js 14 App Router, listening internally on port 3100, mapped to `127.0.0.1:13100` on host.
+- **API Container (`nextal-api-prod`)**: Express API, listening internally on port 5000, mapped to `127.0.0.1:15000` on host.
+- **Postgres Container (`nextal-postgres-prod`)**: PostgreSQL 16 on private Docker network (port 5432 is **not** exposed to the host or internet).
+- **Caddy Notice**: Do **NOT** run the Caddy container on aaPanel hosts. aaPanel Nginx manages public ports 80 and 443 with its own SSL certificates; Caddy would conflict.
 
 ```
                     ┌──────────────────────────────────────────────┐
@@ -23,180 +24,215 @@ Release Candidate 7 (RC7) introduces:
                     ┌──────────────────────────────────────────────┐
                     │         aaPanel Host Nginx Reverse Proxy     │
                     │         (client_max_body_size 25M)           │
-                    └──────────────────────┬───────────────────────┘
-                                           │ proxy_pass (3100)
-                                           ▼
-                    ┌──────────────────────────────────────────────┐
-                    │       nextal-web-prod (Next.js 14)           │
-                    │       Portals, SSR, Theme & UI Layer         │
-                    └──────────────────────┬───────────────────────┘
-                                           │ API Rewrites (/api/*)
-                                           ▼
-                    ┌──────────────────────────────────────────────┐
-                    │       nextal-api-prod (Express API)          │
-                    │       TRUST_PROXY=2 (Extracts real IP)       │
+                    │                                              │
+                    │   URL Proxy: /api/v1/  ──► 127.0.0.1:15000   │
+                    │   URL Proxy: /         ──► 127.0.0.1:13100   │
                     └──────────────┬───────────────────────────────┘
-                                   │ Connection Pool
-                                   ▼
-                    ┌──────────────────────────────────────────────┐
-                    │     nextal-postgres-prod (PostgreSQL 16)     │
-                    │     sessions, rate_limits, audit, indexes    │
-                    └──────────────────────────────────────────────┘
+                                   │
+         ┌─────────────────────────┴─────────────────────────┐
+         │ (1 Proxy Hop)                                     │ (1 Proxy Hop)
+         ▼                                                   ▼
+┌──────────────────────────────────┐        ┌──────────────────────────────────┐
+│   nextal-api-prod (:15000)       │        │   nextal-web-prod (:13100)       │
+│   Express Backend                │        │   Next.js 14 Frontend UI         │
+│   TRUST_PROXY=1 (Single Hop)     │        │   React Server Components        │
+└─────────────────┬────────────────┘        └──────────────────────────────────┘
+                  │ Connection Pool
+                  ▼
+┌──────────────────────────────────┐
+│   nextal-postgres-prod (:5432)   │
+│   PostgreSQL 16 Private Network  │
+└──────────────────────────────────┘
 ```
 
 ---
 
-## 2. Server Configuration
+## 2. Security Critical: `TRUST_PROXY=1` (Preventing IP Spoofing)
 
-### A. aaPanel Host Nginx Configuration
-In your aaPanel Nginx site configuration for `payroll.nextaltechnologies.com`, verify and apply:
+### Why `TRUST_PROXY` Must Be `1`, Not `2`:
+- In aaPanel Nginx, the URL proxy rule directs `/api/v1/` traffic **directly** to the API container (`127.0.0.1:15000/api/v1/`). It does **not** route through Next.js rewrites in production.
+- This means there is **exactly 1 proxy hop** between the client and Express.
+- When `TRUST_PROXY=1`, Express trusts the single hop (aaPanel Nginx) and takes the client IP appended by Nginx in `X-Forwarded-For`.
+- **Vulnerability Warning**: If `TRUST_PROXY` were set to `2`, Express would trust two hops and look further back in the `X-Forwarded-For` chain. An attacker sending a spoofed header `X-Forwarded-For: 1.2.3.4` would have their spoofed value accepted as `req.ip`. This allows attackers to bypass brute-force rate limits and corrupt security audit logs.
+- **Rule**: `TRUST_PROXY=1` is strictly mandatory.
 
-```nginx
-# /www/server/panel/vhost/nginx/payroll.nextaltechnologies.com.conf
+In `/opt/nextal/.env.production`:
+```env
+# Proxy Trust Configuration: 1 = aaPanel Nginx
+TRUST_PROXY=1
 
-# 1. Enforce 25MB upload limit for passports, Emirates IDs, and documents
-client_max_body_size 25M;
+# Production Domain & Security
+APP_DOMAIN="payroll.nextaltechnologies.com"
+ALLOWED_ORIGIN="https://payroll.nextaltechnologies.com"
+NODE_ENV=production
 
-# 2. Proxy to Next.js Web Container
-location / {
-    proxy_pass http://127.0.0.1:3100;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_cache_bypass $http_upgrade;
-    proxy_read_timeout 300;
-    proxy_connect_timeout 60;
-}
+# Email Service (default disabled, or smtp with Brevo / Hostinger)
+MAIL_MODE=disabled
+# SMTP_HOST=smtp-relay.brevo.com
+# SMTP_PORT=587
+# SMTP_SECURE=false
+# SMTP_USER=...
+# SMTP_PASS=...
+# MAIL_FROM="Al Jalil HR <noreply@nextaltechnologies.com>"
+WELCOME_CREDENTIALS_MODE=link
+EMAIL_RATE_LIMIT_PER_HOUR=100
+
+# Document Encryption Key (AES-256-GCM at rest)
+DOCUMENT_ENCRYPTION_KEY=${DOCUMENT_ENCRYPTION_KEY}
+JWT_SECRET=${JWT_SECRET}
+DATABASE_URL=${DATABASE_URL}
 ```
 
-Reload Nginx:
+---
+
+## 3. aaPanel Host Nginx Configuration
+
+In aaPanel Web Site Management for `payroll.nextaltechnologies.com`:
+
+### A. Set Request Body Limit (25MB)
+Under **Site Settings** > **Configuration File**:
+```nginx
+client_max_body_size 25M;
+```
+
+### B. Configure URL Proxy Rules
+Under **Site Settings** > **URL rewrite / Reverse Proxy**:
+1. **API Direct Proxy Rule**:
+   - Proxy Name: `api_v1`
+   - Proxy Path: `/api/v1/`
+   - Target URL: `http://127.0.0.1:15000/api/v1/`
+   - Sent Domain: `$host`
+2. **Web Frontend Proxy Rule**:
+   - Proxy Name: `next_web`
+   - Proxy Path: `/`
+   - Target URL: `http://127.0.0.1:13100/`
+   - Sent Domain: `$host`
+
+Verify and reload Nginx:
 ```bash
 nginx -t && nginx -s reload
 ```
 
 ---
 
-### B. Environment & `TRUST_PROXY` Settings
-In `/opt/nextal/.env.production`:
+## 4. Compose Command Alias & Safety Standard
 
-```env
-# Proxy Trust Configuration
-# Chain: Client -> aaPanel Nginx (Hop 1) -> Next.js web (Hop 2) -> Express API
-# Setting TRUST_PROXY=2 allows Express to inspect the 2nd hop from the right in X-Forwarded-For,
-# extracting the real client IP rather than the internal Docker bridge IP (172.x.x.x).
-TRUST_PROXY=2
+On the production VPS, **always** load both the production compose file and the aaPanel port override file with `.env.production`. Define this alias before running any command:
 
-# Database Connection Pool
-DATABASE_URL="postgresql://nextal_user:${POSTGRES_PASSWORD}@nextal-postgres-prod:5432/nextal_db?schema=public&connection_limit=25&pool_timeout=20"
-
-# Application Secrets
-JWT_SECRET=${JWT_SECRET}
-DOCUMENT_ENCRYPTION_KEY=${DOCUMENT_ENCRYPTION_KEY}
-ALLOWED_ORIGIN="https://payroll.nextaltechnologies.com"
+```bash
+cd /opt/nextal
+D="docker compose --env-file .env.production -f docker-compose.prod.yml -f docker-compose.aapanel.yml"
 ```
 
 ---
 
-## 3. Database Migration Runbook (Strictly Additive)
+## 5. Deployment Step-by-Step Runbook
 
-RC7 includes two strictly additive migrations. They do NOT alter existing table signatures or truncate records:
-1. `20261124100000_sessions_and_rate_limits`: Creates `sessions` (multi-device tokens) and `rate_limits` (distributed brute-force protection).
-2. `20261125100000_approvals_and_attendance_indexes`: Adds composite indexes `approval_requests(company_id, status)` and `attendance_days(company_id, work_date)` for sub-10ms query execution.
-
-Apply migrations inside the running API container:
+### Step 1: Pre-Deployment Backup Tagging (Rollback Safety)
+Before pulling or loading new images, preserve current working images:
 ```bash
-docker exec nextal-api-prod npx prisma migrate deploy
+docker tag hr-payroll-management-api:latest hr-payroll-management-api:rollback-rc6
+docker tag hr-payroll-management-web:latest hr-payroll-management-web:rollback-rc6
+```
+
+### Step 2: Load New Artifact Images
+```bash
+cd /opt/nextal
+docker load < api-rc7.tar.gz
+docker load < web-rc7.tar.gz
+```
+
+### Step 3: Run Database Migrations (Zero Downtime, Additive Only)
+Run migrations using the **new API image** in an isolated container before starting the app service. This avoids executing inside a running container that might be mid-restart:
+
+```bash
+$D run --rm --no-deps api npx prisma migrate deploy
 ```
 
 Verify migration status:
 ```bash
-docker exec nextal-api-prod npx prisma migrate status
+$D run --rm --no-deps api npx prisma migrate status
 ```
 Expected output:
 ```
 Database schema is up to date!
 ```
 
----
-
-## 4. Image Export & Import (Air-Gapped / Artifact Deployment)
-
-### Step 1: Export Images on Build Machine
+### Step 4: Restart Services with Zero Downtime
 ```bash
-docker save hr-payroll-management-web:latest | gzip > web-rc7.tar.gz
-docker save hr-payroll-management-api:latest | gzip > api-rc7.tar.gz
+$D up -d --remove-orphans api web
 ```
 
-### Step 2: Transfer to Production VPS
+Check container health:
 ```bash
-scp web-rc7.tar.gz api-rc7.tar.gz root@payroll.nextaltechnologies.com:/opt/nextal/
+$D ps
 ```
-
-### Step 3: Load Images on Production VPS
-```bash
-cd /opt/nextal
-docker load < web-rc7.tar.gz
-docker load < api-rc7.tar.gz
-```
-
-### Step 4: Restart Stack with Environment File
-Always pass `--env-file .env.production` so secrets and database credentials resolve correctly:
-```bash
-docker compose --env-file .env.production -f docker-compose.prod.yml up -d
-```
+All containers (`nextal-postgres-prod`, `nextal-api-prod`, `nextal-web-prod`, `nextal-backup-prod`) must report `healthy`.
 
 ---
 
-## 5. Post-Deployment Verification
+## 6. Post-Deployment Verification (Read-Only Checks)
 
-### A. Health & Container Status
+### A. Health & Diagnostics Check (Real Client IP Verification)
+Query the health diagnostics endpoint from your workstation (outside the VPS):
+
 ```bash
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+curl -s https://payroll.nextaltechnologies.com/api/v1/health | jq .
 ```
-All containers (`nextal-postgres-prod`, `nextal-api-prod`, `nextal-web-prod`, `nextal-backup-prod`) must be in `Up ... (healthy)` state.
 
-### B. Automated Production Smoke Test
-Execute the comprehensive smoke suite against the live production endpoint:
+Verify that:
+1. `status` is `"ready"`.
+2. `database` is `"connected"`.
+3. `diagnostics.client_ip` matches your **actual external public IP address** (not `127.0.0.1`, not `172.x.x.x`).
+4. `diagnostics.trust_proxy` is `1`.
+5. `diagnostics.max_upload_size_mb` is `25`.
+
+### B. Upload Size Limit Check (413 Payload Too Large)
+Verify that aaPanel Nginx and Express reject payloads exceeding 25MB:
+
+```bash
+# Generate a 26MB zero payload and send to bulk upload preview
+head -c 27262976 /dev/zero | curl -s -w "\nHTTP Status: %{http_code}\n" \
+  -X POST https://payroll.nextaltechnologies.com/api/v1/employees/documents/bulk-upload/preview \
+  -H "Authorization: Bearer <VALID_ADMIN_TOKEN>" \
+  -H "Content-Type: multipart/form-data" \
+  --data-binary @-
+```
+Expected output:
+```
+HTTP Status: 413
+```
+
+### C. Run Production Smoke Test Suite
 ```bash
 SMOKE_ALLOW_WRITE=yes node scripts/smoke-test-prod.mjs https://payroll.nextaltechnologies.com
 ```
-Verification criteria:
-- [x] All 27 tests pass (0 skipped)
-- [x] Status 200 on `/api/v1/health` with `status: "ok"` and `database: "connected"`
-- [x] HSTS, CSP, and `HttpOnly; Secure; SameSite=Lax` cookies verified
-- [x] Real throwaway user lockout triggers HTTP 423 on 5 failed attempts
-- [x] Port 5432 is not exposed externally
 
-### C. Popover & Session Verification
+### D. Verify Multi-Device Sessions
 ```bash
-node --test frontend/test/popover-portal.test.js
 node --test frontend/test/two-context-login.test.js
 ```
-- [x] Popovers portal directly into `document.body`
-- [x] Simultaneous logins on two devices remain active; logging out on one device does not kick the second
+Expected output: `pass 1 / fail 0`.
 
 ---
 
-## 6. Rollback Procedures
+## 7. Emergency Rollback Procedure
 
-If any unexpected regression occurs, execute the following rollback:
+If any regression occurs in production:
 
-### Pre-Deployment Backup Tagging
-Before loading RC7, tag existing working images:
 ```bash
-docker tag hr-payroll-management-web:latest hr-payroll-management-web:rc6-rollback
-docker tag hr-payroll-management-api:latest hr-payroll-management-api:rc6-rollback
+cd /opt/nextal
+D="docker compose --env-file .env.production -f docker-compose.prod.yml -f docker-compose.aapanel.yml"
+
+# 1. Restore rollback tags
+docker tag hr-payroll-management-api:rollback-rc6 hr-payroll-management-api:latest
+docker tag hr-payroll-management-web:rollback-rc6 hr-payroll-management-web:latest
+
+# 2. Re-create containers from restored images
+$D up -d --force-recreate api web
+
+# 3. Verify health
+$D ps
 ```
 
-### Executing Rollback
-```bash
-docker tag hr-payroll-management-web:rc6-rollback hr-payroll-management-web:latest
-docker tag hr-payroll-management-api:rc6-rollback hr-payroll-management-api:latest
-docker compose --env-file .env.production -f docker-compose.prod.yml up -d
-```
-
-> **Database Safety Notice**: Because all RC7 migrations are strictly additive (`CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`), older API and Web code can safely run against the current database without rolling back migrations. No tables or columns need to be dropped.
+> **Database Safety Notice**: All RC7 schema changes are strictly additive (`welcome_email_sent_at DateTime?`, `sessions` table, `rate_limits` table, document types enum). Older RC6 images run seamlessly against the upgraded database without dropping columns or tables.
