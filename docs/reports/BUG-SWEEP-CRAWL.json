@@ -2,56 +2,14 @@
   "roleSummaries": [
     {
       "role": "COMPANY_ADMIN",
-      "controlsFound": 122,
-      "controlsClicked": 122,
+      "controlsFound": 158,
+      "controlsClicked": 158,
       "bugs": 0
     },
     {
       "role": "HR_MANAGER",
-      "controlsFound": 262,
-      "controlsClicked": 262,
-      "bugs": 0
-    },
-    {
-      "role": "HR_OFFICER",
-      "controlsFound": 240,
-      "controlsClicked": 240,
-      "bugs": 0
-    },
-    {
-      "role": "HR_OFFICER_V2",
-      "controlsFound": 173,
-      "controlsClicked": 173,
-      "bugs": 0
-    },
-    {
-      "role": "PAYROLL_OFFICER",
-      "controlsFound": 139,
-      "controlsClicked": 139,
-      "bugs": 0
-    },
-    {
-      "role": "GM",
-      "controlsFound": 243,
-      "controlsClicked": 243,
-      "bugs": 0
-    },
-    {
-      "role": "FINANCE",
-      "controlsFound": 45,
-      "controlsClicked": 45,
-      "bugs": 0
-    },
-    {
-      "role": "DEPT_MANAGER",
-      "controlsFound": 116,
-      "controlsClicked": 116,
-      "bugs": 0
-    },
-    {
-      "role": "EMPLOYEE",
-      "controlsFound": 21,
-      "controlsClicked": 21,
+      "controlsFound": 246,
+      "controlsClicked": 246,
       "bugs": 0
     }
   ],

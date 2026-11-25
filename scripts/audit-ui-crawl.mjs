@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import http from 'node:http';
+import https from 'node:https';
 import net from 'node:net';
 import { spawn, execSync } from 'node:child_process';
 import { chromium } from 'playwright';
@@ -18,7 +19,8 @@ const REPORT_JSON = path.resolve(rootDir, 'docs/reports/BUG-SWEEP-CRAWL.json');
 
 let API_PORT = Number(process.env.API_PORT) || 5000;
 let WEB_PORT = Number(process.env.WEB_PORT) || 3102;
-let BASE_URL = process.env.BASE_URL || `http://localhost:${WEB_PORT}`;
+const baseUrlArg = process.argv.find((a) => a.startsWith('--base-url='));
+let BASE_URL = baseUrlArg ? baseUrlArg.split('=')[1] : (process.env.BASE_URL || `http://localhost:${WEB_PORT}`);
 
 const isFreshRun = process.argv.includes('--fresh');
 const isProdRun = process.argv.includes('--prod');
@@ -59,7 +61,9 @@ function killPort(port) {
 
 function checkHttp(url) {
   return new Promise((resolve) => {
-    const req = http.get(url, (res) => {
+    const isHttps = url.startsWith('https');
+    const client = isHttps ? https : http;
+    const req = client.get(url, { rejectUnauthorized: false }, (res) => {
       res.resume();
       resolve(res.statusCode < 500);
     });
@@ -74,8 +78,10 @@ function checkHttp(url) {
 function waitForHttp(url, timeoutMs = 45000) {
   return new Promise((resolve, reject) => {
     const start = Date.now();
+    const isHttps = url.startsWith('https');
+    const client = isHttps ? https : http;
     const interval = setInterval(() => {
-      const req = http.get(url, (res) => {
+      const req = client.get(url, { rejectUnauthorized: false }, (res) => {
         res.resume();
         if (res.statusCode < 500) {
           clearInterval(interval);
@@ -93,16 +99,32 @@ function waitForHttp(url, timeoutMs = 45000) {
   });
 }
 
+const credPath = path.resolve(rootDir, 'demo-credentials.txt');
+const credentialsMap = {};
+if (fs.existsSync(credPath)) {
+  const content = fs.readFileSync(credPath, 'utf8');
+  for (const line of content.split('\n')) {
+    const roleMatch = line.match(/^([A-Z0-9_]+)\s*:\s*(\S+)\s*\|\s*Password:\s*(\S+)/);
+    if (roleMatch) {
+      credentialsMap[roleMatch[1]] = { email: roleMatch[2], password: roleMatch[3] };
+    }
+    const empMatch = line.match(/^EMPLOYEE\s*\|\s*\S+\s*\|\s*[^|]+\|\s*(\S+)\s*\|\s*Password:\s*(\S+)/);
+    if (empMatch && !credentialsMap['EMPLOYEE']) {
+      credentialsMap['EMPLOYEE'] = { email: empMatch[1], password: empMatch[2] };
+    }
+  }
+}
+
 const ROLES_TO_AUDIT = [
-  { role: 'COMPANY_ADMIN', email: 'admin@gulftech.ae', name: 'Company Admin' },
-  { role: 'HR_MANAGER', email: 'hr.mgr@gulftech.ae', name: 'HR Manager' },
-  { role: 'HR_OFFICER', email: 'hr.officer@gulftech.ae', name: 'HR Officer (All Visas)' },
-  { role: 'HR_OFFICER_V2', email: 'hr.difc@gulftech.ae', name: 'HR Officer (Visa 02 Scoped)' },
-  { role: 'PAYROLL_OFFICER', email: 'payroll@gulftech.ae', name: 'Payroll Officer' },
-  { role: 'GM', email: 'gm@gulftech.ae', name: 'General Manager' },
-  { role: 'FINANCE', email: 'finance@gulftech.ae', name: 'Finance Officer' },
-  { role: 'DEPT_MANAGER', email: 'dept.mgr@gulftech.ae', name: 'Department Manager' },
-  { role: 'EMPLOYEE', email: 'employee@gulftech.ae', name: 'Employee (Self-Service)' },
+  { role: 'COMPANY_ADMIN', email: credentialsMap['COMPANY_ADMIN']?.email || 'admin@gulftech.ae', password: credentialsMap['COMPANY_ADMIN']?.password || process.env.DEMO_PASSWORD || '', name: 'Company Admin' },
+  { role: 'HR_MANAGER', email: credentialsMap['HR_MANAGER']?.email || 'hr.mgr@gulftech.ae', password: credentialsMap['HR_MANAGER']?.password || process.env.DEMO_PASSWORD || '', name: 'HR Manager' },
+  { role: 'HR_OFFICER', email: credentialsMap['HR_OFFICER']?.email || 'hr.officer@gulftech.ae', password: credentialsMap['HR_OFFICER']?.password || process.env.DEMO_PASSWORD || '', name: 'HR Officer (All Visas)' },
+  { role: 'HR_OFFICER_V2', email: credentialsMap['HR_OFFICER_V2']?.email || 'hr.difc@gulftech.ae', password: credentialsMap['HR_OFFICER_V2']?.password || process.env.DEMO_PASSWORD || '', name: 'HR Officer (Visa 02 Scoped)' },
+  { role: 'PAYROLL_OFFICER', email: credentialsMap['PAYROLL_OFFICER']?.email || 'payroll@gulftech.ae', password: credentialsMap['PAYROLL_OFFICER']?.password || process.env.DEMO_PASSWORD || '', name: 'Payroll Officer' },
+  { role: 'GM', email: credentialsMap['GM']?.email || 'gm@gulftech.ae', password: credentialsMap['GM']?.password || process.env.DEMO_PASSWORD || '', name: 'General Manager' },
+  { role: 'FINANCE', email: credentialsMap['FINANCE']?.email || 'finance@gulftech.ae', password: credentialsMap['FINANCE']?.password || process.env.DEMO_PASSWORD || '', name: 'Finance Officer' },
+  { role: 'DEPT_MANAGER', email: credentialsMap['DEPT_MANAGER']?.email || 'dept.mgr@gulftech.ae', password: credentialsMap['DEPT_MANAGER']?.password || process.env.DEMO_PASSWORD || '', name: 'Department Manager' },
+  { role: 'EMPLOYEE', email: credentialsMap['EMPLOYEE']?.email || 'employee@gulftech.ae', password: credentialsMap['EMPLOYEE']?.password || process.env.DEMO_PASSWORD || '', name: 'Employee (Self-Service)' },
 ];
 
 function isLogoutControl(text, ariaLabel, testId, href, title = '') {
@@ -110,7 +132,11 @@ function isLogoutControl(text, ariaLabel, testId, href, title = '') {
   return /log\s*out|sign\s*out|تسجيل\s*الخروج|btn-logout/i.test(combined);
 }
 
-async function loginUser(page, email, password = 'Nextal@2026!') {
+async function loginUser(page, email, password = null) {
+  if (!password) {
+    const found = ROLES_TO_AUDIT.find((r) => r.email === email);
+    password = found?.password || process.env.DEMO_PASSWORD || '';
+  }
   await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('button[type="submit"]:not([disabled])', { timeout: 15000 });
   await page.fill('input[type="email"]', email);
@@ -362,7 +388,8 @@ async function run() {
   const TEST_DB_URL = 'postgresql://postgres:postgres@127.0.0.1:5432/nextal_hr_test?schema=public';
 
   try {
-    let apiUp = await checkHttp(`http://127.0.0.1:${API_PORT}/api/v1/health`);
+    const healthUrl = BASE_URL.startsWith('https') ? `${BASE_URL}/api/v1/health` : `http://127.0.0.1:${API_PORT}/api/v1/health`;
+    let apiUp = await checkHttp(healthUrl);
     if (!apiUp) {
       const can5000 = await canBindPort(5000);
       if (!can5000) API_PORT = 5001;
@@ -421,7 +448,10 @@ async function run() {
       await waitForHttp(`${BASE_URL}/login`, 45000);
     }
 
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--ignore-certificate-errors'],
+    });
 
     const roleSummaries = [];
     const allBugs = [];
@@ -440,7 +470,10 @@ async function run() {
     }
 
     for (const { role, email } of rolesToTest) {
-      const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const context = await browser.newContext({
+        viewport: { width: 1440, height: 900 },
+        ignoreHTTPSErrors: true,
+      });
       const page = await context.newPage();
 
       const consoleErrors = [];

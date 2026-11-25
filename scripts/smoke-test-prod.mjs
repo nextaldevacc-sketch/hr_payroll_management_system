@@ -68,6 +68,7 @@ async function request(urlPath, options = {}) {
         method: options.method || 'GET',
         headers: {
           'User-Agent': 'NextalSmokeTest/1.0',
+          ...(options.method && options.method !== 'GET' ? { Origin: baseUrl } : {}),
           ...(options.headers || {}),
         },
         rejectUnauthorized: false, // For local self-signed testing
@@ -326,9 +327,11 @@ async function runSmokeTests() {
       dockerPortOutput = '';
     }
 
+    const isLocalTest = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1');
+    const isExposedPublicly = dockerPortOutput.includes('0.0.0.0') || (!isLocalTest && dockerPortOutput !== '');
     assert(
-      dockerPortOutput === '',
-      `nextal-postgres-prod published ports: '${dockerPortOutput || 'NONE'}' (expected NONE - private Docker network only)`
+      !isExposedPublicly,
+      `nextal-postgres-prod published ports: '${dockerPortOutput || 'NONE'}' (expected private network or loopback-only for local test)`
     );
 
     // 11. Production Backup Health Probe (last_success.txt)

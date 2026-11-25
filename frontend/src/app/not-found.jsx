@@ -29,9 +29,9 @@ export default function NotFound() {
           }
         >
           <div className="py-6 text-center space-y-5">
-            {/* 404 Hero Number with Gold Gradient in Dark Mode */}
+            {/* 404 Hero Number with Orchid Primary Accent */}
             <div className="flex justify-center">
-              <span className="text-6xl sm:text-7xl font-extrabold tracking-tight text-text gold-heading select-none">
+              <span className="text-6xl sm:text-7xl font-extrabold tracking-tight text-primary select-none">
                 404
               </span>
             </div>

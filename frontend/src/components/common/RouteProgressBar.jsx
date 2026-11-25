@@ -86,7 +86,7 @@ export function RouteProgressBar() {
       aria-valuenow={progress}
     >
       <div
-        className="h-full bg-gradient-to-r from-amber-500 via-primary to-amber-400 dark:from-primary dark:via-amber-400 dark:to-primary shadow-[0_0_10px_rgba(230,166,14,0.7)]"
+        className="h-full bg-primary shadow-[0_0_8px_rgba(229,189,223,0.6)]"
         style={{
           width: `${progress}%`,
           opacity: progress === 100 ? 0 : 1,

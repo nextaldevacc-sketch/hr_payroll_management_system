@@ -70,15 +70,15 @@ export function AuthShell({ children, showVideo = true }) {
   return (
     <div
       dir={isRTL ? 'rtl' : 'ltr'}
-      className="min-h-screen w-full flex items-center justify-center p-3 sm:p-6 lg:p-10 bg-slate-100 dark:bg-[#07090D] text-slate-900 dark:text-slate-100 transition-colors"
+      className="min-h-screen w-full flex items-center justify-center p-3 sm:p-6 lg:p-10 bg-slate-100 dark:bg-[#1D1D1D] text-slate-900 dark:text-slate-100 transition-colors"
       style={{
         backgroundImage: isDark
-          ? 'radial-gradient(ellipse at 50% 0%, rgba(230, 166, 14, 0.05), transparent 70%), radial-gradient(ellipse at 80% 80%, rgba(14, 165, 233, 0.04), transparent 60%)'
-          : 'radial-gradient(ellipse at 50% 0%, rgba(230, 166, 14, 0.08), transparent 70%), radial-gradient(ellipse at 80% 80%, rgba(99, 102, 241, 0.06), transparent 60%)',
+          ? 'radial-gradient(ellipse at 50% 0%, rgba(229, 189, 223, 0.04), transparent 70%), radial-gradient(ellipse at 80% 80%, rgba(229, 189, 223, 0.03), transparent 60%)'
+          : 'radial-gradient(ellipse at 50% 0%, rgba(3, 105, 161, 0.06), transparent 70%), radial-gradient(ellipse at 80% 80%, rgba(48, 109, 41, 0.04), transparent 60%)',
       }}
     >
       {/* Centered Floating Card Container */}
-      <div className="w-full max-w-[1160px] min-h-0 md:min-h-[640px] lg:min-h-[680px] rounded-3xl overflow-hidden border border-slate-200/90 dark:border-white/10 bg-white dark:bg-[#0C101A] shadow-2xl shadow-slate-300/40 dark:shadow-black/70 flex flex-col md:flex-row rtl:md:flex-row-reverse relative">
+      <div className="w-full max-w-[1160px] min-h-0 md:min-h-[640px] lg:min-h-[680px] rounded-3xl overflow-hidden border border-slate-200/90 dark:border-white/10 bg-white dark:bg-[#222222] shadow-2xl shadow-slate-300/40 dark:shadow-black/70 flex flex-col md:flex-row rtl:md:flex-row-reverse relative">
         {/* Top Controls: Language and Theme Switchers */}
         <div className="absolute top-4 end-4 z-30 flex items-center gap-2">
           <button
@@ -87,7 +87,7 @@ export function AuthShell({ children, showVideo = true }) {
             title={isAr ? 'Switch to English' : 'التحويل إلى العربية'}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-200 dark:border-white/15 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-sm transition-all active:scale-95"
           >
-            <Globe className="w-3.5 h-3.5 text-amber-500" />
+            <Globe className="w-3.5 h-3.5 text-primary" />
             <span>{isAr ? 'English' : 'العربية'}</span>
           </button>
 
@@ -99,7 +99,7 @@ export function AuthShell({ children, showVideo = true }) {
               className="p-2 rounded-full border border-slate-200 dark:border-white/15 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-sm transition-all active:scale-95"
             >
               {isDark ? (
-                <Sun className="w-3.5 h-3.5 text-amber-400" />
+                <Sun className="w-3.5 h-3.5 text-primary" />
               ) : (
                 <Moon className="w-3.5 h-3.5 text-slate-700" />
               )}
@@ -146,8 +146,8 @@ export function AuthShell({ children, showVideo = true }) {
 
           {/* Top Branding Chip & Reduced-Motion Play Button */}
           <div className="relative z-10 flex items-center justify-between">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-amber-300 shadow-lg">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-primary shadow-lg">
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
               <span>
                 {isAr ? 'نظام موارد بشرية متوافق مع المرسوم بقانون 33/2021' : '⚡ UAE Enterprise · Law 33/2021'}
               </span>
@@ -169,7 +169,7 @@ export function AuthShell({ children, showVideo = true }) {
           {/* Bottom Brand Narrative & Floating Glass Feature Chip */}
           <div className="relative z-10 space-y-4 pt-16 md:pt-0">
             {/* Feature Floating Chip */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/20 backdrop-blur-md border border-amber-400/30 text-amber-300 text-xs font-semibold shadow-xl">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-primary/20 backdrop-blur-md border border-primary/30 text-primary text-xs font-semibold shadow-xl">
               <span>{isAr ? '⚡ تدقيق ملفات حماية الأجور (WPS SIF) فوري' : '⚡ Live WPS SIF validation · Law 33/2021'}</span>
             </div>
 
@@ -189,11 +189,11 @@ export function AuthShell({ children, showVideo = true }) {
         </div>
 
         {/* RIGHT PANEL: Centered Interactive Form (Full width on mobile, 50% on md+) */}
-        <div className="w-full md:w-1/2 flex flex-col justify-center px-4 py-8 sm:px-8 sm:py-10 lg:p-14 bg-white dark:bg-[#0C101A] relative z-20">
+        <div className="w-full md:w-1/2 flex flex-col justify-center px-4 py-8 sm:px-8 sm:py-10 lg:p-14 bg-white dark:bg-[#222222] relative z-20">
           <div className="w-full max-w-[420px] mx-auto space-y-6">
             {/* Brand Header: Logo + NEXTAL wordmark + Badge */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-sm">
+              <div className="w-10 h-10 rounded-2xl bg-primary/10 dark:bg-primary/20 border border-primary/30 flex items-center justify-center text-primary shadow-sm">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
@@ -201,7 +201,7 @@ export function AuthShell({ children, showVideo = true }) {
                   <h1 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
                     NEXTAL
                   </h1>
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase bg-primary/15 text-primary-strong dark:text-primary border border-primary/25">
                     UAE Enterprise
                   </span>
                 </div>

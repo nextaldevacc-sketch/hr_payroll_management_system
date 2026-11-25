@@ -69,5 +69,6 @@ demo-credentials.txt
 # Audit recordings & logs
 frontend/log/
 docs/reports/ui/
+docs/screenshots/
 *.mp4
 !frontend/public/media/login/*.mp4

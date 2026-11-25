@@ -204,7 +204,7 @@ export default function MyPayslipDetailPage() {
           </div>
           <div className="p-3.5 rounded-xl bg-surface-raised/40 border border-border">
             <span className="text-text-muted flex items-center gap-1">
-              <Building className="w-3.5 h-3.5 text-amber-500" /> {isAr ? 'رمز التوجيه' : 'Routing Code'}
+              <Building className="w-3.5 h-3.5 text-primary" /> {isAr ? 'رمز التوجيه' : 'Routing Code'}
             </span>
             <p className="font-mono font-medium text-text mt-1" data-i18n-skip>{bank.routing_code || payRun.company_visa?.bank_routing_code || 'ENBD001'}</p>
           </div>

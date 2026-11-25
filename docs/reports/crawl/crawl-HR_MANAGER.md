@@ -1,10 +1,10 @@
 # UI Crawler Audit Report: HR_MANAGER
 
 - **Role Code**: `HR_MANAGER`
-- **Controls Discovered**: 262
-- **Controls Clicked & Verified**: 262
+- **Controls Discovered**: 246
+- **Controls Clicked & Verified**: 246
 - **Bugs & Anomalies**: 0
-- **Timestamp**: 2026-11-20T05:31:18.809Z
+- **Timestamp**: 2026-11-25T07:17:05.611Z
 
 ### Status: PASS (0 Bugs)
 

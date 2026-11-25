@@ -146,7 +146,7 @@ export default function MyLeavePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-text gold-page-title">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-text">
             {isAr ? 'رصيد إجازاتي وسجل الاستحقاق' : 'My Leave Balances & Accruals'}
           </h1>
           <p className="text-xs sm:text-sm text-text-muted mt-0.5">

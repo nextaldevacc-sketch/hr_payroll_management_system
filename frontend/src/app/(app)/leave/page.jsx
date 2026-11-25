@@ -39,7 +39,7 @@ export default function LeavePage() {
         </div>
 
         {/* Navigation Tabs */}
-        <div role="tablist" className="flex items-center gap-1.5 bg-surface/80 border border-border/80 p-1 rounded-2xl text-xs backdrop-blur-md overflow-x-auto max-w-full">
+        <div role="tablist" className="flex items-center gap-1.5 bg-surface border border-border p-1 rounded-2xl text-xs overflow-x-auto max-w-full">
           <button
             type="button"
             id="tab-leave-requests"

@@ -16,7 +16,7 @@ export function AccessDenied403({ requiredArea = '' }) {
 
   return (
     <div className="min-h-[70vh] w-full flex items-center justify-center p-4">
-      <div className="max-w-md w-full p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl shadow-2xl text-center space-y-5">
+      <div className="max-w-md w-full p-8 rounded-3xl border border-border bg-surface-raised shadow-2xl text-center space-y-5">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-amber-500 shadow-inner">
           <ShieldAlert className="w-8 h-8" />
         </div>

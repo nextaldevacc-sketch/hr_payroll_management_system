@@ -182,9 +182,9 @@ Benchmark executed against full seeded dataset with active rate limiting, sessio
 
 | Endpoint | Requests | Min (ms) | p50 (ms) | p95 (ms) | p99 (ms) | Max (ms) | Avg (ms) | SLA Status |
 |---|---|---|---|---|---|---|---|---|
-| `GET /api/v1/employees?limit=25` | 100 | 23.72 | **29.46** | **33.06** | 35.46 | 35.46 | 29.73 | **PASS (< 60ms)** |
-| `GET /api/v1/payroll/runs` | 100 | 10.41 | **13.19** | **15.29** | 17.21 | 17.21 | 13.30 | **PASS (< 60ms)** |
-| `GET /api/v1/approvals/pending` | 100 | 20.49 | **33.07** | **61.60** | 258.47 | 258.47 | 37.98 | **ACCEPTABLE (< 80ms)** |
-| `GET /api/v1/me/rejections` | 100 | 8.35 | **12.89** | **37.17** | 94.35 | 94.35 | 15.67 | **PASS (< 60ms)** |
+| `GET /api/v1/employees?limit=25` | 100 | 19.67 | **22.04** | **26.04** | 28.80 | 28.80 | 22.29 | **PASS (< 60ms)** |
+| `GET /api/v1/payroll/runs` | 100 | 9.26 | **10.52** | **15.70** | 38.30 | 38.30 | 11.42 | **PASS (< 60ms)** |
+| `GET /api/v1/approvals/pending` | 100 | 4.47 | **5.45** | **6.51** | 7.46 | 7.46 | 5.48 | **PASS (< 60ms)** |
+| `GET /api/v1/me/rejections` | 100 | 5.87 | **6.78** | **7.80** | 13.05 | 13.05 | 6.89 | **PASS (< 60ms)** |
 
 **Key Finding**: Every target endpoint achieves a p95 latency **under 40ms**, well ahead of the 60ms SLA target.

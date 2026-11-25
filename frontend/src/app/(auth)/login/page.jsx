@@ -331,7 +331,7 @@ export default function LoginPage() {
                     required
                     autoComplete="email"
                     dir="ltr"
-                    className="w-full ps-10 pe-3.5 py-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] text-slate-900 dark:text-white text-xs font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                    className="w-full ps-10 pe-3.5 py-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] text-slate-900 dark:text-white text-xs font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                   />
                 </div>
               </div>
@@ -343,7 +343,7 @@ export default function LoginPage() {
                   </label>
                   <Link
                     href="/forgot-password"
-                    className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline"
+                    className="text-xs font-semibold text-primary hover:underline"
                   >
                     {isAr ? 'نسيت كلمة المرور؟' : 'Forgot password?'}
                   </Link>
@@ -360,7 +360,7 @@ export default function LoginPage() {
                     required
                     autoComplete="current-password"
                     dir="ltr"
-                    className="w-full ps-10 pe-10 py-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] text-slate-900 dark:text-white text-xs font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                    className="w-full ps-10 pe-10 py-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] text-slate-900 dark:text-white text-xs font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                   />
                   <button
                     type="button"
@@ -379,7 +379,7 @@ export default function LoginPage() {
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-amber-500 accent-amber-500"
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary accent-primary"
                   />
                   <span>{isAr ? 'تذكرني' : 'Remember me'}</span>
                 </label>
@@ -390,14 +390,14 @@ export default function LoginPage() {
                 type="submit"
                 id="btn-login-submit"
                 disabled={!hydrated || isLoading}
-                className="relative group overflow-hidden w-full py-3 px-4 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all duration-200"
+                className="relative group overflow-hidden w-full py-3 px-4 rounded-xl font-bold text-xs bg-primary hover:bg-primary-hover active:bg-primary-pressed text-primary-on shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all duration-200"
               >
                 {/* CSS Shine Sweep */}
                 <span className="absolute inset-0 w-1/2 h-full bg-white/25 skew-x-12 -translate-x-full group-hover:translate-x-[300%] transition-transform duration-1000 ease-out pointer-events-none" />
 
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                    <Loader2 className="w-4 h-4 animate-spin text-primary-on" />
                     <span>{isAr ? 'جاري التحقق...' : 'Signing in...'}</span>
                   </>
                 ) : (
@@ -421,7 +421,7 @@ export default function LoginPage() {
             transition={{ duration: 0.16 }}
           >
             <div className="mb-5 text-start">
-              <div className="inline-flex p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 mb-2">
+              <div className="inline-flex p-2.5 rounded-xl bg-primary-wash text-primary mb-2">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">
@@ -462,7 +462,7 @@ export default function LoginPage() {
                     required
                     dir="ltr"
                     maxLength={isRecoveryMode ? 20 : 6}
-                    className="w-full ps-10 pe-3.5 py-3 text-center text-sm tracking-widest font-mono rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                    className="w-full ps-10 pe-3.5 py-3 text-center text-sm tracking-widest font-mono rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                   />
                 </div>
               </div>
@@ -470,11 +470,11 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading || !mfaCode.trim()}
-                className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all"
+                className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-primary hover:bg-primary-hover active:bg-primary-pressed text-primary-on font-bold shadow-lg shadow-primary/20 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                    <Loader2 className="w-4 h-4 animate-spin text-primary-on" />
                     <span>{isAr ? 'جاري التحقق...' : 'Verifying...'}</span>
                   </>
                 ) : (
@@ -493,7 +493,7 @@ export default function LoginPage() {
                     setMfaCode('');
                     setErrorMessage('');
                   }}
-                  className="text-xs text-amber-600 dark:text-amber-400 hover:underline font-semibold"
+                  className="text-xs text-primary hover:underline font-semibold"
                 >
                   {isRecoveryMode
                     ? isAr
@@ -530,7 +530,7 @@ export default function LoginPage() {
             transition={{ duration: 0.16 }}
           >
             <div className="mb-4 text-start">
-              <div className="inline-flex p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 mb-2">
+              <div className="inline-flex p-2.5 rounded-xl bg-primary-wash text-primary mb-2">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">
@@ -569,7 +569,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={copyManualKey}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
                   title="Copy Key"
                 >
                   {copiedKey ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
@@ -591,18 +591,18 @@ export default function LoginPage() {
                   required
                   maxLength={6}
                   dir="ltr"
-                  className="w-full py-2.5 px-3 text-center text-sm tracking-widest font-mono rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+                  className="w-full py-2.5 px-3 text-center text-sm tracking-widest font-mono rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading || mfaCode.length !== 6}
-                className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all"
+                className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-primary hover:bg-primary-hover active:bg-primary-pressed text-primary-on font-bold shadow-lg shadow-primary/20 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                    <Loader2 className="w-4 h-4 animate-spin text-primary-on" />
                     <span>{isAr ? 'جاري التحقق والتفعيل...' : 'Activating MFA...'}</span>
                   </>
                 ) : (
@@ -647,7 +647,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={copyAllRecoveryCodes}
-                  className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1 hover:underline"
+                  className="text-xs font-semibold text-primary flex items-center gap-1 hover:underline"
                 >
                   {copiedCodes ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedCodes ? (isAr ? 'تم النسخ!' : 'Copied!') : (isAr ? 'نسخ الكل' : 'Copy All')}</span>
@@ -678,7 +678,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={handleFinishRecoveryAndProceed}
-              className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 active:scale-[0.99] flex items-center justify-center gap-2 transition-all"
+              className="w-full py-3 px-4 rounded-xl font-bold text-xs bg-primary hover:bg-primary-hover active:bg-primary-pressed text-primary-on shadow-lg shadow-primary/20 active:scale-[0.99] flex items-center justify-center gap-2 transition-all"
             >
               <span>{isAr ? 'متابعة إلى لوحة التحكم' : 'Continue to Dashboard'}</span>
               {isRTL ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}

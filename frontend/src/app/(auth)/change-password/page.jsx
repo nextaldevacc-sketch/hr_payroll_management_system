@@ -101,7 +101,7 @@ export default function ChangePasswordPage() {
 
         {/* New Password */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 text-start">
+          <label className="block text-xs font-semibold text-text mb-1.5 text-start">
             {isAr ? 'كلمة المرور الجديدة' : 'New Password'}
           </label>
           <div className="relative">
@@ -113,12 +113,12 @@ export default function ChangePasswordPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="••••••••••••"
               disabled={isLoading}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 text-slate-900 dark:text-white text-xs outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 disabled:opacity-50 transition pe-10"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-surface-raised dark:bg-inset text-text text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 transition pe-10"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 end-0 pe-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              className="absolute inset-y-0 end-0 pe-3 flex items-center text-text-muted hover:text-text"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -127,7 +127,7 @@ export default function ChangePasswordPage() {
 
         {/* Confirm Password */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 text-start">
+          <label className="block text-xs font-semibold text-text mb-1.5 text-start">
             {isAr ? 'تأكيد كلمة المرور' : 'Confirm Password'}
           </label>
           <div className="relative">
@@ -139,61 +139,61 @@ export default function ChangePasswordPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="••••••••••••"
               disabled={isLoading}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 text-slate-900 dark:text-white text-xs outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 disabled:opacity-50 transition pe-10"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-surface-raised dark:bg-inset text-text text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 transition pe-10"
             />
           </div>
         </div>
 
         {/* Password Policy Hints */}
-        <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-1.5 text-start">
-          <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
+        <div className="p-3 rounded-2xl bg-surface-raised border border-border space-y-1.5 text-start">
+          <p className="text-[11px] font-semibold text-text mb-1">
             {isAr ? 'شروط كلمة المرور:' : 'Password requirements:'}
           </p>
           <div className="flex items-center gap-2 text-[11px]">
             <span
               className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${
-                hasLength ? 'bg-emerald-500 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-500'
+                hasLength ? 'bg-emerald-500 text-white' : 'bg-black/10 dark:bg-white/10 text-text-muted'
               }`}
             >
               {hasLength ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : '•'}
             </span>
-            <span className={hasLength ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}>
+            <span className={hasLength ? 'text-emerald-500 dark:text-emerald-400' : 'text-text-muted'}>
               {isAr ? '10 خانات على الأقل' : 'At least 10 characters'}
             </span>
           </div>
           <div className="flex items-center gap-2 text-[11px]">
             <span
               className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${
-                hasUpper && hasLower ? 'bg-emerald-500 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-500'
+                hasUpper && hasLower ? 'bg-emerald-500 text-white' : 'bg-black/10 dark:bg-white/10 text-text-muted'
               }`}
             >
               {hasUpper && hasLower ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : '•'}
             </span>
-            <span className={hasUpper && hasLower ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}>
+            <span className={hasUpper && hasLower ? 'text-emerald-500 dark:text-emerald-400' : 'text-text-muted'}>
               {isAr ? 'حروف كبيرة وصغيرة (A-Z و a-z)' : 'Upper and lowercase letters (A-Z & a-z)'}
             </span>
           </div>
           <div className="flex items-center gap-2 text-[11px]">
             <span
               className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${
-                hasNumber ? 'bg-emerald-500 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-500'
+                hasNumber ? 'bg-emerald-500 text-white' : 'bg-black/10 dark:bg-white/10 text-text-muted'
               }`}
             >
               {hasNumber ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : '•'}
             </span>
-            <span className={hasNumber ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}>
+            <span className={hasNumber ? 'text-emerald-500 dark:text-emerald-400' : 'text-text-muted'}>
               {isAr ? 'تحتوي على أرقام (0-9)' : 'Contains numbers (0-9)'}
             </span>
           </div>
           <div className="flex items-center gap-2 text-[11px]">
             <span
               className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] ${
-                hasSpecial ? 'bg-emerald-500 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-500'
+                hasSpecial ? 'bg-emerald-500 text-white' : 'bg-black/10 dark:bg-white/10 text-text-muted'
               }`}
             >
               {hasSpecial ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : '•'}
             </span>
-            <span className={hasSpecial ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}>
+            <span className={hasSpecial ? 'text-emerald-500 dark:text-emerald-400' : 'text-text-muted'}>
               {isAr ? 'رموز خاصة (!@#$%)' : 'Special character (!@#$%)'}
             </span>
           </div>
@@ -206,7 +206,7 @@ export default function ChangePasswordPage() {
               >
                 {isMatch ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : '✕'}
               </span>
-              <span className={isMatch ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+              <span className={isMatch ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}>
                 {isMatch
                   ? (isAr ? 'كلمتا المرور متطابقتان' : 'Passwords match')
                   : (isAr ? 'كلمتا المرور غير متطابقتين' : 'Passwords do not match')}
@@ -219,11 +219,11 @@ export default function ChangePasswordPage() {
           type="submit"
           data-testid="change-password-submit-btn"
           disabled={isLoading || !hasLength || !hasUpper || !hasLower || !hasNumber || !hasSpecial || !isMatch}
-          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-600 active:bg-sky-700 text-white text-xs font-semibold transition disabled:opacity-50 disabled:pointer-events-none shadow-sm shadow-sky-500/20"
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-pressed text-primary-on text-xs font-bold transition disabled:opacity-50 disabled:pointer-events-none shadow-sm shadow-primary/20"
         >
           {isLoading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin text-primary-on" />
               <span>{isAr ? 'جاري الحفظ...' : 'Saving password...'}</span>
             </>
           ) : (
