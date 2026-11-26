@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mailer } from '../src/lib/mailer.js';
+import { INVITE_TOKEN_TTL_HOURS } from '@nextal/shared';
 import nodemailer from 'nodemailer';
 
 test('Mailer with Mock Transport: delivers email and records outbox', async () => {
@@ -59,6 +60,12 @@ test('Welcome Email: bilingual template and security rules', () => {
   // Plaintext check
   assert.match(tpl.text, /zayed@aljalil\.ae/);
   assert.match(tpl.text, /https:\/\/payroll\.nextaltechnologies\.com\/login/);
+
+  // Expiry check matches INVITE_TOKEN_TTL_HOURS
+  assert.match(tpl.html, new RegExp(`Valid for ${INVITE_TOKEN_TTL_HOURS} Hours`));
+  assert.match(tpl.html, new RegExp(`صالح لمدة ${INVITE_TOKEN_TTL_HOURS} ساعة`));
+  assert.match(tpl.text, new RegExp(`Expires in ${INVITE_TOKEN_TTL_HOURS} hours`));
+  assert.match(tpl.text, new RegExp(`صالح لمدة ${INVITE_TOKEN_TTL_HOURS} ساعة`));
 });
 
 test('Welcome Email: temporary password mode redacts password from outbox metadata', () => {

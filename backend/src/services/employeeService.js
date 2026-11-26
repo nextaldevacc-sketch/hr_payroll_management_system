@@ -19,6 +19,8 @@ import {
   normalizeDocumentType,
   DOCUMENT_TYPES,
   getDocumentTypeConfig,
+  INVITE_TOKEN_TTL_MS,
+  INVITE_TOKEN_TTL_HOURS,
 } from '@nextal/shared';
 import storageService from '../lib/storage.js';
 import auditService from './auditService.js';
@@ -2308,7 +2310,7 @@ export class EmployeeService {
     } else {
       const rawToken = crypto.randomBytes(32).toString('hex');
       const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + INVITE_TOKEN_TTL_MS);
 
       await this.prisma.auth_tokens.create({
         data: {

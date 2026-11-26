@@ -89,11 +89,15 @@ DATABASE_URL=${DATABASE_URL}
 
 In aaPanel Web Site Management for `payroll.nextaltechnologies.com`:
 
-### A. Set Request Body Limit (25MB)
+### A. Set Request Body Limit (25MB — Optimal for Browser Chunking)
 Under **Site Settings** > **Configuration File**:
 ```nginx
 client_max_body_size 25M;
 ```
+
+> [!TIP]
+> **Why keep 25M instead of increasing it?**
+> Nextal HR's frontend bulk upload automatically chunks uploads into sequential slices of at most 5 files and 20MB per request (`createFileChunks`). The backend validates and encrypts files individually into temporary batch storage. Keeping `client_max_body_size 25M` in aaPanel provides generous headroom while protecting the server against denial-of-service memory exhaustion and proxy timeout drops. Do not raise this limit; chunking ensures 100+ files upload reliably through the 25M proxy gate.
 
 ### B. Configure URL Proxy Rules
 Under **Site Settings** > **URL rewrite / Reverse Proxy**:

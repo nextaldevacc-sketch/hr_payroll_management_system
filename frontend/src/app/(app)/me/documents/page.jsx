@@ -19,6 +19,7 @@ import { Modal } from '@/components/primitives/Modal';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
 import { formatErrorMessage } from '@/utils/formatError';
+import { createFileChunks } from '@/utils/chunkUtils';
 import { getMyDocuments, uploadMyDocument, bulkUploadMyDocuments } from '@/services/meApi';
 import { DOCUMENT_TYPES_LIST, getDocumentTypeConfig, getDocumentTypeLabel } from '@nextal/shared';
 
@@ -100,16 +101,24 @@ export default function MyDocumentsPage() {
       }
       setSubmitting(true);
       try {
-        const formData = new FormData();
-        for (const f of multipleFiles) {
-          formData.append('files', f);
+        // Chunk files: max 5 files and max 20MB per request
+        const chunks = createFileChunks(multipleFiles, 5, 20 * 1024 * 1024);
+        let totalProcessed = 0;
+        for (let i = 0; i < chunks.length; i++) {
+          const chunk = chunks[i];
+          const formData = new FormData();
+          for (const f of chunk) {
+            formData.append('files', f);
+          }
+          const res = await bulkUploadMyDocuments(formData);
+          const data = res?.data || res;
+          totalProcessed += data.processed || chunk.length;
         }
-        const res = await bulkUploadMyDocuments(formData);
-        const data = res?.data || res;
+
         showSuccess(
           language === 'ar'
-            ? `تم رفع ${data.processed || multipleFiles.length} مستندات بنجاح للمراجعة`
-            : `Successfully uploaded ${data.processed || multipleFiles.length} documents for HR verification`
+            ? `تم رفع ${totalProcessed} مستندات بنجاح للمراجعة`
+            : `Successfully uploaded ${totalProcessed} documents for HR verification`
         );
         setUploadModalOpen(false);
         setMultipleFiles([]);

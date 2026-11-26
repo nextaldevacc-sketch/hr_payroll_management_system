@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
-import { safeFileUpload as upload } from '../middleware/fileUpload.js';
+import { safeFileUpload as upload, bulkChunkUpload, validateChunkTotalSize } from '../middleware/fileUpload.js';
 import meController from '../controllers/meController.js';
 
 const router = Router();
@@ -32,7 +32,7 @@ router.get('/payslips/:id/pdf', meController.getMyPayslipPdf);
 // 7. My Documents (View, upload renewed, and download)
 router.get('/documents', meController.getMyDocuments);
 router.post('/documents', upload.single('file'), meController.uploadMyDocument);
-router.post('/documents/bulk-upload', upload.array('files', 10), meController.bulkUploadMyDocuments);
+router.post('/documents/bulk-upload', bulkChunkUpload.array('files', 5), validateChunkTotalSize, meController.bulkUploadMyDocuments);
 router.get('/documents/:id/download', meController.downloadMyDocument);
 
 // 8. My Rejected Requests (Self-service personal rejection trail)

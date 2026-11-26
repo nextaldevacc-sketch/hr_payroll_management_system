@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import nodemailer from 'nodemailer';
 import prisma from './prisma.js';
+import { INVITE_TOKEN_TTL_HOURS } from '@nextal/shared';
 
 /**
  * Nextal HR & Payroll — Production Mailer & Persisted Outbox Service
@@ -385,11 +386,11 @@ export class MailerService {
             <div style="text-align: center; margin: 28px 0;">
               <a href="${inviteUrl}" style="background: #0284c7; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block;">تفعيل الحساب وتعيين كلمة المرور</a>
             </div>
-            <p style="color: #64748b; font-size: 12px;">ملاحظة أمنية: هذا الرابط صالح للاستخدام مرة واحدة فقط وينتهي بعد 72 ساعة.</p>
+            <p style="color: #64748b; font-size: 12px;">ملاحظة أمنية: هذا الرابط صالح للاستخدام مرة واحدة فقط وينتهي بعد ${INVITE_TOKEN_TTL_HOURS} ساعة.</p>
             <p style="color: #64748b; font-size: 11px; margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 12px;">إذا لم تكن تتوقع هذه الدعوة، يرجى التواصل مع إدارة الموارد البشرية وتجاهل هذه الرسالة.</p>
           </div>
         `,
-        text: `مرحباً ${recipientName}،\n\nتمت دعوتك للوصول إلى بوابة ${companyName}.\nيرجى زيارة الرابط أدناه لتفعيل حسابك:\n${inviteUrl}\n\nهذا الرابط صالح لمدة 72 ساعة للاستخدام مرة واحدة.`,
+        text: `مرحباً ${recipientName}،\n\nتمت دعوتك للوصول إلى بوابة ${companyName}.\nيرجى زيارة الرابط أدناه لتفعيل حسابك:\n${inviteUrl}\n\nهذا الرابط صالح لمدة ${INVITE_TOKEN_TTL_HOURS} ساعة للاستخدام مرة واحدة.`,
       };
     }
 
@@ -570,7 +571,7 @@ export class MailerService {
               <p style="margin: 6px 0 0 0; font-size: 11px; color: #b45309;">(You will be required to choose a new permanent password on your first sign in)</p>
             ` : setPasswordUrl ? `
               <div style="margin-top: 14px;">
-                <a href="${setPasswordUrl}" style="background: #1D1D1D; color: #E5BDDF; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block;">Set Your Password (Valid for 48 Hours)</a>
+                <a href="${setPasswordUrl}" style="background: #1D1D1D; color: #E5BDDF; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block;">Set Your Password (Valid for ${INVITE_TOKEN_TTL_HOURS} Hours)</a>
               </div>
             ` : ''}
           </div>
@@ -602,7 +603,7 @@ export class MailerService {
               <p style="margin: 6px 0 0 0; font-size: 11px; color: #b45309;">(سيتعين عليك تعيين كلمة مرور جديدة عند أول تسجيل دخول)</p>
             ` : setPasswordUrl ? `
               <div style="margin-top: 14px;">
-                <a href="${setPasswordUrl}" style="background: #1D1D1D; color: #E5BDDF; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block;">تعيين كلمة المرور (صالح لمدة 48 ساعة)</a>
+                <a href="${setPasswordUrl}" style="background: #1D1D1D; color: #E5BDDF; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; display: inline-block;">تعيين كلمة المرور (صالح لمدة ${INVITE_TOKEN_TTL_HOURS} ساعة)</a>
               </div>
             ` : ''}
           </div>
@@ -631,7 +632,7 @@ Your employee account has been officially verified and activated.
 
 Login URL: ${loginUrl}
 Username (Work Email): ${workEmail}
-${credentialsMode === 'temp_password' && tempPassword ? `Temporary Password: ${tempPassword}\n(You must change this upon first login)` : setPasswordUrl ? `Set Password Link (Expires in 48 hours):\n${setPasswordUrl}` : ''}
+${credentialsMode === 'temp_password' && tempPassword ? `Temporary Password: ${tempPassword}\n(You must change this upon first login)` : setPasswordUrl ? `Set Password Link (Expires in ${INVITE_TOKEN_TTL_HOURS} hours):\n${setPasswordUrl}` : ''}
 
 What to do next:
 1. Sign in to the employee portal.
@@ -645,7 +646,7 @@ What to do next:
 
 رابط الدخول: ${loginUrl}
 اسم المستخدم: ${workEmail}
-${credentialsMode === 'temp_password' && tempPassword ? `كلمة المرور المؤقتة: ${tempPassword}\n(يجب تغييرها عند أول تسجيل دخول)` : setPasswordUrl ? `رابط تعيين كلمة المرور (صالح لمدة 48 ساعة):\n${setPasswordUrl}` : ''}
+${credentialsMode === 'temp_password' && tempPassword ? `كلمة المرور المؤقتة: ${tempPassword}\n(يجب تغييرها عند أول تسجيل دخول)` : setPasswordUrl ? `رابط تعيين كلمة المرور (صالح لمدة ${INVITE_TOKEN_TTL_HOURS} ساعة):\n${setPasswordUrl}` : ''}
 
 الخطوات التالية:
 1. تسجيل الدخول إلى البوابة.

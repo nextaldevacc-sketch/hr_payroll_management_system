@@ -23,6 +23,9 @@ MAIL_FROM="Al Jalil HR <noreply@nextaltechnologies.com>"
 # Credential delivery mode for new active employees: link (recommended) | temp_password
 WELCOME_CREDENTIALS_MODE=link
 
+# Invitation & Welcome Set-Password Token Lifetime (Unified Constant: 72 Hours)
+# INVITE_TOKEN_TTL_HOURS = 72 (exported from @nextal/shared, exactly matches email body text)
+
 # Hourly outgoing rate limit protection (default: 100)
 EMAIL_RATE_LIMIT_PER_HOUR=100
 ```

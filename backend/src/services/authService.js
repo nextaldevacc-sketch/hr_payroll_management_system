@@ -8,7 +8,7 @@ import { invalidateUserSession } from '../middleware/authCache.js';
 import { SALARY_ROLES, hasSalaryAccess } from '../serializers/index.js';
 import { PRIVILEGED_ROLES } from './mfaService.js';
 export { PRIVILEGED_ROLES };
-import { assertPasswordCompliant } from '@nextal/shared';
+import { assertPasswordCompliant, INVITE_TOKEN_TTL_MS, INVITE_TOKEN_TTL_HOURS } from '@nextal/shared';
 import { authEmailLimiter, authEmailIpLimiter } from '../lib/rateLimiter.js';
 
 const getJwtSecret = () => {
@@ -580,7 +580,7 @@ export class AuthService {
   async generateInviteToken(user) {
     const rawToken = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
+    const expiresAt = new Date(Date.now() + INVITE_TOKEN_TTL_MS); // Unifed TTL
 
     await this.prisma.$base().auth_tokens.create({
       data: {

@@ -1,64 +1,57 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { PDFDocument, PDFName } from 'pdf-lib';
 import { validatePdfBuffer } from '../src/lib/pdfValidator.js';
 import { bulkDocumentService } from '../src/services/bulkDocumentService.js';
 
-function createMockPdf({
-  header = '%PDF-1.4\n',
-  pages = 1,
-  encrypted = false,
-  activeScript = false,
-  size = 100,
-} = {}) {
-  let content = header;
-  if (encrypted) {
-    content += '/Filter /Standard /V 2 /R 3 /Length 128 /P -1052 /Encrypt 5 0 R\n';
+async function createTestPdf({ pages = 1, active = false, overPages = false } = {}) {
+  const doc = await PDFDocument.create();
+  const total = overPages ? 55 : pages;
+  for (let i = 0; i < total; i++) {
+    doc.addPage([100, 100]);
   }
-  if (activeScript) {
-    content += '/Names << /JavaScript 6 0 R >>\n/JavaScript << /S /JavaScript /JS (app.alert(1);) >>\n';
+  if (active) {
+    doc.catalog.set(PDFName.of('OpenAction'), doc.context.obj({ S: 'JavaScript', JS: 'alert(1)' }));
   }
-  for (let i = 0; i < pages; i++) {
-    content += `3 ${i} obj\n<< /Type /Page /Parent 2 0 R >>\nendobj\n`;
-  }
-  content += '%%EOF\n';
-  const buf = Buffer.from(content, 'latin1');
-  if (buf.length < size) {
-    return Buffer.concat([buf, Buffer.alloc(size - buf.length, 0x20)]);
-  }
-  return buf;
+  return Buffer.from(await doc.save());
 }
 
-test('PDF Validator: accepts valid static scanned PDF', () => {
-  const validPdf = createMockPdf({ pages: 2 });
-  const check = validatePdfBuffer(validPdf);
+test('PDF Validator: accepts valid static scanned PDF', async () => {
+  const validPdf = await createTestPdf({ pages: 2 });
+  const check = await validatePdfBuffer(validPdf);
   assert.equal(check.valid, true);
   assert.equal(check.pageCount, 2);
 });
 
-test('PDF Validator: rejects file without %PDF- magic bytes', () => {
+test('PDF Validator: rejects file without %PDF- magic bytes', async () => {
   const fakePdf = Buffer.from('NOT A PDF FILE DATA 123456');
-  const check = validatePdfBuffer(fakePdf);
+  const check = await validatePdfBuffer(fakePdf);
   assert.equal(check.valid, false);
   assert.equal(check.code, 'INVALID_PDF_HEADER');
 });
 
-test('PDF Validator: rejects encrypted / password-protected PDF', () => {
-  const encPdf = createMockPdf({ encrypted: true });
-  const check = validatePdfBuffer(encPdf);
+test('PDF Validator: rejects encrypted / password-protected PDF', async () => {
+  const encPdf = Buffer.from(
+    '%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n' +
+    '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n' +
+    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>\nendobj\n' +
+    'trailer\n<< /Root 1 0 R /Encrypt 4 0 R >>\n%%EOF'
+  );
+  const check = await validatePdfBuffer(encPdf);
   assert.equal(check.valid, false);
   assert.equal(check.code, 'PASSWORD_PROTECTED_PDF');
 });
 
-test('PDF Validator: rejects active content (JavaScript / Executables)', () => {
-  const activePdf = createMockPdf({ activeScript: true });
-  const check = validatePdfBuffer(activePdf);
+test('PDF Validator: rejects active content (JavaScript / Executables)', async () => {
+  const activePdf = await createTestPdf({ active: true });
+  const check = await validatePdfBuffer(activePdf);
   assert.equal(check.valid, false);
   assert.equal(check.code, 'ACTIVE_CONTENT_BLOCKED');
 });
 
-test('PDF Validator: rejects PDF exceeding 50 pages', () => {
-  const longPdf = createMockPdf({ pages: 55 });
-  const check = validatePdfBuffer(longPdf);
+test('PDF Validator: rejects PDF exceeding 50 pages', async () => {
+  const longPdf = await createTestPdf({ overPages: true });
+  const check = await validatePdfBuffer(longPdf);
   assert.equal(check.valid, false);
   assert.equal(check.code, 'PAGE_COUNT_EXCEEDED');
   assert.equal(check.pageCount, 55);
@@ -90,20 +83,125 @@ test('BulkDocumentService: parseFilename convention', () => {
 });
 
 test('BulkDocumentService: parseManifestCsv', () => {
-  const csv = `file_name,employee_code,doc_type,doc_number,issue_date,expiry_date
-scan1.pdf,EMP-001,EMIRATES_ID,784-1990-1234567-1,2024-01-01,2028-01-01
-scan2.pdf,EMP-002,BANK_DETAILS,AE070331234567890123456,2026-01-01,
+  const csv = `file_name,employee_code,doc_type,doc_number,expiry_date
+doc1.pdf,EMP-001,EMIRATES_ID,784-1990-1234567-1,2028-12-31
+doc2.pdf,EMP-042,PASSPORT,N1234567,2030-05-15
 `;
   const map = bulkDocumentService.parseManifestCsv(csv);
   assert.equal(map.size, 2);
-
-  const entry1 = map.get('scan1.pdf');
+  const entry1 = map.get('doc1.pdf');
   assert.equal(entry1.employeeCode, 'EMP-001');
   assert.equal(entry1.docType, 'EMIRATES_ID');
   assert.equal(entry1.docNumber, '784-1990-1234567-1');
+  assert.equal(entry1.expiryDate, '2028-12-31');
+});
 
-  const entry2 = map.get('scan2.pdf');
-  assert.equal(entry2.employeeCode, 'EMP-002');
-  assert.equal(entry2.docType, 'BANK_DETAILS');
-  assert.equal(entry2.docNumber, 'AE070331234567890123456');
+test('BulkDocumentService: chunked upload, batch preview, and zero re-upload process', async () => {
+  const mockEmployees = [
+    {
+      id: 'emp-uuid-1',
+      company_id: 'comp-1',
+      employee_code: 'EMP-001',
+      name: 'Ahmed Al Mansoori',
+      branch_id: 'branch-1',
+      company_visa_id: 'visa-1',
+      status: 'Active',
+    },
+    {
+      id: 'emp-uuid-2',
+      company_id: 'comp-1',
+      employee_code: 'EMP-002',
+      name: 'Fatima Al Nuaimi',
+      branch_id: 'branch-1',
+      company_visa_id: 'visa-1',
+      status: 'Active',
+    },
+  ];
+
+  const createdDocs = [];
+  const mockDb = {
+    employees: {
+      findMany: async () => mockEmployees,
+    },
+    employee_documents: {
+      findFirst: async () => null,
+      create: async ({ data }) => {
+        createdDocs.push(data);
+        return { id: `doc-${createdDocs.length}`, ...data };
+      },
+      update: async ({ data }) => data,
+    },
+    settings_versions: {
+      count: async () => 0,
+      create: async () => ({}),
+    },
+  };
+
+  const { BulkDocumentService } = await import('../src/services/bulkDocumentService.js');
+  const service = new BulkDocumentService(mockDb);
+
+  const pdf1 = await createTestPdf({ pages: 1 });
+  const pdf2 = await createTestPdf({ pages: 2 });
+  const invalidPdf = Buffer.from('NOT A REAL PDF');
+
+  // Chunk 1: Upload 2 valid files
+  const chunk1 = await service.uploadChunk({
+    companyId: 'comp-1',
+    viewer: { id: 'admin-1', role: 'COMPANY_ADMIN' },
+    files: [
+      { originalname: 'EMP-001_EMIRATES_ID.pdf', buffer: pdf1, size: pdf1.length },
+      { originalname: 'EMP-002_PASSPORT.pdf', buffer: pdf2, size: pdf2.length },
+    ],
+    chunkIndex: 0,
+    totalChunks: 2,
+    totalFiles: 3,
+  });
+
+  assert.ok(chunk1.batch_id);
+  assert.equal(chunk1.total_saved, 2);
+
+  // Chunk 2: Upload 1 invalid file into same batch_id
+  const chunk2 = await service.uploadChunk({
+    companyId: 'comp-1',
+    viewer: { id: 'admin-1', role: 'COMPANY_ADMIN' },
+    batchId: chunk1.batch_id,
+    files: [
+      { originalname: 'EMP-001_BANK_DETAILS.pdf', buffer: invalidPdf, size: invalidPdf.length },
+    ],
+    chunkIndex: 1,
+    totalChunks: 2,
+    totalFiles: 3,
+  });
+
+  assert.equal(chunk2.batch_id, chunk1.batch_id);
+  assert.equal(chunk2.total_saved, 3);
+
+  // Preview batch from server-side batch state (ZERO file re-upload)
+  const preview = await service.getBatchPreview({
+    companyId: 'comp-1',
+    viewer: { id: 'admin-1', role: 'COMPANY_ADMIN' },
+    batchId: chunk1.batch_id,
+  });
+
+  assert.equal(preview.batch_id, chunk1.batch_id);
+  assert.equal(preview.summary.total_files, 3);
+  assert.equal(preview.summary.matched, 2);
+  assert.equal(preview.summary.invalid, 1);
+  assert.equal(preview.summary.can_proceed, true);
+
+  // Process batch by batch_id alone (ZERO file re-upload)
+  const processRes = await service.processBatchById({
+    companyId: 'comp-1',
+    viewer: { id: 'admin-1', role: 'COMPANY_ADMIN' },
+    batchId: chunk1.batch_id,
+  });
+
+  assert.equal(processRes.success, true);
+  assert.equal(processRes.total_ready, 2);
+  assert.equal(processRes.processed, 2);
+  assert.equal(createdDocs.length, 2);
+  assert.equal(createdDocs[0].employee_id, 'emp-uuid-1');
+  assert.equal(createdDocs[0].doc_type, 'EMIRATES_ID');
+  assert.equal(createdDocs[1].employee_id, 'emp-uuid-2');
+  assert.equal(createdDocs[1].doc_type, 'PASSPORT');
 });

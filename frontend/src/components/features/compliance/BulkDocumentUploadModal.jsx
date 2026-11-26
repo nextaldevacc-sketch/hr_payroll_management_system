@@ -12,12 +12,14 @@ import {
   X,
   FileCheck,
   Shield,
+  RotateCcw,
 } from 'lucide-react';
 import { Modal } from '../../primitives/Modal';
 import { Button } from '../../primitives/form/Button';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useToast } from '../../../context/ToastContext';
 import { request } from '../../../services/apiClient';
+import { createFileChunks } from '../../../utils/chunkUtils';
 
 export function BulkDocumentUploadModal({ isOpen, onClose, onSuccess }) {
   const { language } = useLanguage();
@@ -26,18 +28,38 @@ export function BulkDocumentUploadModal({ isOpen, onClose, onSuccess }) {
 
   const [files, setFiles] = useState([]);
   const [manifestFile, setManifestFile] = useState(null);
-  const [step, setStep] = useState('select'); // 'select' | 'preview' | 'processing' | 'done'
+  const [step, setStep] = useState('select'); // 'select' | 'uploading' | 'preview' | 'processing' | 'done'
   const [loading, setLoading] = useState(false);
+  const [batchId, setBatchId] = useState(null);
   const [previewData, setPreviewData] = useState(null);
   const [processResult, setProcessResult] = useState(null);
+
+  // Chunking and progress states
+  const [uploadProgress, setUploadProgress] = useState({
+    currentChunk: 0,
+    totalChunks: 0,
+    percent: 0,
+    uploadedCount: 0,
+    totalCount: 0,
+  });
+  const [failedChunkIndex, setFailedChunkIndex] = useState(null);
 
   const resetState = () => {
     setFiles([]);
     setManifestFile(null);
     setStep('select');
     setLoading(false);
+    setBatchId(null);
     setPreviewData(null);
     setProcessResult(null);
+    setUploadProgress({
+      currentChunk: 0,
+      totalChunks: 0,
+      percent: 0,
+      uploadedCount: 0,
+      totalCount: 0,
+    });
+    setFailedChunkIndex(null);
   };
 
   const handleClose = () => {
@@ -59,52 +81,143 @@ export function BulkDocumentUploadModal({ isOpen, onClose, onSuccess }) {
     setManifestFile(file || null);
   };
 
-  const handleGeneratePreview = async () => {
-    if (files.length === 0) {
+  /**
+   * Uploads chunks sequentially with retry/resume capability
+   */
+  const executeChunkedUpload = async (startFromChunk = 0, existingBatchId = null) => {
+    const chunks = createFileChunks(files, 5, 20 * 1024 * 1024);
+    if (chunks.length === 0) {
       showError(isAr ? 'يرجى اختيار ملفات PDF للرفع' : 'Please select PDF files to upload');
       return;
     }
 
+    setStep('uploading');
     setLoading(true);
+    setFailedChunkIndex(null);
+
+    let currentBatchId = existingBatchId || batchId;
+    let accumulatedCount = 0;
+    for (let c = 0; c < startFromChunk; c++) {
+      accumulatedCount += chunks[c].length;
+    }
+
     try {
-      const formData = new FormData();
-      for (const f of files) {
-        formData.append('files', f);
-      }
-      if (manifestFile) {
-        formData.append('manifest', manifestFile);
+      for (let i = startFromChunk; i < chunks.length; i++) {
+        const chunkFiles = chunks[i];
+        setUploadProgress({
+          currentChunk: i + 1,
+          totalChunks: chunks.length,
+          percent: Math.round((i / chunks.length) * 100),
+          uploadedCount: accumulatedCount,
+          totalCount: files.length,
+        });
+
+        // Retry loop for transient failures
+        let attempts = 0;
+        let chunkSuccess = false;
+        let lastError = null;
+
+        while (attempts < 3 && !chunkSuccess) {
+          attempts++;
+          try {
+            const formData = new FormData();
+            for (const f of chunkFiles) {
+              formData.append('files', f);
+            }
+            if (currentBatchId) {
+              formData.append('batch_id', currentBatchId);
+            }
+            if (manifestFile && i === 0) {
+              formData.append('manifest', manifestFile);
+            }
+            formData.append('chunk_index', String(i));
+            formData.append('total_chunks', String(chunks.length));
+            formData.append('total_files', String(files.length));
+
+            const res = await request('/employees/documents/bulk-upload/chunk', {
+              method: 'POST',
+              body: formData,
+            });
+
+            const data = res?.data || res;
+            if (data?.batch_id) {
+              currentBatchId = data.batch_id;
+              setBatchId(currentBatchId);
+            }
+            chunkSuccess = true;
+          } catch (err) {
+            lastError = err;
+            if (attempts < 3) {
+              // Wait 1 second before retry
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+          }
+        }
+
+        if (!chunkSuccess) {
+          setFailedChunkIndex(i);
+          throw lastError || new Error(`Upload failed on chunk ${i + 1}`);
+        }
+
+        accumulatedCount += chunkFiles.length;
       }
 
-      const res = await request('/employees/documents/bulk-upload/preview', {
-        method: 'POST',
-        body: formData,
+      // All chunks successfully uploaded! Fetch preview from server batch state
+      setUploadProgress({
+        currentChunk: chunks.length,
+        totalChunks: chunks.length,
+        percent: 100,
+        uploadedCount: files.length,
+        totalCount: files.length,
       });
 
-      const data = res?.data || res;
-      setPreviewData(data);
+      const previewRes = await request(`/employees/documents/bulk-upload/batch/${currentBatchId}`, {
+        method: 'GET',
+      });
+
+      const previewData = previewRes?.data || previewRes;
+      setPreviewData(previewData);
       setStep('preview');
     } catch (err) {
-      showError(err.message || (isAr ? 'فشلت معاينة الدفعة' : 'Batch preview failed'));
+      showError(
+        err.message ||
+          (isAr
+            ? `فشل رفع الحزمة في المقطع ${(failedChunkIndex || 0) + 1}`
+            : `Upload chunk ${(failedChunkIndex || 0) + 1} failed`)
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  const handleGeneratePreview = async () => {
+    await executeChunkedUpload(0, null);
+  };
+
+  const handleResumeChunk = async () => {
+    if (failedChunkIndex !== null) {
+      await executeChunkedUpload(failedChunkIndex, batchId);
+    }
+  };
+
+  /**
+   * Confirms and processes the batch by batch_id without re-uploading files
+   */
   const handleConfirmProcess = async () => {
+    if (!batchId) {
+      showError(isAr ? 'معرف الدفعة غير صالح' : 'Invalid batch identifier');
+      return;
+    }
+
     setLoading(true);
     setStep('processing');
     try {
-      const formData = new FormData();
-      for (const f of files) {
-        formData.append('files', f);
-      }
-      if (manifestFile) {
-        formData.append('manifest', manifestFile);
-      }
-
       const res = await request('/employees/documents/bulk-upload/process', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ batch_id: batchId }),
       });
 
       const data = res?.data || res;
@@ -142,8 +255,8 @@ export function BulkDocumentUploadModal({ isOpen, onClose, onSuccess }) {
       title={isAr ? 'الرفع المجمع للوثائق والمستندات الرسمية' : 'Bulk Upload Statutory Documents'}
       subtitle={
         isAr
-          ? 'رفع ملفات PDF الممسوحة ضوئياً وتوزيعها تلقائياً بحسب كود الموظف ونوع الوثيقة'
-          : 'Upload batch scanned PDFs automatically matched by employee code and document type'
+          ? 'رفع ملفات PDF الممسوحة ضوئياً بحزم مجزأة وتوزيعها تلقائياً بحسب كود الموظف ونوع الوثيقة'
+          : 'Chunked upload of scanned PDFs automatically matched by employee code and document type'
       }
       maxWidth="max-w-4xl"
     >
@@ -182,8 +295,8 @@ export function BulkDocumentUploadModal({ isOpen, onClose, onSuccess }) {
               </p>
               <p className="text-text-muted mt-1 text-[11px]">
                 {files.length > 0
-                  ? isAr ? `تم تحديد ${files.length} ملف جاهز للمعاينة` : `${files.length} PDF files selected`
-                  : isAr ? 'الحد الأقصى ١٠٠ ملف (حجم كل ملف حتى ٢٥ ميجابايت، وبحد أقصى ٥٠ صفحة)' : 'Up to 100 PDFs (max 25MB & 50 pages per file, AES-256 encrypted)'}
+                  ? isAr ? `تم تحديد ${files.length} ملف جاهز للمعاينة والتجزئة الآلية` : `${files.length} PDF files selected (auto-chunked, max 5 files / 20MB per request)`
+                  : isAr ? 'الحد الأقصى ١٠٠ ملف (حجم كل ملف حتى ٢٥ ميجابايت، تشفير فوري AES-256-GCM)' : 'Up to 100 PDFs (max 25MB & 50 pages per file, AES-256 encrypted)'}
               </p>
             </div>
 
@@ -212,9 +325,59 @@ export function BulkDocumentUploadModal({ isOpen, onClose, onSuccess }) {
                 onClick={handleGeneratePreview}
                 icon={<RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />}
               >
-                {loading ? (isAr ? 'جاري الفحص...' : 'Checking...') : (isAr ? 'فحص ومعاينة المطابقة' : 'Preview & Validate Batch')}
+                {loading ? (isAr ? 'جاري الفحص...' : 'Uploading Chunks...') : (isAr ? 'بدء الرفع المجزأ والمعاينة' : 'Upload Chunks & Preview')}
               </Button>
             </div>
+          </div>
+        )}
+
+        {/* Step 1.5: Uploading Chunks Progress */}
+        {step === 'uploading' && (
+          <div className="space-y-5 py-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
+              <Upload className={`w-6 h-6 ${loading ? 'animate-bounce' : ''}`} />
+            </div>
+
+            <div className="space-y-2 max-w-md mx-auto">
+              <h3 className="text-sm font-bold text-text">
+                {isAr
+                  ? `جاري رفع الحزمة المجزأة (${uploadProgress.currentChunk} من ${uploadProgress.totalChunks})`
+                  : `Uploading Batch in Chunks (${uploadProgress.currentChunk} of ${uploadProgress.totalChunks})`}
+              </h3>
+              <p className="text-text-muted text-[11px]">
+                {isAr
+                  ? `تم نقل وتشفير ${uploadProgress.uploadedCount} من ${uploadProgress.totalCount} ملف بأمان على الخادم.`
+                  : `Validated & encrypted ${uploadProgress.uploadedCount} of ${uploadProgress.totalCount} files on server.`}
+              </p>
+
+              {/* Progress bar */}
+              <div className="w-full bg-surface-raised rounded-full h-2.5 overflow-hidden border border-border mt-3">
+                <div
+                  className="bg-primary h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress.percent}%` }}
+                />
+              </div>
+              <span className="text-[11px] font-mono text-text-muted block text-end">
+                {uploadProgress.percent}%
+              </span>
+            </div>
+
+            {failedChunkIndex !== null && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl max-w-md mx-auto flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-rose-500 text-[11px]">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <span>{isAr ? `توقف الرفع عند المقطع ${failedChunkIndex + 1}` : `Upload paused at chunk ${failedChunkIndex + 1}`}</span>
+                </div>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleResumeChunk}
+                  icon={<RotateCcw className="w-3.5 h-3.5" />}
+                >
+                  {isAr ? 'إعادة المحاولة' : 'Resume / Retry'}
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -301,15 +464,36 @@ export function BulkDocumentUploadModal({ isOpen, onClose, onSuccess }) {
                 onClick={handleConfirmProcess}
                 icon={<Shield className="w-3.5 h-3.5" />}
               >
-                {isAr
-                  ? `تأكيد ورفع ${previewData.summary.matched} مستند مشفر`
-                  : `Confirm & Process ${previewData.summary.matched} Encrypted Documents`}
+                {loading
+                  ? (isAr ? 'جاري الاعتماد...' : 'Processing...')
+                  : (isAr
+                      ? `تأكيد واعتماد ${previewData.summary.matched} مستند مشفر (دون إعادة رفع)`
+                      : `Confirm & Process ${previewData.summary.matched} Documents (No Re-upload)`)}
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 3: Done */}
+        {/* Step 3: Processing Step */}
+        {step === 'processing' && (
+          <div className="space-y-4 text-center py-8">
+            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
+              <Shield className="w-6 h-6 animate-pulse" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-text">
+                {isAr ? 'جاري اعتماد المستندات المشفرة...' : 'Processing Encrypted Documents...'}
+              </h3>
+              <p className="text-text-muted mt-1 text-xs">
+                {isAr
+                  ? 'يتم ربط الملفات المحفوظة مشفرة بسجلات الموظفين وأرشفة الإصدارات السابقة.'
+                  : 'Assigning pre-encrypted files to employee profiles and generating audit trails.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Done */}
         {step === 'done' && processResult && (
           <div className="space-y-4 text-center py-4">
             <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto">

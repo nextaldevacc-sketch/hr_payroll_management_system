@@ -516,7 +516,7 @@ describe('Visa & Branch Scope Enforcement & Settings Rules (Sections A & B)', { 
         .set('Authorization', `Bearer ${hrMgrToken}`)
         .send({
           target_branch_id: branchAbuDhabi.id,
-          effective_date: '2026-11-25',
+          effective_date: '2026-12-01',
           reason: 'Relocating to Abu Dhabi branch',
         });
       assert.equal(submitRes.status, 200);
@@ -528,7 +528,7 @@ describe('Visa & Branch Scope Enforcement & Settings Rules (Sections A & B)', { 
         .set('Authorization', `Bearer ${hrMgrToken}`)
         .send({
           target_branch_id: branchAbuDhabi.id,
-          effective_date: '2026-11-25',
+          effective_date: '2026-12-01',
           reason: 'Duplicate request',
         });
       assert.equal(dupRes.status, 409);

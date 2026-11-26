@@ -1,6 +1,8 @@
+import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import prisma from '../lib/prisma.js';
-import storageService from '../lib/storage.js';
+import storageService, { encryptBuffer } from '../lib/storage.js';
 import auditService from './auditService.js';
 import scopeService from './scopeService.js';
 import { validatePdfBuffer } from '../lib/pdfValidator.js';
@@ -11,16 +13,577 @@ import {
 } from '@nextal/shared';
 
 export const MAX_BULK_FILES = 100;
+const TMP_BATCH_DIR = process.env.TMP_BATCH_DIR || path.resolve(process.cwd(), 'storage', 'tmp-batches');
 
 export class BulkDocumentService {
   constructor(db = prisma) {
     this.prisma = db;
+    this.tmpBatchDir = TMP_BATCH_DIR;
+    if (!fs.existsSync(this.tmpBatchDir)) {
+      try {
+        fs.mkdirSync(this.tmpBatchDir, { recursive: true });
+      } catch (err) {
+        console.warn('[BulkDocumentService] Could not create tmpBatchDir:', err.message);
+      }
+    }
+  }
+
+  /**
+   * Cleans up stale temporary batches older than maxAgeMs (default 2 hours)
+   */
+  async cleanupStaleBatches(maxAgeMs = 2 * 60 * 60 * 1000) {
+    try {
+      if (!fs.existsSync(this.tmpBatchDir)) return;
+      const entries = await fs.promises.readdir(this.tmpBatchDir, { withFileTypes: true });
+      const now = Date.now();
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const dirPath = path.join(this.tmpBatchDir, entry.name);
+          const metaPath = path.join(dirPath, 'meta.json');
+          let shouldDelete = false;
+          try {
+            if (fs.existsSync(metaPath)) {
+              const meta = JSON.parse(await fs.promises.readFile(metaPath, 'utf8'));
+              const updatedTime = new Date(meta.updatedAt || meta.createdAt).getTime();
+              if (now - updatedTime > maxAgeMs) {
+                shouldDelete = true;
+              }
+            } else {
+              const stat = await fs.promises.stat(dirPath);
+              if (now - stat.mtimeMs > maxAgeMs) {
+                shouldDelete = true;
+              }
+            }
+          } catch {
+            shouldDelete = true;
+          }
+
+          if (shouldDelete) {
+            await fs.promises.rm(dirPath, { recursive: true, force: true }).catch(() => {});
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[BulkDocumentService] Stale batch cleanup warning:', err.message);
+    }
+  }
+
+  /**
+   * Initializes a new batch session
+   */
+  async initBatch({ companyId, viewer, manifestCsv = null, totalFiles = 0 }) {
+    await this.cleanupStaleBatches();
+    const batchId = crypto.randomUUID();
+    const batchDir = path.join(this.tmpBatchDir, batchId);
+    await fs.promises.mkdir(batchDir, { recursive: true });
+
+    const meta = {
+      batchId,
+      companyId,
+      viewerId: viewer?.id || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      totalFiles: Number(totalFiles) || 0,
+      manifestCsv: manifestCsv || '',
+      chunksUploaded: [],
+      items: [],
+    };
+
+    await fs.promises.writeFile(path.join(batchDir, 'meta.json'), JSON.stringify(meta, null, 2), 'utf8');
+    return { batchId };
+  }
+
+  /**
+   * Uploads and validates a chunk of files (max 5 per chunk).
+   * Validated files are encrypted on disk one-by-one; memory is freed immediately.
+   */
+  async uploadChunk({
+    companyId,
+    viewer,
+    batchId = null,
+    files = [],
+    manifestBuffer = null,
+    chunkIndex = 0,
+    totalChunks = 1,
+    totalFiles = 0,
+  }) {
+    if (!batchId) {
+      const manifestStr = manifestBuffer
+        ? (Buffer.isBuffer(manifestBuffer) ? manifestBuffer.toString('utf8') : String(manifestBuffer))
+        : null;
+      const init = await this.initBatch({ companyId, viewer, manifestCsv: manifestStr, totalFiles });
+      batchId = init.batchId;
+    }
+
+    const batchDir = path.join(this.tmpBatchDir, batchId);
+    const metaPath = path.join(batchDir, 'meta.json');
+
+    if (!fs.existsSync(metaPath)) {
+      // Re-init if batch expired or missing
+      await fs.promises.mkdir(batchDir, { recursive: true });
+      const initMeta = {
+        batchId,
+        companyId,
+        viewerId: viewer?.id || null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        totalFiles: Number(totalFiles) || 0,
+        manifestCsv: '',
+        chunksUploaded: [],
+        items: [],
+      };
+      await fs.promises.writeFile(metaPath, JSON.stringify(initMeta, null, 2), 'utf8');
+    }
+
+    const meta = JSON.parse(await fs.promises.readFile(metaPath, 'utf8'));
+
+    // Update manifest if provided in this chunk
+    if (manifestBuffer) {
+      meta.manifestCsv = Buffer.isBuffer(manifestBuffer)
+        ? manifestBuffer.toString('utf8')
+        : String(manifestBuffer);
+    }
+
+    const manifestMap = this.parseManifestCsv(meta.manifestCsv);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const filename = file.originalname || `file_${chunkIndex}_${i}.pdf`;
+      const itemIndex = meta.items.length;
+
+      // Validate AST
+      const pdfCheck = await validatePdfBuffer(file.buffer);
+
+      const manifestEntry = manifestMap.get(filename.toLowerCase());
+      const filenameParse = this.parseFilename(filename);
+
+      const targetEmpCode = manifestEntry?.employeeCode || filenameParse?.employeeCode;
+      const targetDocType = manifestEntry?.docType || filenameParse?.normalizedDocType;
+      const targetDocNumber = manifestEntry?.docNumber || null;
+      const targetIssueDate = manifestEntry?.issueDate || null;
+      const targetExpiryDate = manifestEntry?.expiryDate || null;
+
+      if (!pdfCheck.valid) {
+        meta.items.push({
+          index: itemIndex,
+          filename,
+          size: file.size || file.buffer?.length || 0,
+          tempFile: null,
+          pageCount: 0,
+          valid: false,
+          error: pdfCheck.error,
+          code: pdfCheck.code,
+          employeeCode: targetEmpCode || null,
+          docType: targetDocType || null,
+          docNumber: targetDocNumber,
+          issueDate: targetIssueDate,
+          expiryDate: targetExpiryDate,
+        });
+        file.buffer = null; // Free RAM immediately
+        continue;
+      }
+
+      // Encrypt and persist to temp directory one-by-one
+      const tempFilename = `item_${itemIndex}.enc`;
+      const tempFilePath = path.join(batchDir, tempFilename);
+      const encryptedData = encryptBuffer(file.buffer);
+      await fs.promises.writeFile(tempFilePath, encryptedData);
+      file.buffer = null; // Free RAM immediately
+
+      meta.items.push({
+        index: itemIndex,
+        filename,
+        size: file.size || encryptedData.length,
+        tempFile: tempFilename,
+        pageCount: pdfCheck.pageCount,
+        valid: true,
+        error: null,
+        code: null,
+        employeeCode: targetEmpCode || null,
+        docType: targetDocType || null,
+        docNumber: targetDocNumber,
+        issueDate: targetIssueDate,
+        expiryDate: targetExpiryDate,
+      });
+    }
+
+    meta.updatedAt = new Date().toISOString();
+    if (!meta.chunksUploaded.includes(chunkIndex)) {
+      meta.chunksUploaded.push(chunkIndex);
+    }
+    if (totalFiles) {
+      meta.totalFiles = Number(totalFiles);
+    }
+
+    await fs.promises.writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf8');
+
+    return {
+      batch_id: batchId,
+      chunk_index: chunkIndex,
+      items_in_chunk: files.length,
+      total_saved: meta.items.length,
+    };
+  }
+
+  /**
+   * Fetches preview and resolves employee scope against DB from stored batch state
+   */
+  async getBatchPreview({ companyId, viewer, batchId }) {
+    const batchDir = path.join(this.tmpBatchDir, batchId);
+    const metaPath = path.join(batchDir, 'meta.json');
+
+    if (!fs.existsSync(metaPath)) {
+      const err = new Error('Batch session not found or expired');
+      err.status = 404;
+      err.code = 'BATCH_NOT_FOUND';
+      throw err;
+    }
+
+    const meta = JSON.parse(await fs.promises.readFile(metaPath, 'utf8'));
+
+    // Preload company employees in viewer scope
+    const scope = scopeService.resolveDataScope(viewer);
+    const scopeWhere = scopeService.buildEmployeeWhere(scope);
+
+    const employees = await this.prisma.employees.findMany({
+      where: {
+        company_id: companyId,
+        ...(scopeWhere || {}),
+      },
+      select: {
+        id: true,
+        employee_code: true,
+        name: true,
+        arabic_name: true,
+        branch_id: true,
+        company_visa_id: true,
+        status: true,
+      },
+    });
+
+    const empCodeMap = new Map();
+    for (const emp of employees) {
+      empCodeMap.set(emp.employee_code.trim().toUpperCase(), emp);
+    }
+
+    const previewItems = [];
+    let matchedCount = 0;
+    let unmatchedCount = 0;
+    let invalidCount = 0;
+    const seenEmployeeDocKeys = new Set();
+
+    for (const item of meta.items) {
+      if (!item.valid) {
+        invalidCount++;
+        previewItems.push({
+          index: item.index,
+          file_name: item.filename,
+          valid: false,
+          status: 'Invalid',
+          reason: item.error,
+          code: item.code,
+          size_bytes: item.size,
+          page_count: item.pageCount,
+        });
+        continue;
+      }
+
+      if (!item.employeeCode || !item.docType) {
+        unmatchedCount++;
+        previewItems.push({
+          index: item.index,
+          file_name: item.filename,
+          valid: false,
+          status: 'Unmatched',
+          reason: 'Could not detect employee code or valid document type from filename or manifest',
+          employee_code: item.employeeCode || null,
+          doc_type: item.docType || null,
+          size_bytes: item.size,
+          page_count: item.pageCount,
+        });
+        continue;
+      }
+
+      const normalizedType = normalizeDocumentType(item.docType);
+      if (!isValidDocumentType(normalizedType)) {
+        invalidCount++;
+        previewItems.push({
+          index: item.index,
+          file_name: item.filename,
+          valid: false,
+          status: 'Invalid Document Type',
+          reason: `Document type "${item.docType}" is not recognized`,
+          employee_code: item.employeeCode,
+          doc_type: item.docType,
+          size_bytes: item.size,
+          page_count: item.pageCount,
+        });
+        continue;
+      }
+
+      const employee = empCodeMap.get(item.employeeCode.toUpperCase());
+      if (!employee) {
+        unmatchedCount++;
+        previewItems.push({
+          index: item.index,
+          file_name: item.filename,
+          valid: false,
+          status: 'Employee Not Found / Out of Scope',
+          reason: `Employee with code "${item.employeeCode}" not found or out of user's authorized visa/branch scope`,
+          employee_code: item.employeeCode,
+          doc_type: normalizedType,
+          size_bytes: item.size,
+          page_count: item.pageCount,
+        });
+        continue;
+      }
+
+      const batchKey = `${employee.id}_${normalizedType}`;
+      if (seenEmployeeDocKeys.has(batchKey)) {
+        invalidCount++;
+        previewItems.push({
+          index: item.index,
+          file_name: item.filename,
+          valid: false,
+          status: 'Duplicate In Batch',
+          reason: `Multiple files uploaded for employee ${employee.employee_code} and document type ${normalizedType}`,
+          employee_code: employee.employee_code,
+          employee_name: employee.name,
+          doc_type: normalizedType,
+          size_bytes: item.size,
+          page_count: item.pageCount,
+        });
+        continue;
+      }
+      seenEmployeeDocKeys.add(batchKey);
+
+      matchedCount++;
+      const config = getDocumentTypeConfig(normalizedType);
+      previewItems.push({
+        index: item.index,
+        file_name: item.filename,
+        valid: true,
+        status: 'Ready',
+        employee_id: employee.id,
+        employee_code: employee.employee_code,
+        employee_name: employee.name,
+        doc_type: normalizedType,
+        doc_number: item.docNumber || `${normalizedType}-${employee.employee_code}`,
+        issue_date: item.issueDate,
+        expiry_date: item.expiryDate,
+        requires_expiry: config?.requiresExpiry || false,
+        size_bytes: item.size,
+        page_count: item.pageCount,
+        tempFile: item.tempFile,
+      });
+    }
+
+    return {
+      batch_id: batchId,
+      summary: {
+        total_files: meta.items.length,
+        matched: matchedCount,
+        unmatched: unmatchedCount,
+        invalid: invalidCount,
+        can_proceed: matchedCount > 0,
+      },
+      items: previewItems,
+    };
+  }
+
+  /**
+   * Processes a confirmed batch by batch_id without re-uploading files.
+   * Copies pre-encrypted temp files to permanent storage one-by-one.
+   */
+  async processBatchById({ companyId, viewer, batchId }) {
+    const preview = await this.getBatchPreview({ companyId, viewer, batchId });
+    const readyItems = preview.items.filter((item) => item.valid);
+
+    if (readyItems.length === 0) {
+      const err = new Error('No valid documents found in batch to process');
+      err.status = 400;
+      err.preview = preview;
+      throw err;
+    }
+
+    const batchDir = path.join(this.tmpBatchDir, batchId);
+    const results = [];
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (const item of readyItems) {
+      try {
+        const tempFilePath = path.join(batchDir, item.tempFile);
+        if (!fs.existsSync(tempFilePath)) {
+          throw new Error(`Temporary file ${item.tempFile} not found`);
+        }
+
+        // Generate permanent encrypted storage file
+        const randomHex = crypto.randomBytes(16).toString('hex');
+        const safeFileName = `${Date.now()}_${randomHex}.pdf`;
+        const destination = path.join(storageService.storageDir, safeFileName);
+
+        // Copy already-encrypted file with 0 decryption/re-encryption overhead
+        await fs.promises.copyFile(tempFilePath, destination);
+
+        // Check if an existing document record exists for this employee + doc_type
+        const existing = await this.prisma.employee_documents.findFirst({
+          where: {
+            company_id: companyId,
+            employee_id: item.employee_id,
+            doc_type: item.doc_type,
+          },
+        });
+
+        let docRecord = null;
+        if (existing) {
+          const prevVersions = await this.prisma.settings_versions.count({
+            where: { company_id: companyId, entity_type: 'employee_document', entity_id: existing.id },
+          }).catch(() => 0);
+
+          await this.prisma.settings_versions.create({
+            data: {
+              company_id: companyId,
+              entity_type: 'employee_document',
+              entity_id: existing.id,
+              version_no: prevVersions + 1,
+              effective_from: existing.issue_date || new Date(),
+              snapshot: {
+                doc_number: existing.doc_number,
+                issue_date: existing.issue_date,
+                expiry_date: existing.expiry_date,
+                file_url: existing.file_url,
+                status: existing.status,
+                verification_status: existing.verification_status,
+                archived_at: new Date().toISOString(),
+              },
+              created_by: viewer?.id || null,
+            },
+          }).catch((err) => console.warn('[BulkUpload] Version archive error:', err.message));
+
+          docRecord = await this.prisma.employee_documents.update({
+            where: { id: existing.id },
+            data: {
+              doc_number: item.doc_number,
+              issue_date: item.issue_date ? new Date(item.issue_date) : existing.issue_date,
+              expiry_date: item.expiry_date ? new Date(item.expiry_date) : existing.expiry_date,
+              file_url: safeFileName,
+              verification_status: 'Pending Verification',
+              last_alert_days: null,
+            },
+          });
+        } else {
+          docRecord = await this.prisma.employee_documents.create({
+            data: {
+              company_id: companyId,
+              employee_id: item.employee_id,
+              doc_type: item.doc_type,
+              doc_number: item.doc_number,
+              issue_date: item.issue_date ? new Date(item.issue_date) : null,
+              expiry_date: item.expiry_date ? new Date(item.expiry_date) : null,
+              file_url: safeFileName,
+              status: 'Valid',
+              verification_status: 'Pending Verification',
+              uploader_id: viewer?.id || null,
+            },
+          });
+        }
+
+        const safeLogFilename = item.doc_type === 'BANK_DETAILS' ? 'BANK_DETAILS_DOCUMENT.pdf' : item.file_name;
+        await auditService.log({
+          companyId,
+          userId: viewer?.id || null,
+          action: 'BulkDocumentUpload',
+          tableName: 'employee_documents',
+          recordId: docRecord.id,
+          newValues: {
+            employee_code: item.employee_code,
+            doc_type: item.doc_type,
+            filename: safeLogFilename,
+            page_count: item.page_count,
+            verification_status: 'Pending Verification',
+          },
+        }).catch((err) => console.warn('[BulkUpload] Audit log failed:', err.message));
+
+        successCount++;
+        results.push({
+          file_name: item.file_name,
+          employee_code: item.employee_code,
+          employee_name: item.employee_name,
+          doc_type: item.doc_type,
+          status: 'SUCCESS',
+          document_id: docRecord.id,
+        });
+      } catch (err) {
+        failedCount++;
+        results.push({
+          file_name: item.file_name,
+          employee_code: item.employee_code,
+          employee_name: item.employee_name,
+          doc_type: item.doc_type,
+          status: 'FAILED',
+          error: err.message,
+        });
+      }
+    }
+
+    // Clean up temporary batch directory completely
+    await fs.promises.rm(batchDir, { recursive: true, force: true }).catch(() => {});
+
+    // Build downloadable result CSV report
+    const csvRows = ['file_name,employee_code,employee_name,doc_type,status,error'];
+    for (const r of results) {
+      const cleanErr = (r.error || '').replace(/[,\n\r"]/g, ' ');
+      csvRows.push(`"${r.file_name}","${r.employee_code}","${r.employee_name}","${r.doc_type}","${r.status}","${cleanErr}"`);
+    }
+    const reportCsv = csvRows.join('\n');
+
+    return {
+      success: true,
+      batch_id: batchId,
+      total_ready: readyItems.length,
+      processed: successCount,
+      failed: failedCount,
+      results,
+      reportCsv,
+    };
+  }
+
+  /**
+   * Backwards-compatible preview & process handlers
+   */
+  async previewBatch({ companyId, files = [], manifestBuffer = null, viewer }) {
+    const chunkRes = await this.uploadChunk({
+      companyId,
+      viewer,
+      files,
+      manifestBuffer,
+      chunkIndex: 0,
+      totalChunks: 1,
+      totalFiles: files.length,
+    });
+    return this.getBatchPreview({ companyId, viewer, batchId: chunkRes.batch_id });
+  }
+
+  async processBatch({ companyId, files = [], manifestBuffer = null, viewer, batchId = null }) {
+    if (batchId) {
+      return this.processBatchById({ companyId, viewer, batchId });
+    }
+    const chunkRes = await this.uploadChunk({
+      companyId,
+      viewer,
+      files,
+      manifestBuffer,
+      chunkIndex: 0,
+      totalChunks: 1,
+      totalFiles: files.length,
+    });
+    return this.processBatchById({ companyId, viewer, batchId: chunkRes.batch_id });
   }
 
   /**
    * Parses filename according to convention:
    * [employee_code]_[doc_type][_optional_notes].pdf
-   * E.g. EMP-001_EMIRATES_ID.pdf, EMP-042_PASSPORT_front.pdf, EMP102_BANK_DETAILS.pdf
    */
   parseFilename(originalFilename) {
     if (!originalFilename || typeof originalFilename !== 'string') return null;
@@ -37,8 +600,6 @@ export class BulkDocumentService {
     }
 
     const employeeCode = parts[0].trim();
-    // Try matching doc type combinations from part 1 onwards
-    // E.g. "RESIDENCE_VISA" might be split into parts[1] and parts[2]
     let normalizedDocType = null;
     let rawDocType = parts[1].trim();
 
@@ -108,341 +669,8 @@ export class BulkDocumentService {
   }
 
   /**
-   * Validates and previews a batch of uploaded files
-   */
-  async previewBatch({ companyId, files = [], manifestBuffer = null, viewer }) {
-    if (!files || files.length === 0) {
-      const err = new Error('No document files provided for upload');
-      err.status = 400;
-      throw err;
-    }
-
-    if (files.length > MAX_BULK_FILES) {
-      const err = new Error(`Batch size exceeds maximum limit of ${MAX_BULK_FILES} files`);
-      err.status = 400;
-      throw err;
-    }
-
-    const manifestMap = this.parseManifestCsv(manifestBuffer);
-
-    // Preload company employees to match in memory
-    const scope = scopeService.resolveDataScope(viewer);
-    const scopeWhere = scopeService.buildEmployeeWhere(scope);
-
-    const employees = await this.prisma.employees.findMany({
-      where: {
-        company_id: companyId,
-        ...(scopeWhere || {}),
-      },
-      select: {
-        id: true,
-        employee_code: true,
-        name: true,
-        arabic_name: true,
-        branch_id: true,
-        company_visa_id: true,
-        status: true,
-      },
-    });
-
-    const empCodeMap = new Map();
-    for (const emp of employees) {
-      empCodeMap.set(emp.employee_code.trim().toUpperCase(), emp);
-    }
-
-    const previewItems = [];
-    let matchedCount = 0;
-    let unmatchedCount = 0;
-    let invalidCount = 0;
-
-    const seenEmployeeDocKeys = new Set();
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const filename = file.originalname || `file_${i}.pdf`;
-
-      // 1. PDF Buffer Validation (Pure JS)
-      const pdfCheck = validatePdfBuffer(file.buffer);
-      if (!pdfCheck.valid) {
-        invalidCount++;
-        previewItems.push({
-          index: i,
-          file_name: filename,
-          valid: false,
-          status: 'Invalid',
-          reason: pdfCheck.error,
-          code: pdfCheck.code,
-          size_bytes: file.size || file.buffer?.length || 0,
-        });
-        continue;
-      }
-
-      // 2. Matching via Manifest or Filename
-      const manifestEntry = manifestMap.get(filename.toLowerCase());
-      const filenameParse = this.parseFilename(filename);
-
-      const targetEmpCode = manifestEntry?.employeeCode || filenameParse?.employeeCode;
-      const targetDocType = manifestEntry?.docType || filenameParse?.normalizedDocType;
-      const targetDocNumber = manifestEntry?.docNumber || null;
-      const targetIssueDate = manifestEntry?.issueDate || null;
-      const targetExpiryDate = manifestEntry?.expiryDate || null;
-
-      if (!targetEmpCode || !targetDocType) {
-        unmatchedCount++;
-        previewItems.push({
-          index: i,
-          file_name: filename,
-          valid: false,
-          status: 'Unmatched',
-          reason: 'Could not detect employee code or valid document type from filename or manifest',
-          employee_code: targetEmpCode || null,
-          doc_type: targetDocType || null,
-          size_bytes: file.buffer?.length || 0,
-          page_count: pdfCheck.pageCount,
-        });
-        continue;
-      }
-
-      // 3. Document Type Validity Check
-      const normalizedType = normalizeDocumentType(targetDocType);
-      if (!isValidDocumentType(normalizedType)) {
-        invalidCount++;
-        previewItems.push({
-          index: i,
-          file_name: filename,
-          valid: false,
-          status: 'Invalid Document Type',
-          reason: `Document type "${targetDocType}" is not recognized`,
-          employee_code: targetEmpCode,
-          doc_type: targetDocType,
-          size_bytes: file.buffer?.length || 0,
-          page_count: pdfCheck.pageCount,
-        });
-        continue;
-      }
-
-      // 4. Employee Existence & Scope Check
-      const employee = empCodeMap.get(targetEmpCode.toUpperCase());
-      if (!employee) {
-        unmatchedCount++;
-        previewItems.push({
-          index: i,
-          file_name: filename,
-          valid: false,
-          status: 'Employee Not Found / Out of Scope',
-          reason: `Employee with code "${targetEmpCode}" not found or out of user's authorized visa/branch scope`,
-          employee_code: targetEmpCode,
-          doc_type: normalizedType,
-          size_bytes: file.buffer?.length || 0,
-          page_count: pdfCheck.pageCount,
-        });
-        continue;
-      }
-
-      // 5. Duplicate Check within batch
-      const batchKey = `${employee.id}_${normalizedType}`;
-      if (seenEmployeeDocKeys.has(batchKey)) {
-        invalidCount++;
-        previewItems.push({
-          index: i,
-          file_name: filename,
-          valid: false,
-          status: 'Duplicate In Batch',
-          reason: `Multiple files uploaded for employee ${employee.employee_code} and document type ${normalizedType}`,
-          employee_code: employee.employee_code,
-          employee_name: employee.name,
-          doc_type: normalizedType,
-          size_bytes: file.buffer?.length || 0,
-          page_count: pdfCheck.pageCount,
-        });
-        continue;
-      }
-      seenEmployeeDocKeys.add(batchKey);
-
-      // Valid and matched
-      matchedCount++;
-      const config = getDocumentTypeConfig(normalizedType);
-      previewItems.push({
-        index: i,
-        file_name: filename,
-        valid: true,
-        status: 'Ready',
-        employee_id: employee.id,
-        employee_code: employee.employee_code,
-        employee_name: employee.name,
-        doc_type: normalizedType,
-        doc_number: targetDocNumber || `${normalizedType}-${employee.employee_code}`,
-        issue_date: targetIssueDate,
-        expiry_date: targetExpiryDate,
-        requires_expiry: config?.requiresExpiry || false,
-        size_bytes: file.buffer?.length || 0,
-        page_count: pdfCheck.pageCount,
-      });
-    }
-
-    return {
-      summary: {
-        total_files: files.length,
-        matched: matchedCount,
-        unmatched: unmatchedCount,
-        invalid: invalidCount,
-        can_proceed: matchedCount > 0,
-      },
-      items: previewItems,
-    };
-  }
-
-  /**
-   * Sequentially encrypts, stores, and inserts records for matched documents
-   */
-  async processBatch({ companyId, files = [], manifestBuffer = null, viewer }) {
-    const preview = await this.previewBatch({ companyId, files, manifestBuffer, viewer });
-    const readyItems = preview.items.filter((item) => item.valid);
-
-    if (readyItems.length === 0) {
-      const err = new Error('No valid documents found in batch to process');
-      err.status = 400;
-      err.preview = preview;
-      throw err;
-    }
-
-    const results = [];
-    let successCount = 0;
-    let failedCount = 0;
-
-    for (const item of readyItems) {
-      const file = files[item.index];
-      try {
-        // Save encrypted file with AES-256-GCM
-        const saved = await storageService.saveFile({
-          buffer: file.buffer,
-          originalName: file.originalname || item.file_name,
-          mimeType: 'application/pdf',
-        });
-
-        // Check if an existing document record exists for this employee + doc_type
-        const existing = await this.prisma.employee_documents.findFirst({
-          where: {
-            company_id: companyId,
-            employee_id: item.employee_id,
-            doc_type: item.doc_type,
-          },
-        });
-
-        let docRecord = null;
-        if (existing) {
-          // Archive old version in settings_versions
-          const prevVersions = await this.prisma.settings_versions.count({
-            where: { company_id: companyId, entity_type: 'employee_document', entity_id: existing.id },
-          }).catch(() => 0);
-
-          await this.prisma.settings_versions.create({
-            data: {
-              company_id: companyId,
-              entity_type: 'employee_document',
-              entity_id: existing.id,
-              version_no: prevVersions + 1,
-              effective_from: existing.issue_date || new Date(),
-              snapshot: {
-                doc_number: existing.doc_number,
-                issue_date: existing.issue_date,
-                expiry_date: existing.expiry_date,
-                file_url: existing.file_url,
-                status: existing.status,
-                verification_status: existing.verification_status,
-                archived_at: new Date().toISOString(),
-              },
-              created_by: viewer?.id || null,
-            },
-          }).catch((err) => console.warn('[BulkUpload] Version archive error:', err.message));
-
-          docRecord = await this.prisma.employee_documents.update({
-            where: { id: existing.id },
-            data: {
-              doc_number: item.doc_number,
-              issue_date: item.issue_date ? new Date(item.issue_date) : existing.issue_date,
-              expiry_date: item.expiry_date ? new Date(item.expiry_date) : existing.expiry_date,
-              file_url: saved.storagePath,
-              verification_status: 'Pending Verification',
-              last_alert_days: null,
-            },
-          });
-        } else {
-          docRecord = await this.prisma.employee_documents.create({
-            data: {
-              company_id: companyId,
-              employee_id: item.employee_id,
-              doc_type: item.doc_type,
-              doc_number: item.doc_number,
-              issue_date: item.issue_date ? new Date(item.issue_date) : null,
-              expiry_date: item.expiry_date ? new Date(item.expiry_date) : null,
-              file_url: saved.storagePath,
-              status: 'Valid',
-              verification_status: 'Pending Verification',
-              uploader_id: viewer?.id || null,
-            },
-          });
-        }
-
-        // Audit log (guaranteed: sanitize BANK_DETAILS filename)
-        const safeLogFilename = item.doc_type === 'BANK_DETAILS' ? 'BANK_DETAILS_DOCUMENT.pdf' : item.file_name;
-        await auditService.log({
-          companyId,
-          userId: viewer?.id || null,
-          action: 'BulkDocumentUpload',
-          tableName: 'employee_documents',
-          recordId: docRecord.id,
-          newValues: {
-            employee_code: item.employee_code,
-            doc_type: item.doc_type,
-            filename: safeLogFilename,
-            page_count: item.page_count,
-            verification_status: 'Pending Verification',
-          },
-        }).catch((err) => console.warn('[BulkUpload] Audit log failed:', err.message));
-
-        successCount++;
-        results.push({
-          file_name: item.file_name,
-          employee_code: item.employee_code,
-          employee_name: item.employee_name,
-          doc_type: item.doc_type,
-          status: 'SUCCESS',
-          document_id: docRecord.id,
-        });
-      } catch (err) {
-        failedCount++;
-        results.push({
-          file_name: item.file_name,
-          employee_code: item.employee_code,
-          employee_name: item.employee_name,
-          doc_type: item.doc_type,
-          status: 'FAILED',
-          error: err.message,
-        });
-      }
-    }
-
-    // Build downloadable result CSV report
-    const csvRows = ['file_name,employee_code,employee_name,doc_type,status,error'];
-    for (const r of results) {
-      const cleanErr = (r.error || '').replace(/[,\n\r"]/g, ' ');
-      csvRows.push(`"${r.file_name}","${r.employee_code}","${r.employee_name}","${r.doc_type}","${r.status}","${cleanErr}"`);
-    }
-    const reportCsv = csvRows.join('\n');
-
-    return {
-      success: true,
-      total_ready: readyItems.length,
-      processed: successCount,
-      failed: failedCount,
-      results,
-      reportCsv,
-    };
-  }
-
-  /**
    * Employee self-service multiple PDF upload from My Documents
+   * Processes files one at a time, releasing buffer immediately.
    */
   async processEmployeeSelfUpload({ companyId, employeeId, files = [], viewer }) {
     if (!files || files.length === 0) {
@@ -451,8 +679,8 @@ export class BulkDocumentService {
       throw err;
     }
 
-    if (files.length > 10) {
-      const err = new Error('Self-service upload allows a maximum of 10 files per batch');
+    if (files.length > 5) {
+      const err = new Error('Self-service upload allows a maximum of 5 files per request');
       err.status = 400;
       throw err;
     }
@@ -469,13 +697,13 @@ export class BulkDocumentService {
     const results = [];
     for (const file of files) {
       const filename = file.originalname || 'doc.pdf';
-      const pdfCheck = validatePdfBuffer(file.buffer);
+      const pdfCheck = await validatePdfBuffer(file.buffer);
       if (!pdfCheck.valid) {
+        file.buffer = null;
         results.push({ file_name: filename, status: 'FAILED', error: pdfCheck.error });
         continue;
       }
 
-      // Detect doc_type from filename: e.g. EMIRATES_ID_front.pdf or PASSPORT.pdf
       const baseName = path.basename(filename).replace(/\.[^/.]+$/, '');
       const parts = baseName.split('_');
       let docType = normalizeDocumentType(parts[0]);
@@ -492,6 +720,7 @@ export class BulkDocumentService {
           originalName: filename,
           mimeType: 'application/pdf',
         });
+        file.buffer = null; // Free RAM immediately
 
         const docRecord = await this.prisma.employee_documents.create({
           data: {
@@ -518,6 +747,7 @@ export class BulkDocumentService {
 
         results.push({ file_name: filename, doc_type: docType, status: 'SUCCESS', id: docRecord.id });
       } catch (err) {
+        file.buffer = null;
         results.push({ file_name: filename, status: 'FAILED', error: err.message });
       }
     }

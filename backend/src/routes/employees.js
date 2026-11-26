@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'node:path';
 import rateLimit from 'express-rate-limit';
-import { safeFileUpload as upload } from '../middleware/fileUpload.js';
+import { safeFileUpload as upload, bulkChunkUpload, validateChunkTotalSize } from '../middleware/fileUpload.js';
 import { authenticate } from '../middleware/auth.js';
 import { requirePermission, requireRole } from '../middleware/permissions.js';
 import { salaryMaskMiddleware } from '../middleware/salaryMask.js';
@@ -94,17 +94,34 @@ router.post(
   employeeController.bulkImportEmployees
 );
 
-// Bulk documents upload preview & process (max 100 PDFs)
+// Bulk documents chunked upload, batch preview, and process
+router.post(
+  '/documents/bulk-upload/chunk',
+  requirePermission('employees', 'edit'),
+  bulkChunkUpload.array('files', 5),
+  validateChunkTotalSize,
+  employeeController.bulkUploadChunk
+);
+
+router.get(
+  '/documents/bulk-upload/batch/:batchId',
+  requirePermission('employees', 'edit'),
+  employeeController.getBulkUploadBatch
+);
+
 router.post(
   '/documents/bulk-upload/preview',
   requirePermission('employees', 'edit'),
-  upload.array('files', 100),
+  bulkChunkUpload.array('files', 5),
+  validateChunkTotalSize,
   employeeController.bulkUploadPreview
 );
+
 router.post(
   '/documents/bulk-upload/process',
   requirePermission('employees', 'edit'),
-  upload.array('files', 100),
+  bulkChunkUpload.array('files', 5),
+  validateChunkTotalSize,
   employeeController.bulkUploadProcess
 );
 

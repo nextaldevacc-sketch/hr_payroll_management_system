@@ -661,6 +661,49 @@ export async function resendWelcomeEmail(req, res, next) {
   }
 }
 
+export async function bulkUploadChunk(req, res, next) {
+  try {
+    const files = req.files || [];
+    let manifestBuffer = null;
+    if (req.body?.manifest) {
+      manifestBuffer = Buffer.from(req.body.manifest, 'utf8');
+    }
+    const batchId = req.body?.batch_id || null;
+    const chunkIndex = parseInt(req.body?.chunk_index, 10) || 0;
+    const totalChunks = parseInt(req.body?.total_chunks, 10) || 1;
+    const totalFiles = parseInt(req.body?.total_files, 10) || 0;
+
+    const result = await bulkDocumentService.uploadChunk({
+      companyId: req.companyId,
+      viewer: req.user,
+      batchId,
+      files,
+      manifestBuffer,
+      chunkIndex,
+      totalChunks,
+      totalFiles,
+    });
+
+    res.json({ status: 'success', data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getBulkUploadBatch(req, res, next) {
+  try {
+    const { batchId } = req.params;
+    const preview = await bulkDocumentService.getBatchPreview({
+      companyId: req.companyId,
+      viewer: req.user,
+      batchId,
+    });
+    res.json({ status: 'success', data: preview });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function bulkUploadPreview(req, res, next) {
   try {
     const files = req.files || [];
@@ -682,6 +725,16 @@ export async function bulkUploadPreview(req, res, next) {
 
 export async function bulkUploadProcess(req, res, next) {
   try {
+    const batchId = req.body?.batch_id;
+    if (batchId) {
+      const result = await bulkDocumentService.processBatchById({
+        companyId: req.companyId,
+        viewer: req.user,
+        batchId,
+      });
+      return res.json({ status: 'success', data: result });
+    }
+
     const files = req.files || [];
     let manifestBuffer = null;
     if (req.body?.manifest) {
@@ -726,6 +779,8 @@ export default {
   getEmployeeHistory,
   revealSensitiveField,
   resendWelcomeEmail,
+  bulkUploadChunk,
+  getBulkUploadBatch,
   bulkUploadPreview,
   bulkUploadProcess,
 };

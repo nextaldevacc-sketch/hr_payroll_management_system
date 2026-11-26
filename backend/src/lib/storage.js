@@ -14,7 +14,39 @@ const STORAGE_ROOT = process.env.STORAGE_PATH || path.resolve(__dirname, '../../
 const ALLOWED_MIME_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png']);
 export const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB max (harmonized with safeFileUpload and Caddy)
 
-const ENCRYPTION_MAGIC = Buffer.from('NEXTAL_ENC_V1'); // 13 bytes
+export const ENCRYPTION_MAGIC = Buffer.from('NEXTAL_ENC_V1'); // 13 bytes
+
+export function encryptBuffer(buffer) {
+  const key = getEncryptionKey();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const ciphertext = Buffer.concat([cipher.update(buffer), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+
+  return Buffer.concat([
+    ENCRYPTION_MAGIC,
+    iv,
+    authTag,
+    ciphertext,
+  ]);
+}
+
+export function decryptBuffer(rawBuffer) {
+  if (
+    rawBuffer.length >= ENCRYPTION_MAGIC.length + 28 &&
+    rawBuffer.subarray(0, ENCRYPTION_MAGIC.length).equals(ENCRYPTION_MAGIC)
+  ) {
+    const key = getEncryptionKey();
+    const iv = rawBuffer.subarray(13, 25);
+    const authTag = rawBuffer.subarray(25, 41);
+    const ciphertext = rawBuffer.subarray(41);
+
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
+    return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  }
+  return rawBuffer;
+}
 
 let devWarningLogged = false;
 
@@ -106,18 +138,7 @@ export class StorageService {
     const destination = path.join(this.storageDir, safeFileName);
 
     // Encrypt file at rest with AES-256-GCM (W3 / FR-EM5)
-    const key = getEncryptionKey();
-    const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-    const ciphertext = Buffer.concat([cipher.update(buffer), cipher.final()]);
-    const authTag = cipher.getAuthTag();
-
-    const encryptedData = Buffer.concat([
-      ENCRYPTION_MAGIC,
-      iv,
-      authTag,
-      ciphertext,
-    ]);
+    const encryptedData = encryptBuffer(buffer);
 
     await fs.promises.writeFile(destination, encryptedData);
 
@@ -151,19 +172,8 @@ export class StorageService {
     const mimeType = ext === '.pdf' ? 'application/pdf' : ext === '.png' ? 'image/png' : 'image/jpeg';
 
     // Check if file is encrypted with NEXTAL_ENC_V1
-    if (
-      rawBuffer.length >= ENCRYPTION_MAGIC.length + 28 &&
-      rawBuffer.subarray(0, ENCRYPTION_MAGIC.length).equals(ENCRYPTION_MAGIC)
-    ) {
-      const key = getEncryptionKey();
-      const iv = rawBuffer.subarray(13, 25);
-      const authTag = rawBuffer.subarray(25, 41);
-      const ciphertext = rawBuffer.subarray(41);
-
-      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-      decipher.setAuthTag(authTag);
-      const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-
+    const decrypted = decryptBuffer(rawBuffer);
+    if (decrypted !== rawBuffer) {
       return {
         stream: Readable.from(decrypted),
         mimeType,
