@@ -137,17 +137,26 @@ async function run() {
 
   console.log(`[Stress] Starting 20 sequential chunks of 5 files (10MB per request)...`);
 
-  const docTypes = ['EMIRATES_ID', 'PASSPORT', 'RESIDENCE_VISA', 'BANK_DETAILS'];
-
   for (let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
     const chunkStartFileIdx = chunkIdx * filesPerChunk;
     const formData = new FormData();
 
     for (let f = 0; f < filesPerChunk; f++) {
-      const fileNum = chunkStartFileIdx + f + 1;
-      const empNum = String(((fileNum - 1) % 50) + 1).padStart(3, '0');
-      const docType = docTypes[fileNum % docTypes.length];
-      const filename = `EMP-${empNum}_${docType}_stress_${fileNum}.pdf`;
+      const fileNum = chunkStartFileIdx + f + 1; // 1 to 100
+      let empNum;
+      let docType;
+      let filename;
+      if (fileNum <= 50) {
+        // Files 1..50: Update path (EMIRATES_ID already exists for EMP-001..050)
+        empNum = String(fileNum).padStart(3, '0');
+        docType = 'EMIRATES_ID';
+        filename = `EMP-${empNum}_${docType}_renewed_${fileNum}.pdf`;
+      } else {
+        // Files 51..100: New create path (RESIDENCE_VISA does not exist for EMP-001..050)
+        empNum = String(fileNum - 50).padStart(3, '0');
+        docType = 'RESIDENCE_VISA';
+        filename = `EMP-${empNum}_${docType}_new_${fileNum}.pdf`;
+      }
 
       const pdfBuf = await create2MbPdf(filename);
       const blob = new Blob([pdfBuf], { type: 'application/pdf' });
@@ -229,9 +238,17 @@ async function run() {
   const finalRss = getApiContainerRssMb();
   if (finalRss !== null && finalRss > maxObservedRss) maxObservedRss = finalRss;
 
+  const processedCount = result.processed ?? 0;
+  const createdCount = result.created ?? 0;
+  const updatedCount = result.updated ?? 0;
+  const failedCount = result.failed ?? 0;
+
   console.log('='.repeat(70));
   console.log('STRESS TEST RESULTS:');
-  console.log(`  - Total Files Uploaded & Processed : ${result.processed} / ${totalFiles}`);
+  console.log(`  - Total Files Uploaded & Processed : ${processedCount} / ${totalFiles}`);
+  console.log(`  - Documents Created (New Path)      : ${createdCount}`);
+  console.log(`  - Documents Updated (Archive Path)  : ${updatedCount}`);
+  console.log(`  - Documents Failed                  : ${failedCount}`);
   console.log(`  - Total Data Streamed In Chunks     : 200 MB (100 x 2MB)`);
   console.log(`  - Batch Processing Duration         : ${processDurationMs} ms`);
   console.log(`  - Peak API Container RSS Memory     : ${maxObservedRss.toFixed(1)} MB`);
@@ -239,9 +256,22 @@ async function run() {
   console.log(`  - Memory Limit Compliance           : ${maxObservedRss < MAX_RSS_MB ? 'PASSED (VERIFIED)' : 'FAILED'}`);
   console.log('='.repeat(70));
 
-  if (maxObservedRss >= MAX_RSS_MB) {
+  if (processedCount !== totalFiles || failedCount !== 0) {
+    console.error(`[CRITICAL FAILURE] processed (${processedCount}) !== ${totalFiles} or failed (${failedCount}) > 0`);
     process.exit(1);
   }
+
+  if (createdCount === 0 || updatedCount === 0) {
+    console.error(`[CRITICAL FAILURE] Both created (${createdCount}) and updated (${updatedCount}) must be > 0`);
+    process.exit(1);
+  }
+
+  if (maxObservedRss >= MAX_RSS_MB) {
+    console.error(`[CRITICAL FAILURE] Peak RSS (${maxObservedRss.toFixed(1)} MB) exceeded ${MAX_RSS_MB} MB`);
+    process.exit(1);
+  }
+
+  console.log('[StressTest SUCCESS] 100/100 processed, 0 failed, both create and update verified, memory < 500MB.');
 }
 
 run().catch((err) => {

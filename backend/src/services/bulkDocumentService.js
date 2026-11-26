@@ -409,140 +409,161 @@ export class BulkDocumentService {
     const batchDir = path.join(this.tmpBatchDir, batchId);
     const results = [];
     let successCount = 0;
+    let createdCount = 0;
+    let updatedCount = 0;
     let failedCount = 0;
 
-    for (const item of readyItems) {
-      try {
-        const tempFilePath = path.join(batchDir, item.tempFile);
-        if (!fs.existsSync(tempFilePath)) {
-          throw new Error(`Temporary file ${item.tempFile} not found`);
-        }
+    try {
+      for (const item of readyItems) {
+        let destination = null;
+        try {
+          const tempFilePath = path.join(batchDir, item.tempFile);
+          if (!fs.existsSync(tempFilePath)) {
+            throw new Error(`Temporary file ${item.tempFile} not found`);
+          }
 
-        // Generate permanent encrypted storage file
-        const randomHex = crypto.randomBytes(16).toString('hex');
-        const safeFileName = `${Date.now()}_${randomHex}.pdf`;
-        const destination = path.join(storageService.storageDir, safeFileName);
+          // Generate target storage filename
+          const randomHex = crypto.randomBytes(16).toString('hex');
+          const safeFileName = `${Date.now()}_${randomHex}.pdf`;
+          destination = path.join(storageService.storageDir, safeFileName);
 
-        // Copy already-encrypted file with 0 decryption/re-encryption overhead
-        await fs.promises.copyFile(tempFilePath, destination);
-
-        // Check if an existing document record exists for this employee + doc_type
-        const existing = await this.prisma.employee_documents.findFirst({
-          where: {
-            company_id: companyId,
-            employee_id: item.employee_id,
-            doc_type: item.doc_type,
-          },
-        });
-
-        let docRecord = null;
-        if (existing) {
-          const prevVersions = await this.prisma.settings_versions.count({
-            where: { company_id: companyId, entity_type: 'employee_document', entity_id: existing.id },
-          }).catch(() => 0);
-
-          await this.prisma.settings_versions.create({
-            data: {
-              company_id: companyId,
-              entity_type: 'employee_document',
-              entity_id: existing.id,
-              version_no: prevVersions + 1,
-              effective_from: existing.issue_date || new Date(),
-              snapshot: {
-                doc_number: existing.doc_number,
-                issue_date: existing.issue_date,
-                expiry_date: existing.expiry_date,
-                file_url: existing.file_url,
-                status: existing.status,
-                verification_status: existing.verification_status,
-                archived_at: new Date().toISOString(),
-              },
-              created_by: viewer?.id || null,
-            },
-          }).catch((err) => console.warn('[BulkUpload] Version archive error:', err.message));
-
-          docRecord = await this.prisma.employee_documents.update({
-            where: { id: existing.id },
-            data: {
-              doc_number: item.doc_number,
-              issue_date: item.issue_date ? new Date(item.issue_date) : existing.issue_date,
-              expiry_date: item.expiry_date ? new Date(item.expiry_date) : existing.expiry_date,
-              file_url: safeFileName,
-              verification_status: 'Pending Verification',
-              last_alert_days: null,
-            },
-          });
-        } else {
-          docRecord = await this.prisma.employee_documents.create({
-            data: {
+          // 1. Process Order: Perform Database write FIRST
+          const existing = await this.prisma.employee_documents.findFirst({
+            where: {
               company_id: companyId,
               employee_id: item.employee_id,
               doc_type: item.doc_type,
-              doc_number: item.doc_number,
-              issue_date: item.issue_date ? new Date(item.issue_date) : null,
-              expiry_date: item.expiry_date ? new Date(item.expiry_date) : null,
-              file_url: safeFileName,
-              status: 'Valid',
-              verification_status: 'Pending Verification',
-              uploader_id: viewer?.id || null,
             },
           });
-        }
 
-        const safeLogFilename = item.doc_type === 'BANK_DETAILS' ? 'BANK_DETAILS_DOCUMENT.pdf' : item.file_name;
-        await auditService.log({
-          companyId,
-          userId: viewer?.id || null,
-          action: 'BulkDocumentUpload',
-          tableName: 'employee_documents',
-          recordId: docRecord.id,
-          newValues: {
+          let docRecord = null;
+          let isUpdate = false;
+
+          if (existing) {
+            isUpdate = true;
+            const prevVersions = await this.prisma.settings_versions.count({
+              where: { company_id: companyId, entity_type: 'employee_document', entity_id: existing.id },
+            }).catch(() => 0);
+
+            await this.prisma.settings_versions.create({
+              data: {
+                company_id: companyId,
+                entity_type: 'employee_document',
+                entity_id: existing.id,
+                version_no: prevVersions + 1,
+                effective_from: existing.issue_date || new Date(),
+                snapshot: {
+                  doc_number: existing.doc_number,
+                  issue_date: existing.issue_date,
+                  expiry_date: existing.expiry_date,
+                  file_url: existing.file_url,
+                  status: existing.status,
+                  verification_status: existing.verification_status,
+                  archived_at: new Date().toISOString(),
+                },
+                created_by: viewer?.id || null,
+              },
+            }).catch((err) => console.warn('[BulkUpload] Version archive error:', err.message));
+
+            docRecord = await this.prisma.employee_documents.update({
+              where: { id: existing.id },
+              data: {
+                doc_number: item.doc_number,
+                issue_date: item.issue_date ? new Date(item.issue_date) : existing.issue_date,
+                expiry_date: item.expiry_date ? new Date(item.expiry_date) : existing.expiry_date,
+                file_url: safeFileName,
+                verification_status: 'Pending Verification',
+                last_alert_days: null,
+                updated_by: viewer?.id || null,
+              },
+            });
+          } else {
+            docRecord = await this.prisma.employee_documents.create({
+              data: {
+                company_id: companyId,
+                employee_id: item.employee_id,
+                doc_type: item.doc_type,
+                doc_number: item.doc_number,
+                issue_date: item.issue_date ? new Date(item.issue_date) : null,
+                expiry_date: item.expiry_date ? new Date(item.expiry_date) : null,
+                file_url: safeFileName,
+                status: 'Valid',
+                verification_status: 'Pending Verification',
+                uploaded_by: viewer?.id || null,
+                created_by: viewer?.id || null,
+              },
+            });
+          }
+
+          // 2. Process Order: Copy pre-encrypted temp file to permanent storage only AFTER DB write succeeds
+          await fs.promises.copyFile(tempFilePath, destination);
+
+          // 3. Audit log
+          const safeLogFilename = item.doc_type === 'BANK_DETAILS' ? 'BANK_DETAILS_DOCUMENT.pdf' : item.file_name;
+          await auditService.log({
+            companyId,
+            userId: viewer?.id || null,
+            action: isUpdate ? 'BulkDocumentUpdate' : 'BulkDocumentUpload',
+            tableName: 'employee_documents',
+            recordId: docRecord.id,
+            newValues: {
+              employee_code: item.employee_code,
+              doc_type: item.doc_type,
+              filename: safeLogFilename,
+              page_count: item.page_count,
+              verification_status: 'Pending Verification',
+            },
+          }).catch((err) => console.warn('[BulkUpload] Audit log failed:', err.message));
+
+          successCount++;
+          if (isUpdate) updatedCount++;
+          else createdCount++;
+
+          results.push({
+            file_name: item.file_name,
             employee_code: item.employee_code,
+            employee_name: item.employee_name,
             doc_type: item.doc_type,
-            filename: safeLogFilename,
-            page_count: item.page_count,
-            verification_status: 'Pending Verification',
-          },
-        }).catch((err) => console.warn('[BulkUpload] Audit log failed:', err.message));
-
-        successCount++;
-        results.push({
-          file_name: item.file_name,
-          employee_code: item.employee_code,
-          employee_name: item.employee_name,
-          doc_type: item.doc_type,
-          status: 'SUCCESS',
-          document_id: docRecord.id,
-        });
-      } catch (err) {
-        failedCount++;
-        results.push({
-          file_name: item.file_name,
-          employee_code: item.employee_code,
-          employee_name: item.employee_name,
-          doc_type: item.doc_type,
-          status: 'FAILED',
-          error: err.message,
-        });
+            status: 'SUCCESS',
+            action: isUpdate ? 'UPDATED' : 'CREATED',
+            document_id: docRecord.id,
+          });
+        } catch (err) {
+          // If destination file was already copied before an error occurred, remove it so zero orphans remain
+          if (destination && fs.existsSync(destination)) {
+            await fs.promises.unlink(destination).catch(() => {});
+          }
+          failedCount++;
+          results.push({
+            file_name: item.file_name,
+            employee_code: item.employee_code,
+            employee_name: item.employee_name,
+            doc_type: item.doc_type,
+            status: 'FAILED',
+            error: err.message,
+          });
+        }
       }
+    } finally {
+      // Guarantee temporary batch directory is completely deleted on success AND failure paths
+      await fs.promises.rm(batchDir, { recursive: true, force: true }).catch(() => {});
     }
 
-    // Clean up temporary batch directory completely
-    await fs.promises.rm(batchDir, { recursive: true, force: true }).catch(() => {});
-
     // Build downloadable result CSV report
-    const csvRows = ['file_name,employee_code,employee_name,doc_type,status,error'];
+    const csvRows = ['file_name,employee_code,employee_name,doc_type,status,action,error'];
     for (const r of results) {
       const cleanErr = (r.error || '').replace(/[,\n\r"]/g, ' ');
-      csvRows.push(`"${r.file_name}","${r.employee_code}","${r.employee_name}","${r.doc_type}","${r.status}","${cleanErr}"`);
+      csvRows.push(`"${r.file_name}","${r.employee_code}","${r.employee_name}","${r.doc_type}","${r.status}","${r.action || ''}","${cleanErr}"`);
     }
     const reportCsv = csvRows.join('\n');
 
     return {
-      success: true,
+      success: failedCount === 0,
       batch_id: batchId,
       total_ready: readyItems.length,
       processed: successCount,
+      created: createdCount,
+      updated: updatedCount,
       failed: failedCount,
       results,
       reportCsv,
@@ -714,26 +735,31 @@ export class BulkDocumentService {
         docType = 'OTHER';
       }
 
+      let destination = null;
       try {
-        const saved = await storageService.saveFile({
-          buffer: file.buffer,
-          originalName: filename,
-          mimeType: 'application/pdf',
-        });
-        file.buffer = null; // Free RAM immediately
+        const randomHex = crypto.randomBytes(16).toString('hex');
+        const safeFileName = `${Date.now()}_${randomHex}.pdf`;
+        destination = path.join(storageService.storageDir, safeFileName);
 
+        // 1. Process Order: DB write first
         const docRecord = await this.prisma.employee_documents.create({
           data: {
             company_id: companyId,
             employee_id: employeeId,
             doc_type: docType,
             doc_number: `${docType}-${employee.employee_code}`,
-            file_url: saved.storagePath,
+            file_url: safeFileName,
             status: 'Valid',
             verification_status: 'Pending Verification',
-            uploader_id: viewer?.id || null,
+            uploaded_by: viewer?.id || null,
+            created_by: viewer?.id || null,
           },
         });
+
+        // 2. Encrypt & write file only AFTER DB write succeeds
+        const encryptedData = encryptBuffer(file.buffer);
+        await fs.promises.writeFile(destination, encryptedData);
+        file.buffer = null; // Free RAM immediately
 
         const safeFilename = docType === 'BANK_DETAILS' ? 'BANK_DETAILS_DOCUMENT.pdf' : filename;
         await auditService.log({
@@ -747,6 +773,10 @@ export class BulkDocumentService {
 
         results.push({ file_name: filename, doc_type: docType, status: 'SUCCESS', id: docRecord.id });
       } catch (err) {
+        // If file was created on disk but subsequent step failed, remove orphan
+        if (destination && fs.existsSync(destination)) {
+          await fs.promises.unlink(destination).catch(() => {});
+        }
         file.buffer = null;
         results.push({ file_name: filename, status: 'FAILED', error: err.message });
       }
