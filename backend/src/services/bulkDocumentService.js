@@ -28,6 +28,13 @@ export class BulkDocumentService {
     }
   }
 
+  async runTransaction(fn) {
+    if (typeof this.prisma.$transaction === 'function') {
+      return this.prisma.$transaction(fn);
+    }
+    return fn(this.prisma);
+  }
+
   /**
    * Cleans up stale temporary batches older than maxAgeMs (default 2 hours)
    */
@@ -416,6 +423,7 @@ export class BulkDocumentService {
     try {
       for (const item of readyItems) {
         let destination = null;
+        let fileWritten = false;
         try {
           const tempFilePath = path.join(batchDir, item.tempFile);
           if (!fs.existsSync(tempFilePath)) {
@@ -427,96 +435,101 @@ export class BulkDocumentService {
           const safeFileName = `${Date.now()}_${randomHex}.pdf`;
           destination = path.join(storageService.storageDir, safeFileName);
 
-          // 1. Process Order: Perform Database write FIRST
-          const existing = await this.prisma.employee_documents.findFirst({
-            where: {
-              company_id: companyId,
-              employee_id: item.employee_id,
-              doc_type: item.doc_type,
-            },
-          });
+          // 1. Process Order: (a) Copy pre-encrypted temp file to permanent destination FIRST
+          await fs.promises.copyFile(tempFilePath, destination);
+          fileWritten = true;
 
-          let docRecord = null;
-          let isUpdate = false;
-
-          if (existing) {
-            isUpdate = true;
-            const prevVersions = await this.prisma.settings_versions.count({
-              where: { company_id: companyId, entity_type: 'employee_document', entity_id: existing.id },
-            }).catch(() => 0);
-
-            await this.prisma.settings_versions.create({
-              data: {
-                company_id: companyId,
-                entity_type: 'employee_document',
-                entity_id: existing.id,
-                version_no: prevVersions + 1,
-                effective_from: existing.issue_date || new Date(),
-                snapshot: {
-                  doc_number: existing.doc_number,
-                  issue_date: existing.issue_date,
-                  expiry_date: existing.expiry_date,
-                  file_url: existing.file_url,
-                  status: existing.status,
-                  verification_status: existing.verification_status,
-                  archived_at: new Date().toISOString(),
-                },
-                created_by: viewer?.id || null,
-              },
-            }).catch((err) => console.warn('[BulkUpload] Version archive error:', err.message));
-
-            docRecord = await this.prisma.employee_documents.update({
-              where: { id: existing.id },
-              data: {
-                doc_number: item.doc_number,
-                issue_date: item.issue_date ? new Date(item.issue_date) : existing.issue_date,
-                expiry_date: item.expiry_date ? new Date(item.expiry_date) : existing.expiry_date,
-                file_url: safeFileName,
-                verification_status: 'Pending Verification',
-                last_alert_days: null,
-                updated_by: viewer?.id || null,
-              },
-            });
-          } else {
-            docRecord = await this.prisma.employee_documents.create({
-              data: {
+          // 2. Process Order: (b) Run ONE database transaction containing settings_versions + employee_documents + audit log
+          const txResult = await this.runTransaction(async (tx) => {
+            const existing = await tx.employee_documents.findFirst({
+              where: {
                 company_id: companyId,
                 employee_id: item.employee_id,
                 doc_type: item.doc_type,
-                doc_number: item.doc_number,
-                issue_date: item.issue_date ? new Date(item.issue_date) : null,
-                expiry_date: item.expiry_date ? new Date(item.expiry_date) : null,
-                file_url: safeFileName,
-                status: 'Valid',
-                verification_status: 'Pending Verification',
-                uploaded_by: viewer?.id || null,
-                created_by: viewer?.id || null,
               },
             });
-          }
 
-          // 2. Process Order: Copy pre-encrypted temp file to permanent storage only AFTER DB write succeeds
-          await fs.promises.copyFile(tempFilePath, destination);
+            let docRecord = null;
+            let isUpdate = false;
 
-          // 3. Audit log
-          const safeLogFilename = item.doc_type === 'BANK_DETAILS' ? 'BANK_DETAILS_DOCUMENT.pdf' : item.file_name;
-          await auditService.log({
-            companyId,
-            userId: viewer?.id || null,
-            action: isUpdate ? 'BulkDocumentUpdate' : 'BulkDocumentUpload',
-            tableName: 'employee_documents',
-            recordId: docRecord.id,
-            newValues: {
-              employee_code: item.employee_code,
-              doc_type: item.doc_type,
-              filename: safeLogFilename,
-              page_count: item.page_count,
-              verification_status: 'Pending Verification',
-            },
-          }).catch((err) => console.warn('[BulkUpload] Audit log failed:', err.message));
+            if (existing) {
+              isUpdate = true;
+              const prevVersions = await tx.settings_versions.count({
+                where: { company_id: companyId, entity_type: 'employee_document', entity_id: existing.id },
+              });
+
+              await tx.settings_versions.create({
+                data: {
+                  company_id: companyId,
+                  entity_type: 'employee_document',
+                  entity_id: existing.id,
+                  version_no: prevVersions + 1,
+                  effective_from: existing.issue_date || new Date(),
+                  snapshot: {
+                    doc_number: existing.doc_number,
+                    issue_date: existing.issue_date,
+                    expiry_date: existing.expiry_date,
+                    file_url: existing.file_url,
+                    status: existing.status,
+                    verification_status: existing.verification_status,
+                    archived_at: new Date().toISOString(),
+                  },
+                  created_by: viewer?.id || null,
+                },
+              });
+
+              docRecord = await tx.employee_documents.update({
+                where: { id: existing.id },
+                data: {
+                  doc_number: item.doc_number,
+                  issue_date: item.issue_date ? new Date(item.issue_date) : existing.issue_date,
+                  expiry_date: item.expiry_date ? new Date(item.expiry_date) : existing.expiry_date,
+                  file_url: safeFileName,
+                  verification_status: 'Pending Verification',
+                  last_alert_days: null,
+                  updated_by: viewer?.id || null,
+                },
+              });
+            } else {
+              docRecord = await tx.employee_documents.create({
+                data: {
+                  company_id: companyId,
+                  employee_id: item.employee_id,
+                  doc_type: item.doc_type,
+                  doc_number: item.doc_number,
+                  issue_date: item.issue_date ? new Date(item.issue_date) : null,
+                  expiry_date: item.expiry_date ? new Date(item.expiry_date) : null,
+                  file_url: safeFileName,
+                  status: 'Valid',
+                  verification_status: 'Pending Verification',
+                  uploaded_by: viewer?.id || null,
+                  created_by: viewer?.id || null,
+                },
+              });
+            }
+
+            const safeLogFilename = item.doc_type === 'BANK_DETAILS' ? 'BANK_DETAILS_DOCUMENT.pdf' : item.file_name;
+            await auditService.log({
+              companyId,
+              userId: viewer?.id || null,
+              action: isUpdate ? 'BulkDocUpdate' : 'BulkDocUpload',
+              tableName: 'employee_documents',
+              recordId: docRecord.id,
+              newValues: {
+                employee_code: item.employee_code,
+                doc_type: item.doc_type,
+                filename: safeLogFilename,
+                page_count: item.page_count,
+                verification_status: 'Pending Verification',
+              },
+              tx,
+            });
+
+            return { docRecord, isUpdate };
+          });
 
           successCount++;
-          if (isUpdate) updatedCount++;
+          if (txResult.isUpdate) updatedCount++;
           else createdCount++;
 
           results.push({
@@ -525,12 +538,13 @@ export class BulkDocumentService {
             employee_name: item.employee_name,
             doc_type: item.doc_type,
             status: 'SUCCESS',
-            action: isUpdate ? 'UPDATED' : 'CREATED',
-            document_id: docRecord.id,
+            action: txResult.isUpdate ? 'UPDATED' : 'CREATED',
+            document_id: txResult.docRecord.id,
           });
         } catch (err) {
-          // If destination file was already copied before an error occurred, remove it so zero orphans remain
-          if (destination && fs.existsSync(destination)) {
+          // (c) If copy failed: fileWritten is false, nothing written to DB.
+          // If DB transaction failed: unlink the new file so zero orphan remains.
+          if (fileWritten && destination && fs.existsSync(destination)) {
             await fs.promises.unlink(destination).catch(() => {});
           }
           failedCount++;
@@ -736,45 +750,107 @@ export class BulkDocumentService {
       }
 
       let destination = null;
+      let fileWritten = false;
       try {
         const randomHex = crypto.randomBytes(16).toString('hex');
         const safeFileName = `${Date.now()}_${randomHex}.pdf`;
         destination = path.join(storageService.storageDir, safeFileName);
 
-        // 1. Process Order: DB write first
-        const docRecord = await this.prisma.employee_documents.create({
-          data: {
-            company_id: companyId,
-            employee_id: employeeId,
-            doc_type: docType,
-            doc_number: `${docType}-${employee.employee_code}`,
-            file_url: safeFileName,
-            status: 'Valid',
-            verification_status: 'Pending Verification',
-            uploaded_by: viewer?.id || null,
-            created_by: viewer?.id || null,
-          },
-        });
-
-        // 2. Encrypt & write file only AFTER DB write succeeds
+        // 1. Process Order: (a) Encrypt and write file to permanent storage FIRST
         const encryptedData = encryptBuffer(file.buffer);
         await fs.promises.writeFile(destination, encryptedData);
+        fileWritten = true;
         file.buffer = null; // Free RAM immediately
 
-        const safeFilename = docType === 'BANK_DETAILS' ? 'BANK_DETAILS_DOCUMENT.pdf' : filename;
-        await auditService.log({
-          companyId,
-          userId: viewer?.id || null,
-          action: 'EmployeeSelfDocUpload',
-          tableName: 'employee_documents',
-          recordId: docRecord.id,
-          newValues: { doc_type: docType, filename: safeFilename },
-        }).catch(() => {});
+        // 2. Process Order: (b) Run ONE database transaction containing settings_versions + employee_documents + audit log
+        const txResult = await this.runTransaction(async (tx) => {
+          const existing = await tx.employee_documents.findFirst({
+            where: {
+              company_id: companyId,
+              employee_id: employeeId,
+              doc_type: docType,
+            },
+          });
 
-        results.push({ file_name: filename, doc_type: docType, status: 'SUCCESS', id: docRecord.id });
+          let docRecord = null;
+          let isUpdate = false;
+
+          if (existing) {
+            isUpdate = true;
+            const prevVersions = await tx.settings_versions.count({
+              where: { company_id: companyId, entity_type: 'employee_document', entity_id: existing.id },
+            });
+
+            await tx.settings_versions.create({
+              data: {
+                company_id: companyId,
+                entity_type: 'employee_document',
+                entity_id: existing.id,
+                version_no: prevVersions + 1,
+                effective_from: existing.issue_date || new Date(),
+                snapshot: {
+                  doc_number: existing.doc_number,
+                  issue_date: existing.issue_date,
+                  expiry_date: existing.expiry_date,
+                  file_url: existing.file_url,
+                  status: existing.status,
+                  verification_status: existing.verification_status,
+                  archived_at: new Date().toISOString(),
+                },
+                created_by: viewer?.id || null,
+              },
+            });
+
+            docRecord = await tx.employee_documents.update({
+              where: { id: existing.id },
+              data: {
+                file_url: safeFileName,
+                verification_status: 'Pending Verification',
+                last_alert_days: null,
+                updated_by: viewer?.id || null,
+              },
+            });
+          } else {
+            docRecord = await tx.employee_documents.create({
+              data: {
+                company_id: companyId,
+                employee_id: employeeId,
+                doc_type: docType,
+                doc_number: `${docType}-${employee.employee_code}`,
+                file_url: safeFileName,
+                status: 'Valid',
+                verification_status: 'Pending Verification',
+                uploaded_by: viewer?.id || null,
+                created_by: viewer?.id || null,
+              },
+            });
+          }
+
+          const safeFilename = docType === 'BANK_DETAILS' ? 'BANK_DETAILS_DOCUMENT.pdf' : filename;
+          await auditService.log({
+            companyId,
+            userId: viewer?.id || null,
+            action: isUpdate ? 'SelfDocUpdate' : 'SelfDocUpload',
+            tableName: 'employee_documents',
+            recordId: docRecord.id,
+            newValues: { doc_type: docType, filename: safeFilename },
+            tx,
+          });
+
+          return { docRecord, isUpdate };
+        });
+
+        results.push({
+          file_name: filename,
+          doc_type: docType,
+          status: 'SUCCESS',
+          id: txResult.docRecord.id,
+          action: txResult.isUpdate ? 'UPDATED' : 'CREATED',
+        });
       } catch (err) {
-        // If file was created on disk but subsequent step failed, remove orphan
-        if (destination && fs.existsSync(destination)) {
+        // (c) If write failed: fileWritten is false, DB untouched.
+        // If DB transaction failed: unlink the new file so zero orphan remains.
+        if (fileWritten && destination && fs.existsSync(destination)) {
           await fs.promises.unlink(destination).catch(() => {});
         }
         file.buffer = null;

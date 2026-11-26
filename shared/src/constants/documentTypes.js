@@ -155,7 +155,7 @@ export function normalizeDocumentType(input) {
   if (clean === 'IBAN' || clean === 'BANK' || clean === 'BANK_LETTER' || clean === 'BANK_PROOF') {
     return 'BANK_DETAILS';
   }
-  if (clean === 'INSURANCE' || clean === 'MEDICAL_INSURANCE') {
+  if (clean === 'INSURANCE' || clean === 'MEDICAL_INSURANCE' || clean === 'INSURANCE_CARD' || clean === 'HEALTH_CARD') {
     return 'HEALTH_INSURANCE';
   }
   if (clean === 'DEGREE' || clean === 'DIPLOMA') {

@@ -121,6 +121,13 @@ async function run() {
   const { token, cookie } = await loginAdmin();
   console.log('[Auth] Authenticated successfully.');
 
+  // Ensure clean slate for WORK_PERMIT create path so test is repeatable
+  try {
+    execSync('docker exec -i nextal-postgres-prod psql -U postgres -d nextal_hr_prod -c "DELETE FROM employee_documents WHERE doc_type = \'WORK_PERMIT\';"', { stdio: 'ignore' });
+  } catch (err) {
+    // Non-docker or ignore
+  }
+
   const headers = {
     'Origin': BASE_URL,
   };
@@ -152,9 +159,9 @@ async function run() {
         docType = 'EMIRATES_ID';
         filename = `EMP-${empNum}_${docType}_renewed_${fileNum}.pdf`;
       } else {
-        // Files 51..100: New create path (RESIDENCE_VISA does not exist for EMP-001..050)
+        // Files 51..100: New create path (WORK_PERMIT does not exist for EMP-001..050)
         empNum = String(fileNum - 50).padStart(3, '0');
-        docType = 'RESIDENCE_VISA';
+        docType = 'WORK_PERMIT';
         filename = `EMP-${empNum}_${docType}_new_${fileNum}.pdf`;
       }
 

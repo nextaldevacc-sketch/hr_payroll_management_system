@@ -4,6 +4,7 @@ import auditService from '../services/auditService.js';
 import { runComplianceJob } from './complianceJob.js';
 import { runDeactivationJob } from './deactivationJob.js';
 import { runMonthlyAccrualJob } from './accruals.js';
+import { runStorageCleanupJob } from './storageCleanupJob.js';
 import mailer from '../lib/mailer.js';
 
 const TIMEZONE = 'Asia/Dubai';
@@ -38,6 +39,12 @@ export const REGISTERED_JOBS = {
     description: 'Process queued & retryable email outbox items with backoff (E1)',
     cronExpression: '*/5 * * * *', // every 5 minutes
     runner: async () => await mailer.processOutboxBatch(),
+  },
+  storage_cleanup: {
+    name: 'storage_cleanup',
+    description: 'Clean unreferenced document files (>24h) and stale tmp-batches (>2h)',
+    cronExpression: '0 3 * * *', // 03:00 daily
+    runner: async () => await runStorageCleanupJob(),
   },
 };
 

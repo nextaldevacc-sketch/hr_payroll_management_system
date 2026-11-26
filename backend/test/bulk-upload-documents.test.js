@@ -135,6 +135,10 @@ test('BulkDocumentService: chunked upload, batch preview, and zero re-upload pro
       count: async () => 0,
       create: async () => ({}),
     },
+    audit_logs: {
+      create: async () => ({}),
+    },
+    $transaction: async (fn) => fn(mockDb),
   };
 
   const { BulkDocumentService } = await import('../src/services/bulkDocumentService.js');

@@ -8,6 +8,8 @@ import app from '../../src/app.js';
 import prisma from '../../src/lib/prisma.js';
 import authService from '../../src/services/authService.js';
 import storageService from '../../src/lib/storage.js';
+import bulkDocumentService from '../../src/services/bulkDocumentService.js';
+import { runStorageCleanupJob } from '../../src/jobs/storageCleanupJob.js';
 
 describe('Part 16: Bulk Upload & Self-Service Real Integration Pipeline (Real DB + HTTP)', () => {
   let company;
@@ -383,6 +385,249 @@ describe('Part 16: Bulk Upload & Self-Service Real Integration Pipeline (Real DB
       0,
       'Downloaded PDF bytes must match original uploaded PDF bytes with 100% fidelity'
     );
+  });
+
+  it('7. Bulk upload fault injection: fs.copyFile failure leaves DB untouched and partial batch continues', async () => {
+    const validPdf1 = await createValidPdf('Doc will fail copy');
+    const validPdf2 = await createValidPdf('Doc will succeed copy');
+
+    const fn1 = `${empA.employee_code}_WORK_PERMIT_failcopy.pdf`;
+    const fn2 = `${empA.employee_code}_HEALTH_INSURANCE_okcopy.pdf`;
+
+    const chunkRes = await request(app)
+      .post('/api/v1/employees/documents/bulk-upload/chunk')
+      .set('Authorization', `Bearer ${hrToken}`)
+      .set('Origin', 'https://localhost')
+      .attach('files', validPdf1, fn1)
+      .attach('files', validPdf2, fn2);
+
+    assert.equal(chunkRes.status, 200);
+    const batchId = chunkRes.body.data.batch_id;
+
+    // Simulate fs.promises.copyFile failure ONLY for first file in this batch
+    let copyAttempts = 0;
+    const origCopyFile = fs.promises.copyFile;
+    fs.promises.copyFile = async (src, dest) => {
+      if (typeof src === 'string' && src.includes(batchId)) {
+        copyAttempts++;
+        if (copyAttempts === 1) {
+          throw new Error('EACCES: permission denied, simulated disk full');
+        }
+      }
+      return origCopyFile.call(fs.promises, src, dest);
+    };
+
+    try {
+      const processRes = await request(app)
+        .post('/api/v1/employees/documents/bulk-upload/process')
+        .set('Authorization', `Bearer ${hrToken}`)
+        .set('Origin', 'https://localhost')
+        .send({ batch_id: batchId });
+
+      assert.equal(processRes.status, 200);
+      assert.equal(processRes.body.data.processed, 1, 'Partial batch should process the 1 valid file');
+      assert.equal(processRes.body.data.failed, 1, 'File with copy failure should be reported failed');
+
+      // Verify DB: WORK_PERMIT was NOT created
+      const wpDoc = await prisma.$base().employee_documents.findFirst({
+        where: { company_id: company.id, employee_id: empA.id, doc_type: 'WORK_PERMIT' },
+      });
+      assert.equal(wpDoc, null, 'No DB record should exist when file copy fails');
+
+      // Verify DB: HEALTH_INSURANCE WAS created
+      const icDoc = await prisma.$base().employee_documents.findFirst({
+        where: { company_id: company.id, employee_id: empA.id, doc_type: 'HEALTH_INSURANCE' },
+      });
+      assert.ok(icDoc, 'Valid file in partial batch must still be created');
+      assert.equal(icDoc.uploaded_by, hrUser.id);
+    } finally {
+      fs.promises.copyFile = origCopyFile;
+    }
+  });
+
+  it('8. Bulk upload fault injection: DB failure after copy unlinks new file and keeps existing file_url downloadable', async () => {
+    // 1. Ensure empA has an existing document with known content
+    const originalContent = `InitialContent_${Date.now()}`;
+    const initialPdf = await createValidPdf(originalContent);
+    const upRes = await request(app)
+      .post('/api/v1/employees/documents/bulk-upload/chunk')
+      .set('Authorization', `Bearer ${hrToken}`)
+      .set('Origin', 'https://localhost')
+      .attach('files', initialPdf, `${empA.employee_code}_PASSPORT_v1.pdf`);
+    assert.equal(upRes.status, 200);
+    const batchId1 = upRes.body.data.batch_id;
+    await request(app)
+      .post('/api/v1/employees/documents/bulk-upload/process')
+      .set('Authorization', `Bearer ${hrToken}`)
+      .set('Origin', 'https://localhost')
+      .send({ batch_id: batchId1 });
+
+    const existingDoc = await prisma.$base().employee_documents.findFirst({
+      where: { company_id: company.id, employee_id: empA.id, doc_type: 'PASSPORT' },
+    });
+    assert.ok(existingDoc);
+    const originalFileUrl = existingDoc.file_url;
+    const originalDiskPath = path.join(storageService.storageDir, originalFileUrl);
+    assert.ok(fs.existsSync(originalDiskPath), 'Original file must exist on disk');
+
+    // 2. Prepare renewal upload that will fail during DB transaction
+    const renewalPdf = await createValidPdf('Renewed Content that will fail DB update');
+    const renewalChunkRes = await request(app)
+      .post('/api/v1/employees/documents/bulk-upload/chunk')
+      .set('Authorization', `Bearer ${hrToken}`)
+      .set('Origin', 'https://localhost')
+      .attach('files', renewalPdf, `${empA.employee_code}_PASSPORT_v2_faildb.pdf`);
+    assert.equal(renewalChunkRes.status, 200);
+    const batchId2 = renewalChunkRes.body.data.batch_id;
+
+    const beforeStorageFiles = new Set(fs.readdirSync(storageService.storageDir));
+
+    // Simulate DB transaction error on update
+    const origTx = bulkDocumentService.prisma.$transaction.bind(bulkDocumentService.prisma);
+    bulkDocumentService.prisma.$transaction = async (fn, opts) => {
+      return origTx(async (tx) => {
+        tx.employee_documents.update = async () => {
+          throw new Error('SIMULATED_DATABASE_DEADLOCK_AFTER_COPY');
+        };
+        return fn(tx);
+      }, opts);
+    };
+
+    try {
+      const processRes = await request(app)
+        .post('/api/v1/employees/documents/bulk-upload/process')
+        .set('Authorization', `Bearer ${hrToken}`)
+        .set('Origin', 'https://localhost')
+        .send({ batch_id: batchId2 });
+
+      assert.equal(processRes.status, 200);
+      assert.equal(processRes.body.data.failed, 1);
+
+      // Verify in DB: record is UNCHANGED and still points to originalFileUrl
+      const currentDoc = await prisma.$base().employee_documents.findUnique({
+        where: { id: existingDoc.id },
+      });
+      assert.equal(currentDoc.file_url, originalFileUrl, 'DB record file_url must not change on failed update');
+
+      // Verify in Storage: no new orphan files added (new file was unlinked on rollback)
+      const afterStorageFiles = fs.readdirSync(storageService.storageDir);
+      const addedFiles = afterStorageFiles.filter((f) => !beforeStorageFiles.has(f));
+      assert.equal(addedFiles.length, 0, 'New file must be unlinked when DB transaction fails');
+
+      // Verify original file is STILL on disk and STILL downloadable with 200 OK
+      assert.ok(fs.existsSync(originalDiskPath), 'Previous file must NEVER be deleted');
+      const downRes = await request(app)
+        .get(`/api/v1/employees/${empA.id}/documents/${existingDoc.id}/download`)
+        .set('Authorization', `Bearer ${hrToken}`);
+      assert.equal(downRes.status, 200);
+    } finally {
+      bulkDocumentService.prisma.$transaction = origTx;
+    }
+  });
+
+  it('9. Employee self-service multi upload fault injection: file write failure and DB failure safety', async () => {
+    // Case A: fs.writeFile failure
+    const pdfA = await createValidPdf('Self upload fail write');
+    const origWriteFile = fs.promises.writeFile;
+    fs.promises.writeFile = async () => {
+      throw new Error('ENOSPC: no space left on device');
+    };
+
+    try {
+      const resA = await request(app)
+        .post('/api/v1/me/documents/bulk-upload')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .set('Origin', 'https://localhost')
+        .attach('files', pdfA, 'OTHER_failwrite.pdf');
+
+      assert.equal(resA.status, 200);
+      assert.equal(resA.body.data.processed, 0);
+      assert.equal(resA.body.data.failed, 1);
+    } finally {
+      fs.promises.writeFile = origWriteFile;
+    }
+
+    // Case B: DB transaction failure -> file removed, 0 orphans
+    const pdfB = await createValidPdf('Self upload fail db');
+    const beforeFiles = new Set(fs.readdirSync(storageService.storageDir));
+
+    const origTx = bulkDocumentService.prisma.$transaction.bind(bulkDocumentService.prisma);
+    bulkDocumentService.prisma.$transaction = async (fn, opts) => {
+      return origTx(async (tx) => {
+        tx.employee_documents.create = async () => {
+          throw new Error('SIMULATED_DB_ERROR_SELF_UPLOAD');
+        };
+        tx.employee_documents.update = async () => {
+          throw new Error('SIMULATED_DB_ERROR_SELF_UPLOAD');
+        };
+        return fn(tx);
+      }, opts);
+    };
+
+    try {
+      const resB = await request(app)
+        .post('/api/v1/me/documents/bulk-upload')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .set('Origin', 'https://localhost')
+        .attach('files', pdfB, 'OTHER_faildb.pdf');
+
+      assert.equal(resB.status, 200);
+      assert.equal(resB.body.data.failed, 1);
+
+      // Verify no orphan file left on disk
+      const afterFiles = fs.readdirSync(storageService.storageDir);
+      const added = afterFiles.filter((f) => !beforeFiles.has(f));
+      assert.equal(added.length, 0, 'No orphan file should remain on disk when self-upload DB fails');
+    } finally {
+      bulkDocumentService.prisma.$transaction = origTx;
+    }
+  });
+
+  it('10. Crash safety cleanup job: deletes unreferenced files >24h and batches >2h, preserves recent/referenced', async () => {
+    const storageDir = storageService.storageDir;
+    const tmpBatchDir = path.resolve(process.cwd(), 'storage/tmp-batches');
+    if (!fs.existsSync(tmpBatchDir)) fs.mkdirSync(tmpBatchDir, { recursive: true });
+
+    // 1. Create a stale unreferenced document (>24h old: 25 hours ago)
+    const staleDocName = `stale_unreferenced_${runId}.pdf`;
+    const staleDocPath = path.join(storageDir, staleDocName);
+    fs.writeFileSync(staleDocPath, Buffer.from('stale unreferenced content'));
+    const time25hAgo = new Date(Date.now() - 25 * 3600 * 1000);
+    fs.utimesSync(staleDocPath, time25hAgo, time25hAgo);
+
+    // 2. Create a recent unreferenced document (<24h old: 1 hour ago)
+    const recentDocName = `recent_unreferenced_${runId}.pdf`;
+    const recentDocPath = path.join(storageDir, recentDocName);
+    fs.writeFileSync(recentDocPath, Buffer.from('recent unreferenced content'));
+    const time1hAgo = new Date(Date.now() - 1 * 3600 * 1000);
+    fs.utimesSync(recentDocPath, time1hAgo, time1hAgo);
+
+    // 3. Create a stale tmp-batch folder (>2h old: 3 hours ago)
+    const staleBatchName = `batch_stale_${runId}`;
+    const staleBatchPath = path.join(tmpBatchDir, staleBatchName);
+    fs.mkdirSync(staleBatchPath, { recursive: true });
+    const time3hAgo = new Date(Date.now() - 3 * 3600 * 1000);
+    fs.utimesSync(staleBatchPath, time3hAgo, time3hAgo);
+
+    // 4. Create a recent tmp-batch folder (<2h old: 30 mins ago)
+    const recentBatchName = `batch_recent_${runId}`;
+    const recentBatchPath = path.join(tmpBatchDir, recentBatchName);
+    fs.mkdirSync(recentBatchPath, { recursive: true });
+    const time30mAgo = new Date(Date.now() - 30 * 60 * 1000);
+    fs.utimesSync(recentBatchPath, time30mAgo, time30mAgo);
+
+    // Run cleanup job
+    const stats = await runStorageCleanupJob({ dryRun: false });
+
+    // Assertions:
+    assert.ok(!fs.existsSync(staleDocPath), 'Unreferenced doc > 24h must be deleted');
+    assert.ok(fs.existsSync(recentDocPath), 'Unreferenced doc < 24h must be preserved');
+    assert.ok(!fs.existsSync(staleBatchPath), 'Tmp-batch > 2h must be deleted');
+    assert.ok(fs.existsSync(recentBatchPath), 'Tmp-batch < 2h must be preserved');
+
+    // Clean up recent test fixtures
+    if (fs.existsSync(recentDocPath)) fs.unlinkSync(recentDocPath);
+    if (fs.existsSync(recentBatchPath)) fs.rmSync(recentBatchPath, { recursive: true, force: true });
   });
 });
 

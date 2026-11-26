@@ -1,14 +1,14 @@
 # True Every-Control UI Interaction Crawler Sweep (Section A6)
 
 > **Platform**: Nextal HR & Payroll Management System
-> **Generated At**: 2026-11-26T06:26:42.465Z
-> **Total Controls Inspected**: 415 | **Clicked**: 415 | **Bugs**: 0
+> **Generated At**: 2026-11-26T09:20:07.306Z
+> **Total Controls Inspected**: 419 | **Clicked**: 419 | **Bugs**: 0
 
 ## Role Breakdown
 
 | Role | Controls Found | Controls Clicked | Bugs |
 |:---|:---:|:---:|:---:|
-| `COMPANY_ADMIN` | 165 | 165 | 0 |
+| `COMPANY_ADMIN` | 169 | 169 | 0 |
 | `HR_MANAGER` | 250 | 250 | 0 |
 
 ## Bugs Register
