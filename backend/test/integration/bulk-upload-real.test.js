@@ -616,8 +616,8 @@ describe('Part 16: Bulk Upload & Self-Service Real Integration Pipeline (Real DB
     const time30mAgo = new Date(Date.now() - 30 * 60 * 1000);
     fs.utimesSync(recentBatchPath, time30mAgo, time30mAgo);
 
-    // Run cleanup job
-    const stats = await runStorageCleanupJob({ dryRun: false });
+    // Run cleanup job in delete mode
+    const stats = await runStorageCleanupJob({ mode: 'delete', dryRun: false });
 
     // Assertions:
     assert.ok(!fs.existsSync(staleDocPath), 'Unreferenced doc > 24h must be deleted');

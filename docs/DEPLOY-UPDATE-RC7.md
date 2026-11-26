@@ -240,3 +240,31 @@ $D ps
 ```
 
 > **Database Safety Notice**: All RC7 schema changes are strictly additive (`welcome_email_sent_at DateTime?`, `sessions` table, `rate_limits` table, document types enum). Older RC6 images run seamlessly against the upgraded database without dropping columns or tables.
+
+---
+
+## 8. Storage Cleanup Background Job & Safety Configuration
+
+Release Candidate 7 introduces the automated `storage_cleanup` background job (`0 3 * * *` daily at 03:00 UTC) with strict safety valves.
+
+### Configuration (`STORAGE_CLEANUP_MODE`)
+
+Add to `/opt/nextal/.env.production`:
+
+```env
+# Storage Cleanup Mode: off | dry-run | delete (Default: dry-run)
+STORAGE_CLEANUP_MODE=dry-run
+```
+
+- **`dry-run` (Recommended for First Week)**:
+  Scans all defined file/URL storage tables (`employee_documents`, `biometric_imports`, `leave_requests`, `pay_runs`, `payslips`, `companies`, and `settings_versions` snapshots). Identifies unreferenced files older than 24 hours and temporary batch folders older than 2 hours. Logs what it **WOULD** delete without deleting anything.
+- **`delete` (Enable After Review)**:
+  Permanently removes unreferenced files $> 24\text{h}$ and stale batch folders $> 2\text{h}$. Switch to `delete` mode only after reviewing the dry-run output in Docker/audit logs for one week.
+- **`off`**:
+  Disables the storage cleanup job completely.
+
+### Built-in Safety Valves:
+1. **Zero-References Sanity Guard**: If files exist on disk in `storage/documents`, but the database query returns 0 references (e.g. database glitch or connection error), cleanup **aborts immediately** with an error. No files are deleted.
+2. **50-File Safety Cap**: Never deletes more than 50 files in a single run. If $>50$ eligible files are found, the job logs a warning and **stops without deleting**.
+3. **Strict 24h/2h Threshold**: Files $< 24\text{h}$ old and batch folders $< 2\text{h}$ old are strictly preserved.
+4. **Audit Logging**: Every execution records a `STORAGE_CLEANUP` entry in `audit_logs` with the mode, file counts, and safety status.

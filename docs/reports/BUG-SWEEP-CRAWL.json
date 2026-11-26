@@ -2,8 +2,8 @@
   "roleSummaries": [
     {
       "role": "COMPANY_ADMIN",
-      "controlsFound": 169,
-      "controlsClicked": 169,
+      "controlsFound": 171,
+      "controlsClicked": 171,
       "bugs": 0
     },
     {

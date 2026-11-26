@@ -104,3 +104,39 @@ test('Prisma Schema Guard: static analysis of service create/update data keys', 
 
   assert.deepEqual(violations, [], `Found Prisma schema key mismatches:\n${violations.join('\n')}`);
 });
+
+test('Prisma Schema Guard: all storage file/URL columns are registered in STORAGE_COLUMN_DEFINITIONS', async () => {
+  const schemaPath = resolveRepoPath('backend/prisma/schema.prisma');
+  assert.ok(fs.existsSync(schemaPath), 'schema.prisma must exist');
+  const models = parsePrismaSchema(schemaPath);
+
+  const { STORAGE_COLUMN_DEFINITIONS } = await import('../src/jobs/storageCleanupJob.js');
+  assert.ok(Array.isArray(STORAGE_COLUMN_DEFINITIONS));
+
+  const registeredPairs = new Set(
+    STORAGE_COLUMN_DEFINITIONS.map((d) => `${d.model}.${d.column}`)
+  );
+
+  const missingFromJob = [];
+
+  for (const [modelName, fields] of models.entries()) {
+    for (const field of fields) {
+      // Look for storage file columns: ending in _url or _path (excluding non-file fields like file_hash)
+      if (
+        (field.endsWith('_url') || field.endsWith('_path') || field === 'file_url') &&
+        field !== 'file_hash'
+      ) {
+        const pair = `${modelName}.${field}`;
+        if (!registeredPairs.has(pair)) {
+          missingFromJob.push(pair);
+        }
+      }
+    }
+  }
+
+  assert.deepEqual(
+    missingFromJob,
+    [],
+    `Found storage URL/path fields in schema.prisma not registered in STORAGE_COLUMN_DEFINITIONS:\n${missingFromJob.join('\n')}`
+  );
+});
